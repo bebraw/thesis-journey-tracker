@@ -32,3 +32,6 @@ jobs:
 
       - name: E2E
         run: npm run e2e
+
+      - name: Lighthouse
+        run: npm run lighthouse

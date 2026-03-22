@@ -3,3 +3,4 @@ node_modules
 playwright-report
 .generated
 test-results
+reports

@@ -13,6 +13,7 @@
     "e2e:dev": "HOME=$PWD wrangler dev --local --port 8788 --persist-to .wrangler/state/e2e --env-file tests/e2e/.env.e2e --var APP_PASSWORD:e2e-password --var SESSION_SECRET:e2e-session-secret",
     "e2e:server": "npm run e2e:prepare && npm run e2e:dev",
     "e2e": "playwright test",
+    "lighthouse": "node ./scripts/run-lighthouse.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
@@ -20,6 +21,8 @@
   },
   "devDependencies": {
     "@playwright/test": "1.58.2",
+    "chrome-launcher": "1.2.1",
+    "lighthouse": "13.0.3",
     "prettier": "3.8.1",
     "tailwindcss": "3.4.17",
     "typescript": "5.9.2",

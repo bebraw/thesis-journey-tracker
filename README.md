@@ -46,6 +46,7 @@ This project implements a thesis advising dashboard for tracking students throug
 - `migrations/0004_add_thesis_topic.sql`: Adds persisted thesis topic per student
 - `migrations/0005_remove_is_mock_columns.sql`: Removes the legacy `is_mock` columns after test data was isolated to E2E
 - `tests/e2e/mock-data.sql`: Seeded test students/logs for isolated E2E runs
+- `docs/performance-plan.md`: Current Lighthouse baseline and follow-up performance plan
 - `wrangler.toml`: Worker + D1 binding config
 - `tailwind.config.cjs`: Tailwind scanning + dark mode config
 - `.dev.vars.example`: local env variable template
@@ -124,11 +125,20 @@ npx playwright install chromium
 npm run e2e
 ```
 
+Run Lighthouse performance audits against the authenticated dashboard:
+
+```bash
+npm run lighthouse
+```
+
+Generated reports are written to `reports/lighthouse/`.
+The command also enforces a minimum Lighthouse performance score of `90` for both mobile and desktop runs.
+
 ## CI
 
 - GitHub Actions workflow: `.github/workflows/ci.yml`
 - Triggered on every push and pull request
-- Runs: `npm ci`, `npx playwright install --with-deps chromium`, `npm run typecheck`, `npm test`, `npm run e2e`
+- Runs: `npm ci`, `npx playwright install --with-deps chromium`, `npm run typecheck`, `npm test`, `npm run e2e`, `npm run lighthouse`
 
 ## Deploy to Cloudflare
 
