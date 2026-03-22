@@ -31,6 +31,17 @@
           ".hisp"
         ],
         "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "typescripthtmlisp",
+        "aliases": [
+          "TypeScript HTMLisp",
+          "typescripthtmlisp"
+        ],
+        "extensions": [
+          ".htmlisp.ts"
+        ],
+        "configuration": "./typescripthtmlisp-language-configuration.json"
       }
     ],
     "grammars": [
@@ -40,6 +51,11 @@
         "path": "./syntaxes/htmlisp.tmLanguage.json"
       },
       {
+        "language": "typescripthtmlisp",
+        "scopeName": "source.typescripthtmlisp",
+        "path": "./syntaxes/typescripthtmlisp.tmLanguage.json"
+      },
+      {
         "scopeName": "text.html.htmlisp.injection",
         "path": "./syntaxes/htmlisp-injection.tmLanguage.json",
         "injectTo": [
@@ -47,6 +63,13 @@
           "source.jsx",
           "source.ts",
           "source.tsx"
+        ]
+      },
+      {
+        "scopeName": "text.html.htmlisp.typescripthtmlisp.injection",
+        "path": "./syntaxes/typescripthtmlisp-htmlisp-injection.tmLanguage.json",
+        "injectTo": [
+          "source.typescripthtmlisp"
         ]
       }
     ]

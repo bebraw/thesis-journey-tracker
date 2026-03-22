@@ -141,6 +141,11 @@ Run the HTMLisp VS Code extension locally:
 2. Press `F5`
 3. Test highlighting in the Extension Development Host
 
+The extension now supports:
+
+- standalone `.htmlisp` / `.hisp` files
+- dedicated `.htmlisp.ts` files via the `TypeScript HTMLisp` language mode
+
 ## CI
 
 - GitHub Actions workflow: `.github/workflows/ci.yml`

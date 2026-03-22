@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "TypeScript HTMLisp Template Injection",
+  "scopeName": "text.html.htmlisp.typescripthtmlisp.injection",
+  "injectionSelector": "L:string.quoted.template.ts",
+  "patterns": [
+    {
+      "begin": "\\G\\s*(?=<[/!A-Za-z])",
+      "end": "(?=\\$\\{|`)",
+      "patterns": [
+        {
+          "include": "text.html.htmlisp"
+        }
+      ]
+    }
+  ]
+}
