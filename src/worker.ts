@@ -1,4 +1,4 @@
-import styles from "./styles.css";
+import styles from "../.generated/styles.css";
 import favicon from "./favicon.ico";
 import {
   createMeetingLog,

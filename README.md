@@ -25,7 +25,7 @@ This project implements a thesis advising dashboard for tracking students throug
 - Dark mode
 - Reusable server-rendered UI components and authenticated style guide page
 - Works locally and on Cloudflare Workers
-- Simple server-rendered HTML + locally built Tailwind CSS (no React)
+- Simple server-rendered HTML + on-demand generated Tailwind CSS (no React)
 
 ## Tech Stack
 
@@ -39,7 +39,7 @@ This project implements a thesis advising dashboard for tracking students throug
 - `src/reference-data.ts`: Shared phase and degree reference data used across UI and logic
 - `src/ui/`: Reusable UI component render helpers and shared Tailwind patterns
 - `src/tailwind-input.css`: Tailwind source file
-- `src/styles.css`: compiled/minified Tailwind output served at `/styles.css`
+- `.generated/styles.css`: generated/minified Tailwind output served at `/styles.css` during dev, E2E, and deploy
 - `migrations/0001_init.sql`: Schema, indexes, and triggers
 - `migrations/0002_cleanup_mock_data.sql`: One-time cleanup for legacy mock rows and obsolete settings table
 - `migrations/0003_add_degree_type.sql`: Adds persisted student degree type
@@ -104,7 +104,7 @@ Optional: run static type checking:
 npm run typecheck
 ```
 
-Manual CSS rebuild (usually not needed because `predev`/`predeploy` run it automatically):
+Manual CSS rebuild if you want to force-refresh the generated stylesheet:
 
 ```bash
 npm run build:css
@@ -127,7 +127,7 @@ npm run e2e
 
 - GitHub Actions workflow: `.github/workflows/ci.yml`
 - Triggered on every push and pull request
-- Runs: `npm ci`, `npx playwright install --with-deps chromium`, `npm run build:css`, `npm run typecheck`, `npm test`, `npm run e2e`
+- Runs: `npm ci`, `npx playwright install --with-deps chromium`, `npm run typecheck`, `npm test`, `npm run e2e`
 
 ## Deploy to Cloudflare
 
@@ -148,6 +148,8 @@ npx wrangler secret put SESSION_SECRET
 
 ```bash
 npm run db:migrate:remote
+
+Wrangler runs the Tailwind build automatically before `dev` and `deploy` via `wrangler.toml`, so the generated CSS does not need to be committed.
 ```
 
 4. Deploy:
