@@ -202,18 +202,26 @@ export function renderSelectedStudentPanel(
         </div>
       </details>
 
-      <section &class="(get props dangerPanelClass)">
-        <h2 &class="(get props dangerTitleClass)">Delete Student</h2>
-        <p &class="(get props dangerTextClass)">This removes the student and all related meeting log entries permanently.</p>
-        <form
-          &action="(get props deleteAction)"
-          method="post"
-          class="mt-panel-sm"
-          &onsubmit="(get props deleteConfirm)"
-        >
-          <noop &children="(get props deleteButtonHtml)"></noop>
-        </form>
-      </section>
+      <details &class="(get props disclosureClass)">
+        <summary &class="(get props disclosureSummaryClass)">
+          <span>Delete Student</span>
+          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Rarely needed</span>
+        </summary>
+        <div &class="(get props disclosureContentClass)">
+          <section &class="(get props dangerPanelClass)">
+            <h2 &class="(get props dangerTitleClass)">Delete Student</h2>
+            <p &class="(get props dangerTextClass)">This removes the student and all related meeting log entries permanently.</p>
+            <form
+              &action="(get props deleteAction)"
+              method="post"
+              class="mt-panel-sm"
+              &onsubmit="(get props deleteConfirm)"
+            >
+              <noop &children="(get props deleteButtonHtml)"></noop>
+            </form>
+          </section>
+        </div>
+      </details>
     </article>`,
     {
       cardClass: escapeHtml(`${PANEL_STACK} ${SURFACE_CARD}`),

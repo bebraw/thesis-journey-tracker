@@ -247,6 +247,11 @@ test.describe("dashboard e2e", () => {
 
     await selectStudentFromTable(page, secondaryStudentName);
 
+    await page
+      .locator("#selectedStudentPanel")
+      .locator("summary", { hasText: "Delete Student" })
+      .click();
+
     const dialogPromise = page.waitForEvent("dialog");
     await page
       .locator("#selectedStudentPanel")
