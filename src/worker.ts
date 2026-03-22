@@ -1,39 +1,23 @@
 import styles from "./styles.css";
 import favicon from "./favicon.ico";
-
-type PhaseId =
-  | "research_plan"
-  | "researching"
-  | "first_complete_draft"
-  | "editing"
-  | "submission_ready"
-  | "submitted";
+import {
+  createMeetingLog,
+  createStudent,
+  type D1Database,
+  getShowMockData,
+  listLogsForStudent,
+  listStudents,
+  setShowMockData,
+  studentExists,
+  type MeetingLog,
+  type PhaseId,
+  type Student,
+  updateStudent,
+} from "./db";
 
 interface Phase {
   id: PhaseId;
   label: string;
-}
-
-interface Student {
-  id: number;
-  name: string;
-  email: string | null;
-  startDate: string;
-  targetSubmissionDate: string;
-  currentPhase: PhaseId;
-  nextMeetingAt: string | null;
-  isMock: boolean;
-  logCount: number;
-  lastLogAt: string | null;
-}
-
-interface MeetingLog {
-  id: number;
-  happenedAt: string;
-  discussed: string;
-  agreedPlan: string;
-  nextStepDeadline: string | null;
-  isMock: boolean;
 }
 
 interface Metrics {
@@ -63,59 +47,10 @@ interface AddStudentPageData {
   error: string | null;
 }
 
-type D1Value = string | number | null;
-
-interface D1ExecMeta {
-  last_row_id?: number | string;
-  changes?: number;
-}
-
-interface D1ExecResult {
-  success: boolean;
-  meta: D1ExecMeta;
-}
-
-interface D1AllResult<T> {
-  results: T[];
-}
-
-interface D1PreparedStatement {
-  bind(...values: D1Value[]): D1PreparedStatement;
-  first<T = Record<string, unknown>>(): Promise<T | null>;
-  all<T = Record<string, unknown>>(): Promise<D1AllResult<T>>;
-  run(): Promise<D1ExecResult>;
-}
-
-interface D1Database {
-  prepare(query: string): D1PreparedStatement;
-}
-
 interface Env {
   DB: D1Database;
   APP_PASSWORD: string;
   SESSION_SECRET: string;
-}
-
-interface StudentRow {
-  id: number | string;
-  name: string;
-  email: string | null;
-  start_date: string;
-  target_submission_date: string;
-  current_phase: PhaseId;
-  next_meeting_at: string | null;
-  is_mock: number | string;
-  log_count: number | string | null;
-  last_log_at: string | null;
-}
-
-interface LogRow {
-  id: number | string;
-  happened_at: string;
-  discussed: string;
-  agreed_plan: string;
-  next_step_deadline: string | null;
-  is_mock: number | string;
 }
 
 const SESSION_COOKIE = "thesis_session";
@@ -362,21 +297,14 @@ async function handleAddStudent(request: Request, env: Env): Promise<Response> {
     return redirect("/students/new?error=Invalid+student+input");
   }
 
-  const result = await env.DB.prepare(
-    `INSERT INTO students (name, email, start_date, target_submission_date, current_phase, next_meeting_at, is_mock)
-     VALUES (?, ?, ?, ?, ?, ?, 0)`,
-  )
-    .bind(
-      name,
-      email,
-      startDate,
-      targetSubmissionDate,
-      currentPhase,
-      nextMeetingAt,
-    )
-    .run();
-
-  const selected = Number(result.meta.last_row_id ?? 0);
+  const selected = await createStudent(env.DB, {
+    name,
+    email,
+    startDate,
+    targetSubmissionDate,
+    currentPhase,
+    nextMeetingAt,
+  });
   return redirect(`/?selected=${selected}&notice=Student+added`);
 }
 
@@ -408,28 +336,18 @@ async function handleUpdateStudent(
     return redirect(`/?selected=${studentId}&error=Invalid+update+input`);
   }
 
-  const row = await env.DB.prepare("SELECT id FROM students WHERE id = ?")
-    .bind(studentId)
-    .first();
-  if (!row) {
+  if (!(await studentExists(env.DB, studentId))) {
     return redirect("/?error=Student+not+found");
   }
 
-  await env.DB.prepare(
-    `UPDATE students
-     SET name = ?, email = ?, start_date = ?, target_submission_date = ?, current_phase = ?, next_meeting_at = ?
-     WHERE id = ?`,
-  )
-    .bind(
-      name,
-      email,
-      startDate,
-      targetSubmissionDate,
-      currentPhase,
-      nextMeetingAt,
-      studentId,
-    )
-    .run();
+  await updateStudent(env.DB, studentId, {
+    name,
+    email,
+    startDate,
+    targetSubmissionDate,
+    currentPhase,
+    nextMeetingAt,
+  });
 
   return redirect(`/?selected=${studentId}&notice=Student+updated`);
 }
@@ -455,19 +373,17 @@ async function handleAddLog(
     return redirect(`/?selected=${studentId}&error=Invalid+log+input`);
   }
 
-  const row = await env.DB.prepare("SELECT id FROM students WHERE id = ?")
-    .bind(studentId)
-    .first();
-  if (!row) {
+  if (!(await studentExists(env.DB, studentId))) {
     return redirect("/?error=Student+not+found");
   }
 
-  await env.DB.prepare(
-    `INSERT INTO meeting_logs (student_id, happened_at, discussed, agreed_plan, next_step_deadline, is_mock)
-     VALUES (?, ?, ?, ?, ?, 0)`,
-  )
-    .bind(studentId, happenedAt, discussed, agreedPlan, nextStepDeadline)
-    .run();
+  await createMeetingLog(env.DB, {
+    studentId,
+    happenedAt,
+    discussed,
+    agreedPlan,
+    nextStepDeadline,
+  });
 
   return redirect(`/?selected=${studentId}&notice=Log+saved`);
 }
@@ -476,89 +392,9 @@ async function handleToggleMock(request: Request, env: Env): Promise<Response> {
   const formData = await request.formData();
   const showMockData = formData.get("showMockData") === "1";
 
-  await env.DB.prepare(
-    `INSERT INTO settings (key, value)
-     VALUES ('show_mock_data', ?)
-     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-  )
-    .bind(showMockData ? "1" : "0")
-    .run();
+  await setShowMockData(env.DB, showMockData);
 
   return redirect(`/settings?notice=Mock+data+visibility+updated`);
-}
-
-async function getShowMockData(db: D1Database): Promise<boolean> {
-  const row = await db
-    .prepare(`SELECT value FROM settings WHERE key = 'show_mock_data'`)
-    .first<{ value: string }>();
-  return row ? row.value === "1" : false;
-}
-
-async function listStudents(
-  db: D1Database,
-  showMockData: boolean,
-): Promise<Student[]> {
-  const includeMock = showMockData ? 1 : 0;
-  const rows = await db
-    .prepare(
-      `SELECT
-         s.*,
-         COUNT(ml.id) AS log_count,
-         MAX(ml.happened_at) AS last_log_at
-       FROM students s
-       LEFT JOIN meeting_logs ml
-         ON ml.student_id = s.id
-        AND (? = 1 OR ml.is_mock = 0)
-       WHERE (? = 1 OR s.is_mock = 0)
-       GROUP BY s.id
-       ORDER BY
-         CASE WHEN s.next_meeting_at IS NULL THEN 1 ELSE 0 END,
-         s.next_meeting_at ASC,
-         s.target_submission_date ASC,
-         s.name ASC`,
-    )
-    .bind(includeMock, includeMock)
-    .all<StudentRow>();
-
-  return rows.results.map((row) => ({
-    id: parseDbNumber(row.id),
-    name: row.name,
-    email: row.email,
-    startDate: row.start_date,
-    targetSubmissionDate: row.target_submission_date,
-    currentPhase: row.current_phase as PhaseId,
-    nextMeetingAt: row.next_meeting_at,
-    isMock: parseDbNumber(row.is_mock) === 1,
-    logCount: parseDbNumber(row.log_count),
-    lastLogAt: row.last_log_at || null,
-  }));
-}
-
-async function listLogsForStudent(
-  db: D1Database,
-  studentId: number,
-  showMockData: boolean,
-): Promise<MeetingLog[]> {
-  const includeMock = showMockData ? 1 : 0;
-  const rows = await db
-    .prepare(
-      `SELECT *
-       FROM meeting_logs
-       WHERE student_id = ?
-         AND (? = 1 OR is_mock = 0)
-       ORDER BY happened_at DESC, id DESC`,
-    )
-    .bind(studentId, includeMock)
-    .all<LogRow>();
-
-  return rows.results.map((row) => ({
-    id: parseDbNumber(row.id),
-    happenedAt: row.happened_at,
-    discussed: row.discussed,
-    agreedPlan: row.agreed_plan,
-    nextStepDeadline: row.next_step_deadline,
-    isMock: parseDbNumber(row.is_mock) === 1,
-  }));
 }
 
 function renderDashboardPage(data: DashboardPageData): string {
@@ -1501,17 +1337,6 @@ function normalizeString(
   }
   const text = String(value).trim();
   return text.length > 0 ? text : null;
-}
-
-function parseDbNumber(value: number | string | null | undefined): number {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : 0;
-  }
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  return 0;
 }
 
 function normalizeDate(
