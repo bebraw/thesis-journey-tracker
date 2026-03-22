@@ -40,7 +40,7 @@ This project implements a thesis advising dashboard for tracking students throug
 - `src/ui/`: Reusable UI component render helpers and shared Tailwind patterns
 - `src/tailwind-input.css`: Tailwind source file
 - `.generated/styles.css`: generated/minified Tailwind output served at `/styles.css` during dev, E2E, and deploy
-- `migrations/0001_init.sql`: Schema, indexes, and triggers
+- `migrations/0001_init.sql`: Initial schema, indexes, and triggers
 - `migrations/0002_cleanup_mock_data.sql`: One-time cleanup for legacy mock rows and obsolete settings table
 - `migrations/0003_add_degree_type.sql`: Adds persisted student degree type
 - `migrations/0004_add_thesis_topic.sql`: Adds persisted thesis topic per student
