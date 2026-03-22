@@ -336,7 +336,9 @@ async function handleAddStudent(request: Request, env: Env): Promise<Response> {
   const formData = await request.formData();
 
   const name = normalizeString(formData.get("name"));
-  const email = normalizeString(formData.get("email"));
+  const email = normalizeString(
+    formData.get("studentEmail") ?? formData.get("email"),
+  );
   const startDate = normalizeDate(formData.get("startDate"));
   const targetSubmissionDateInput = normalizeDate(
     formData.get("targetSubmissionDate"),
@@ -386,7 +388,9 @@ async function handleUpdateStudent(
   const formData = await request.formData();
 
   const name = normalizeString(formData.get("name"));
-  const email = normalizeString(formData.get("email"));
+  const email = normalizeString(
+    formData.get("studentEmail") ?? formData.get("email"),
+  );
   const startDate = normalizeDate(formData.get("startDate"));
   const targetSubmissionDate = normalizeDate(
     formData.get("targetSubmissionDate"),
@@ -1255,7 +1259,7 @@ function renderAddStudentPage(data: AddStudentPageData): string {
           </label>
           <label class="text-sm">
             <span class="mb-1 block text-slate-600 dark:text-slate-300">Email (optional)</span>
-            <input name="email" type="email" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
+            <input name="studentEmail" type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" data-bwignore="true" data-lpignore="true" data-1p-ignore="true" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
           </label>
           <label class="text-sm">
             <span class="mb-1 block text-slate-600 dark:text-slate-300">Phase</span>
@@ -1356,7 +1360,7 @@ function renderSelectedStudentPanel(
           </label>
           <label class="block text-sm">
             <span class="mb-1 block text-slate-600 dark:text-slate-300">Email</span>
-            <input name="email" type="email" value="${escapeHtml(student.email || "")}" class="w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-800" />
+            <input name="studentEmail" type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" data-bwignore="true" data-lpignore="true" data-1p-ignore="true" value="${escapeHtml(student.email || "")}" class="w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-800" />
           </label>
           <label class="block text-sm">
             <span class="mb-1 block text-slate-600 dark:text-slate-300">Phase</span>
