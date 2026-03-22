@@ -31,7 +31,11 @@ This project implements a thesis advising dashboard for tracking students throug
 
 - Cloudflare Workers (runtime + hosting)
 - Cloudflare D1 (SQLite)
-- TypeScript (Worker) + HTML + Tailwind CSS build pipeline
+- TypeScript
+- HTMLisp for server-rendered HTML views and UI composition
+- Tailwind CSS for styling
+- Wrangler for local development, D1 migrations, and deployment
+- Playwright and Vitest for testing
 
 ## Project Structure
 
