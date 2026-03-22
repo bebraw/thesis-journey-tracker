@@ -23,7 +23,7 @@ import {
 import { type HtmlispComponents } from "../htmlisp";
 import { getStudentFormValues } from "../student-form";
 import { escapeHtml, escapeJsString, formatDateTime } from "../utils";
-import { renderView } from "./shared";
+import { renderView } from "./shared.htmlisp";
 import { renderStudentFormFields } from "./student-form-fields";
 
 export function renderEmptySelectedPanel(

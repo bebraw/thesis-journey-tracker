@@ -1,7 +1,7 @@
 import { MUTED_TEXT, SURFACE_CARD_SM } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
 import { escapeHtml } from "../../utils";
-import { renderView } from "../shared";
+import { renderView } from "../shared.htmlisp";
 import type { Metrics } from "../types";
 
 interface PreparedMetric {

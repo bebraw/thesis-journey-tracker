@@ -7,7 +7,7 @@ import {
 } from "../ui";
 import { type HtmlispComponents } from "../htmlisp";
 import { escapeHtml } from "../utils";
-import { renderDocument, renderView } from "./shared";
+import { renderDocument, renderView } from "./shared.htmlisp";
 import { SUBTLE_TEXT } from "../ui";
 
 export function renderLoginPage(showError: boolean): string {

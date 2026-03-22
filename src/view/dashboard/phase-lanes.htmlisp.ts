@@ -16,7 +16,7 @@ import {
   meetingStatusId,
   meetingStatusText,
 } from "../../utils";
-import { renderView } from "../shared";
+import { renderView } from "../shared.htmlisp";
 import { DEGREE_TYPES, PHASES } from "../../reference-data";
 
 interface PreparedLaneStudent {

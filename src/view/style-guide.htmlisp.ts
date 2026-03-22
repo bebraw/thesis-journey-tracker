@@ -21,7 +21,7 @@ import {
   renderAuthedPageHeader,
   renderDocument,
   renderView,
-} from "./shared";
+} from "./shared.htmlisp";
 import { DEGREE_TYPES } from "../reference-data";
 
 export function renderStyleGuidePage(): string {

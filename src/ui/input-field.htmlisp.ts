@@ -9,7 +9,7 @@ import {
   serializeHtmlispAttributes,
 } from "../htmlisp";
 import { escapeOptional, fillTemplate } from "./helpers";
-import { renderFieldShell } from "./field-shell";
+import { renderFieldShell } from "./field-shell.htmlisp";
 import { FIELD_CONTROL, FORM_LABEL } from "./styles";
 import type { FieldOptions } from "./types";
 

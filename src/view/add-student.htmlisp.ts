@@ -7,7 +7,7 @@ import {
   renderDocument,
   renderFlashMessages,
   renderView,
-} from "./shared";
+} from "./shared.htmlisp";
 import { renderStudentFormFields } from "./student-form-fields";
 import { type AddStudentPageData } from "./types";
 
