@@ -71,7 +71,6 @@ function preparePhaseLanes(
           renderBadge({
             label: getDegreeLabel(student.degreeType, DEGREE_TYPES),
           }),
-          student.isMock ? renderBadge({ label: "Mock", variant: "mock" }) : "",
         ].join("");
 
         return {

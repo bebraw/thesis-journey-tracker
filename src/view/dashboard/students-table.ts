@@ -93,13 +93,6 @@ function prepareStudentRows(
             student.email || "-"
           }`,
         ),
-        mockBadgeHtml: student.isMock
-          ? renderBadge({
-              label: "Mock",
-              variant: "mock",
-              className: "mt-1 inline-block",
-            })
-          : "",
       },
     );
 

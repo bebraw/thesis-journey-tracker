@@ -18,7 +18,6 @@ export interface Student {
   targetSubmissionDate: string;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
-  isMock: boolean;
   logCount: number;
   lastLogAt: string | null;
 }
@@ -29,7 +28,6 @@ export interface MeetingLog {
   discussed: string;
   agreedPlan: string;
   nextStepDeadline: string | null;
-  isMock: boolean;
 }
 
 type D1Value = string | number | null;
@@ -141,7 +139,6 @@ export async function listStudents(
     targetSubmissionDate: row.target_submission_date,
     currentPhase: row.current_phase as PhaseId,
     nextMeetingAt: row.next_meeting_at,
-    isMock: parseDbNumber(row.is_mock) === 1,
     logCount: parseDbNumber(row.log_count),
     lastLogAt: row.last_log_at || null,
   }));
@@ -184,7 +181,6 @@ export async function getStudentById(
     targetSubmissionDate: row.target_submission_date,
     currentPhase: row.current_phase as PhaseId,
     nextMeetingAt: row.next_meeting_at,
-    isMock: parseDbNumber(row.is_mock) === 1,
     logCount: parseDbNumber(row.log_count),
     lastLogAt: row.last_log_at || null,
   };
@@ -213,7 +209,6 @@ export async function listLogsForStudent(
     discussed: row.discussed,
     agreedPlan: row.agreed_plan,
     nextStepDeadline: row.next_step_deadline,
-    isMock: parseDbNumber(row.is_mock) === 1,
   }));
 }
 

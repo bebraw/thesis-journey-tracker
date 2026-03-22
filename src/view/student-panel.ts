@@ -44,7 +44,6 @@ export function renderEmptySelectedPanel(
 
 interface PreparedLogEntry {
   timestampText: string;
-  mockBadgeHtml: string;
   discussed: string;
   agreedPlan: string;
   hasDeadline: boolean;
@@ -54,13 +53,6 @@ interface PreparedLogEntry {
 function prepareLogEntries(logs: MeetingLog[]): PreparedLogEntry[] {
   return logs.map((log) => ({
     timestampText: escapeHtml(formatDateTime(log.happenedAt)),
-    mockBadgeHtml: log.isMock
-      ? renderBadge({
-          label: "Mock",
-          variant: "mock",
-          className: "ml-2",
-        })
-      : "",
     discussed: escapeHtml(log.discussed),
     agreedPlan: escapeHtml(log.agreedPlan),
     hasDeadline: Boolean(log.nextStepDeadline),
