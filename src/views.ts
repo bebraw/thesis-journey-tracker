@@ -41,6 +41,115 @@ export const PHASES: PhaseDefinition[] = [
   { id: "submitted", label: "Submitted" },
 ];
 
+function renderDocument(
+  title: string,
+  bodyContent: string,
+  bodyClass = "min-h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100",
+): string {
+  return `<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${escapeHtml(title)}</title>
+    <script>
+      (function applyTheme() {
+        var stored = localStorage.getItem("theme");
+        if (stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+          document.documentElement.classList.add("dark");
+        }
+      }());
+    </script>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="${bodyClass}">
+    ${bodyContent}
+  </body>
+</html>`;
+}
+
+function renderThemeToggleButton(): string {
+  return `<button
+    id="themeToggle"
+    type="button"
+    title="Switch to dark mode"
+    aria-label="Switch to dark mode"
+    class="inline-flex items-center justify-center rounded-md border border-slate-300 p-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900"
+  >
+    <svg class="h-5 w-5 text-slate-700 dark:hidden dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M21 12a9 9 0 1 1-9-9 7 7 0 0 0 9 9Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    <svg class="hidden h-5 w-5 text-slate-700 dark:block dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" />
+      <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.41 1.41M16.95 16.95l1.41 1.41M18.36 5.64l-1.41 1.41M7.05 16.95l-1.41 1.41" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+    </svg>
+  </button>`;
+}
+
+function renderThemeToggleScript(): string {
+  return `<script>
+    var themeToggle = document.getElementById("themeToggle");
+    var root = document.documentElement;
+
+    function syncThemeToggleAccessibility() {
+      var nextMode = root.classList.contains("dark") ? "light" : "dark";
+      var label = "Switch to " + nextMode + " mode";
+      themeToggle.setAttribute("title", label);
+      themeToggle.setAttribute("aria-label", label);
+    }
+
+    syncThemeToggleAccessibility();
+
+    themeToggle.addEventListener("click", function () {
+      root.classList.toggle("dark");
+      localStorage.setItem("theme", root.classList.contains("dark") ? "dark" : "light");
+      syncThemeToggleAccessibility();
+    });
+  </script>`;
+}
+
+function renderFlashMessages(
+  notice: string | null,
+  error: string | null,
+): string {
+  return `
+      ${
+        notice
+          ? `<p role="status" aria-live="polite" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200">${escapeHtml(
+              notice,
+            )}</p>`
+          : ""
+      }
+      ${
+        error
+          ? `<p role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200">${escapeHtml(
+              error,
+            )}</p>`
+          : ""
+      }`;
+}
+
+function renderAuthedPageHeader(
+  title: string,
+  description: string,
+  actionsHtml: string,
+): string {
+  return `<header class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-xl font-semibold">${escapeHtml(title)}</h1>
+          <p class="text-sm text-slate-600 dark:text-slate-300">${escapeHtml(description)}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 sm:justify-end sm:gap-3">
+          ${actionsHtml}
+          ${renderThemeToggleButton()}
+          <form action="/logout" method="post">
+            <button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Log out</button>
+          </form>
+        </div>
+      </header>`;
+}
+
 export function renderDashboardPage(data: DashboardPageData): string {
   const { students, selectedStudent, logs, notice, error, metrics } = data;
 
@@ -146,68 +255,15 @@ export function renderDashboardPage(data: DashboardPageData): string {
     ? renderSelectedStudentPanel(selectedStudent, logs)
     : renderEmptySelectedPanel();
 
-  return `<!doctype html>
-<html lang="en" class="h-full">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thesis Journey Tracker</title>
-    <script>
-      (function applyTheme() {
-        var stored = localStorage.getItem("theme");
-        if (stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
-          document.documentElement.classList.add("dark");
-        }
-      }());
-    </script>
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body class="min-h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-    <div class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 class="text-xl font-semibold">MSc Thesis Journey Tracker</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-300">Track phases, next meetings, and supervision logs in one place.</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 sm:justify-end sm:gap-3">
-          <a href="/students/new" class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900">Add student</a>
-          <button
-            id="themeToggle"
-            type="button"
-            title="Switch to dark mode"
-            aria-label="Switch to dark mode"
-            class="inline-flex items-center justify-center rounded-md border border-slate-300 p-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900"
-          >
-            <svg class="h-5 w-5 text-slate-700 dark:hidden dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M21 12a9 9 0 1 1-9-9 7 7 0 0 0 9 9Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <svg class="hidden h-5 w-5 text-slate-700 dark:block dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" />
-              <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.41 1.41M16.95 16.95l1.41 1.41M18.36 5.64l-1.41 1.41M7.05 16.95l-1.41 1.41" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            </svg>
-          </button>
-          <form action="/logout" method="post">
-            <button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Log out</button>
-          </form>
-        </div>
-      </header>
-
-      ${
-        notice
-          ? `<p role="status" aria-live="polite" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200">${escapeHtml(
-              notice,
-            )}</p>`
-          : ""
-      }
-      ${
-        error
-          ? `<p role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200">${escapeHtml(
-              error,
-            )}</p>`
-          : ""
-      }
-
+  return renderDocument(
+    "Thesis Journey Tracker",
+    `<div class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      ${renderAuthedPageHeader(
+        "MSc Thesis Journey Tracker",
+        "Track phases, next meetings, and supervision logs in one place.",
+        '<a href="/students/new" class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900">Add student</a>',
+      )}
+      ${renderFlashMessages(notice, error)}
       <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
           <p class="text-sm text-slate-500 dark:text-slate-300">Students tracked</p>
@@ -297,7 +353,6 @@ export function renderDashboardPage(data: DashboardPageData): string {
     </div>
 
     <script>
-      var themeToggle = document.getElementById("themeToggle");
       var root = document.documentElement;
       var tableBody = document.getElementById("studentsTableBody");
       var studentRows = Array.prototype.slice.call(document.querySelectorAll("[data-student-row]"));
@@ -309,13 +364,6 @@ export function renderDashboardPage(data: DashboardPageData): string {
       var studentResultsMeta = document.getElementById("studentResultsMeta");
       var selectedStudentPanel = document.getElementById("selectedStudentPanel");
       var emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");
-
-      function syncThemeToggleAccessibility() {
-        var nextMode = root.classList.contains("dark") ? "light" : "dark";
-        var label = "Switch to " + nextMode + " mode";
-        themeToggle.setAttribute("title", label);
-        themeToggle.setAttribute("aria-label", label);
-      }
 
       function toTimestamp(value) {
         if (!value) return Number.POSITIVE_INFINITY;
@@ -531,7 +579,6 @@ export function renderDashboardPage(data: DashboardPageData): string {
         });
       }
 
-      syncThemeToggleAccessibility();
       refreshStudentTable();
       var initialSelectedParam = new URL(window.location.href).searchParams.get("selected");
       var initialSelected = initialSelectedParam ? Number.parseInt(initialSelectedParam, 10) : 0;
@@ -543,19 +590,13 @@ export function renderDashboardPage(data: DashboardPageData): string {
       bindLaneSelection();
       bindHistorySelection();
 
-      themeToggle.addEventListener("click", function () {
-        root.classList.toggle("dark");
-        localStorage.setItem("theme", root.classList.contains("dark") ? "dark" : "light");
-        syncThemeToggleAccessibility();
-      });
-
       if (searchInput) searchInput.addEventListener("input", applyStudentFilters);
       if (phaseFilter) phaseFilter.addEventListener("change", applyStudentFilters);
       if (statusFilter) statusFilter.addEventListener("change", applyStudentFilters);
       if (sortBy) sortBy.addEventListener("change", refreshStudentTable);
     </script>
-  </body>
-</html>`;
+    ${renderThemeToggleScript()}`,
+  );
 }
 
 export function renderAddStudentPage(data: AddStudentPageData): string {
@@ -564,68 +605,15 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
     (phase) => `<option value="${phase.id}">${phase.label}</option>`,
   ).join("");
 
-  return `<!doctype html>
-<html lang="en" class="h-full">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thesis Journey Tracker - Add Student</title>
-    <script>
-      (function applyTheme() {
-        var stored = localStorage.getItem("theme");
-        if (stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
-          document.documentElement.classList.add("dark");
-        }
-      }());
-    </script>
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body class="min-h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-    <div class="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 class="text-xl font-semibold">Add Student</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-300">Create a new thesis supervision entry.</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 sm:justify-end sm:gap-3">
-          <a href="/" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Dashboard</a>
-          <button
-            id="themeToggle"
-            type="button"
-            title="Switch to dark mode"
-            aria-label="Switch to dark mode"
-            class="inline-flex items-center justify-center rounded-md border border-slate-300 p-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900"
-          >
-            <svg class="h-5 w-5 text-slate-700 dark:hidden dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M21 12a9 9 0 1 1-9-9 7 7 0 0 0 9 9Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <svg class="hidden h-5 w-5 text-slate-700 dark:block dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" />
-              <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.41 1.41M16.95 16.95l1.41 1.41M18.36 5.64l-1.41 1.41M7.05 16.95l-1.41 1.41" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            </svg>
-          </button>
-          <form action="/logout" method="post">
-            <button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Log out</button>
-          </form>
-        </div>
-      </header>
-
-      ${
-        notice
-          ? `<p role="status" aria-live="polite" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200">${escapeHtml(
-              notice,
-            )}</p>`
-          : ""
-      }
-      ${
-        error
-          ? `<p role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200">${escapeHtml(
-              error,
-            )}</p>`
-          : ""
-      }
-
+  return renderDocument(
+    "Thesis Journey Tracker - Add Student",
+    `<div class="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      ${renderAuthedPageHeader(
+        "Add Student",
+        "Create a new thesis supervision entry.",
+        '<a href="/" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Dashboard</a>',
+      )}
+      ${renderFlashMessages(notice, error)}
       <section class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
         <h2 class="text-lg font-semibold">Student Details</h2>
         <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Target submission defaults to six months from start date when left empty.</p>
@@ -658,28 +646,8 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
         </form>
       </section>
     </div>
-
-    <script>
-      var themeToggle = document.getElementById("themeToggle");
-      var root = document.documentElement;
-
-      function syncThemeToggleAccessibility() {
-        var nextMode = root.classList.contains("dark") ? "light" : "dark";
-        var label = "Switch to " + nextMode + " mode";
-        themeToggle.setAttribute("title", label);
-        themeToggle.setAttribute("aria-label", label);
-      }
-
-      syncThemeToggleAccessibility();
-
-      themeToggle.addEventListener("click", function () {
-        root.classList.toggle("dark");
-        localStorage.setItem("theme", root.classList.contains("dark") ? "dark" : "light");
-        syncThemeToggleAccessibility();
-      });
-    </script>
-  </body>
-</html>`;
+    ${renderThemeToggleScript()}`,
+  );
 }
 
 export function renderEmptySelectedPanel(
@@ -815,25 +783,9 @@ export function renderSelectedStudentPanel(
 }
 
 export function renderLoginPage(showError: boolean): string {
-  return `<!doctype html>
-<html lang="en" class="h-full">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thesis Journey Tracker - Login</title>
-    <script>
-      (function applyTheme() {
-        var stored = localStorage.getItem("theme");
-        if (stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
-          document.documentElement.classList.add("dark");
-        }
-      }());
-    </script>
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body class="h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-    <main class="mx-auto flex h-full max-w-md items-center px-6">
+  return renderDocument(
+    "Thesis Journey Tracker - Login",
+    `<main class="mx-auto flex h-full max-w-md items-center px-6">
       <section class="w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-lg dark:border-slate-700 dark:bg-slate-900">
         <h1 class="text-2xl font-semibold">Thesis Journey Tracker</h1>
         <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Private advisor dashboard login</p>
@@ -848,7 +800,7 @@ export function renderLoginPage(showError: boolean): string {
           <button type="submit" class="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">Sign in</button>
         </form>
       </section>
-    </main>
-  </body>
-</html>`;
+    </main>`,
+    "h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100",
+  );
 }
