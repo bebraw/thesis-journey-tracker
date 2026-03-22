@@ -31,5 +31,8 @@
   "overrides": {
     "undici": "7.24.4",
     "esbuild": "0.27.3"
+  },
+  "dependencies": {
+    "htmlisp": "0.82.1"
   }
 }
