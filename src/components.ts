@@ -1,6 +1,13 @@
-import { htmlispToHTMLSync } from "htmlisp";
-
 import { escapeHtml } from "./utils";
+import {
+  buildHtmlispAttributes,
+  getHtmlispAttributeValue,
+  hasHtmlispBooleanAttribute,
+  omitHtmlispAttributes,
+  parseHtmlispAttributes,
+  renderHTMLisp,
+  serializeHtmlispAttributes,
+} from "./htmlisp";
 
 export type ButtonVariant =
   | "neutral"
@@ -68,19 +75,27 @@ export interface TextareaFieldOptions {
   attributes?: string;
 }
 
-type HtmlispProps = Record<string, unknown>;
-type AttributeValue = string | true;
-
-interface ParsedAttribute {
-  name: string;
-  value: AttributeValue;
-}
-
 interface RenderableSelectOption {
   label: string;
   optionValue: string;
   selectedAttr?: string;
 }
+
+const BUTTON_LINK_TEMPLATE =
+  '<a &href="(get props href)" &class="(get props className)"__EXTRA_ATTRIBUTES__ &children="(get props label)"></a>';
+const BUTTON_TEMPLATE =
+  '<button &type="(get props type)" &class="(get props className)"__EXTRA_ATTRIBUTES__ &children="(get props label)"></button>';
+const BADGE_TEMPLATE =
+  '<span &class="(get props className)" &children="(get props label)"></span>';
+const CARD_TEMPLATE =
+  '<article &class="(get props className)"><noop &children="(get props content)"></noop></article>';
+const FIELD_SHELL_TEMPLATE =
+  '<label &class="(get props wrapperClassName)"><span &class="(get props labelClassName)" &children="(get props label)"></span><noop &children="(get props controlHtml)"></noop></label>';
+const INPUT_TEMPLATE = "<input__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__ />";
+const SELECT_TEMPLATE =
+  '<select__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__><noop &foreach="(get props options)"><option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option></noop></select>';
+const TEXTAREA_TEMPLATE =
+  '<textarea__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__ &children="(get props value)"></textarea>';
 
 export const BODY_CLASS =
   "min-h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100";
@@ -131,92 +146,22 @@ const BADGE_CLASS_MAP: Record<BadgeVariant, string> = {
     "shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200",
 };
 
-const ATTRIBUTE_PATTERN = /([^\s=]+)(?:=(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
-const SAFE_ATTRIBUTE_NAME = /^[A-Za-z_:][-A-Za-z0-9_:.]*$/;
-
 function mergeClasses(...classes: Array<string | undefined>): string {
   return classes.filter(Boolean).join(" ");
-}
-
-function renderHTMLisp(htmlInput: string, props: HtmlispProps = {}): string {
-  return htmlispToHTMLSync({ htmlInput, props });
 }
 
 function escapeOptional(value: string | undefined): string | undefined {
   return value === undefined ? undefined : escapeHtml(value);
 }
 
-function parseAttributes(attributes?: string): ParsedAttribute[] {
-  if (!attributes) {
-    return [];
-  }
-
-  const parsed: ParsedAttribute[] = [];
-  const input = attributes.trim();
-
-  for (const match of input.matchAll(ATTRIBUTE_PATTERN)) {
-    const name = match[1];
-    if (!name || !SAFE_ATTRIBUTE_NAME.test(name)) {
-      continue;
-    }
-
-    const value = match[2] ?? match[3] ?? match[4];
-    parsed.push({ name, value: value === undefined ? true : value });
-  }
-
-  return parsed;
-}
-
-function serializeAttributes(attributes: ParsedAttribute[]): string {
-  if (attributes.length === 0) {
-    return "";
-  }
-
-  return attributes
-    .map((attribute) =>
-      attribute.value === true
-        ? ` ${attribute.name}`
-        : ` ${attribute.name}="${escapeHtml(attribute.value)}"`,
-    )
-    .join("");
-}
-
-function getAttributeValue(
-  attributes: ParsedAttribute[],
-  name: string,
-): string | undefined {
-  const match = attributes.find((attribute) => attribute.name === name);
-  return typeof match?.value === "string" ? match.value : undefined;
-}
-
-function hasBooleanAttribute(
-  attributes: ParsedAttribute[],
-  name: string,
-): boolean {
-  return attributes.some(
-    (attribute) => attribute.name === name && attribute.value === true,
+function fillTemplate(
+  template: string,
+  replacements: Record<string, string>,
+): string {
+  return Object.entries(replacements).reduce(
+    (output, [token, value]) => output.replaceAll(token, value),
+    template,
   );
-}
-
-function omitAttributes(
-  attributes: ParsedAttribute[],
-  names: string[],
-): ParsedAttribute[] {
-  return attributes.filter((attribute) => !names.includes(attribute.name));
-}
-
-function buildAttributes(
-  entries: Array<{ name: string; value: string | true | undefined }>,
-): ParsedAttribute[] {
-  return entries
-    .filter(
-      (entry) =>
-        entry.value !== undefined && SAFE_ATTRIBUTE_NAME.test(entry.name),
-    )
-    .map((entry) => ({
-      name: entry.name,
-      value: entry.value as AttributeValue,
-    }));
 }
 
 export function renderButton(options: ButtonOptions): string {
@@ -232,49 +177,53 @@ export function renderButton(options: ButtonOptions): string {
   const mergedClassName = escapeHtml(
     mergeClasses(BUTTON_CLASS_MAP[variant], className),
   );
-  const extraAttributes = serializeAttributes(parseAttributes(attributes));
+  const extraAttributes = serializeHtmlispAttributes(
+    parseHtmlispAttributes(attributes),
+  );
   const safeLabel = escapeHtml(label);
 
   if (href) {
     return renderHTMLisp(
-      `<a href="${escapeHtml(href)}" class="${mergedClassName}"${extraAttributes} &children="(get props label)"></a>`,
-      { label: safeLabel },
+      fillTemplate(BUTTON_LINK_TEMPLATE, {
+        __EXTRA_ATTRIBUTES__: extraAttributes,
+      }),
+      { className: mergedClassName, href: escapeHtml(href), label: safeLabel },
     );
   }
 
   return renderHTMLisp(
-    `<button type="${escapeHtml(type)}" class="${mergedClassName}"${extraAttributes} &children="(get props label)"></button>`,
-    { label: safeLabel },
+    fillTemplate(BUTTON_TEMPLATE, {
+      __EXTRA_ATTRIBUTES__: extraAttributes,
+    }),
+    {
+      className: mergedClassName,
+      label: safeLabel,
+      type: escapeHtml(type),
+    },
   );
 }
 
 export function renderBadge(options: BadgeOptions): string {
   const { label, variant = "neutral", className } = options;
 
-  return renderHTMLisp(
-    `<span class="${escapeHtml(
-      mergeClasses(BADGE_CLASS_MAP[variant], className),
-    )}" &children="(get props label)"></span>`,
-    { label: escapeHtml(label) },
-  );
+  return renderHTMLisp(BADGE_TEMPLATE, {
+    className: escapeHtml(mergeClasses(BADGE_CLASS_MAP[variant], className)),
+    label: escapeHtml(label),
+  });
 }
 
 export function renderCard(content: string, className?: string): string {
-  return renderHTMLisp(
-    `<article class="${escapeHtml(
-      mergeClasses(SURFACE_CARD, className),
-    )}"><noop &children="(get props content)"></noop></article>`,
-    { content },
-  );
+  return renderHTMLisp(CARD_TEMPLATE, {
+    className: escapeHtml(mergeClasses(SURFACE_CARD, className)),
+    content,
+  });
 }
 
 export function renderCompactCard(content: string, className?: string): string {
-  return renderHTMLisp(
-    `<article class="${escapeHtml(
-      mergeClasses(SURFACE_CARD_SM, className),
-    )}"><noop &children="(get props content)"></noop></article>`,
-    { content },
-  );
+  return renderHTMLisp(CARD_TEMPLATE, {
+    className: escapeHtml(mergeClasses(SURFACE_CARD_SM, className)),
+    content,
+  });
 }
 
 export function renderFieldShell(
@@ -282,15 +231,12 @@ export function renderFieldShell(
   controlHtml: string,
   wrapperClassName = FORM_LABEL,
 ): string {
-  return renderHTMLisp(
-    `<label class="${escapeHtml(wrapperClassName)}"><span class="${escapeHtml(
-      FIELD_LABEL,
-    )}" &children="(get props label)"></span><noop &children="(get props controlHtml)"></noop></label>`,
-    {
-      label: escapeHtml(label),
-      controlHtml,
-    },
-  );
+  return renderHTMLisp(FIELD_SHELL_TEMPLATE, {
+    labelClassName: escapeHtml(FIELD_LABEL),
+    label: escapeHtml(label),
+    controlHtml,
+    wrapperClassName: escapeHtml(wrapperClassName),
+  });
 }
 
 export function renderInputField(options: FieldOptions): string {
@@ -307,11 +253,12 @@ export function renderInputField(options: FieldOptions): string {
     attributes,
   } = options;
 
-  const parsedAttributes = parseAttributes(attributes);
-  const resolvedType = getAttributeValue(parsedAttributes, "type") ?? type;
+  const parsedAttributes = parseHtmlispAttributes(attributes);
+  const resolvedType =
+    getHtmlispAttributeValue(parsedAttributes, "type") ?? type;
   const resolvedRequired =
-    required || hasBooleanAttribute(parsedAttributes, "required");
-  const extraAttributes = omitAttributes(parsedAttributes, [
+    required || hasHtmlispBooleanAttribute(parsedAttributes, "required");
+  const extraAttributes = omitHtmlispAttributes(parsedAttributes, [
     "type",
     "name",
     "id",
@@ -320,19 +267,23 @@ export function renderInputField(options: FieldOptions): string {
     "required",
     "class",
   ]);
+  const baseAttributes = serializeHtmlispAttributes(
+    buildHtmlispAttributes([
+      { name: "name", value: escapeOptional(name) },
+      { name: "id", value: escapeOptional(id) },
+      { name: "type", value: escapeHtml(resolvedType) },
+      { name: "value", value: escapeOptional(value) },
+      { name: "placeholder", value: escapeOptional(placeholder) },
+      { name: "class", value: escapeHtml(className) },
+      { name: "required", value: resolvedRequired ? true : undefined },
+    ]),
+  );
 
   const controlHtml = renderHTMLisp(
-    `<input${serializeAttributes(
-      buildAttributes([
-        { name: "name", value: escapeOptional(name) },
-        { name: "id", value: escapeOptional(id) },
-        { name: "type", value: escapeHtml(resolvedType) },
-        { name: "value", value: escapeOptional(value) },
-        { name: "placeholder", value: escapeOptional(placeholder) },
-        { name: "class", value: escapeHtml(className) },
-        { name: "required", value: resolvedRequired ? true : undefined },
-      ]),
-    )}${serializeAttributes(extraAttributes)} />`,
+    fillTemplate(INPUT_TEMPLATE, {
+      __BASE_ATTRIBUTES__: baseAttributes,
+      __EXTRA_ATTRIBUTES__: serializeHtmlispAttributes(extraAttributes),
+    }),
   );
 
   return renderFieldShell(label, controlHtml, wrapperClassName);
@@ -350,8 +301,8 @@ export function renderSelectField(options: SelectFieldOptions): string {
     attributes,
   } = options;
 
-  const parsedAttributes = parseAttributes(attributes);
-  const extraAttributes = omitAttributes(parsedAttributes, [
+  const parsedAttributes = parseHtmlispAttributes(attributes);
+  const extraAttributes = omitHtmlispAttributes(parsedAttributes, [
     "name",
     "id",
     "class",
@@ -363,17 +314,19 @@ export function renderSelectField(options: SelectFieldOptions): string {
       selectedAttr: option.value === value ? "selected" : undefined,
     }),
   );
+  const baseAttributes = serializeHtmlispAttributes(
+    buildHtmlispAttributes([
+      { name: "name", value: escapeOptional(name) },
+      { name: "id", value: escapeOptional(id) },
+      { name: "class", value: escapeHtml(className) },
+    ]),
+  );
 
   const controlHtml = renderHTMLisp(
-    `<select${serializeAttributes(
-      buildAttributes([
-        { name: "name", value: escapeOptional(name) },
-        { name: "id", value: escapeOptional(id) },
-        { name: "class", value: escapeHtml(className) },
-      ]),
-    )}${serializeAttributes(
-      extraAttributes,
-    )}><noop &foreach="(get props options)"><option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option></noop></select>`,
+    fillTemplate(SELECT_TEMPLATE, {
+      __BASE_ATTRIBUTES__: baseAttributes,
+      __EXTRA_ATTRIBUTES__: serializeHtmlispAttributes(extraAttributes),
+    }),
     { options: normalizedOptions },
   );
 
@@ -393,31 +346,33 @@ export function renderTextareaField(options: TextareaFieldOptions): string {
     attributes,
   } = options;
 
-  const parsedAttributes = parseAttributes(attributes);
+  const parsedAttributes = parseHtmlispAttributes(attributes);
   const resolvedRequired =
-    required || hasBooleanAttribute(parsedAttributes, "required");
+    required || hasHtmlispBooleanAttribute(parsedAttributes, "required");
   const resolvedRows =
-    getAttributeValue(parsedAttributes, "rows") ?? String(rows);
-  const extraAttributes = omitAttributes(parsedAttributes, [
+    getHtmlispAttributeValue(parsedAttributes, "rows") ?? String(rows);
+  const extraAttributes = omitHtmlispAttributes(parsedAttributes, [
     "name",
     "id",
     "rows",
     "required",
     "class",
   ]);
+  const baseAttributes = serializeHtmlispAttributes(
+    buildHtmlispAttributes([
+      { name: "name", value: escapeOptional(name) },
+      { name: "id", value: escapeOptional(id) },
+      { name: "rows", value: escapeHtml(resolvedRows) },
+      { name: "class", value: escapeHtml(className) },
+      { name: "required", value: resolvedRequired ? true : undefined },
+    ]),
+  );
 
   const controlHtml = renderHTMLisp(
-    `<textarea${serializeAttributes(
-      buildAttributes([
-        { name: "name", value: escapeOptional(name) },
-        { name: "id", value: escapeOptional(id) },
-        { name: "rows", value: escapeHtml(resolvedRows) },
-        { name: "class", value: escapeHtml(className) },
-        { name: "required", value: resolvedRequired ? true : undefined },
-      ]),
-    )}${serializeAttributes(
-      extraAttributes,
-    )} &children="(get props value)"></textarea>`,
+    fillTemplate(TEXTAREA_TEMPLATE, {
+      __BASE_ATTRIBUTES__: baseAttributes,
+      __EXTRA_ATTRIBUTES__: serializeHtmlispAttributes(extraAttributes),
+    }),
     { value: escapeHtml(value || "") },
   );
 
