@@ -11,11 +11,13 @@
     "deploy": "wrangler deploy",
     "db:migrate": "wrangler d1 migrations apply thesis_tracker_db --local",
     "db:migrate:remote": "wrangler d1 migrations apply thesis_tracker_db --remote",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.17",
     "typescript": "^5.9.2",
+    "vitest": "^3.2.4",
     "wrangler": "^4.8.0"
   }
 }

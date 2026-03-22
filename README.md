@@ -100,6 +100,18 @@ Manual CSS rebuild (usually not needed because `predev`/`predeploy` run it autom
 npm run build:css
 ```
 
+Run test suite (includes SQL-injection safety tests for form actions):
+
+```bash
+npm test
+```
+
+## CI
+
+- GitHub Actions workflow: `.github/workflows/ci.yml`
+- Triggered on every push and pull request
+- Runs: `npm ci`, `npm run build:css`, `npm run typecheck`, `npm test`
+
 ## Deploy to Cloudflare
 
 1. Authenticate Wrangler:
