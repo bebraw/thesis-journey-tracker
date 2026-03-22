@@ -76,9 +76,7 @@ function prepareStudentRows(
       `<div class="font-medium">
         <a &class="(get props linkClass)" &href="(get props href)" data-inline-select="1" &data-student-id="(get props studentIdAttr)" &children="(get props name)"></a>
       </div>
-      <div &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></div>
-      <div &class="(get props metaClass)" &children="(get props metaText)"></div>
-      <noop &children="(get props mockBadgeHtml)"></noop>`,
+      <div &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></div>`,
       {
         linkClass: escapeHtml(TEXT_LINK),
         href: escapeHtml(`/?selected=${student.id}`),
@@ -87,12 +85,6 @@ function prepareStudentRows(
         topicVisible: Boolean(student.thesisTopic),
         topic: escapeHtml(student.thesisTopic || ""),
         topicTextClass: escapeHtml(TOPIC_TEXT_SM),
-        metaClass: escapeHtml(MUTED_TEXT_XS),
-        metaText: escapeHtml(
-          `${getDegreeLabel(student.degreeType, DEGREE_TYPES)} · ${
-            student.email || "-"
-          }`,
-        ),
       },
     );
 
