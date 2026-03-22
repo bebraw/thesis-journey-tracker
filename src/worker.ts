@@ -13,6 +13,31 @@ import {
   type Student,
   updateStudent,
 } from "./db";
+import {
+  addSixMonths,
+  buildSessionCookie,
+  clearSessionCookie,
+  createSessionToken,
+  cssResponse,
+  escapeHtml,
+  escapeJsString,
+  formatDateTime,
+  getPhaseLabel,
+  htmlFragmentResponse,
+  htmlResponse,
+  iconResponse,
+  isAuthenticated,
+  meetingStatusClass,
+  meetingStatusId,
+  meetingStatusText,
+  normalizeDate,
+  normalizeDateTime,
+  normalizePhase,
+  normalizeString,
+  redirect,
+  shouldIncludeTestData,
+  toDateTimeLocalInput,
+} from "./utils";
 
 interface Phase {
   id: PhaseId;
@@ -96,7 +121,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   if (pathname === "/login" && request.method === "GET") {
-    if (await isAuthenticated(request, env)) {
+    if (await isAuthenticated(request, env.SESSION_SECRET, SESSION_COOKIE)) {
       return redirect("/");
     }
     const showError = url.searchParams.get("error") === "1";
@@ -110,19 +135,32 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       return redirect("/login?error=1");
     }
 
-    const token = await createSessionToken(env.SESSION_SECRET);
+    const token = await createSessionToken(
+      env.SESSION_SECRET,
+      SESSION_TTL_SECONDS,
+    );
     return redirect("/", {
-      "Set-Cookie": buildSessionCookie(token, request.url),
+      "Set-Cookie": buildSessionCookie(token, request.url, {
+        cookieName: SESSION_COOKIE,
+        ttlSeconds: SESSION_TTL_SECONDS,
+      }),
     });
   }
 
   if (pathname === "/logout" && request.method === "POST") {
     return redirect("/login", {
-      "Set-Cookie": clearSessionCookie(request.url),
+      "Set-Cookie": clearSessionCookie(request.url, {
+        cookieName: SESSION_COOKIE,
+        ttlSeconds: SESSION_TTL_SECONDS,
+      }),
     });
   }
 
-  const authenticated = await isAuthenticated(request, env);
+  const authenticated = await isAuthenticated(
+    request,
+    env.SESSION_SECRET,
+    SESSION_COOKIE,
+  );
   if (!authenticated) {
     return redirect("/login");
   }
@@ -167,7 +205,7 @@ async function renderDashboard(
   env: Env,
   url: URL,
 ): Promise<Response> {
-  const includeTestData = shouldIncludeTestData(env);
+  const includeTestData = shouldIncludeTestData(env.ENABLE_TEST_DATA);
   const students = await listStudents(env.DB, includeTestData);
 
   const selectedIdParam = url.searchParams.get("selected");
@@ -226,7 +264,7 @@ async function renderStudentPanelPartial(
   env: Env,
   studentId: number,
 ): Promise<Response> {
-  const includeTestData = shouldIncludeTestData(env);
+  const includeTestData = shouldIncludeTestData(env.ENABLE_TEST_DATA);
   const students = await listStudents(env.DB, includeTestData);
   const selectedStudent =
     students.find((student) => student.id === studentId) || null;
@@ -261,6 +299,7 @@ async function handleAddStudent(request: Request, env: Env): Promise<Response> {
     (typeof startDate === "string" ? addSixMonths(startDate) : null);
   const currentPhase = normalizePhase(
     formData.get("currentPhase") || "research_plan",
+    PHASES,
   );
   const nextMeetingAt = normalizeDateTime(formData.get("nextMeetingAt"), true);
 
@@ -300,7 +339,7 @@ async function handleUpdateStudent(
   const targetSubmissionDate = normalizeDate(
     formData.get("targetSubmissionDate"),
   );
-  const currentPhase = normalizePhase(formData.get("currentPhase"));
+  const currentPhase = normalizePhase(formData.get("currentPhase"), PHASES);
   const nextMeetingAt = normalizeDateTime(formData.get("nextMeetingAt"), true);
 
   if (
@@ -464,7 +503,7 @@ function renderDashboardPage(data: DashboardPageData): string {
                 <div class="text-xs text-slate-500 dark:text-slate-300">${escapeHtml(student.email || "-")}</div>
                 ${student.isMock ? '<span class="mt-1 inline-block rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200">Mock</span>' : ""}
               </td>
-              <td class="px-2 py-2 align-top">${escapeHtml(getPhaseLabel(student.currentPhase))}</td>
+              <td class="px-2 py-2 align-top">${escapeHtml(getPhaseLabel(student.currentPhase, PHASES))}</td>
               <td class="px-2 py-2 align-top">${escapeHtml(student.targetSubmissionDate)}</td>
               <td class="px-2 py-2 align-top">${student.nextMeetingAt ? escapeHtml(formatDateTime(student.nextMeetingAt)) : "Not booked"}</td>
               <td class="px-2 py-2 align-top"><span class="rounded px-2 py-1 text-xs ${meetingStatusClass(student)}">${statusText}</span></td>
@@ -1150,11 +1189,6 @@ function renderSelectedStudentPanel(
   `;
 }
 
-function shouldIncludeTestData(env: Env): boolean {
-  const value = env.ENABLE_TEST_DATA?.trim().toLowerCase();
-  return value === "1" || value === "true" || value === "yes";
-}
-
 function renderLoginPage(showError: boolean): string {
   return `<!doctype html>
 <html lang="en" class="h-full">
@@ -1192,293 +1226,4 @@ function renderLoginPage(showError: boolean): string {
     </main>
   </body>
 </html>`;
-}
-
-function htmlResponse(html: string): Response {
-  return new Response(html, {
-    headers: {
-      "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store",
-    },
-  });
-}
-
-function htmlFragmentResponse(html: string, status = 200): Response {
-  return new Response(html, {
-    status,
-    headers: {
-      "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store",
-    },
-  });
-}
-
-function cssResponse(css: string): Response {
-  return new Response(css, {
-    headers: {
-      "content-type": "text/css; charset=utf-8",
-      "cache-control": "public, max-age=86400",
-    },
-  });
-}
-
-function iconResponse(icon: ArrayBuffer): Response {
-  return new Response(icon, {
-    headers: {
-      "content-type": "image/x-icon",
-      "cache-control": "public, max-age=604800",
-    },
-  });
-}
-
-function normalizeString(
-  value: FormDataEntryValue | string | null | undefined,
-): string | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  const text = String(value).trim();
-  return text.length > 0 ? text : null;
-}
-
-function normalizeDate(
-  value: FormDataEntryValue | string | null | undefined,
-  allowNull = false,
-): string | null | undefined {
-  if (value === null || value === undefined || value === "") {
-    return allowNull ? null : null;
-  }
-  const text = String(value).trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
-    return allowNull ? undefined : null;
-  }
-  return text;
-}
-
-function normalizeDateTime(
-  value: FormDataEntryValue | string | null | undefined,
-  allowNull = false,
-): string | null | undefined {
-  if (value === null || value === undefined || value === "") {
-    return allowNull ? null : null;
-  }
-  const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) {
-    return allowNull ? undefined : null;
-  }
-  return date.toISOString();
-}
-
-function normalizePhase(
-  value: FormDataEntryValue | string | null | undefined,
-): PhaseId | null {
-  const text = normalizeString(value);
-  if (!text) {
-    return null;
-  }
-  return PHASES.some((phase) => phase.id === text) ? (text as PhaseId) : null;
-}
-
-function addSixMonths(dateText: string | null): string | null {
-  if (!dateText) {
-    return null;
-  }
-  const date = new Date(`${dateText}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  date.setUTCMonth(date.getUTCMonth() + 6);
-  return date.toISOString().slice(0, 10);
-}
-
-function formatDateTime(isoValue: string): string {
-  const date = new Date(isoValue);
-  if (Number.isNaN(date.getTime())) {
-    return isoValue;
-  }
-  return new Intl.DateTimeFormat("en-GB", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZoneName: "short",
-  }).format(date);
-}
-
-function toDateTimeLocalInput(isoValue: string | null): string {
-  if (!isoValue) {
-    return "";
-  }
-  const date = new Date(isoValue);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-  const offset = date.getTimezoneOffset();
-  const localDate = new Date(date.getTime() - offset * 60000);
-  return localDate.toISOString().slice(0, 16);
-}
-
-function getPhaseLabel(phaseId: PhaseId): string {
-  const phase = PHASES.find((item) => item.id === phaseId);
-  return phase ? phase.label : phaseId;
-}
-
-function meetingStatusText(student: Student): string {
-  if (!student.nextMeetingAt) {
-    return "Not booked";
-  }
-  const nextMeeting = new Date(student.nextMeetingAt);
-  const now = new Date();
-  if (nextMeeting < now) {
-    return "Overdue";
-  }
-  if (nextMeeting.getTime() - now.getTime() <= 14 * 24 * 60 * 60 * 1000) {
-    return "Within 2 weeks";
-  }
-  return "Scheduled";
-}
-
-function meetingStatusId(student: Student): string {
-  if (!student.nextMeetingAt) {
-    return "not_booked";
-  }
-  const nextMeeting = new Date(student.nextMeetingAt);
-  const now = new Date();
-  if (nextMeeting < now) {
-    return "overdue";
-  }
-  if (nextMeeting.getTime() - now.getTime() <= 14 * 24 * 60 * 60 * 1000) {
-    return "within_2_weeks";
-  }
-  return "scheduled";
-}
-
-function meetingStatusClass(student: Student): string {
-  if (!student.nextMeetingAt) {
-    return "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200";
-  }
-  const nextMeeting = new Date(student.nextMeetingAt);
-  const now = new Date();
-  if (nextMeeting < now) {
-    return "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200";
-  }
-  if (nextMeeting.getTime() - now.getTime() <= 14 * 24 * 60 * 60 * 1000) {
-    return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200";
-  }
-  return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200";
-}
-
-function escapeHtml(value: string | number): string {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function escapeJsString(value: string): string {
-  return value
-    .replaceAll("\\", "\\\\")
-    .replaceAll("'", "\\'")
-    .replaceAll("\r", "\\r")
-    .replaceAll("\n", "\\n");
-}
-
-function redirect(pathname: string, extraHeaders: HeadersInit = {}): Response {
-  const headers = new Headers({ Location: pathname, ...extraHeaders });
-  return new Response(null, { status: 302, headers });
-}
-
-function buildSessionCookie(token: string, requestUrl: string): string {
-  const securePart =
-    new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
-  return `${SESSION_COOKIE}=${token}; HttpOnly;${securePart} Path=/; SameSite=Strict; Max-Age=${SESSION_TTL_SECONDS}`;
-}
-
-function clearSessionCookie(requestUrl: string): string {
-  const securePart =
-    new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
-  return `${SESSION_COOKIE}=; HttpOnly;${securePart} Path=/; SameSite=Strict; Max-Age=0`;
-}
-
-async function createSessionToken(secret: string): Promise<string> {
-  const expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000;
-  const payload = String(expiresAt);
-  const signature = await hmacSign(payload, secret);
-  return `${payload}.${signature}`;
-}
-
-async function isAuthenticated(request: Request, env: Env): Promise<boolean> {
-  const cookieHeader = request.headers.get("cookie") || "";
-  const token = readCookie(cookieHeader, SESSION_COOKIE);
-  if (!token) {
-    return false;
-  }
-
-  const [payload, signature] = token.split(".");
-  if (!payload || !signature) {
-    return false;
-  }
-
-  const expiresAt = Number(payload);
-  if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) {
-    return false;
-  }
-
-  const expectedSignature = await hmacSign(payload, env.SESSION_SECRET);
-  return timingSafeEqual(signature, expectedSignature);
-}
-
-function readCookie(cookieHeader: string, name: string): string | null {
-  const items = cookieHeader.split(";");
-  for (const item of items) {
-    const [key, ...valueParts] = item.trim().split("=");
-    if (key === name) {
-      return valueParts.join("=");
-    }
-  }
-  return null;
-}
-
-async function hmacSign(value: string, secret: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-
-  const signatureBuffer = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    encoder.encode(value),
-  );
-  return bufferToBase64Url(signatureBuffer);
-}
-
-function bufferToBase64Url(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
-}
-
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
-  let result = 0;
-  for (let i = 0; i < a.length; i += 1) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return result === 0;
 }
