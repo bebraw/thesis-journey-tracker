@@ -97,25 +97,25 @@ interface Env {
 }
 
 interface StudentRow {
-  id: number;
+  id: number | string;
   name: string;
   email: string | null;
   start_date: string;
   target_submission_date: string;
   current_phase: PhaseId;
   next_meeting_at: string | null;
-  is_mock: number;
+  is_mock: number | string;
   log_count: number | string | null;
   last_log_at: string | null;
 }
 
 interface LogRow {
-  id: number;
+  id: number | string;
   happened_at: string;
   discussed: string;
   agreed_plan: string;
   next_step_deadline: string | null;
-  is_mock: number;
+  is_mock: number | string;
 }
 
 const SESSION_COOKIE = "thesis_session";
@@ -226,7 +226,9 @@ async function renderDashboard(request: Request, env: Env, url: URL): Promise<Re
   const showMockData = await getShowMockData(env.DB);
   const students = await listStudents(env.DB, showMockData);
 
-  const selectedId = Number(url.searchParams.get("selected") || 0);
+  const selectedIdParam = url.searchParams.get("selected");
+  const parsedSelectedId = selectedIdParam ? Number.parseInt(selectedIdParam, 10) : 0;
+  const selectedId = Number.isFinite(parsedSelectedId) ? parsedSelectedId : 0;
   const selectedStudent = students.find((student) => student.id === selectedId) || null;
   const logs = selectedStudent ? await listLogsForStudent(env.DB, selectedStudent.id, showMockData) : [];
 
@@ -411,15 +413,15 @@ async function listStudents(db: D1Database, showMockData: boolean): Promise<Stud
     .all<StudentRow>();
 
   return rows.results.map((row) => ({
-    id: row.id,
+    id: parseDbNumber(row.id),
     name: row.name,
     email: row.email,
     startDate: row.start_date,
     targetSubmissionDate: row.target_submission_date,
     currentPhase: row.current_phase as PhaseId,
     nextMeetingAt: row.next_meeting_at,
-    isMock: Boolean(row.is_mock),
-    logCount: Number(row.log_count || 0),
+    isMock: parseDbNumber(row.is_mock) === 1,
+    logCount: parseDbNumber(row.log_count),
     lastLogAt: row.last_log_at || null
   }));
 }
@@ -442,12 +444,12 @@ async function listLogsForStudent(
     .all<LogRow>();
 
   return rows.results.map((row) => ({
-    id: row.id,
+    id: parseDbNumber(row.id),
     happenedAt: row.happened_at,
     discussed: row.discussed,
     agreedPlan: row.agreed_plan,
     nextStepDeadline: row.next_step_deadline,
-    isMock: Boolean(row.is_mock)
+    isMock: parseDbNumber(row.is_mock) === 1
   }));
 }
 
@@ -511,21 +513,23 @@ function renderDashboardPage(data: DashboardPageData): string {
           const selectedClass =
             selectedStudent && selectedStudent.id === student.id
               ? "bg-blue-50 dark:bg-blue-900/20"
-              : "";
+              : "hover:bg-slate-50 dark:hover:bg-slate-800/35";
           return `
             <tr
-              class="${selectedClass}"
+              class="${selectedClass} cursor-pointer"
               data-student-row
+              data-select-href="/?selected=${student.id}"
               data-name="${escapeHtml(student.name).toLowerCase()}"
               data-email="${escapeHtml(student.email || "").toLowerCase()}"
               data-phase="${escapeHtml(student.currentPhase)}"
               data-status-id="${statusId}"
               data-target-date="${escapeHtml(student.targetSubmissionDate)}"
               data-next-meeting-date="${escapeHtml(student.nextMeetingAt || "")}"
+              tabindex="0"
             >
               <td class="px-2 py-2 align-top">
                 <div class="font-medium">
-                  ${escapeHtml(student.name)}
+                  <a class="underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900" href="/?selected=${student.id}">${escapeHtml(student.name)}</a>
                   ${selectedStudent && selectedStudent.id === student.id ? '<span class="ml-2 rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/50 dark:text-blue-200">Selected</span>' : ""}
                 </div>
                 <div class="text-xs text-slate-500 dark:text-slate-300">${escapeHtml(student.email || "-")}</div>
@@ -537,7 +541,7 @@ function renderDashboardPage(data: DashboardPageData): string {
               <td class="px-2 py-2 align-top"><span class="rounded px-2 py-1 text-xs ${meetingStatusClass(student)}">${statusText}</span></td>
               <td class="px-2 py-2 align-top">${student.logCount}</td>
               <td class="px-2 py-2 align-top">
-                <a class="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900" href="/?selected=${student.id}">View & Edit</a>
+                <a class="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800/70 dark:focus-visible:ring-offset-slate-900" href="/?selected=${student.id}">View & Edit</a>
               </td>
             </tr>
           `;
@@ -682,6 +686,7 @@ function renderDashboardPage(data: DashboardPageData): string {
             </label>
           </div>
           <p id="studentResultsMeta" class="mb-2 text-xs text-slate-500 dark:text-slate-300"></p>
+          <p class="mb-2 text-xs text-slate-500 dark:text-slate-300">Tip: click a row to open student details.</p>
           <div class="overflow-x-auto">
             <table class="w-full min-w-[58rem] divide-y divide-slate-200 text-sm dark:divide-slate-700">
               <thead>
@@ -787,8 +792,30 @@ function renderDashboardPage(data: DashboardPageData): string {
         applyStudentFilters();
       }
 
+      function bindStudentRowSelection() {
+        studentRows.forEach(function (row) {
+          row.addEventListener("click", function (event) {
+            var target = event.target;
+            if (target && target.closest && target.closest("a,button,input,select,textarea,label")) {
+              return;
+            }
+            var href = row.getAttribute("data-select-href");
+            if (href) window.location.href = href;
+          });
+
+          row.addEventListener("keydown", function (event) {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            var href = row.getAttribute("data-select-href");
+            if (!href) return;
+            event.preventDefault();
+            window.location.href = href;
+          });
+        });
+      }
+
       syncThemeToggleAccessibility();
       refreshStudentTable();
+      bindStudentRowSelection();
 
       themeToggle.addEventListener("click", function () {
         root.classList.toggle("dark");
@@ -1201,6 +1228,17 @@ function normalizeString(value: FormDataEntryValue | string | null | undefined):
   }
   const text = String(value).trim();
   return text.length > 0 ? text : null;
+}
+
+function parseDbNumber(value: number | string | null | undefined): number {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
 }
 
 function normalizeDate(
