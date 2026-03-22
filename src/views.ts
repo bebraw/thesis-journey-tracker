@@ -63,70 +63,6 @@ export interface AddStudentPageData {
   error: string | null;
 }
 
-interface PreparedMetric {
-  label: string;
-  metricValue: string;
-}
-
-interface PreparedFilterOption {
-  label: string;
-  optionValue: string;
-}
-
-interface PreparedLaneStudent {
-  idAttr: string;
-  selectedAttr: string;
-  cardClass: string;
-  href: string;
-  name: string;
-  badgesHtml: string;
-  topicVisible: boolean;
-  topic: string;
-  targetText: string;
-  nextMeetingText: string;
-  statusBadgeHtml: string;
-}
-
-interface PreparedPhaseLane {
-  label: string;
-  countBadgeHtml: string;
-  hasStudents: boolean;
-  isEmpty: boolean;
-  students: PreparedLaneStudent[];
-}
-
-interface PreparedStudentRow {
-  rowClass: string;
-  selectedAttr: string;
-  selectHref: string;
-  studentIdAttr: string;
-  dataName: string;
-  dataEmail: string;
-  dataTopic: string;
-  dataDegree: string;
-  dataPhase: string;
-  dataStatusId: string;
-  dataTargetDate: string;
-  dataNextMeetingDate: string;
-  summaryHtml: string;
-  degreeLabel: string;
-  phaseLabel: string;
-  targetDate: string;
-  nextMeetingText: string;
-  statusBadgeHtml: string;
-  logCountText: string;
-  actionButtonHtml: string;
-}
-
-interface PreparedLogEntry {
-  timestampText: string;
-  mockBadgeHtml: string;
-  discussed: string;
-  agreedPlan: string;
-  hasDeadline: boolean;
-  deadlineText: string;
-}
-
 export const PHASES: PhaseDefinition[] = [
   { id: "research_plan", label: "Planning research" },
   { id: "researching", label: "Researching" },
@@ -411,8 +347,21 @@ const DASHBOARD_INTERACTION_SCRIPT = `<script>
       if (sortBy) sortBy.addEventListener("change", refreshStudentTable);
     </script>`;
 
-const VIEW_COMPONENTS: HtmlispComponents = {
-  Document: `<!doctype html>
+function renderView(
+  htmlInput: string,
+  props: Record<string, unknown> = {},
+  components: HtmlispComponents = {},
+): string {
+  return renderHTMLisp(htmlInput, props, components);
+}
+
+function renderDocument(
+  title: string,
+  bodyContent: string,
+  bodyClass = BODY_CLASS,
+): string {
+  const components: HtmlispComponents = {
+    Document: `<!doctype html>
 <html lang="en" class="h-full">
   <head>
     <meta charset="UTF-8" />
@@ -426,7 +375,50 @@ const VIEW_COMPONENTS: HtmlispComponents = {
     <noop &children="(get props bodyContent)"></noop>
   </body>
 </html>`,
-  ThemeToggleButton: `<button
+  };
+
+  return renderView(
+    '<Document &title="(get props title)" &bodyClass="(get props bodyClass)" &bodyContent="(get props bodyContent)" &themeBootstrapScript="(get props themeBootstrapScript)"></Document>',
+    {
+      title: escapeHtml(title),
+      bodyClass: escapeHtml(bodyClass),
+      bodyContent,
+      themeBootstrapScript: THEME_BOOTSTRAP_SCRIPT,
+    },
+    components,
+  );
+}
+
+function renderFlashMessages(
+  notice: string | null,
+  error: string | null,
+): string {
+  const components: HtmlispComponents = {
+    NoticeFlash:
+      '<p &visibleIf="(get props visible)" role="status" aria-live="polite" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200" &children="(get props message)"></p>',
+    ErrorFlash:
+      '<p &visibleIf="(get props visible)" role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200" &children="(get props message)"></p>',
+  };
+
+  return renderView(
+    '<noop><NoticeFlash &visible="(get props noticeVisible)" &message="(get props noticeMessage)"></NoticeFlash><ErrorFlash &visible="(get props errorVisible)" &message="(get props errorMessage)"></ErrorFlash></noop>',
+    {
+      noticeVisible: Boolean(notice),
+      noticeMessage: escapeHtml(notice || ""),
+      errorVisible: Boolean(error),
+      errorMessage: escapeHtml(error || ""),
+    },
+    components,
+  );
+}
+
+function renderAuthedPageHeader(
+  title: string,
+  description: string,
+  actionsHtml: string,
+): string {
+  const components: HtmlispComponents = {
+    ThemeToggleButton: `<button
     id="themeToggle"
     type="button"
     title="Switch to dark mode"
@@ -441,11 +433,7 @@ const VIEW_COMPONENTS: HtmlispComponents = {
       <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.41 1.41M16.95 16.95l1.41 1.41M18.36 5.64l-1.41 1.41M7.05 16.95l-1.41 1.41" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
     </svg>
   </button>`,
-  NoticeFlash:
-    '<p &visibleIf="(get props visible)" role="status" aria-live="polite" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200" &children="(get props message)"></p>',
-  ErrorFlash:
-    '<p &visibleIf="(get props visible)" role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200" &children="(get props message)"></p>',
-  AuthHeader: `<header &class="(get props headerClass)">
+    AuthHeader: `<header &class="(get props headerClass)">
     <div>
       <h1 class="text-xl font-semibold" &children="(get props title)"></h1>
       <p &class="(get props descriptionClass)" &children="(get props description)"></p>
@@ -458,135 +446,8 @@ const VIEW_COMPONENTS: HtmlispComponents = {
       </form>
     </div>
   </header>`,
-  MetricCard: `<article &class="(get props cardClass)">
-    <p &class="(get props labelClass)" &children="(get props label)"></p>
-    <p class="mt-1 text-2xl font-semibold" &children="(get props metricValue)"></p>
-  </article>`,
-  PhaseLane: `<article &class="(get props cardClass)">
-    <div class="flex items-start justify-between gap-3">
-      <h3 class="min-h-10 flex-1 text-sm font-semibold leading-5" &children="(get props label)"></h3>
-      <noop &children="(get props countBadgeHtml)"></noop>
-    </div>
-    <ul class="mt-3 space-y-2" &visibleIf="(get props hasStudents)">
-      <noop &foreach="(get props students)">
-        <LaneStudentCard
-          &idAttr="(get props idAttr)"
-          &selectedAttr="(get props selectedAttr)"
-          &cardClass="(get props cardClass)"
-          &href="(get props href)"
-          &name="(get props name)"
-          &badgesHtml="(get props badgesHtml)"
-          &topicVisible="(get props topicVisible)"
-          &topic="(get props topic)"
-          &targetText="(get props targetText)"
-          &nextMeetingText="(get props nextMeetingText)"
-          &statusBadgeHtml="(get props statusBadgeHtml)"
-        />
-      </noop>
-    </ul>
-    <p &visibleIf="(get props isEmpty)" class="rounded-lg border border-dashed border-slate-300 px-3 py-4 text-xs text-slate-500 dark:border-slate-600 dark:text-slate-300">No students in this phase.</p>
-  </article>`,
-  LaneStudentCard: `<li
-    &class="(get props cardClass)"
-    data-lane-student-card
-    &data-student-id="(get props idAttr)"
-    &aria-selected="(get props selectedAttr)"
-    tabindex="0"
-  >
-    <div class="flex flex-wrap items-start justify-between gap-2">
-      <a
-        &href="(get props href)"
-        data-inline-select="1"
-        data-lane-select="1"
-        &data-student-id="(get props idAttr)"
-        class="min-w-0 flex-1 break-words font-medium text-slate-800 dark:text-slate-100 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
-        &children="(get props name)"
-      ></a>
-      <div class="flex max-w-full flex-wrap justify-end gap-1">
-        <noop &children="(get props badgesHtml)"></noop>
-      </div>
-    </div>
-    <p &visibleIf="(get props topicVisible)" class="mt-1 text-xs font-medium text-slate-700 dark:text-slate-200" &children="(get props topic)"></p>
-    <p class="mt-1 text-xs text-slate-500 dark:text-slate-300" &children="(get props targetText)"></p>
-    <p class="mt-1 text-xs text-slate-500 dark:text-slate-300" &children="(get props nextMeetingText)"></p>
-    <p class="mt-2"><noop &children="(get props statusBadgeHtml)"></noop></p>
-  </li>`,
-  StudentTableRow: `<tr
-    &class="(get props rowClass)"
-    data-student-row
-    &data-select-href="(get props selectHref)"
-    &data-student-id="(get props studentIdAttr)"
-    &data-name="(get props dataName)"
-    &data-email="(get props dataEmail)"
-    &data-topic="(get props dataTopic)"
-    &data-degree="(get props dataDegree)"
-    &data-phase="(get props dataPhase)"
-    &data-status-id="(get props dataStatusId)"
-    &data-target-date="(get props dataTargetDate)"
-    &data-next-meeting-date="(get props dataNextMeetingDate)"
-    &aria-selected="(get props selectedAttr)"
-    tabindex="0"
-  >
-    <td class="px-2 py-2 align-top"><noop &children="(get props summaryHtml)"></noop></td>
-    <td class="px-2 py-2 align-top" &children="(get props degreeLabel)"></td>
-    <td class="px-2 py-2 align-top" &children="(get props phaseLabel)"></td>
-    <td class="px-2 py-2 align-top" &children="(get props targetDate)"></td>
-    <td class="px-2 py-2 align-top" &children="(get props nextMeetingText)"></td>
-    <td class="px-2 py-2 align-top"><noop &children="(get props statusBadgeHtml)"></noop></td>
-    <td class="px-2 py-2 align-top" &children="(get props logCountText)"></td>
-    <td class="px-2 py-2 align-top"><noop &children="(get props actionButtonHtml)"></noop></td>
-  </tr>`,
-  MeetingLogEntry: `<article class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/60">
-    <p class="font-medium"><span &children="(get props timestampText)"></span><noop &children="(get props mockBadgeHtml)"></noop></p>
-    <p class="mt-1"><span class="font-medium">Discussed:</span> <span &children="(get props discussed)"></span></p>
-    <p class="mt-1"><span class="font-medium">Agreed:</span> <span &children="(get props agreedPlan)"></span></p>
-    <p &visibleIf="(get props hasDeadline)" class="mt-1"><span class="font-medium">Next-step deadline:</span> <span &children="(get props deadlineText)"></span></p>
-  </article>`,
-};
+  };
 
-function renderView(
-  htmlInput: string,
-  props: Record<string, unknown> = {},
-): string {
-  return renderHTMLisp(htmlInput, props, VIEW_COMPONENTS);
-}
-
-function renderDocument(
-  title: string,
-  bodyContent: string,
-  bodyClass = BODY_CLASS,
-): string {
-  return renderView(
-    '<Document &title="(get props title)" &bodyClass="(get props bodyClass)" &bodyContent="(get props bodyContent)" &themeBootstrapScript="(get props themeBootstrapScript)"></Document>',
-    {
-      title: escapeHtml(title),
-      bodyClass: escapeHtml(bodyClass),
-      bodyContent,
-      themeBootstrapScript: THEME_BOOTSTRAP_SCRIPT,
-    },
-  );
-}
-
-function renderFlashMessages(
-  notice: string | null,
-  error: string | null,
-): string {
-  return renderView(
-    '<noop><NoticeFlash &visible="(get props noticeVisible)" &message="(get props noticeMessage)"></NoticeFlash><ErrorFlash &visible="(get props errorVisible)" &message="(get props errorMessage)"></ErrorFlash></noop>',
-    {
-      noticeVisible: Boolean(notice),
-      noticeMessage: escapeHtml(notice || ""),
-      errorVisible: Boolean(error),
-      errorMessage: escapeHtml(error || ""),
-    },
-  );
-}
-
-function renderAuthedPageHeader(
-  title: string,
-  description: string,
-  actionsHtml: string,
-): string {
   return renderView(
     '<AuthHeader &headerClass="(get props headerClass)" &title="(get props title)" &description="(get props description)" &descriptionClass="(get props descriptionClass)" &actionsHtml="(get props actionsHtml)" &themeToggleClass="(get props themeToggleClass)" &logoutButtonHtml="(get props logoutButtonHtml)"></AuthHeader>',
     {
@@ -604,16 +465,28 @@ function renderAuthedPageHeader(
         variant: "neutral",
       }),
     },
+    components,
   );
 }
 
 function renderMetricCards(metrics: Metrics): string {
+  interface PreparedMetric {
+    label: string;
+    metricValue: string;
+  }
+
   const preparedMetrics: PreparedMetric[] = [
     { label: "Students tracked", metricValue: String(metrics.total) },
     { label: "Meetings not booked", metricValue: String(metrics.noMeeting) },
     { label: "Past six-month target", metricValue: String(metrics.pastTarget) },
     { label: "Submitted", metricValue: String(metrics.submitted) },
   ];
+  const components: HtmlispComponents = {
+    MetricCard: `<article &class="(get props cardClass)">
+    <p &class="(get props labelClass)" &children="(get props label)"></p>
+    <p class="mt-1 text-2xl font-semibold" &children="(get props metricValue)"></p>
+  </article>`,
+  };
 
   return renderView(
     '<section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"><noop &foreach="(get props metrics)"><MetricCard &cardClass="(get props cardClass)" &labelClass="(get props labelClass)" &label="(get props label)" &metricValue="(get props metricValue)"></MetricCard></noop></section>',
@@ -622,7 +495,30 @@ function renderMetricCards(metrics: Metrics): string {
       cardClass: escapeHtml(SURFACE_CARD_SM),
       labelClass: escapeHtml(MUTED_TEXT),
     },
+    components,
   );
+}
+
+interface PreparedLaneStudent {
+  idAttr: string;
+  selectedAttr: string;
+  cardClass: string;
+  href: string;
+  name: string;
+  badgesHtml: string;
+  topicVisible: boolean;
+  topic: string;
+  targetText: string;
+  nextMeetingText: string;
+  statusBadgeHtml: string;
+}
+
+interface PreparedPhaseLane {
+  label: string;
+  countBadgeHtml: string;
+  hasStudents: boolean;
+  isEmpty: boolean;
+  students: PreparedLaneStudent[];
 }
 
 function preparePhaseLanes(
@@ -690,6 +586,58 @@ function renderPhaseLanes(
   students: Student[],
   selectedStudent: Student | null,
 ): string {
+  const components: HtmlispComponents = {
+    PhaseLane: `<article &class="(get props cardClass)">
+    <div class="flex items-start justify-between gap-3">
+      <h3 class="min-h-10 flex-1 text-sm font-semibold leading-5" &children="(get props label)"></h3>
+      <noop &children="(get props countBadgeHtml)"></noop>
+    </div>
+    <ul class="mt-3 space-y-2" &visibleIf="(get props hasStudents)">
+      <noop &foreach="(get props students)">
+        <LaneStudentCard
+          &idAttr="(get props idAttr)"
+          &selectedAttr="(get props selectedAttr)"
+          &cardClass="(get props cardClass)"
+          &href="(get props href)"
+          &name="(get props name)"
+          &badgesHtml="(get props badgesHtml)"
+          &topicVisible="(get props topicVisible)"
+          &topic="(get props topic)"
+          &targetText="(get props targetText)"
+          &nextMeetingText="(get props nextMeetingText)"
+          &statusBadgeHtml="(get props statusBadgeHtml)"
+        />
+      </noop>
+    </ul>
+    <p &visibleIf="(get props isEmpty)" class="rounded-lg border border-dashed border-slate-300 px-3 py-4 text-xs text-slate-500 dark:border-slate-600 dark:text-slate-300">No students in this phase.</p>
+  </article>`,
+    LaneStudentCard: `<li
+    &class="(get props cardClass)"
+    data-lane-student-card
+    &data-student-id="(get props idAttr)"
+    &aria-selected="(get props selectedAttr)"
+    tabindex="0"
+  >
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <a
+        &href="(get props href)"
+        data-inline-select="1"
+        data-lane-select="1"
+        &data-student-id="(get props idAttr)"
+        class="min-w-0 flex-1 break-words font-medium text-slate-800 dark:text-slate-100 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+        &children="(get props name)"
+      ></a>
+      <div class="flex max-w-full flex-wrap justify-end gap-1">
+        <noop &children="(get props badgesHtml)"></noop>
+      </div>
+    </div>
+    <p &visibleIf="(get props topicVisible)" class="mt-1 text-xs font-medium text-slate-700 dark:text-slate-200" &children="(get props topic)"></p>
+    <p class="mt-1 text-xs text-slate-500 dark:text-slate-300" &children="(get props targetText)"></p>
+    <p class="mt-1 text-xs text-slate-500 dark:text-slate-300" &children="(get props nextMeetingText)"></p>
+    <p class="mt-2"><noop &children="(get props statusBadgeHtml)"></noop></p>
+  </li>`,
+  };
+
   return renderView(
     `<section class="space-y-3">
       <div>
@@ -714,7 +662,13 @@ function renderPhaseLanes(
       cardClass: escapeHtml(`snap-start min-h-[14rem] ${SURFACE_CARD_SM}`),
       lanes: preparePhaseLanes(students, selectedStudent),
     },
+    components,
   );
+}
+
+interface PreparedFilterOption {
+  label: string;
+  optionValue: string;
 }
 
 function prepareFilterOptions(
@@ -724,6 +678,29 @@ function prepareFilterOptions(
     optionValue: escapeHtml(option.value),
     label: escapeHtml(option.label),
   }));
+}
+
+interface PreparedStudentRow {
+  rowClass: string;
+  selectedAttr: string;
+  selectHref: string;
+  studentIdAttr: string;
+  dataName: string;
+  dataEmail: string;
+  dataTopic: string;
+  dataDegree: string;
+  dataPhase: string;
+  dataStatusId: string;
+  dataTargetDate: string;
+  dataNextMeetingDate: string;
+  summaryHtml: string;
+  degreeLabel: string;
+  phaseLabel: string;
+  targetDate: string;
+  nextMeetingText: string;
+  statusBadgeHtml: string;
+  logCountText: string;
+  actionButtonHtml: string;
 }
 
 function prepareStudentRows(
@@ -810,6 +787,34 @@ function renderStudentsTable(
   selectedPanel: string,
   emptySelectedPanel: string,
 ): string {
+  const components: HtmlispComponents = {
+    StudentTableRow: `<tr
+    &class="(get props rowClass)"
+    data-student-row
+    &data-select-href="(get props selectHref)"
+    &data-student-id="(get props studentIdAttr)"
+    &data-name="(get props dataName)"
+    &data-email="(get props dataEmail)"
+    &data-topic="(get props dataTopic)"
+    &data-degree="(get props dataDegree)"
+    &data-phase="(get props dataPhase)"
+    &data-status-id="(get props dataStatusId)"
+    &data-target-date="(get props dataTargetDate)"
+    &data-next-meeting-date="(get props dataNextMeetingDate)"
+    &aria-selected="(get props selectedAttr)"
+    tabindex="0"
+  >
+    <td class="px-2 py-2 align-top"><noop &children="(get props summaryHtml)"></noop></td>
+    <td class="px-2 py-2 align-top" &children="(get props degreeLabel)"></td>
+    <td class="px-2 py-2 align-top" &children="(get props phaseLabel)"></td>
+    <td class="px-2 py-2 align-top" &children="(get props targetDate)"></td>
+    <td class="px-2 py-2 align-top" &children="(get props nextMeetingText)"></td>
+    <td class="px-2 py-2 align-top"><noop &children="(get props statusBadgeHtml)"></noop></td>
+    <td class="px-2 py-2 align-top" &children="(get props logCountText)"></td>
+    <td class="px-2 py-2 align-top"><noop &children="(get props actionButtonHtml)"></noop></td>
+  </tr>`,
+  };
+
   const degreeFilterOptions = prepareFilterOptions([
     { value: "", label: "All degree types" },
     ...DEGREE_TYPES.map((degree) => ({
@@ -942,6 +947,7 @@ function renderStudentsTable(
       selectedPanel,
       emptySelectedPanel,
     },
+    components,
   );
 }
 
@@ -1347,6 +1353,15 @@ export function renderEmptySelectedPanel(
   );
 }
 
+interface PreparedLogEntry {
+  timestampText: string;
+  mockBadgeHtml: string;
+  discussed: string;
+  agreedPlan: string;
+  hasDeadline: boolean;
+  deadlineText: string;
+}
+
 function prepareLogEntries(logs: MeetingLog[]): PreparedLogEntry[] {
   return logs.map((log) => ({
     timestampText: escapeHtml(formatDateTime(log.happenedAt)),
@@ -1368,6 +1383,15 @@ export function renderSelectedStudentPanel(
   student: Student,
   logs: MeetingLog[],
 ): string {
+  const components: HtmlispComponents = {
+    MeetingLogEntry: `<article class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/60">
+    <p class="font-medium"><span &children="(get props timestampText)"></span><noop &children="(get props mockBadgeHtml)"></noop></p>
+    <p class="mt-1"><span class="font-medium">Discussed:</span> <span &children="(get props discussed)"></span></p>
+    <p class="mt-1"><span class="font-medium">Agreed:</span> <span &children="(get props agreedPlan)"></span></p>
+    <p &visibleIf="(get props hasDeadline)" class="mt-1"><span class="font-medium">Next-step deadline:</span> <span &children="(get props deadlineText)"></span></p>
+  </article>`,
+  };
+
   const degreeOptions: SelectOption[] = DEGREE_TYPES.map((degree) => ({
     label: degree.label,
     value: degree.id,
@@ -1567,10 +1591,16 @@ export function renderSelectedStudentPanel(
         variant: "dangerBlock",
       }),
     },
+    components,
   );
 }
 
 export function renderLoginPage(showError: boolean): string {
+  const components: HtmlispComponents = {
+    ErrorFlash:
+      '<p &visibleIf="(get props visible)" role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200" &children="(get props message)"></p>',
+  };
+
   const bodyContent = renderView(
     `<main class="mx-auto flex h-full max-w-md items-center px-6">
       <section class="w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-lg dark:border-slate-700 dark:bg-slate-900">
@@ -1595,6 +1625,7 @@ export function renderLoginPage(showError: boolean): string {
         className: "transition",
       }),
     },
+    components,
   );
 
   return renderDocument(

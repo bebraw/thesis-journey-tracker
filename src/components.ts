@@ -75,28 +75,6 @@ export interface TextareaFieldOptions {
   attributes?: string;
 }
 
-interface RenderableSelectOption {
-  label: string;
-  optionValue: string;
-  selectedAttr?: string;
-}
-
-const BUTTON_LINK_TEMPLATE =
-  '<a &href="(get props href)" &class="(get props className)"__EXTRA_ATTRIBUTES__ &children="(get props label)"></a>';
-const BUTTON_TEMPLATE =
-  '<button &type="(get props type)" &class="(get props className)"__EXTRA_ATTRIBUTES__ &children="(get props label)"></button>';
-const BADGE_TEMPLATE =
-  '<span &class="(get props className)" &children="(get props label)"></span>';
-const CARD_TEMPLATE =
-  '<article &class="(get props className)"><noop &children="(get props content)"></noop></article>';
-const FIELD_SHELL_TEMPLATE =
-  '<label &class="(get props wrapperClassName)"><span &class="(get props labelClassName)" &children="(get props label)"></span><noop &children="(get props controlHtml)"></noop></label>';
-const INPUT_TEMPLATE = "<input__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__ />";
-const SELECT_TEMPLATE =
-  '<select__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__><noop &foreach="(get props options)"><option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option></noop></select>';
-const TEXTAREA_TEMPLATE =
-  '<textarea__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__ &children="(get props value)"></textarea>';
-
 export const BODY_CLASS =
   "min-h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100";
 export const BODY_CLASS_LOGIN =
@@ -184,17 +162,23 @@ export function renderButton(options: ButtonOptions): string {
 
   if (href) {
     return renderHTMLisp(
-      fillTemplate(BUTTON_LINK_TEMPLATE, {
-        __EXTRA_ATTRIBUTES__: extraAttributes,
-      }),
+      fillTemplate(
+        '<a &href="(get props href)" &class="(get props className)"__EXTRA_ATTRIBUTES__ &children="(get props label)"></a>',
+        {
+          __EXTRA_ATTRIBUTES__: extraAttributes,
+        },
+      ),
       { className: mergedClassName, href: escapeHtml(href), label: safeLabel },
     );
   }
 
   return renderHTMLisp(
-    fillTemplate(BUTTON_TEMPLATE, {
-      __EXTRA_ATTRIBUTES__: extraAttributes,
-    }),
+    fillTemplate(
+      '<button &type="(get props type)" &class="(get props className)"__EXTRA_ATTRIBUTES__ &children="(get props label)"></button>',
+      {
+        __EXTRA_ATTRIBUTES__: extraAttributes,
+      },
+    ),
     {
       className: mergedClassName,
       label: safeLabel,
@@ -206,24 +190,33 @@ export function renderButton(options: ButtonOptions): string {
 export function renderBadge(options: BadgeOptions): string {
   const { label, variant = "neutral", className } = options;
 
-  return renderHTMLisp(BADGE_TEMPLATE, {
-    className: escapeHtml(mergeClasses(BADGE_CLASS_MAP[variant], className)),
-    label: escapeHtml(label),
-  });
+  return renderHTMLisp(
+    '<span &class="(get props className)" &children="(get props label)"></span>',
+    {
+      className: escapeHtml(mergeClasses(BADGE_CLASS_MAP[variant], className)),
+      label: escapeHtml(label),
+    },
+  );
 }
 
 export function renderCard(content: string, className?: string): string {
-  return renderHTMLisp(CARD_TEMPLATE, {
-    className: escapeHtml(mergeClasses(SURFACE_CARD, className)),
-    content,
-  });
+  return renderHTMLisp(
+    '<article &class="(get props className)"><noop &children="(get props content)"></noop></article>',
+    {
+      className: escapeHtml(mergeClasses(SURFACE_CARD, className)),
+      content,
+    },
+  );
 }
 
 export function renderCompactCard(content: string, className?: string): string {
-  return renderHTMLisp(CARD_TEMPLATE, {
-    className: escapeHtml(mergeClasses(SURFACE_CARD_SM, className)),
-    content,
-  });
+  return renderHTMLisp(
+    '<article &class="(get props className)"><noop &children="(get props content)"></noop></article>',
+    {
+      className: escapeHtml(mergeClasses(SURFACE_CARD_SM, className)),
+      content,
+    },
+  );
 }
 
 export function renderFieldShell(
@@ -231,12 +224,15 @@ export function renderFieldShell(
   controlHtml: string,
   wrapperClassName = FORM_LABEL,
 ): string {
-  return renderHTMLisp(FIELD_SHELL_TEMPLATE, {
-    labelClassName: escapeHtml(FIELD_LABEL),
-    label: escapeHtml(label),
-    controlHtml,
-    wrapperClassName: escapeHtml(wrapperClassName),
-  });
+  return renderHTMLisp(
+    '<label &class="(get props wrapperClassName)"><span &class="(get props labelClassName)" &children="(get props label)"></span><noop &children="(get props controlHtml)"></noop></label>',
+    {
+      labelClassName: escapeHtml(FIELD_LABEL),
+      label: escapeHtml(label),
+      controlHtml,
+      wrapperClassName: escapeHtml(wrapperClassName),
+    },
+  );
 }
 
 export function renderInputField(options: FieldOptions): string {
@@ -280,7 +276,7 @@ export function renderInputField(options: FieldOptions): string {
   );
 
   const controlHtml = renderHTMLisp(
-    fillTemplate(INPUT_TEMPLATE, {
+    fillTemplate("<input__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__ />", {
       __BASE_ATTRIBUTES__: baseAttributes,
       __EXTRA_ATTRIBUTES__: serializeHtmlispAttributes(extraAttributes),
     }),
@@ -290,6 +286,12 @@ export function renderInputField(options: FieldOptions): string {
 }
 
 export function renderSelectField(options: SelectFieldOptions): string {
+  interface RenderableSelectOption {
+    label: string;
+    optionValue: string;
+    selectedAttr?: string;
+  }
+
   const {
     label,
     name,
@@ -323,10 +325,13 @@ export function renderSelectField(options: SelectFieldOptions): string {
   );
 
   const controlHtml = renderHTMLisp(
-    fillTemplate(SELECT_TEMPLATE, {
-      __BASE_ATTRIBUTES__: baseAttributes,
-      __EXTRA_ATTRIBUTES__: serializeHtmlispAttributes(extraAttributes),
-    }),
+    fillTemplate(
+      '<select__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__><noop &foreach="(get props options)"><option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option></noop></select>',
+      {
+        __BASE_ATTRIBUTES__: baseAttributes,
+        __EXTRA_ATTRIBUTES__: serializeHtmlispAttributes(extraAttributes),
+      },
+    ),
     { options: normalizedOptions },
   );
 
@@ -369,10 +374,13 @@ export function renderTextareaField(options: TextareaFieldOptions): string {
   );
 
   const controlHtml = renderHTMLisp(
-    fillTemplate(TEXTAREA_TEMPLATE, {
-      __BASE_ATTRIBUTES__: baseAttributes,
-      __EXTRA_ATTRIBUTES__: serializeHtmlispAttributes(extraAttributes),
-    }),
+    fillTemplate(
+      '<textarea__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__ &children="(get props value)"></textarea>',
+      {
+        __BASE_ATTRIBUTES__: baseAttributes,
+        __EXTRA_ATTRIBUTES__: serializeHtmlispAttributes(extraAttributes),
+      },
+    ),
     { value: escapeHtml(value || "") },
   );
 
