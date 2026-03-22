@@ -44,13 +44,18 @@ interface Metrics {
 }
 
 interface DashboardPageData {
-  showMockData: boolean;
   students: Student[];
   selectedStudent: Student | null;
   logs: MeetingLog[];
   notice: string | null;
   error: string | null;
   metrics: Metrics;
+}
+
+interface SettingsPageData {
+  showMockData: boolean;
+  notice: string | null;
+  error: string | null;
 }
 
 type D1Value = string | number | null;
@@ -183,6 +188,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return await renderDashboard(request, env, url);
   }
 
+  if (pathname === "/settings" && request.method === "GET") {
+    return await renderSettings(env, url);
+  }
+
   if (pathname === "/actions/add-student" && request.method === "POST") {
     return await handleAddStudent(request, env);
   }
@@ -227,13 +236,26 @@ async function renderDashboard(request: Request, env: Env, url: URL): Promise<Re
 
   return htmlResponse(
     renderDashboardPage({
-      showMockData,
       students,
       selectedStudent,
       logs,
       notice,
       error,
       metrics
+    })
+  );
+}
+
+async function renderSettings(env: Env, url: URL): Promise<Response> {
+  const showMockData = await getShowMockData(env.DB);
+  const notice = url.searchParams.get("notice");
+  const error = url.searchParams.get("error");
+
+  return htmlResponse(
+    renderSettingsPage({
+      showMockData,
+      notice,
+      error
     })
   );
 }
@@ -324,7 +346,6 @@ async function handleAddLog(request: Request, env: Env, studentId: number): Prom
 
 async function handleToggleMock(request: Request, env: Env): Promise<Response> {
   const formData = await request.formData();
-  const selected = normalizeInteger(formData.get("selected"));
   const showMockData = formData.get("showMockData") === "1";
 
   await env.DB.prepare(
@@ -335,8 +356,7 @@ async function handleToggleMock(request: Request, env: Env): Promise<Response> {
     .bind(showMockData ? "1" : "0")
     .run();
 
-  const selectedPart = selected ? `selected=${selected}&` : "";
-  return redirect(`/?${selectedPart}notice=Mock+data+visibility+updated`);
+  return redirect(`/settings?notice=Mock+data+visibility+updated`);
 }
 
 async function getShowMockData(db: D1Database): Promise<boolean> {
@@ -412,7 +432,6 @@ async function listLogsForStudent(
 
 function renderDashboardPage(data: DashboardPageData): string {
   const {
-    showMockData,
     students,
     selectedStudent,
     logs,
@@ -505,6 +524,7 @@ function renderDashboardPage(data: DashboardPageData): string {
           <p class="text-sm text-slate-600 dark:text-slate-300">Track phases, next meetings, and supervision logs in one place.</p>
         </div>
         <div class="flex items-center gap-3">
+          <a href="/settings" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Settings</a>
           <button
             id="themeToggle"
             type="button"
@@ -560,20 +580,10 @@ function renderDashboardPage(data: DashboardPageData): string {
         </article>
       </section>
 
-      <section class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <article class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-          <h2 class="text-lg font-semibold">Settings</h2>
-          <form action="/actions/toggle-mock" method="post" class="space-y-3">
-            <input type="hidden" name="selected" value="${selectedStudent ? selectedStudent.id : ""}" />
-            <label class="flex items-center gap-3 text-sm">
-              <input type="checkbox" name="showMockData" value="1" class="h-4 w-4" ${showMockData ? "checked" : ""} />
-              Show seeded mock data
-            </label>
-            <button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Save setting</button>
-          </form>
-        </article>
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900 lg:col-span-2">
+      <section class="grid grid-cols-1 gap-6">
+        <article class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
           <h2 class="text-lg font-semibold">Add Student</h2>
+          <p class="mt-1 text-xs text-slate-500 dark:text-slate-300">Mock-data visibility is available on the dedicated Settings page.</p>
           <form action="/actions/add-student" method="post" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <label class="text-sm">
               <span class="mb-1 block text-slate-600 dark:text-slate-300">Name</span>
@@ -758,6 +768,107 @@ function renderDashboardPage(data: DashboardPageData): string {
       if (phaseFilter) phaseFilter.addEventListener("change", applyStudentFilters);
       if (statusFilter) statusFilter.addEventListener("change", applyStudentFilters);
       if (sortBy) sortBy.addEventListener("change", refreshStudentTable);
+    </script>
+  </body>
+</html>`;
+}
+
+function renderSettingsPage(data: SettingsPageData): string {
+  const { showMockData, notice, error } = data;
+
+  return `<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thesis Journey Tracker - Settings</title>
+    <script>
+      (function applyTheme() {
+        var stored = localStorage.getItem("theme");
+        if (stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+          document.documentElement.classList.add("dark");
+        }
+      }());
+    </script>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="min-h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div class="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <header class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-xl font-semibold">Settings</h1>
+          <p class="text-sm text-slate-600 dark:text-slate-300">Manage application preferences for your supervision dashboard.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="/" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Dashboard</a>
+          <button
+            id="themeToggle"
+            type="button"
+            title="Switch to dark mode"
+            aria-label="Switch to dark mode"
+            class="inline-flex items-center justify-center rounded-md border border-slate-300 p-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900"
+          >
+            <svg class="h-5 w-5 text-slate-700 dark:hidden dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-9-9 7 7 0 0 0 9 9Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <svg class="hidden h-5 w-5 text-slate-700 dark:block dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" />
+              <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.41 1.41M16.95 16.95l1.41 1.41M18.36 5.64l-1.41 1.41M7.05 16.95l-1.41 1.41" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </button>
+          <form action="/logout" method="post">
+            <button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Log out</button>
+          </form>
+        </div>
+      </header>
+
+      ${
+        notice
+          ? `<p role="status" aria-live="polite" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200">${escapeHtml(
+              notice
+            )}</p>`
+          : ""
+      }
+      ${
+        error
+          ? `<p role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200">${escapeHtml(
+              error
+            )}</p>`
+          : ""
+      }
+
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <h2 class="text-lg font-semibold">Data & Privacy</h2>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Control whether seeded mock students and logs are visible in your dashboard.</p>
+        <form action="/actions/toggle-mock" method="post" class="mt-4 space-y-4">
+          <label class="flex items-center gap-3 text-sm">
+            <input type="checkbox" name="showMockData" value="1" class="h-4 w-4" ${showMockData ? "checked" : ""} />
+            Show seeded mock data
+          </label>
+          <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900">Save settings</button>
+        </form>
+      </section>
+    </div>
+
+    <script>
+      var themeToggle = document.getElementById("themeToggle");
+      var root = document.documentElement;
+
+      function syncThemeToggleAccessibility() {
+        var nextMode = root.classList.contains("dark") ? "light" : "dark";
+        var label = "Switch to " + nextMode + " mode";
+        themeToggle.setAttribute("title", label);
+        themeToggle.setAttribute("aria-label", label);
+      }
+
+      syncThemeToggleAccessibility();
+
+      themeToggle.addEventListener("click", function () {
+        root.classList.toggle("dark");
+        localStorage.setItem("theme", root.classList.contains("dark") ? "dark" : "light");
+        syncThemeToggleAccessibility();
+      });
     </script>
   </body>
 </html>`;
@@ -969,14 +1080,6 @@ function normalizePhase(value: FormDataEntryValue | string | null | undefined): 
     return null;
   }
   return PHASES.some((phase) => phase.id === text) ? (text as PhaseId) : null;
-}
-
-function normalizeInteger(value: FormDataEntryValue | string | null | undefined): number | null {
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-  const number = Number(value);
-  return Number.isInteger(number) && number > 0 ? number : null;
 }
 
 function addSixMonths(dateText: string | null): string | null {

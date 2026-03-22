@@ -142,9 +142,9 @@ npm run deploy
 ## Usage Notes
 
 - Add students with start date. If target submission date is omitted, it defaults to start date + 6 months.
-- Use **Open** on a student row to edit details and add/view log entries.
+- Use **View & Edit** on a student row to edit details and add/view log entries.
 - If a next meeting is not known, leave it empty.
-- Mock data is hidden by default and can be turned on/off in **Settings**.
+- Mock data is hidden by default and can be turned on/off in the dedicated **Settings** page (`/settings`).
 
 ## Security Model
 
