@@ -101,6 +101,15 @@ class MockD1Database {
       return { success: true, meta: { changes: 1 } };
     }
 
+    if (q === "DELETE FROM students WHERE id = ?") {
+      const id = Number(values[0]);
+      this.students = this.students.filter((student) => student.id !== id);
+      this.meetingLogs = this.meetingLogs.filter(
+        (log) => log.student_id !== id,
+      );
+      return { success: true, meta: { changes: 1 } };
+    }
+
     if (q.startsWith("INSERT INTO meeting_logs")) {
       const [studentId, happenedAt, discussed, agreedPlan, nextStepDeadline] =
         values;
@@ -349,5 +358,33 @@ describe("SQL injection safety", () => {
     expect(env.DB.calls.some((call) => call.query.includes(payload))).toBe(
       false,
     );
+  });
+
+  it("deletes a student and cascades meeting logs", async () => {
+    const cookie = await login(fetchHandler, env);
+
+    env.DB.meetingLogs.push({
+      id: 1,
+      student_id: 1,
+      happened_at: "2026-03-22T09:00:00.000Z",
+      discussed: "Initial review",
+      agreed_plan: "Write chapter 1",
+      next_step_deadline: "2026-03-29",
+      is_mock: 0,
+    });
+
+    const response = await fetchHandler(
+      new Request("http://localhost/actions/delete-student/1", {
+        method: "POST",
+        headers: {
+          cookie,
+        },
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(env.DB.students).toHaveLength(0);
+    expect(env.DB.meetingLogs).toHaveLength(0);
   });
 });

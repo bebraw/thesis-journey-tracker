@@ -226,6 +226,13 @@ export async function updateStudent(
     .run();
 }
 
+export async function deleteStudent(
+  db: D1Database,
+  studentId: number,
+): Promise<void> {
+  await db.prepare("DELETE FROM students WHERE id = ?").bind(studentId).run();
+}
+
 export async function createMeetingLog(
   db: D1Database,
   input: CreateLogInput,

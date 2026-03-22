@@ -3,6 +3,7 @@ import favicon from "./favicon.ico";
 import {
   createMeetingLog,
   createStudent,
+  deleteStudent,
   type D1Database,
   listLogsForStudent,
   listStudents,
@@ -160,6 +161,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   const addLogMatch = pathname.match(/^\/actions\/add-log\/(\d+)$/);
   if (addLogMatch && request.method === "POST") {
     return await handleAddLog(request, env, Number(addLogMatch[1]));
+  }
+
+  const deleteMatch = pathname.match(/^\/actions\/delete-student\/(\d+)$/);
+  if (deleteMatch && request.method === "POST") {
+    return await handleDeleteStudent(env, Number(deleteMatch[1]));
   }
 
   return new Response("Not found", { status: 404 });
@@ -378,6 +384,18 @@ async function handleAddLog(
   });
 
   return redirect(`/?selected=${studentId}&notice=Log+saved`);
+}
+
+async function handleDeleteStudent(
+  env: Env,
+  studentId: number,
+): Promise<Response> {
+  if (!(await studentExists(env.DB, studentId))) {
+    return redirect("/?error=Student+not+found");
+  }
+
+  await deleteStudent(env.DB, studentId);
+  return redirect("/?notice=Student+deleted");
 }
 
 function renderDashboardPage(data: DashboardPageData): string {
@@ -1231,6 +1249,26 @@ function renderSelectedStudentPanel(
         <h2 class="text-lg font-semibold">Meeting Log History</h2>
         <div class="mt-3 space-y-3">${logsHtml}</div>
       </section>
+
+      <section class="rounded-2xl border border-rose-200 bg-rose-50/60 p-4 dark:border-rose-900/60 dark:bg-rose-950/30">
+        <h2 class="text-lg font-semibold text-rose-900 dark:text-rose-100">Delete Student</h2>
+        <p class="mt-1 text-sm text-rose-800 dark:text-rose-200">This removes the student and all related meeting log entries permanently.</p>
+        <form
+          action="/actions/delete-student/${student.id}"
+          method="post"
+          class="mt-4"
+          onsubmit="return window.confirm('Delete ${escapeJsString(
+            student.name,
+          )}? This will also remove all supervision logs for this student.');"
+        >
+          <button
+            type="submit"
+            class="w-full rounded-md bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+          >
+            Delete student
+          </button>
+        </form>
+      </section>
     </article>
   `;
 }
@@ -1461,6 +1499,14 @@ function escapeHtml(value: string | number): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function escapeJsString(value: string): string {
+  return value
+    .replaceAll("\\", "\\\\")
+    .replaceAll("'", "\\'")
+    .replaceAll("\r", "\\r")
+    .replaceAll("\n", "\\n");
 }
 
 function redirect(pathname: string, extraHeaders: HeadersInit = {}): Response {
