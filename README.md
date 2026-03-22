@@ -7,7 +7,7 @@ Private thesis advising dashboard for tracking MSc students through thesis phase
 - Password-protected access (single advisor account)
 - D1 persistence (students, settings, meeting logs)
 - Thesis phase tracking:
-  - Research plan
+  - Planning research
   - Researching
   - First complete draft
   - Editing

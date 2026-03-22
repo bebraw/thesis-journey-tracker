@@ -117,7 +117,7 @@ const SESSION_COOKIE = "thesis_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 
 const PHASES: Phase[] = [
-  { id: "research_plan", label: "Research plan" },
+  { id: "research_plan", label: "Planning research" },
   { id: "researching", label: "Researching" },
   { id: "first_complete_draft", label: "First complete draft" },
   { id: "editing", label: "Editing" },
