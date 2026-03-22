@@ -58,6 +58,11 @@ interface SettingsPageData {
   error: string | null;
 }
 
+interface AddStudentPageData {
+  notice: string | null;
+  error: string | null;
+}
+
 type D1Value = string | number | null;
 
 interface D1ExecMeta {
@@ -192,6 +197,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return await renderSettings(env, url);
   }
 
+  if (pathname === "/students/new" && request.method === "GET") {
+    return renderAddStudent(url);
+  }
+
   if (pathname === "/actions/add-student" && request.method === "POST") {
     return await handleAddStudent(request, env);
   }
@@ -260,6 +269,18 @@ async function renderSettings(env: Env, url: URL): Promise<Response> {
   );
 }
 
+function renderAddStudent(url: URL): Response {
+  const notice = url.searchParams.get("notice");
+  const error = url.searchParams.get("error");
+
+  return htmlResponse(
+    renderAddStudentPage({
+      notice,
+      error
+    })
+  );
+}
+
 async function handleAddStudent(request: Request, env: Env): Promise<Response> {
   const formData = await request.formData();
 
@@ -273,7 +294,7 @@ async function handleAddStudent(request: Request, env: Env): Promise<Response> {
   const nextMeetingAt = normalizeDateTime(formData.get("nextMeetingAt"), true);
 
   if (!name || !startDate || !targetSubmissionDate || !currentPhase || nextMeetingAt === undefined) {
-    return redirect("/?error=Invalid+student+input");
+    return redirect("/students/new?error=Invalid+student+input");
   }
 
   const result = await env.DB.prepare(
@@ -440,9 +461,6 @@ function renderDashboardPage(data: DashboardPageData): string {
     metrics
   } = data;
 
-  const phaseOptions = PHASES.map(
-    (phase) => `<option value="${phase.id}">${phase.label}</option>`
-  ).join("");
   const phaseFilterOptions = [
     '<option value="">All phases</option>',
     ...PHASES.map((phase) => `<option value="${phase.id}">${phase.label}</option>`)
@@ -561,6 +579,7 @@ function renderDashboardPage(data: DashboardPageData): string {
           <p class="text-sm text-slate-600 dark:text-slate-300">Track phases, next meetings, and supervision logs in one place.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2 sm:justify-end sm:gap-3">
+          <a href="/students/new" class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900">Add student</a>
           <a href="/settings" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Settings</a>
           <button
             id="themeToggle"
@@ -625,40 +644,6 @@ function renderDashboardPage(data: DashboardPageData): string {
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           ${phaseLaneCards}
         </div>
-      </section>
-
-      <section class="grid grid-cols-1 gap-6">
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-          <h2 class="text-lg font-semibold">Add Student</h2>
-          <p class="mt-1 text-xs text-slate-500 dark:text-slate-300">Mock-data visibility is available on the dedicated Settings page.</p>
-          <form action="/actions/add-student" method="post" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <label class="text-sm">
-              <span class="mb-1 block text-slate-600 dark:text-slate-300">Name</span>
-              <input name="name" required class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
-            </label>
-            <label class="text-sm">
-              <span class="mb-1 block text-slate-600 dark:text-slate-300">Email (optional)</span>
-              <input name="email" type="email" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
-            </label>
-            <label class="text-sm">
-              <span class="mb-1 block text-slate-600 dark:text-slate-300">Phase</span>
-              <select name="currentPhase" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800">${phaseOptions}</select>
-            </label>
-            <label class="text-sm">
-              <span class="mb-1 block text-slate-600 dark:text-slate-300">Start date</span>
-              <input name="startDate" type="date" required class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
-            </label>
-            <label class="text-sm">
-              <span class="mb-1 block text-slate-600 dark:text-slate-300">Target submission (optional)</span>
-              <input name="targetSubmissionDate" type="date" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
-            </label>
-            <label class="text-sm">
-              <span class="mb-1 block text-slate-600 dark:text-slate-300">Next meeting (optional)</span>
-              <input name="nextMeetingAt" type="datetime-local" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
-            </label>
-            <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 sm:col-span-2 lg:col-span-3">Add student</button>
-          </form>
-        </article>
       </section>
 
       <section class="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -894,6 +879,131 @@ function renderSettingsPage(data: SettingsPageData): string {
             Show seeded mock data
           </label>
           <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900">Save settings</button>
+        </form>
+      </section>
+    </div>
+
+    <script>
+      var themeToggle = document.getElementById("themeToggle");
+      var root = document.documentElement;
+
+      function syncThemeToggleAccessibility() {
+        var nextMode = root.classList.contains("dark") ? "light" : "dark";
+        var label = "Switch to " + nextMode + " mode";
+        themeToggle.setAttribute("title", label);
+        themeToggle.setAttribute("aria-label", label);
+      }
+
+      syncThemeToggleAccessibility();
+
+      themeToggle.addEventListener("click", function () {
+        root.classList.toggle("dark");
+        localStorage.setItem("theme", root.classList.contains("dark") ? "dark" : "light");
+        syncThemeToggleAccessibility();
+      });
+    </script>
+  </body>
+</html>`;
+}
+
+function renderAddStudentPage(data: AddStudentPageData): string {
+  const { notice, error } = data;
+  const phaseOptions = PHASES.map(
+    (phase) => `<option value="${phase.id}">${phase.label}</option>`
+  ).join("");
+
+  return `<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thesis Journey Tracker - Add Student</title>
+    <script>
+      (function applyTheme() {
+        var stored = localStorage.getItem("theme");
+        if (stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+          document.documentElement.classList.add("dark");
+        }
+      }());
+    </script>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="min-h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div class="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <header class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-xl font-semibold">Add Student</h1>
+          <p class="text-sm text-slate-600 dark:text-slate-300">Create a new thesis supervision entry.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 sm:justify-end sm:gap-3">
+          <a href="/" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Dashboard</a>
+          <a href="/settings" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Settings</a>
+          <button
+            id="themeToggle"
+            type="button"
+            title="Switch to dark mode"
+            aria-label="Switch to dark mode"
+            class="inline-flex items-center justify-center rounded-md border border-slate-300 p-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900"
+          >
+            <svg class="h-5 w-5 text-slate-700 dark:hidden dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-9-9 7 7 0 0 0 9 9Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <svg class="hidden h-5 w-5 text-slate-700 dark:block dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" />
+              <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.41 1.41M16.95 16.95l1.41 1.41M18.36 5.64l-1.41 1.41M7.05 16.95l-1.41 1.41" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </button>
+          <form action="/logout" method="post">
+            <button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Log out</button>
+          </form>
+        </div>
+      </header>
+
+      ${
+        notice
+          ? `<p role="status" aria-live="polite" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200">${escapeHtml(
+              notice
+            )}</p>`
+          : ""
+      }
+      ${
+        error
+          ? `<p role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200">${escapeHtml(
+              error
+            )}</p>`
+          : ""
+      }
+
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <h2 class="text-lg font-semibold">Student Details</h2>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Target submission defaults to six months from start date when left empty.</p>
+        <form action="/actions/add-student" method="post" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <label class="text-sm">
+            <span class="mb-1 block text-slate-600 dark:text-slate-300">Name</span>
+            <input name="name" required class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
+          </label>
+          <label class="text-sm">
+            <span class="mb-1 block text-slate-600 dark:text-slate-300">Email (optional)</span>
+            <input name="email" type="email" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
+          </label>
+          <label class="text-sm">
+            <span class="mb-1 block text-slate-600 dark:text-slate-300">Phase</span>
+            <select name="currentPhase" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800">${phaseOptions}</select>
+          </label>
+          <label class="text-sm">
+            <span class="mb-1 block text-slate-600 dark:text-slate-300">Start date</span>
+            <input name="startDate" type="date" required class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
+          </label>
+          <label class="text-sm">
+            <span class="mb-1 block text-slate-600 dark:text-slate-300">Target submission (optional)</span>
+            <input name="targetSubmissionDate" type="date" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
+          </label>
+          <label class="text-sm">
+            <span class="mb-1 block text-slate-600 dark:text-slate-300">Next meeting (optional)</span>
+            <input name="nextMeetingAt" type="datetime-local" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
+          </label>
+          <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 sm:col-span-2 lg:col-span-3">Add student</button>
         </form>
       </section>
     </div>
