@@ -18,6 +18,7 @@ Private thesis advising dashboard for tracking MSc students through thesis phase
   - What was discussed
   - Agreed plan / next actions
   - Optional deadline for next step
+- Dashboard phase lanes showing how students are distributed across thesis phases
 - Seeded mock data with persisted on/off toggle
 - Dark mode
 - Works locally and on Cloudflare Workers
