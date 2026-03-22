@@ -201,6 +201,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return renderAddStudent(url);
   }
 
+  const partialStudentMatch = pathname.match(/^\/partials\/student\/(\d+)$/);
+  if (partialStudentMatch && request.method === "GET") {
+    return await renderStudentPanelPartial(env, Number(partialStudentMatch[1]));
+  }
+
   if (pathname === "/actions/add-student" && request.method === "POST") {
     return await handleAddStudent(request, env);
   }
@@ -281,6 +286,19 @@ function renderAddStudent(url: URL): Response {
       error
     })
   );
+}
+
+async function renderStudentPanelPartial(env: Env, studentId: number): Promise<Response> {
+  const showMockData = await getShowMockData(env.DB);
+  const students = await listStudents(env.DB, showMockData);
+  const selectedStudent = students.find((student) => student.id === studentId) || null;
+
+  if (!selectedStudent) {
+    return htmlFragmentResponse(renderEmptySelectedPanel("Student not found."), 404);
+  }
+
+  const logs = await listLogsForStudent(env.DB, studentId, showMockData);
+  return htmlFragmentResponse(renderSelectedStudentPanel(selectedStudent, logs));
 }
 
 async function handleAddStudent(request: Request, env: Env): Promise<Response> {
@@ -510,27 +528,30 @@ function renderDashboardPage(data: DashboardPageData): string {
         .map((student) => {
           const statusText = meetingStatusText(student);
           const statusId = meetingStatusId(student);
-          const selectedClass =
-            selectedStudent && selectedStudent.id === student.id
-              ? "bg-blue-50 dark:bg-blue-900/20"
-              : "hover:bg-slate-50 dark:hover:bg-slate-800/35";
+          const isSelected = selectedStudent && selectedStudent.id === student.id;
+          const selectedClass = isSelected
+            ? "bg-blue-50 dark:bg-blue-900/20"
+            : "hover:bg-slate-50 dark:hover:bg-slate-800/35";
+          const selectedBadgeVisibility = isSelected ? "" : " hidden";
           return `
             <tr
               class="${selectedClass} cursor-pointer"
               data-student-row
               data-select-href="/?selected=${student.id}"
+              data-student-id="${student.id}"
               data-name="${escapeHtml(student.name).toLowerCase()}"
               data-email="${escapeHtml(student.email || "").toLowerCase()}"
               data-phase="${escapeHtml(student.currentPhase)}"
               data-status-id="${statusId}"
               data-target-date="${escapeHtml(student.targetSubmissionDate)}"
               data-next-meeting-date="${escapeHtml(student.nextMeetingAt || "")}"
+              aria-selected="${isSelected ? "true" : "false"}"
               tabindex="0"
             >
               <td class="px-2 py-2 align-top">
                 <div class="font-medium">
-                  <a class="underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900" href="/?selected=${student.id}">${escapeHtml(student.name)}</a>
-                  ${selectedStudent && selectedStudent.id === student.id ? '<span class="ml-2 rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/50 dark:text-blue-200">Selected</span>' : ""}
+                  <a class="underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900" href="/?selected=${student.id}" data-inline-select="1" data-student-id="${student.id}">${escapeHtml(student.name)}</a>
+                  <span data-selected-badge class="ml-2 rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/50 dark:text-blue-200${selectedBadgeVisibility}">Selected</span>
                 </div>
                 <div class="text-xs text-slate-500 dark:text-slate-300">${escapeHtml(student.email || "-")}</div>
                 ${student.isMock ? '<span class="mt-1 inline-block rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200">Mock</span>' : ""}
@@ -541,7 +562,7 @@ function renderDashboardPage(data: DashboardPageData): string {
               <td class="px-2 py-2 align-top"><span class="rounded px-2 py-1 text-xs ${meetingStatusClass(student)}">${statusText}</span></td>
               <td class="px-2 py-2 align-top">${student.logCount}</td>
               <td class="px-2 py-2 align-top">
-                <a class="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800/70 dark:focus-visible:ring-offset-slate-900" href="/?selected=${student.id}">View & Edit</a>
+                <a class="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800/70 dark:focus-visible:ring-offset-slate-900" href="/?selected=${student.id}" data-inline-select="1" data-student-id="${student.id}">View & Edit</a>
               </td>
             </tr>
           `;
@@ -551,12 +572,7 @@ function renderDashboardPage(data: DashboardPageData): string {
 
   const selectedPanel = selectedStudent
     ? renderSelectedStudentPanel(selectedStudent, logs)
-    : `
-      <article class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-        <h2 class="text-lg font-semibold">Student Details & Logs</h2>
-        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Select a student from the table to edit details and view/add supervision logs.</p>
-      </article>
-    `;
+    : renderEmptySelectedPanel();
 
   return `<!doctype html>
 <html lang="en" class="h-full">
@@ -704,8 +720,9 @@ function renderDashboardPage(data: DashboardPageData): string {
             </table>
           </div>
         </article>
-        ${selectedPanel}
+        <div id="selectedStudentPanel">${selectedPanel}</div>
       </section>
+      <template id="emptySelectedStudentPanelTemplate">${renderEmptySelectedPanel()}</template>
     </div>
 
     <script>
@@ -718,6 +735,8 @@ function renderDashboardPage(data: DashboardPageData): string {
       var statusFilter = document.getElementById("statusFilter");
       var sortBy = document.getElementById("sortBy");
       var studentResultsMeta = document.getElementById("studentResultsMeta");
+      var selectedStudentPanel = document.getElementById("selectedStudentPanel");
+      var emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");
 
       function syncThemeToggleAccessibility() {
         var nextMode = root.classList.contains("dark") ? "light" : "dark";
@@ -792,30 +811,115 @@ function renderDashboardPage(data: DashboardPageData): string {
         applyStudentFilters();
       }
 
+      function getRowStudentId(row) {
+        var value = row.getAttribute("data-student-id");
+        var parsed = value ? Number.parseInt(value, 10) : Number.NaN;
+        return Number.isFinite(parsed) ? parsed : 0;
+      }
+
+      function applySelectedRowState(selectedId) {
+        studentRows.forEach(function (row) {
+          var isSelected = selectedId > 0 && getRowStudentId(row) === selectedId;
+          row.classList.toggle("bg-blue-50", isSelected);
+          row.classList.toggle("dark:bg-blue-900/20", isSelected);
+          row.classList.toggle("hover:bg-slate-50", !isSelected);
+          row.classList.toggle("dark:hover:bg-slate-800/35", !isSelected);
+          row.setAttribute("aria-selected", isSelected ? "true" : "false");
+
+          var badge = row.querySelector("[data-selected-badge]");
+          if (badge) {
+            badge.classList.toggle("hidden", !isSelected);
+          }
+        });
+      }
+
+      function setEmptySelectedPanel() {
+        if (!selectedStudentPanel || !emptySelectedStudentPanelTemplate) return;
+        selectedStudentPanel.innerHTML = emptySelectedStudentPanelTemplate.innerHTML;
+        applySelectedRowState(0);
+      }
+
+      async function selectStudentWithoutRefresh(studentId, pushHistory) {
+        if (!studentId || !selectedStudentPanel) return;
+
+        try {
+          var response = await fetch("/partials/student/" + studentId, {
+            headers: {
+              "X-Requested-With": "fetch"
+            }
+          });
+          if (!response.ok) {
+            window.location.href = "/?selected=" + studentId;
+            return;
+          }
+
+          var panelHtml = await response.text();
+          selectedStudentPanel.innerHTML = panelHtml;
+          applySelectedRowState(studentId);
+
+          if (pushHistory) {
+            var url = new URL(window.location.href);
+            url.searchParams.set("selected", String(studentId));
+            url.searchParams.delete("notice");
+            url.searchParams.delete("error");
+            window.history.pushState({ selectedId: studentId }, "", url.pathname + url.search);
+          }
+        } catch (_error) {
+          window.location.href = "/?selected=" + studentId;
+        }
+      }
+
       function bindStudentRowSelection() {
         studentRows.forEach(function (row) {
           row.addEventListener("click", function (event) {
             var target = event.target;
-            if (target && target.closest && target.closest("a,button,input,select,textarea,label")) {
+            if (target && target.closest && target.closest("a[data-inline-select='1']")) {
               return;
             }
-            var href = row.getAttribute("data-select-href");
-            if (href) window.location.href = href;
+            if (target && target.closest && target.closest("button,input,select,textarea,label")) {
+              return;
+            }
+            void selectStudentWithoutRefresh(getRowStudentId(row), true);
           });
 
           row.addEventListener("keydown", function (event) {
             if (event.key !== "Enter" && event.key !== " ") return;
-            var href = row.getAttribute("data-select-href");
-            if (!href) return;
             event.preventDefault();
-            window.location.href = href;
+            void selectStudentWithoutRefresh(getRowStudentId(row), true);
           });
+
+          var inlineLinks = row.querySelectorAll("a[data-inline-select='1']");
+          inlineLinks.forEach(function (link) {
+            link.addEventListener("click", function (event) {
+              event.preventDefault();
+              var value = link.getAttribute("data-student-id");
+              var parsed = value ? Number.parseInt(value, 10) : Number.NaN;
+              if (!Number.isFinite(parsed)) return;
+              void selectStudentWithoutRefresh(parsed, true);
+            });
+          });
+        });
+      }
+
+      function bindHistorySelection() {
+        window.addEventListener("popstate", function () {
+          var selectedParam = new URL(window.location.href).searchParams.get("selected");
+          var parsed = selectedParam ? Number.parseInt(selectedParam, 10) : Number.NaN;
+          if (!Number.isFinite(parsed) || parsed <= 0) {
+            setEmptySelectedPanel();
+            return;
+          }
+          void selectStudentWithoutRefresh(parsed, false);
         });
       }
 
       syncThemeToggleAccessibility();
       refreshStudentTable();
+      var initialSelectedParam = new URL(window.location.href).searchParams.get("selected");
+      var initialSelected = initialSelectedParam ? Number.parseInt(initialSelectedParam, 10) : 0;
+      applySelectedRowState(Number.isFinite(initialSelected) ? initialSelected : 0);
       bindStudentRowSelection();
+      bindHistorySelection();
 
       themeToggle.addEventListener("click", function () {
         root.classList.toggle("dark");
@@ -1058,6 +1162,15 @@ function renderAddStudentPage(data: AddStudentPageData): string {
 </html>`;
 }
 
+function renderEmptySelectedPanel(message = "Select a student from the table to edit details and view/add supervision logs."): string {
+  return `
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+      <h2 class="text-lg font-semibold">Student Details & Logs</h2>
+      <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">${escapeHtml(message)}</p>
+    </article>
+  `;
+}
+
 function renderSelectedStudentPanel(student: Student, logs: MeetingLog[]): string {
   const phaseOptions = PHASES.map((phase) => {
     const selected = phase.id === student.currentPhase ? "selected" : "";
@@ -1197,6 +1310,16 @@ function renderLoginPage(showError: boolean): string {
 
 function htmlResponse(html: string): Response {
   return new Response(html, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store"
+    }
+  });
+}
+
+function htmlFragmentResponse(html: string, status = 200): Response {
+  return new Response(html, {
+    status,
     headers: {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store"
