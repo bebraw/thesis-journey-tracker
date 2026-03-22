@@ -168,6 +168,10 @@ test.describe("dashboard e2e", () => {
 
     await page
       .locator("#selectedStudentPanel")
+      .locator("summary", { hasText: "Additional student details" })
+      .click();
+    await page
+      .locator("#selectedStudentPanel")
       .getByLabel("Name")
       .fill(updatedStudentName);
     await page

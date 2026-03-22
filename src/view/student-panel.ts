@@ -10,6 +10,7 @@ import {
   FIELD_CONTROL,
   FORM_STACK,
   PANEL_STACK,
+  SECTION_STACK_SM,
   SOFT_SURFACE_CARD,
   SURFACE_CARD,
   SUBTLE_TEXT,
@@ -94,18 +95,34 @@ export function renderSelectedStudentPanel(
 
   const editFormHtml = renderView(
     `<form &action="(get props action)" method="post" &class="(get props formStack)">
-      <noop &children="(get props nameField)"></noop>
-      <noop &children="(get props emailField)"></noop>
-      <noop &children="(get props degreeField)"></noop>
       <noop &children="(get props topicField)"></noop>
       <noop &children="(get props phaseField)"></noop>
-      <noop &children="(get props startDateField)"></noop>
-      <noop &children="(get props targetDateField)"></noop>
-      <noop &children="(get props nextMeetingField)"></noop>
+      <details &class="(get props disclosureClass)">
+        <summary &class="(get props disclosureSummaryClass)">
+          <span>Additional student details</span>
+          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">
+            Name, email, degree, dates
+          </span>
+        </summary>
+        <div &class="(get props disclosureContentClass)">
+          <div &class="(get props disclosureFieldsClass)">
+            <noop &children="(get props nameField)"></noop>
+            <noop &children="(get props emailField)"></noop>
+            <noop &children="(get props degreeField)"></noop>
+            <noop &children="(get props startDateField)"></noop>
+            <noop &children="(get props targetDateField)"></noop>
+            <noop &children="(get props nextMeetingField)"></noop>
+          </div>
+        </div>
+      </details>
       <noop &children="(get props submitButton)"></noop>
     </form>`,
     {
       action: escapeHtml(`/actions/update-student/${student.id}`),
+      disclosureClass: escapeHtml(DISCLOSURE),
+      disclosureContentClass: escapeHtml(DISCLOSURE_CONTENT),
+      disclosureFieldsClass: escapeHtml(SECTION_STACK_SM),
+      disclosureSummaryClass: escapeHtml(DISCLOSURE_SUMMARY),
       formStack: escapeHtml(FORM_STACK),
       nameField: renderInputField({
         label: "Name",
