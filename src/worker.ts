@@ -476,9 +476,9 @@ function renderDashboardPage(data: DashboardPageData): string {
 
     return `
       <article class="snap-start rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 min-h-[14rem]">
-        <div class="flex items-center justify-between gap-3">
-          <h3 class="text-sm font-semibold">${escapeHtml(phase.label)}</h3>
-          <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">${laneStudents.length}</span>
+        <div class="flex items-start justify-between gap-3">
+          <h3 class="min-h-10 flex-1 text-sm font-semibold leading-5">${escapeHtml(phase.label)}</h3>
+          <span class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">${laneStudents.length}</span>
         </div>
         <ul class="mt-3 space-y-2">${laneStudentItems}</ul>
       </article>
