@@ -127,7 +127,7 @@ const PHASES: Phase[] = [
   { id: "first_complete_draft", label: "First complete draft" },
   { id: "editing", label: "Editing" },
   { id: "submission_ready", label: "Draft ready to submit" },
-  { id: "submitted", label: "Submitted" }
+  { id: "submitted", label: "Submitted" },
 ];
 
 export default {
@@ -138,7 +138,7 @@ export default {
       console.error("Unhandled error", error);
       return new Response("Internal server error", { status: 500 });
     }
-  }
+  },
 };
 
 async function handleRequest(request: Request, env: Env): Promise<Response> {
@@ -154,11 +154,16 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   if (!env.DB) {
-    return new Response("D1 binding is missing. Configure DB in wrangler.toml.", { status: 500 });
+    return new Response(
+      "D1 binding is missing. Configure DB in wrangler.toml.",
+      { status: 500 },
+    );
   }
 
   if (!env.APP_PASSWORD || !env.SESSION_SECRET) {
-    return new Response("APP_PASSWORD and SESSION_SECRET must be configured.", { status: 500 });
+    return new Response("APP_PASSWORD and SESSION_SECRET must be configured.", {
+      status: 500,
+    });
   }
 
   if (pathname === "/login" && request.method === "GET") {
@@ -177,11 +182,15 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     }
 
     const token = await createSessionToken(env.SESSION_SECRET);
-    return redirect("/", { "Set-Cookie": buildSessionCookie(token, request.url) });
+    return redirect("/", {
+      "Set-Cookie": buildSessionCookie(token, request.url),
+    });
   }
 
   if (pathname === "/logout" && request.method === "POST") {
-    return redirect("/login", { "Set-Cookie": clearSessionCookie(request.url) });
+    return redirect("/login", {
+      "Set-Cookie": clearSessionCookie(request.url),
+    });
   }
 
   const authenticated = await isAuthenticated(request, env);
@@ -227,15 +236,24 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   return new Response("Not found", { status: 404 });
 }
 
-async function renderDashboard(request: Request, env: Env, url: URL): Promise<Response> {
+async function renderDashboard(
+  request: Request,
+  env: Env,
+  url: URL,
+): Promise<Response> {
   const showMockData = await getShowMockData(env.DB);
   const students = await listStudents(env.DB, showMockData);
 
   const selectedIdParam = url.searchParams.get("selected");
-  const parsedSelectedId = selectedIdParam ? Number.parseInt(selectedIdParam, 10) : 0;
+  const parsedSelectedId = selectedIdParam
+    ? Number.parseInt(selectedIdParam, 10)
+    : 0;
   const selectedId = Number.isFinite(parsedSelectedId) ? parsedSelectedId : 0;
-  const selectedStudent = students.find((student) => student.id === selectedId) || null;
-  const logs = selectedStudent ? await listLogsForStudent(env.DB, selectedStudent.id, showMockData) : [];
+  const selectedStudent =
+    students.find((student) => student.id === selectedId) || null;
+  const logs = selectedStudent
+    ? await listLogsForStudent(env.DB, selectedStudent.id, showMockData)
+    : [];
 
   const notice = url.searchParams.get("notice");
   const error = url.searchParams.get("error");
@@ -245,9 +263,13 @@ async function renderDashboard(request: Request, env: Env, url: URL): Promise<Re
     total: students.length,
     noMeeting: students.filter((student) => !student.nextMeetingAt).length,
     pastTarget: students.filter(
-      (student) => student.targetSubmissionDate < today && student.currentPhase !== "submitted"
+      (student) =>
+        student.targetSubmissionDate < today &&
+        student.currentPhase !== "submitted",
     ).length,
-    submitted: students.filter((student) => student.currentPhase === "submitted").length
+    submitted: students.filter(
+      (student) => student.currentPhase === "submitted",
+    ).length,
   };
 
   return htmlResponse(
@@ -257,8 +279,8 @@ async function renderDashboard(request: Request, env: Env, url: URL): Promise<Re
       logs,
       notice,
       error,
-      metrics
-    })
+      metrics,
+    }),
   );
 }
 
@@ -271,8 +293,8 @@ async function renderSettings(env: Env, url: URL): Promise<Response> {
     renderSettingsPage({
       showMockData,
       notice,
-      error
-    })
+      error,
+    }),
   );
 }
 
@@ -283,22 +305,31 @@ function renderAddStudent(url: URL): Response {
   return htmlResponse(
     renderAddStudentPage({
       notice,
-      error
-    })
+      error,
+    }),
   );
 }
 
-async function renderStudentPanelPartial(env: Env, studentId: number): Promise<Response> {
+async function renderStudentPanelPartial(
+  env: Env,
+  studentId: number,
+): Promise<Response> {
   const showMockData = await getShowMockData(env.DB);
   const students = await listStudents(env.DB, showMockData);
-  const selectedStudent = students.find((student) => student.id === studentId) || null;
+  const selectedStudent =
+    students.find((student) => student.id === studentId) || null;
 
   if (!selectedStudent) {
-    return htmlFragmentResponse(renderEmptySelectedPanel("Student not found."), 404);
+    return htmlFragmentResponse(
+      renderEmptySelectedPanel("Student not found."),
+      404,
+    );
   }
 
   const logs = await listLogsForStudent(env.DB, studentId, showMockData);
-  return htmlFragmentResponse(renderSelectedStudentPanel(selectedStudent, logs));
+  return htmlFragmentResponse(
+    renderSelectedStudentPanel(selectedStudent, logs),
+  );
 }
 
 async function handleAddStudent(request: Request, env: Env): Promise<Response> {
@@ -307,42 +338,75 @@ async function handleAddStudent(request: Request, env: Env): Promise<Response> {
   const name = normalizeString(formData.get("name"));
   const email = normalizeString(formData.get("email"));
   const startDate = normalizeDate(formData.get("startDate"));
-  const targetSubmissionDateInput = normalizeDate(formData.get("targetSubmissionDate"), true);
+  const targetSubmissionDateInput = normalizeDate(
+    formData.get("targetSubmissionDate"),
+    true,
+  );
   const targetSubmissionDate =
-    targetSubmissionDateInput || (typeof startDate === "string" ? addSixMonths(startDate) : null);
-  const currentPhase = normalizePhase(formData.get("currentPhase") || "research_plan");
+    targetSubmissionDateInput ||
+    (typeof startDate === "string" ? addSixMonths(startDate) : null);
+  const currentPhase = normalizePhase(
+    formData.get("currentPhase") || "research_plan",
+  );
   const nextMeetingAt = normalizeDateTime(formData.get("nextMeetingAt"), true);
 
-  if (!name || !startDate || !targetSubmissionDate || !currentPhase || nextMeetingAt === undefined) {
+  if (
+    !name ||
+    !startDate ||
+    !targetSubmissionDate ||
+    !currentPhase ||
+    nextMeetingAt === undefined
+  ) {
     return redirect("/students/new?error=Invalid+student+input");
   }
 
   const result = await env.DB.prepare(
     `INSERT INTO students (name, email, start_date, target_submission_date, current_phase, next_meeting_at, is_mock)
-     VALUES (?, ?, ?, ?, ?, ?, 0)`
+     VALUES (?, ?, ?, ?, ?, ?, 0)`,
   )
-    .bind(name, email, startDate, targetSubmissionDate, currentPhase, nextMeetingAt)
+    .bind(
+      name,
+      email,
+      startDate,
+      targetSubmissionDate,
+      currentPhase,
+      nextMeetingAt,
+    )
     .run();
 
   const selected = Number(result.meta.last_row_id ?? 0);
   return redirect(`/?selected=${selected}&notice=Student+added`);
 }
 
-async function handleUpdateStudent(request: Request, env: Env, studentId: number): Promise<Response> {
+async function handleUpdateStudent(
+  request: Request,
+  env: Env,
+  studentId: number,
+): Promise<Response> {
   const formData = await request.formData();
 
   const name = normalizeString(formData.get("name"));
   const email = normalizeString(formData.get("email"));
   const startDate = normalizeDate(formData.get("startDate"));
-  const targetSubmissionDate = normalizeDate(formData.get("targetSubmissionDate"));
+  const targetSubmissionDate = normalizeDate(
+    formData.get("targetSubmissionDate"),
+  );
   const currentPhase = normalizePhase(formData.get("currentPhase"));
   const nextMeetingAt = normalizeDateTime(formData.get("nextMeetingAt"), true);
 
-  if (!name || !startDate || !targetSubmissionDate || !currentPhase || nextMeetingAt === undefined) {
+  if (
+    !name ||
+    !startDate ||
+    !targetSubmissionDate ||
+    !currentPhase ||
+    nextMeetingAt === undefined
+  ) {
     return redirect(`/?selected=${studentId}&error=Invalid+update+input`);
   }
 
-  const row = await env.DB.prepare("SELECT id FROM students WHERE id = ?").bind(studentId).first();
+  const row = await env.DB.prepare("SELECT id FROM students WHERE id = ?")
+    .bind(studentId)
+    .first();
   if (!row) {
     return redirect("/?error=Student+not+found");
   }
@@ -350,34 +414,53 @@ async function handleUpdateStudent(request: Request, env: Env, studentId: number
   await env.DB.prepare(
     `UPDATE students
      SET name = ?, email = ?, start_date = ?, target_submission_date = ?, current_phase = ?, next_meeting_at = ?
-     WHERE id = ?`
+     WHERE id = ?`,
   )
-    .bind(name, email, startDate, targetSubmissionDate, currentPhase, nextMeetingAt, studentId)
+    .bind(
+      name,
+      email,
+      startDate,
+      targetSubmissionDate,
+      currentPhase,
+      nextMeetingAt,
+      studentId,
+    )
     .run();
 
   return redirect(`/?selected=${studentId}&notice=Student+updated`);
 }
 
-async function handleAddLog(request: Request, env: Env, studentId: number): Promise<Response> {
+async function handleAddLog(
+  request: Request,
+  env: Env,
+  studentId: number,
+): Promise<Response> {
   const formData = await request.formData();
 
-  const happenedAt = normalizeDateTime(formData.get("happenedAt"), true) || new Date().toISOString();
+  const happenedAt =
+    normalizeDateTime(formData.get("happenedAt"), true) ||
+    new Date().toISOString();
   const discussed = normalizeString(formData.get("discussed"));
   const agreedPlan = normalizeString(formData.get("agreedPlan"));
-  const nextStepDeadline = normalizeDate(formData.get("nextStepDeadline"), true);
+  const nextStepDeadline = normalizeDate(
+    formData.get("nextStepDeadline"),
+    true,
+  );
 
   if (!discussed || !agreedPlan || nextStepDeadline === undefined) {
     return redirect(`/?selected=${studentId}&error=Invalid+log+input`);
   }
 
-  const row = await env.DB.prepare("SELECT id FROM students WHERE id = ?").bind(studentId).first();
+  const row = await env.DB.prepare("SELECT id FROM students WHERE id = ?")
+    .bind(studentId)
+    .first();
   if (!row) {
     return redirect("/?error=Student+not+found");
   }
 
   await env.DB.prepare(
     `INSERT INTO meeting_logs (student_id, happened_at, discussed, agreed_plan, next_step_deadline, is_mock)
-     VALUES (?, ?, ?, ?, ?, 0)`
+     VALUES (?, ?, ?, ?, ?, 0)`,
   )
     .bind(studentId, happenedAt, discussed, agreedPlan, nextStepDeadline)
     .run();
@@ -392,7 +475,7 @@ async function handleToggleMock(request: Request, env: Env): Promise<Response> {
   await env.DB.prepare(
     `INSERT INTO settings (key, value)
      VALUES ('show_mock_data', ?)
-     ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
   )
     .bind(showMockData ? "1" : "0")
     .run();
@@ -407,7 +490,10 @@ async function getShowMockData(db: D1Database): Promise<boolean> {
   return row ? row.value === "1" : false;
 }
 
-async function listStudents(db: D1Database, showMockData: boolean): Promise<Student[]> {
+async function listStudents(
+  db: D1Database,
+  showMockData: boolean,
+): Promise<Student[]> {
   const includeMock = showMockData ? 1 : 0;
   const rows = await db
     .prepare(
@@ -425,7 +511,7 @@ async function listStudents(db: D1Database, showMockData: boolean): Promise<Stud
          CASE WHEN s.next_meeting_at IS NULL THEN 1 ELSE 0 END,
          s.next_meeting_at ASC,
          s.target_submission_date ASC,
-         s.name ASC`
+         s.name ASC`,
     )
     .bind(includeMock, includeMock)
     .all<StudentRow>();
@@ -440,14 +526,14 @@ async function listStudents(db: D1Database, showMockData: boolean): Promise<Stud
     nextMeetingAt: row.next_meeting_at,
     isMock: parseDbNumber(row.is_mock) === 1,
     logCount: parseDbNumber(row.log_count),
-    lastLogAt: row.last_log_at || null
+    lastLogAt: row.last_log_at || null,
   }));
 }
 
 async function listLogsForStudent(
   db: D1Database,
   studentId: number,
-  showMockData: boolean
+  showMockData: boolean,
 ): Promise<MeetingLog[]> {
   const includeMock = showMockData ? 1 : 0;
   const rows = await db
@@ -456,7 +542,7 @@ async function listLogsForStudent(
        FROM meeting_logs
        WHERE student_id = ?
          AND (? = 1 OR is_mock = 0)
-       ORDER BY happened_at DESC, id DESC`
+       ORDER BY happened_at DESC, id DESC`,
     )
     .bind(studentId, includeMock)
     .all<LogRow>();
@@ -467,23 +553,18 @@ async function listLogsForStudent(
     discussed: row.discussed,
     agreedPlan: row.agreed_plan,
     nextStepDeadline: row.next_step_deadline,
-    isMock: parseDbNumber(row.is_mock) === 1
+    isMock: parseDbNumber(row.is_mock) === 1,
   }));
 }
 
 function renderDashboardPage(data: DashboardPageData): string {
-  const {
-    students,
-    selectedStudent,
-    logs,
-    notice,
-    error,
-    metrics
-  } = data;
+  const { students, selectedStudent, logs, notice, error, metrics } = data;
 
   const phaseFilterOptions = [
     '<option value="">All phases</option>',
-    ...PHASES.map((phase) => `<option value="${phase.id}">${phase.label}</option>`)
+    ...PHASES.map(
+      (phase) => `<option value="${phase.id}">${phase.label}</option>`,
+    ),
   ].join("");
   const phaseLaneCards = PHASES.map((phase) => {
     const laneStudents = students
@@ -491,21 +572,23 @@ function renderDashboardPage(data: DashboardPageData): string {
       .slice()
       .sort(
         (a, b) =>
-          a.targetSubmissionDate.localeCompare(b.targetSubmissionDate) || a.name.localeCompare(b.name)
+          a.targetSubmissionDate.localeCompare(b.targetSubmissionDate) ||
+          a.name.localeCompare(b.name),
       );
 
     const laneStudentItems = laneStudents.length
       ? laneStudents
           .map((student) => {
-            const isLaneSelected = selectedStudent && selectedStudent.id === student.id;
-            const laneSelectedClass = isLaneSelected ? " ring-2 ring-blue-400/60 dark:ring-blue-400/40" : "";
-            const laneSelectedBadgeVisibility = isLaneSelected ? "" : " hidden";
+            const isLaneSelected =
+              selectedStudent && selectedStudent.id === student.id;
+            const laneSelectedClass = isLaneSelected
+              ? " ring-2 ring-blue-400/60 dark:ring-blue-400/40"
+              : "";
             return `
             <li class="rounded-lg border border-slate-200 bg-slate-50 p-3 transition-colors dark:border-slate-700 dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-500 cursor-pointer${laneSelectedClass}" data-lane-student-card data-student-id="${student.id}" aria-selected="${isLaneSelected ? "true" : "false"}" tabindex="0">
-              <div class="flex items-start justify-between gap-2">
-                <a href="/?selected=${student.id}" data-inline-select="1" data-lane-select="1" data-student-id="${student.id}" class="font-medium text-slate-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:text-slate-100 dark:focus-visible:ring-offset-slate-900">${escapeHtml(student.name)}</a>
-                <div class="flex items-center gap-1">
-                  <span data-lane-selected-badge class="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/50 dark:text-blue-200${laneSelectedBadgeVisibility}">Selected</span>
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <a href="/?selected=${student.id}" data-inline-select="1" data-lane-select="1" data-student-id="${student.id}" class="min-w-0 flex-1 break-words font-medium text-slate-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:text-slate-100 dark:focus-visible:ring-offset-slate-900">${escapeHtml(student.name)}</a>
+                <div class="flex max-w-full flex-wrap justify-end gap-1">
                   ${student.isMock ? '<span class="rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200">Mock</span>' : ""}
                 </div>
               </div>
@@ -534,11 +617,11 @@ function renderDashboardPage(data: DashboardPageData): string {
         .map((student) => {
           const statusText = meetingStatusText(student);
           const statusId = meetingStatusId(student);
-          const isSelected = selectedStudent && selectedStudent.id === student.id;
+          const isSelected =
+            selectedStudent && selectedStudent.id === student.id;
           const selectedClass = isSelected
             ? "bg-blue-50 dark:bg-blue-900/20"
             : "hover:bg-slate-50 dark:hover:bg-slate-800/35";
-          const selectedBadgeVisibility = isSelected ? "" : " hidden";
           return `
             <tr
               class="${selectedClass} cursor-pointer"
@@ -557,7 +640,6 @@ function renderDashboardPage(data: DashboardPageData): string {
               <td class="px-2 py-2 align-top">
                 <div class="font-medium">
                   <a class="underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900" href="/?selected=${student.id}" data-inline-select="1" data-student-id="${student.id}">${escapeHtml(student.name)}</a>
-                  <span data-selected-badge class="ml-2 rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/50 dark:text-blue-200${selectedBadgeVisibility}">Selected</span>
                 </div>
                 <div class="text-xs text-slate-500 dark:text-slate-300">${escapeHtml(student.email || "-")}</div>
                 ${student.isMock ? '<span class="mt-1 inline-block rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200">Mock</span>' : ""}
@@ -631,14 +713,14 @@ function renderDashboardPage(data: DashboardPageData): string {
       ${
         notice
           ? `<p role="status" aria-live="polite" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200">${escapeHtml(
-              notice
+              notice,
             )}</p>`
           : ""
       }
       ${
         error
           ? `<p role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200">${escapeHtml(
-              error
+              error,
             )}</p>`
           : ""
       }
@@ -1046,14 +1128,14 @@ function renderSettingsPage(data: SettingsPageData): string {
       ${
         notice
           ? `<p role="status" aria-live="polite" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200">${escapeHtml(
-              notice
+              notice,
             )}</p>`
           : ""
       }
       ${
         error
           ? `<p role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200">${escapeHtml(
-              error
+              error,
             )}</p>`
           : ""
       }
@@ -1097,7 +1179,7 @@ function renderSettingsPage(data: SettingsPageData): string {
 function renderAddStudentPage(data: AddStudentPageData): string {
   const { notice, error } = data;
   const phaseOptions = PHASES.map(
-    (phase) => `<option value="${phase.id}">${phase.label}</option>`
+    (phase) => `<option value="${phase.id}">${phase.label}</option>`,
   ).join("");
 
   return `<!doctype html>
@@ -1151,14 +1233,14 @@ function renderAddStudentPage(data: AddStudentPageData): string {
       ${
         notice
           ? `<p role="status" aria-live="polite" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200">${escapeHtml(
-              notice
+              notice,
             )}</p>`
           : ""
       }
       ${
         error
           ? `<p role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200">${escapeHtml(
-              error
+              error,
             )}</p>`
           : ""
       }
@@ -1219,7 +1301,9 @@ function renderAddStudentPage(data: AddStudentPageData): string {
 </html>`;
 }
 
-function renderEmptySelectedPanel(message = "Select a student from the table to edit details and view/add supervision logs."): string {
+function renderEmptySelectedPanel(
+  message = "Select a student from the table to edit details and view/add supervision logs.",
+): string {
   return `
     <article class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
       <h2 class="text-lg font-semibold">Student Details & Logs</h2>
@@ -1228,7 +1312,10 @@ function renderEmptySelectedPanel(message = "Select a student from the table to 
   `;
 }
 
-function renderSelectedStudentPanel(student: Student, logs: MeetingLog[]): string {
+function renderSelectedStudentPanel(
+  student: Student,
+  logs: MeetingLog[],
+): string {
   const phaseOptions = PHASES.map((phase) => {
     const selected = phase.id === student.currentPhase ? "selected" : "";
     return `<option value="${phase.id}" ${selected}>${phase.label}</option>`;
@@ -1252,7 +1339,7 @@ function renderSelectedStudentPanel(student: Student, logs: MeetingLog[]): strin
                 : ""
             }
           </article>
-        `
+        `,
         )
         .join("")
     : '<p class="rounded-md border border-slate-200 p-3 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300">No entries yet.</p>';
@@ -1282,13 +1369,13 @@ function renderSelectedStudentPanel(student: Student, logs: MeetingLog[]): strin
           <label class="block text-sm">
             <span class="mb-1 block text-slate-600 dark:text-slate-300">Target submission date</span>
             <input name="targetSubmissionDate" type="date" required value="${escapeHtml(
-              student.targetSubmissionDate
+              student.targetSubmissionDate,
             )}" class="w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-800" />
           </label>
           <label class="block text-sm">
             <span class="mb-1 block text-slate-600 dark:text-slate-300">Next meeting</span>
             <input name="nextMeetingAt" type="datetime-local" value="${escapeHtml(
-              toDateTimeLocalInput(student.nextMeetingAt)
+              toDateTimeLocalInput(student.nextMeetingAt),
             )}" class="w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-800" />
           </label>
           <button type="submit" class="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900">Save student updates</button>
@@ -1369,8 +1456,8 @@ function htmlResponse(html: string): Response {
   return new Response(html, {
     headers: {
       "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store"
-    }
+      "cache-control": "no-store",
+    },
   });
 }
 
@@ -1379,8 +1466,8 @@ function htmlFragmentResponse(html: string, status = 200): Response {
     status,
     headers: {
       "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store"
-    }
+      "cache-control": "no-store",
+    },
   });
 }
 
@@ -1388,8 +1475,8 @@ function cssResponse(css: string): Response {
   return new Response(css, {
     headers: {
       "content-type": "text/css; charset=utf-8",
-      "cache-control": "public, max-age=86400"
-    }
+      "cache-control": "public, max-age=86400",
+    },
   });
 }
 
@@ -1397,12 +1484,14 @@ function iconResponse(icon: ArrayBuffer): Response {
   return new Response(icon, {
     headers: {
       "content-type": "image/x-icon",
-      "cache-control": "public, max-age=604800"
-    }
+      "cache-control": "public, max-age=604800",
+    },
   });
 }
 
-function normalizeString(value: FormDataEntryValue | string | null | undefined): string | null {
+function normalizeString(
+  value: FormDataEntryValue | string | null | undefined,
+): string | null {
   if (value === null || value === undefined) {
     return null;
   }
@@ -1423,7 +1512,7 @@ function parseDbNumber(value: number | string | null | undefined): number {
 
 function normalizeDate(
   value: FormDataEntryValue | string | null | undefined,
-  allowNull = false
+  allowNull = false,
 ): string | null | undefined {
   if (value === null || value === undefined || value === "") {
     return allowNull ? null : null;
@@ -1437,7 +1526,7 @@ function normalizeDate(
 
 function normalizeDateTime(
   value: FormDataEntryValue | string | null | undefined,
-  allowNull = false
+  allowNull = false,
 ): string | null | undefined {
   if (value === null || value === undefined || value === "") {
     return allowNull ? null : null;
@@ -1449,7 +1538,9 @@ function normalizeDateTime(
   return date.toISOString();
 }
 
-function normalizePhase(value: FormDataEntryValue | string | null | undefined): PhaseId | null {
+function normalizePhase(
+  value: FormDataEntryValue | string | null | undefined,
+): PhaseId | null {
   const text = normalizeString(value);
   if (!text) {
     return null;
@@ -1480,7 +1571,7 @@ function formatDateTime(isoValue: string): string {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    timeZoneName: "short"
+    timeZoneName: "short",
   }).format(date);
 }
 
@@ -1562,12 +1653,14 @@ function redirect(pathname: string, extraHeaders: HeadersInit = {}): Response {
 }
 
 function buildSessionCookie(token: string, requestUrl: string): string {
-  const securePart = new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
+  const securePart =
+    new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
   return `${SESSION_COOKIE}=${token}; HttpOnly;${securePart} Path=/; SameSite=Strict; Max-Age=${SESSION_TTL_SECONDS}`;
 }
 
 function clearSessionCookie(requestUrl: string): string {
-  const securePart = new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
+  const securePart =
+    new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
   return `${SESSION_COOKIE}=; HttpOnly;${securePart} Path=/; SameSite=Strict; Max-Age=0`;
 }
 
@@ -1617,10 +1710,14 @@ async function hmacSign(value: string, secret: string): Promise<string> {
     encoder.encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["sign"]
+    ["sign"],
   );
 
-  const signatureBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(value));
+  const signatureBuffer = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(value),
+  );
   return bufferToBase64Url(signatureBuffer);
 }
 
@@ -1630,7 +1727,10 @@ function bufferToBase64Url(buffer: ArrayBuffer): string {
   for (const byte of bytes) {
     binary += String.fromCharCode(byte);
   }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
