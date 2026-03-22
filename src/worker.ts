@@ -496,19 +496,25 @@ function renderDashboardPage(data: DashboardPageData): string {
 
     const laneStudentItems = laneStudents.length
       ? laneStudents
-          .map(
-            (student) => `
-            <li class="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+          .map((student) => {
+            const isLaneSelected = selectedStudent && selectedStudent.id === student.id;
+            const laneSelectedClass = isLaneSelected ? " ring-2 ring-blue-400/60 dark:ring-blue-400/40" : "";
+            const laneSelectedBadgeVisibility = isLaneSelected ? "" : " hidden";
+            return `
+            <li class="rounded-lg border border-slate-200 bg-slate-50 p-3 transition-colors dark:border-slate-700 dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-500 cursor-pointer${laneSelectedClass}" data-lane-student-card data-student-id="${student.id}" aria-selected="${isLaneSelected ? "true" : "false"}" tabindex="0">
               <div class="flex items-start justify-between gap-2">
-                <a href="/?selected=${student.id}" class="font-medium text-slate-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:text-slate-100 dark:focus-visible:ring-offset-slate-900">${escapeHtml(student.name)}</a>
-                ${student.isMock ? '<span class="rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200">Mock</span>' : ""}
+                <a href="/?selected=${student.id}" data-inline-select="1" data-lane-select="1" data-student-id="${student.id}" class="font-medium text-slate-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:text-slate-100 dark:focus-visible:ring-offset-slate-900">${escapeHtml(student.name)}</a>
+                <div class="flex items-center gap-1">
+                  <span data-lane-selected-badge class="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/50 dark:text-blue-200${laneSelectedBadgeVisibility}">Selected</span>
+                  ${student.isMock ? '<span class="rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200">Mock</span>' : ""}
+                </div>
               </div>
               <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">Target: ${escapeHtml(student.targetSubmissionDate)}</p>
               <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">${student.nextMeetingAt ? `Next: ${escapeHtml(formatDateTime(student.nextMeetingAt))}` : "Next: not booked"}</p>
               <p class="mt-2"><span class="rounded px-2 py-1 text-xs ${meetingStatusClass(student)}">${meetingStatusText(student)}</span></p>
             </li>
-          `
-          )
+          `;
+          })
           .join("")
       : '<li class="rounded-lg border border-dashed border-slate-300 px-3 py-4 text-xs text-slate-500 dark:border-slate-600 dark:text-slate-300">No students in this phase.</li>';
 
@@ -730,6 +736,7 @@ function renderDashboardPage(data: DashboardPageData): string {
       var root = document.documentElement;
       var tableBody = document.getElementById("studentsTableBody");
       var studentRows = Array.prototype.slice.call(document.querySelectorAll("[data-student-row]"));
+      var laneStudentCards = Array.prototype.slice.call(document.querySelectorAll("[data-lane-student-card]"));
       var searchInput = document.getElementById("studentSearch");
       var phaseFilter = document.getElementById("phaseFilter");
       var statusFilter = document.getElementById("statusFilter");
@@ -817,6 +824,12 @@ function renderDashboardPage(data: DashboardPageData): string {
         return Number.isFinite(parsed) ? parsed : 0;
       }
 
+      function getLaneStudentId(card) {
+        var value = card.getAttribute("data-student-id");
+        var parsed = value ? Number.parseInt(value, 10) : Number.NaN;
+        return Number.isFinite(parsed) ? parsed : 0;
+      }
+
       function applySelectedRowState(selectedId) {
         studentRows.forEach(function (row) {
           var isSelected = selectedId > 0 && getRowStudentId(row) === selectedId;
@@ -833,10 +846,26 @@ function renderDashboardPage(data: DashboardPageData): string {
         });
       }
 
+      function applySelectedLaneState(selectedId) {
+        laneStudentCards.forEach(function (card) {
+          var isSelected = selectedId > 0 && getLaneStudentId(card) === selectedId;
+          card.classList.toggle("ring-2", isSelected);
+          card.classList.toggle("ring-blue-400/60", isSelected);
+          card.classList.toggle("dark:ring-blue-400/40", isSelected);
+          card.setAttribute("aria-selected", isSelected ? "true" : "false");
+
+          var badge = card.querySelector("[data-lane-selected-badge]");
+          if (badge) {
+            badge.classList.toggle("hidden", !isSelected);
+          }
+        });
+      }
+
       function setEmptySelectedPanel() {
         if (!selectedStudentPanel || !emptySelectedStudentPanelTemplate) return;
         selectedStudentPanel.innerHTML = emptySelectedStudentPanelTemplate.innerHTML;
         applySelectedRowState(0);
+        applySelectedLaneState(0);
       }
 
       async function selectStudentWithoutRefresh(studentId, pushHistory) {
@@ -856,6 +885,7 @@ function renderDashboardPage(data: DashboardPageData): string {
           var panelHtml = await response.text();
           selectedStudentPanel.innerHTML = panelHtml;
           applySelectedRowState(studentId);
+          applySelectedLaneState(studentId);
 
           if (pushHistory) {
             var url = new URL(window.location.href);
@@ -867,6 +897,19 @@ function renderDashboardPage(data: DashboardPageData): string {
         } catch (_error) {
           window.location.href = "/?selected=" + studentId;
         }
+      }
+
+      function bindInlineSelectionLinks() {
+        var inlineLinks = document.querySelectorAll("a[data-inline-select='1']");
+        inlineLinks.forEach(function (link) {
+          link.addEventListener("click", function (event) {
+            event.preventDefault();
+            var value = link.getAttribute("data-student-id");
+            var parsed = value ? Number.parseInt(value, 10) : Number.NaN;
+            if (!Number.isFinite(parsed)) return;
+            void selectStudentWithoutRefresh(parsed, true);
+          });
+        });
       }
 
       function bindStudentRowSelection() {
@@ -887,16 +930,26 @@ function renderDashboardPage(data: DashboardPageData): string {
             event.preventDefault();
             void selectStudentWithoutRefresh(getRowStudentId(row), true);
           });
+        });
+      }
 
-          var inlineLinks = row.querySelectorAll("a[data-inline-select='1']");
-          inlineLinks.forEach(function (link) {
-            link.addEventListener("click", function (event) {
-              event.preventDefault();
-              var value = link.getAttribute("data-student-id");
-              var parsed = value ? Number.parseInt(value, 10) : Number.NaN;
-              if (!Number.isFinite(parsed)) return;
-              void selectStudentWithoutRefresh(parsed, true);
-            });
+      function bindLaneSelection() {
+        laneStudentCards.forEach(function (card) {
+          card.addEventListener("click", function (event) {
+            var target = event.target;
+            if (target && target.closest && target.closest("a[data-inline-select='1']")) {
+              return;
+            }
+            if (target && target.closest && target.closest("button,input,select,textarea,label")) {
+              return;
+            }
+            void selectStudentWithoutRefresh(getLaneStudentId(card), true);
+          });
+
+          card.addEventListener("keydown", function (event) {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            void selectStudentWithoutRefresh(getLaneStudentId(card), true);
           });
         });
       }
@@ -917,8 +970,12 @@ function renderDashboardPage(data: DashboardPageData): string {
       refreshStudentTable();
       var initialSelectedParam = new URL(window.location.href).searchParams.get("selected");
       var initialSelected = initialSelectedParam ? Number.parseInt(initialSelectedParam, 10) : 0;
-      applySelectedRowState(Number.isFinite(initialSelected) ? initialSelected : 0);
+      var normalizedInitialSelected = Number.isFinite(initialSelected) ? initialSelected : 0;
+      applySelectedRowState(normalizedInitialSelected);
+      applySelectedLaneState(normalizedInitialSelected);
+      bindInlineSelectionLinks();
       bindStudentRowSelection();
+      bindLaneSelection();
       bindHistorySelection();
 
       themeToggle.addEventListener("click", function () {
