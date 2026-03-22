@@ -1,0 +1,54 @@
+{
+  "name": "htmlisp-language",
+  "displayName": "HTMLisp Language Support",
+  "description": "Syntax highlighting and editor configuration for HTMLisp templates.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "htmlisp",
+    "html",
+    "templating",
+    "lisp",
+    "syntax"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "htmlisp",
+        "aliases": [
+          "HTMLisp",
+          "htmlisp"
+        ],
+        "extensions": [
+          ".htmlisp",
+          ".hisp"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "htmlisp",
+        "scopeName": "text.html.htmlisp",
+        "path": "./syntaxes/htmlisp.tmLanguage.json"
+      },
+      {
+        "scopeName": "text.html.htmlisp.injection",
+        "path": "./syntaxes/htmlisp-injection.tmLanguage.json",
+        "injectTo": [
+          "source.js",
+          "source.jsx",
+          "source.ts",
+          "source.tsx"
+        ]
+      }
+    ]
+  }
+}
