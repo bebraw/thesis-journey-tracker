@@ -1,6 +1,6 @@
 # Thesis Journey Tracker
 
-Private thesis advising dashboard for tracking MSc students through thesis phases, meetings, and supervision logs.
+This project implements a thesis advising dashboard for tracking students through thesis phases, meetings, and supervision logs.
 
 ## Features
 
