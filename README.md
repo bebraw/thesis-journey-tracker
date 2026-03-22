@@ -155,6 +155,7 @@ npm run deploy
 - Use **View & Edit** on a student row to edit details and add/view log entries.
 - If a next meeting is not known, leave it empty.
 - Seeded test students are not part of your normal workspace and are only loaded into the isolated E2E database.
+- Dark mode is controlled directly from the header toggle.
 - If you used an older version that inserted mock rows into your main database, run the latest D1 migrations to remove them.
 
 ## Security Model

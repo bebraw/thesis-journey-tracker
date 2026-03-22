@@ -35,11 +35,6 @@ interface DashboardPageData {
   metrics: Metrics;
 }
 
-interface SettingsPageData {
-  notice: string | null;
-  error: string | null;
-}
-
 interface AddStudentPageData {
   notice: string | null;
   error: string | null;
@@ -136,10 +131,6 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return await renderDashboard(request, env, url);
   }
 
-  if (pathname === "/settings" && request.method === "GET") {
-    return await renderSettings(env, url);
-  }
-
   if (pathname === "/students/new" && request.method === "GET") {
     return renderAddStudent(url);
   }
@@ -215,18 +206,6 @@ async function renderDashboard(
       notice,
       error,
       metrics,
-    }),
-  );
-}
-
-async function renderSettings(env: Env, url: URL): Promise<Response> {
-  const notice = url.searchParams.get("notice");
-  const error = url.searchParams.get("error");
-
-  return htmlResponse(
-    renderSettingsPage({
-      notice,
-      error,
     }),
   );
 }
@@ -529,7 +508,6 @@ function renderDashboardPage(data: DashboardPageData): string {
         </div>
         <div class="flex flex-wrap items-center gap-2 sm:justify-end sm:gap-3">
           <a href="/students/new" class="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900">Add student</a>
-          <a href="/settings" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Settings</a>
           <button
             id="themeToggle"
             type="button"
@@ -916,106 +894,6 @@ function renderDashboardPage(data: DashboardPageData): string {
 </html>`;
 }
 
-function renderSettingsPage(data: SettingsPageData): string {
-  const { notice, error } = data;
-
-  return `<!doctype html>
-<html lang="en" class="h-full">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thesis Journey Tracker - Settings</title>
-    <script>
-      (function applyTheme() {
-        var stored = localStorage.getItem("theme");
-        if (stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
-          document.documentElement.classList.add("dark");
-        }
-      }());
-    </script>
-    <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body class="min-h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-    <div class="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 class="text-xl font-semibold">Settings</h1>
-          <p class="text-sm text-slate-600 dark:text-slate-300">Manage application preferences for your supervision dashboard.</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 sm:justify-end sm:gap-3">
-          <a href="/" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Dashboard</a>
-          <button
-            id="themeToggle"
-            type="button"
-            title="Switch to dark mode"
-            aria-label="Switch to dark mode"
-            class="inline-flex items-center justify-center rounded-md border border-slate-300 p-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900"
-          >
-            <svg class="h-5 w-5 text-slate-700 dark:hidden dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M21 12a9 9 0 1 1-9-9 7 7 0 0 0 9 9Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <svg class="hidden h-5 w-5 text-slate-700 dark:block dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" />
-              <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.41 1.41M16.95 16.95l1.41 1.41M18.36 5.64l-1.41 1.41M7.05 16.95l-1.41 1.41" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            </svg>
-          </button>
-          <form action="/logout" method="post">
-            <button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Log out</button>
-          </form>
-        </div>
-      </header>
-
-      ${
-        notice
-          ? `<p role="status" aria-live="polite" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200">${escapeHtml(
-              notice,
-            )}</p>`
-          : ""
-      }
-      ${
-        error
-          ? `<p role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200">${escapeHtml(
-              error,
-            )}</p>`
-          : ""
-      }
-
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-        <h2 class="text-lg font-semibold">Personal Workspace</h2>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">This dashboard only shows your real supervision data during normal use.</p>
-        <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">Seeded test students and logs are reserved for the isolated end-to-end test environment, so they stay out of your personal view.</p>
-      </section>
-
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-        <h2 class="text-lg font-semibold">Appearance</h2>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Use the theme toggle in the header to switch between light and dark mode. The preference is stored locally in your browser.</p>
-      </section>
-    </div>
-
-    <script>
-      var themeToggle = document.getElementById("themeToggle");
-      var root = document.documentElement;
-
-      function syncThemeToggleAccessibility() {
-        var nextMode = root.classList.contains("dark") ? "light" : "dark";
-        var label = "Switch to " + nextMode + " mode";
-        themeToggle.setAttribute("title", label);
-        themeToggle.setAttribute("aria-label", label);
-      }
-
-      syncThemeToggleAccessibility();
-
-      themeToggle.addEventListener("click", function () {
-        root.classList.toggle("dark");
-        localStorage.setItem("theme", root.classList.contains("dark") ? "dark" : "light");
-        syncThemeToggleAccessibility();
-      });
-    </script>
-  </body>
-</html>`;
-}
-
 function renderAddStudentPage(data: AddStudentPageData): string {
   const { notice, error } = data;
   const phaseOptions = PHASES.map(
@@ -1048,7 +926,6 @@ function renderAddStudentPage(data: AddStudentPageData): string {
         </div>
         <div class="flex flex-wrap items-center gap-2 sm:justify-end sm:gap-3">
           <a href="/" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Dashboard</a>
-          <a href="/settings" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Settings</a>
           <button
             id="themeToggle"
             type="button"

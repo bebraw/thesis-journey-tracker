@@ -79,15 +79,6 @@ test.describe("dashboard e2e", () => {
     await login(page);
 
     await expect(page.getByText("Mock", { exact: true }).first()).toBeVisible();
-
-    await page.getByRole("link", { name: "Settings" }).click();
-    await expect(page).toHaveURL(/\/settings$/);
-    await expect(
-      page.getByText(
-        "Seeded test students and logs are reserved for the isolated end-to-end test environment, so they stay out of your personal view.",
-      ),
-    ).toBeVisible();
-    await expect(page.getByLabel("Show seeded mock data")).toHaveCount(0);
   });
 
   test("can add a student and select from table and lanes without reload", async ({
