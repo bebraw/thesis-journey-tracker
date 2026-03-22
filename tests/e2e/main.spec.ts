@@ -205,6 +205,10 @@ test.describe("dashboard e2e", () => {
 
     await page
       .locator("#selectedStudentPanel")
+      .locator("summary", { hasText: "Add Log Entry" })
+      .click();
+    await page
+      .locator("#selectedStudentPanel")
       .getByLabel("What was discussed")
       .fill(discussedText);
     await page
@@ -217,6 +221,10 @@ test.describe("dashboard e2e", () => {
       .click();
 
     await expect(page).toHaveURL(/notice=Log\+saved/);
+    await page
+      .locator("#selectedStudentPanel")
+      .locator("summary", { hasText: "Meeting Log History" })
+      .click();
     await expect(page.locator("#selectedStudentPanel")).toContainText(
       discussedText,
     );

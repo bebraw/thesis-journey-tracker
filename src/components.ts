@@ -134,6 +134,10 @@ export const TABLE_CELL = "px-cell-x py-cell-y align-top";
 export const FORM_STACK = "mt-stack-xs space-y-stack-xs";
 export const PANEL_STACK = "space-y-stack";
 export const SECTION_STACK_SM = "space-y-stack-xs";
+export const DISCLOSURE =
+  "rounded-card border border-app-line bg-app-surface-soft/70 dark:border-app-line-dark dark:bg-app-surface-soft-dark/40";
+export const DISCLOSURE_SUMMARY = `flex cursor-pointer list-none items-center justify-between gap-stack-xs rounded-card px-panel-sm py-stack-xs text-lg font-semibold marker:content-[''] hover:bg-app-surface-soft dark:hover:bg-app-surface-soft-dark/50 ${FOCUS_RING}`;
+export const DISCLOSURE_CONTENT = "px-panel-sm pb-panel-sm";
 
 export const ALERT_CLASS_MAP = {
   success:

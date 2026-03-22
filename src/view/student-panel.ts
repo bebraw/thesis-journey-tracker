@@ -3,6 +3,9 @@ import {
   DANGER_PANEL,
   DANGER_TEXT,
   DANGER_TITLE,
+  DISCLOSURE,
+  DISCLOSURE_CONTENT,
+  DISCLOSURE_SUMMARY,
   EMPTY_STATE_CARD,
   FIELD_CONTROL,
   FORM_STACK,
@@ -222,28 +225,38 @@ export function renderSelectedStudentPanel(
         <noop &children="(get props editFormHtml)"></noop>
       </section>
 
-      <section>
-        <h2 class="text-lg font-semibold">Add Log Entry</h2>
-        <noop &children="(get props addLogFormHtml)"></noop>
-      </section>
-
-      <section>
-        <h2 class="text-lg font-semibold">Meeting Log History</h2>
-        <div &class="(get props formStack)" &visibleIf="(get props hasLogs)">
-          <noop &foreach="(get props logs)">
-            <MeetingLogEntry
-              &cardClass="(get props logEntryClass)"
-              &timestampText="(get props timestampText)"
-              &mockBadgeHtml="(get props mockBadgeHtml)"
-              &discussed="(get props discussed)"
-              &agreedPlan="(get props agreedPlan)"
-              &hasDeadline="(get props hasDeadline)"
-              &deadlineText="(get props deadlineText)"
-            ></MeetingLogEntry>
-          </noop>
+      <details &class="(get props disclosureClass)">
+        <summary &class="(get props disclosureSummaryClass)">
+          <span>Add Log Entry</span>
+          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Expand</span>
+        </summary>
+        <div &class="(get props disclosureContentClass)">
+          <noop &children="(get props addLogFormHtml)"></noop>
         </div>
-        <p &visibleIf="(get props showNoLogs)" &class="(get props emptyStateClass)">No entries yet.</p>
-      </section>
+      </details>
+
+      <details &class="(get props disclosureClass)">
+        <summary &class="(get props disclosureSummaryClass)">
+          <span>Meeting Log History</span>
+          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props logSummaryText)"></span>
+        </summary>
+        <div &class="(get props disclosureContentClass)">
+          <div &class="(get props formStack)" &visibleIf="(get props hasLogs)">
+            <noop &foreach="(get props logs)">
+              <MeetingLogEntry
+                &cardClass="(get props logEntryClass)"
+                &timestampText="(get props timestampText)"
+                &mockBadgeHtml="(get props mockBadgeHtml)"
+                &discussed="(get props discussed)"
+                &agreedPlan="(get props agreedPlan)"
+                &hasDeadline="(get props hasDeadline)"
+                &deadlineText="(get props deadlineText)"
+              ></MeetingLogEntry>
+            </noop>
+          </div>
+          <p &visibleIf="(get props showNoLogs)" &class="(get props emptyStateClass)">No entries yet.</p>
+        </div>
+      </details>
 
       <section &class="(get props dangerPanelClass)">
         <h2 &class="(get props dangerTitleClass)">Delete Student</h2>
@@ -263,8 +276,16 @@ export function renderSelectedStudentPanel(
       dangerPanelClass: escapeHtml(DANGER_PANEL),
       dangerTextClass: escapeHtml(DANGER_TEXT),
       dangerTitleClass: escapeHtml(DANGER_TITLE),
+      disclosureClass: escapeHtml(DISCLOSURE),
+      disclosureContentClass: escapeHtml(DISCLOSURE_CONTENT),
+      disclosureSummaryClass: escapeHtml(DISCLOSURE_SUMMARY),
       emptyStateClass: escapeHtml(EMPTY_STATE_CARD),
       formStack: escapeHtml(FORM_STACK),
+      logSummaryText: escapeHtml(
+        preparedLogs.length > 0
+          ? `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"}`
+          : "Empty",
+      ),
       logEntryClass: escapeHtml(SOFT_SURFACE_CARD),
       subtleText: escapeHtml(SUBTLE_TEXT),
       topicTextClass: escapeHtml(TOPIC_TEXT),
