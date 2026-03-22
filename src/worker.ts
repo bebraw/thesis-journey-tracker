@@ -17,6 +17,7 @@ import {
   clearSessionCookie,
   createSessionToken,
   cssResponse,
+  javascriptResponse,
   htmlFragmentResponse,
   htmlResponse,
   iconResponse,
@@ -26,6 +27,7 @@ import {
   normalizeString,
   redirect,
 } from "./utils";
+import { DASHBOARD_INTERACTION_SCRIPT } from "./view/dashboard/interaction-script";
 import {
   renderAddStudentPage,
   renderDashboardPage,
@@ -61,6 +63,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   if (pathname === "/styles.css") {
     return cssResponse(styles);
+  }
+
+  if (pathname === "/dashboard.js") {
+    return javascriptResponse(DASHBOARD_INTERACTION_SCRIPT);
   }
 
   if (pathname === "/favicon.ico") {

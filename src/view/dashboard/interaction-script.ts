@@ -1,5 +1,5 @@
 function joinScriptSections(sections: string[]): string {
-  return `<script>\n${sections.join("\n\n")}\n</script>`;
+  return `${sections.join("\n\n")}\n`;
 }
 
 const DASHBOARD_DOM_SECTION = `
@@ -250,13 +250,15 @@ bindLaneSelection();
 bindHistorySelection();
 bindDashboardFilters();`;
 
-export function renderDashboardInteractionScript(): string {
-  return joinScriptSections([
-    DASHBOARD_DOM_SECTION,
-    DASHBOARD_HELPERS_SECTION,
-    DASHBOARD_FILTER_SECTION,
-    DASHBOARD_SELECTION_SECTION,
-    DASHBOARD_EVENT_SECTION,
-    DASHBOARD_BOOTSTRAP_SECTION,
-  ]);
+export const DASHBOARD_INTERACTION_SCRIPT = joinScriptSections([
+  DASHBOARD_DOM_SECTION,
+  DASHBOARD_HELPERS_SECTION,
+  DASHBOARD_FILTER_SECTION,
+  DASHBOARD_SELECTION_SECTION,
+  DASHBOARD_EVENT_SECTION,
+  DASHBOARD_BOOTSTRAP_SECTION,
+]);
+
+export function renderDashboardScriptTag(): string {
+  return '<script src="/dashboard.js" defer></script>';
 }

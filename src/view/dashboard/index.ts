@@ -12,7 +12,7 @@ import {
   renderView,
 } from "../shared";
 import type { DashboardPageData } from "../types";
-import { renderDashboardInteractionScript } from "./interaction-script";
+import { renderDashboardScriptTag } from "./interaction-script";
 import { renderMetricCards } from "./metrics";
 import { renderPhaseLanes } from "./phase-lanes";
 import { renderStudentsTable } from "./students-table";
@@ -57,7 +57,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
         selectedPanel,
         renderEmptySelectedPanel(),
       ),
-      dashboardScript: renderDashboardInteractionScript(),
+      dashboardScript: renderDashboardScriptTag(),
       themeToggleScript: THEME_TOGGLE_SCRIPT,
     },
   );

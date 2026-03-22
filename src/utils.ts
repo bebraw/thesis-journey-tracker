@@ -34,6 +34,15 @@ export function cssResponse(css: string): Response {
   });
 }
 
+export function javascriptResponse(script: string): Response {
+  return new Response(script, {
+    headers: {
+      "content-type": "application/javascript; charset=utf-8",
+      "cache-control": "public, max-age=86400",
+    },
+  });
+}
+
 export function iconResponse(icon: ArrayBuffer): Response {
   return new Response(icon, {
     headers: {
