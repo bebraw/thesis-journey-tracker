@@ -1,6 +1,6 @@
 # Thesis Journey Tracker
 
-This project implements a thesis advising dashboard for tracking students through thesis phases, meetings, and supervision logs.
+This project implements a thesis advising dashboard for tracking students through thesis phases, meetings, and supervision logs. Note that I generated the project using GPT-5.4 so expect AI slop! But it works more or less.
 
 ## Features
 
