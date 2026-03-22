@@ -11,12 +11,17 @@
     "deploy": "wrangler deploy",
     "db:migrate": "wrangler d1 migrations apply thesis_tracker_db --local",
     "db:migrate:remote": "wrangler d1 migrations apply thesis_tracker_db --remote",
+    "e2e:prepare": "HOME=$PWD wrangler d1 migrations apply thesis_tracker_db --local --persist-to .wrangler/state/e2e --env-file tests/e2e/.env.e2e && HOME=$PWD wrangler d1 execute thesis_tracker_db --local --persist-to .wrangler/state/e2e --env-file tests/e2e/.env.e2e --file tests/e2e/mock-data.sql",
+    "e2e:dev": "HOME=$PWD wrangler dev --local --port 8788 --persist-to .wrangler/state/e2e --env-file tests/e2e/.env.e2e --var APP_PASSWORD:e2e-password --var SESSION_SECRET:e2e-session-secret --var ENABLE_TEST_DATA:1",
+    "e2e:server": "npm run build:css && npm run e2e:prepare && npm run e2e:dev",
+    "e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "devDependencies": {
+    "@playwright/test": "1.58.2",
     "prettier": "3.8.1",
     "tailwindcss": "3.4.17",
     "typescript": "5.9.2",

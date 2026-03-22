@@ -103,32 +103,11 @@ export interface CreateLogInput {
   nextStepDeadline: string | null;
 }
 
-export async function getShowMockData(db: D1Database): Promise<boolean> {
-  const row = await db
-    .prepare(`SELECT value FROM settings WHERE key = 'show_mock_data'`)
-    .first<{ value: string }>();
-  return row ? row.value === "1" : false;
-}
-
-export async function setShowMockData(
-  db: D1Database,
-  showMockData: boolean,
-): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO settings (key, value)
-       VALUES ('show_mock_data', ?)
-       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-    )
-    .bind(showMockData ? "1" : "0")
-    .run();
-}
-
 export async function listStudents(
   db: D1Database,
-  showMockData: boolean,
+  includeMockData: boolean,
 ): Promise<Student[]> {
-  const includeMock = showMockData ? 1 : 0;
+  const includeMock = includeMockData ? 1 : 0;
   const rows = await db
     .prepare(
       `SELECT
@@ -167,9 +146,9 @@ export async function listStudents(
 export async function listLogsForStudent(
   db: D1Database,
   studentId: number,
-  showMockData: boolean,
+  includeMockData: boolean,
 ): Promise<MeetingLog[]> {
-  const includeMock = showMockData ? 1 : 0;
+  const includeMock = includeMockData ? 1 : 0;
   const rows = await db
     .prepare(
       `SELECT *

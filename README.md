@@ -5,7 +5,7 @@ Private thesis advising dashboard for tracking MSc students through thesis phase
 ## Features
 
 - Password-protected access (single advisor account)
-- D1 persistence (students, settings, meeting logs)
+- D1 persistence (students and meeting logs)
 - Thesis phase tracking:
   - Planning research
   - Researching
@@ -19,7 +19,7 @@ Private thesis advising dashboard for tracking MSc students through thesis phase
   - Agreed plan / next actions
   - Optional deadline for next step
 - Dashboard phase lanes showing how students are distributed across thesis phases
-- Seeded mock data with persisted on/off toggle
+- Seeded test data used only in the isolated E2E environment
 - Dark mode
 - Works locally and on Cloudflare Workers
 - Simple server-rendered HTML + locally built Tailwind CSS (no React)
@@ -35,7 +35,9 @@ Private thesis advising dashboard for tracking MSc students through thesis phase
 - `src/worker.ts`: App routes, auth, page rendering, business logic
 - `src/tailwind-input.css`: Tailwind source file
 - `src/styles.css`: compiled/minified Tailwind output served at `/styles.css`
-- `migrations/0001_init.sql`: Schema + initial settings + seeded mock records
+- `migrations/0001_init.sql`: Schema, indexes, and triggers
+- `migrations/0002_cleanup_mock_data.sql`: One-time cleanup for legacy mock rows and obsolete settings table
+- `tests/e2e/mock-data.sql`: Seeded test students/logs for isolated E2E runs
 - `wrangler.toml`: Worker + D1 binding config
 - `tailwind.config.cjs`: Tailwind scanning + dark mode config
 - `.dev.vars.example`: local env variable template
@@ -101,17 +103,24 @@ Manual CSS rebuild (usually not needed because `predev`/`predeploy` run it autom
 npm run build:css
 ```
 
-Run test suite (includes SQL-injection safety tests for form actions):
+Run unit/integration tests (includes SQL-injection safety tests for form actions):
 
 ```bash
 npm test
+```
+
+Run end-to-end tests:
+
+```bash
+npx playwright install chromium
+npm run e2e
 ```
 
 ## CI
 
 - GitHub Actions workflow: `.github/workflows/ci.yml`
 - Triggered on every push and pull request
-- Runs: `npm ci`, `npm run build:css`, `npm run typecheck`, `npm test`
+- Runs: `npm ci`, `npx playwright install --with-deps chromium`, `npm run build:css`, `npm run typecheck`, `npm test`, `npm run e2e`
 
 ## Deploy to Cloudflare
 
@@ -145,7 +154,8 @@ npm run deploy
 - Add students with start date. If target submission date is omitted, it defaults to start date + 6 months.
 - Use **View & Edit** on a student row to edit details and add/view log entries.
 - If a next meeting is not known, leave it empty.
-- Mock data is hidden by default and can be turned on/off in the dedicated **Settings** page (`/settings`).
+- Seeded test students are not part of your normal workspace and are only loaded into the isolated E2E database.
+- If you used an older version that inserted mock rows into your main database, run the latest D1 migrations to remove them.
 
 ## Security Model
 

@@ -35,7 +35,6 @@ interface QueryCall {
 class MockD1Database {
   public students: StudentRowStore[] = [];
   public meetingLogs: MeetingLogStore[] = [];
-  public settings = new Map<string, string>([["show_mock_data", "0"]]);
   public calls: QueryCall[] = [];
 
   private nextStudentId = 1;
@@ -119,12 +118,6 @@ class MockD1Database {
       return { success: true, meta: { last_row_id: row.id, changes: 1 } };
     }
 
-    if (q.startsWith("INSERT INTO settings")) {
-      const [value] = values;
-      this.settings.set("show_mock_data", String(value));
-      return { success: true, meta: { changes: 1 } };
-    }
-
     throw new Error(`Unsupported run query: ${query}`);
   }
 
@@ -135,10 +128,6 @@ class MockD1Database {
       const id = Number(values[0]);
       const row = this.students.find((student) => student.id === id);
       return row ? { id: row.id } : null;
-    }
-
-    if (q === "SELECT value FROM settings WHERE key = 'show_mock_data'") {
-      return { value: this.settings.get("show_mock_data") ?? "0" };
     }
 
     throw new Error(`Unsupported first query: ${query}`);
@@ -333,7 +322,7 @@ describe("SQL injection safety", () => {
 
   it.each([
     "'); DROP TABLE meeting_logs;--",
-    "'; UPDATE settings SET value='1' WHERE key='show_mock_data';--",
+    "'; UPDATE students SET name='pwned' WHERE id=1;--",
   ])("treats add-log payload as data (%s)", async (payload) => {
     const cookie = await login(fetchHandler, env);
 
@@ -360,28 +349,5 @@ describe("SQL injection safety", () => {
     expect(env.DB.calls.some((call) => call.query.includes(payload))).toBe(
       false,
     );
-  });
-
-  it("ignores injection-like selected value in mock-toggle action", async () => {
-    const cookie = await login(fetchHandler, env);
-
-    const response = await fetchHandler(
-      new Request("http://localhost/actions/toggle-mock", {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          cookie,
-        },
-        body: new URLSearchParams({
-          showMockData: "1",
-          selected: "1; DROP TABLE students;--",
-        }),
-      }),
-      env,
-    );
-
-    expect(response.status).toBe(302);
-    expect(env.DB.settings.get("show_mock_data")).toBe("1");
-    expect(env.DB.students.length).toBe(1);
   });
 });

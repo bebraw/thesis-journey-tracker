@@ -3,3 +3,5 @@ node_modules
 .npm
 .dev.vars
 .DS_Store
+playwright-report
+test-results

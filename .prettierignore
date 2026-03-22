@@ -1,3 +1,5 @@
 node_modules
 .wrangler
+playwright-report
 src/styles.css
+test-results

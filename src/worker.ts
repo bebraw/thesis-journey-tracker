@@ -4,10 +4,8 @@ import {
   createMeetingLog,
   createStudent,
   type D1Database,
-  getShowMockData,
   listLogsForStudent,
   listStudents,
-  setShowMockData,
   studentExists,
   type MeetingLog,
   type PhaseId,
@@ -37,7 +35,6 @@ interface DashboardPageData {
 }
 
 interface SettingsPageData {
-  showMockData: boolean;
   notice: string | null;
   error: string | null;
 }
@@ -51,6 +48,7 @@ interface Env {
   DB: D1Database;
   APP_PASSWORD: string;
   SESSION_SECRET: string;
+  ENABLE_TEST_DATA?: string;
 }
 
 const SESSION_COOKIE = "thesis_session";
@@ -154,10 +152,6 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return await handleAddStudent(request, env);
   }
 
-  if (pathname === "/actions/toggle-mock" && request.method === "POST") {
-    return await handleToggleMock(request, env);
-  }
-
   const updateMatch = pathname.match(/^\/actions\/update-student\/(\d+)$/);
   if (updateMatch && request.method === "POST") {
     return await handleUpdateStudent(request, env, Number(updateMatch[1]));
@@ -176,8 +170,8 @@ async function renderDashboard(
   env: Env,
   url: URL,
 ): Promise<Response> {
-  const showMockData = await getShowMockData(env.DB);
-  const students = await listStudents(env.DB, showMockData);
+  const includeTestData = shouldIncludeTestData(env);
+  const students = await listStudents(env.DB, includeTestData);
 
   const selectedIdParam = url.searchParams.get("selected");
   const parsedSelectedId = selectedIdParam
@@ -187,7 +181,7 @@ async function renderDashboard(
   const selectedStudent =
     students.find((student) => student.id === selectedId) || null;
   const logs = selectedStudent
-    ? await listLogsForStudent(env.DB, selectedStudent.id, showMockData)
+    ? await listLogsForStudent(env.DB, selectedStudent.id, includeTestData)
     : [];
 
   const notice = url.searchParams.get("notice");
@@ -220,13 +214,11 @@ async function renderDashboard(
 }
 
 async function renderSettings(env: Env, url: URL): Promise<Response> {
-  const showMockData = await getShowMockData(env.DB);
   const notice = url.searchParams.get("notice");
   const error = url.searchParams.get("error");
 
   return htmlResponse(
     renderSettingsPage({
-      showMockData,
       notice,
       error,
     }),
@@ -249,8 +241,8 @@ async function renderStudentPanelPartial(
   env: Env,
   studentId: number,
 ): Promise<Response> {
-  const showMockData = await getShowMockData(env.DB);
-  const students = await listStudents(env.DB, showMockData);
+  const includeTestData = shouldIncludeTestData(env);
+  const students = await listStudents(env.DB, includeTestData);
   const selectedStudent =
     students.find((student) => student.id === studentId) || null;
 
@@ -261,7 +253,7 @@ async function renderStudentPanelPartial(
     );
   }
 
-  const logs = await listLogsForStudent(env.DB, studentId, showMockData);
+  const logs = await listLogsForStudent(env.DB, studentId, includeTestData);
   return htmlFragmentResponse(
     renderSelectedStudentPanel(selectedStudent, logs),
   );
@@ -386,15 +378,6 @@ async function handleAddLog(
   });
 
   return redirect(`/?selected=${studentId}&notice=Log+saved`);
-}
-
-async function handleToggleMock(request: Request, env: Env): Promise<Response> {
-  const formData = await request.formData();
-  const showMockData = formData.get("showMockData") === "1";
-
-  await setShowMockData(env.DB, showMockData);
-
-  return redirect(`/settings?notice=Mock+data+visibility+updated`);
 }
 
 function renderDashboardPage(data: DashboardPageData): string {
@@ -916,7 +899,7 @@ function renderDashboardPage(data: DashboardPageData): string {
 }
 
 function renderSettingsPage(data: SettingsPageData): string {
-  const { showMockData, notice, error } = data;
+  const { notice, error } = data;
 
   return `<!doctype html>
 <html lang="en" class="h-full">
@@ -981,15 +964,14 @@ function renderSettingsPage(data: SettingsPageData): string {
       }
 
       <section class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
-        <h2 class="text-lg font-semibold">Data & Privacy</h2>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Control whether seeded mock students and logs are visible in your dashboard.</p>
-        <form action="/actions/toggle-mock" method="post" class="mt-4 space-y-4">
-          <label class="flex items-center gap-3 text-sm">
-            <input type="checkbox" name="showMockData" value="1" class="h-4 w-4" ${showMockData ? "checked" : ""} />
-            Show seeded mock data
-          </label>
-          <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900">Save settings</button>
-        </form>
+        <h2 class="text-lg font-semibold">Personal Workspace</h2>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">This dashboard only shows your real supervision data during normal use.</p>
+        <p class="mt-3 text-sm text-slate-600 dark:text-slate-300">Seeded test students and logs are reserved for the isolated end-to-end test environment, so they stay out of your personal view.</p>
+      </section>
+
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
+        <h2 class="text-lg font-semibold">Appearance</h2>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Use the theme toggle in the header to switch between light and dark mode. The preference is stored locally in your browser.</p>
       </section>
     </div>
 
@@ -1251,6 +1233,11 @@ function renderSelectedStudentPanel(
       </section>
     </article>
   `;
+}
+
+function shouldIncludeTestData(env: Env): boolean {
+  const value = env.ENABLE_TEST_DATA?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
 }
 
 function renderLoginPage(showError: boolean): string {
