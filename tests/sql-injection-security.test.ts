@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../src/styles.css", () => ({ default: "" }));
+vi.mock("../src/favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 
 type D1Value = string | number | null;
 

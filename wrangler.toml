@@ -7,6 +7,11 @@ type = "Text"
 globs = ["**/*.css"]
 fallthrough = true
 
+[[rules]]
+type = "Data"
+globs = ["**/*.ico"]
+fallthrough = true
+
 [[d1_databases]]
 binding = "DB"
 database_name = "thesis_tracker_db"

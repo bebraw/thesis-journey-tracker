@@ -1,4 +1,5 @@
 import styles from "./styles.css";
+import favicon from "./favicon.ico";
 
 type PhaseId =
   | "research_plan"
@@ -136,6 +137,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   if (pathname === "/styles.css") {
     return cssResponse(styles);
+  }
+
+  if (pathname === "/favicon.ico") {
+    return iconResponse(favicon);
   }
 
   if (!env.DB) {
@@ -489,6 +494,7 @@ function renderDashboardPage(data: DashboardPageData): string {
         }
       }());
     </script>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="min-h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
@@ -870,6 +876,7 @@ function renderLoginPage(showError: boolean): string {
         }
       }());
     </script>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
@@ -907,6 +914,15 @@ function cssResponse(css: string): Response {
     headers: {
       "content-type": "text/css; charset=utf-8",
       "cache-control": "public, max-age=86400"
+    }
+  });
+}
+
+function iconResponse(icon: ArrayBuffer): Response {
+  return new Response(icon, {
+    headers: {
+      "content-type": "image/x-icon",
+      "cache-control": "public, max-age=604800"
     }
   });
 }
