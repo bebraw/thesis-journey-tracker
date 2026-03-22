@@ -419,28 +419,46 @@ function renderDashboardPage(data: DashboardPageData): string {
   const phaseOptions = PHASES.map(
     (phase) => `<option value="${phase.id}">${phase.label}</option>`
   ).join("");
+  const phaseFilterOptions = [
+    '<option value="">All phases</option>',
+    ...PHASES.map((phase) => `<option value="${phase.id}">${phase.label}</option>`)
+  ].join("");
 
   const studentRows = students.length
     ? students
         .map((student) => {
+          const statusText = meetingStatusText(student);
+          const statusId = meetingStatusId(student);
           const selectedClass =
             selectedStudent && selectedStudent.id === student.id
               ? "bg-blue-50 dark:bg-blue-900/20"
               : "";
           return `
-            <tr class="${selectedClass}">
+            <tr
+              class="${selectedClass}"
+              data-student-row
+              data-name="${escapeHtml(student.name).toLowerCase()}"
+              data-email="${escapeHtml(student.email || "").toLowerCase()}"
+              data-phase="${escapeHtml(student.currentPhase)}"
+              data-status-id="${statusId}"
+              data-target-date="${escapeHtml(student.targetSubmissionDate)}"
+              data-next-meeting-date="${escapeHtml(student.nextMeetingAt || "")}"
+            >
               <td class="px-2 py-2 align-top">
-                <div class="font-medium">${escapeHtml(student.name)}</div>
+                <div class="font-medium">
+                  ${escapeHtml(student.name)}
+                  ${selectedStudent && selectedStudent.id === student.id ? '<span class="ml-2 rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/50 dark:text-blue-200">Selected</span>' : ""}
+                </div>
                 <div class="text-xs text-slate-500 dark:text-slate-300">${escapeHtml(student.email || "-")}</div>
                 ${student.isMock ? '<span class="mt-1 inline-block rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200">Mock</span>' : ""}
               </td>
               <td class="px-2 py-2 align-top">${escapeHtml(getPhaseLabel(student.currentPhase))}</td>
               <td class="px-2 py-2 align-top">${escapeHtml(student.targetSubmissionDate)}</td>
               <td class="px-2 py-2 align-top">${student.nextMeetingAt ? escapeHtml(formatDateTime(student.nextMeetingAt)) : "Not booked"}</td>
-              <td class="px-2 py-2 align-top"><span class="rounded px-2 py-1 text-xs ${meetingStatusClass(student)}">${meetingStatusText(student)}</span></td>
+              <td class="px-2 py-2 align-top"><span class="rounded px-2 py-1 text-xs ${meetingStatusClass(student)}">${statusText}</span></td>
               <td class="px-2 py-2 align-top">${student.logCount}</td>
               <td class="px-2 py-2 align-top">
-                <a class="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800" href="/?selected=${student.id}">Open</a>
+                <a class="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900" href="/?selected=${student.id}">View & Edit</a>
               </td>
             </tr>
           `;
@@ -486,7 +504,7 @@ function renderDashboardPage(data: DashboardPageData): string {
             type="button"
             title="Switch to dark mode"
             aria-label="Switch to dark mode"
-            class="inline-flex items-center justify-center rounded-md border border-slate-300 p-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+            class="inline-flex items-center justify-center rounded-md border border-slate-300 p-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900"
           >
             <svg class="h-5 w-5 text-slate-700 dark:hidden dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M21 12a9 9 0 1 1-9-9 7 7 0 0 0 9 9Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
@@ -497,21 +515,21 @@ function renderDashboardPage(data: DashboardPageData): string {
             </svg>
           </button>
           <form action="/logout" method="post">
-            <button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800">Log out</button>
+            <button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Log out</button>
           </form>
         </div>
       </header>
 
       ${
         notice
-          ? `<p class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200">${escapeHtml(
+          ? `<p role="status" aria-live="polite" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200">${escapeHtml(
               notice
             )}</p>`
           : ""
       }
       ${
         error
-          ? `<p class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200">${escapeHtml(
+          ? `<p role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200">${escapeHtml(
               error
             )}</p>`
           : ""
@@ -545,15 +563,24 @@ function renderDashboardPage(data: DashboardPageData): string {
               <input type="checkbox" name="showMockData" value="1" class="h-4 w-4" ${showMockData ? "checked" : ""} />
               Show seeded mock data
             </label>
-            <button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800">Save setting</button>
+            <button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-slate-600 dark:hover:bg-slate-800 dark:focus-visible:ring-offset-slate-900">Save setting</button>
           </form>
         </article>
         <article class="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900 lg:col-span-2">
           <h2 class="text-lg font-semibold">Add Student</h2>
           <form action="/actions/add-student" method="post" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <input name="name" required placeholder="Name" class="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
-            <input name="email" type="email" placeholder="Email (optional)" class="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
-            <select name="currentPhase" class="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800">${phaseOptions}</select>
+            <label class="text-sm">
+              <span class="mb-1 block text-slate-600 dark:text-slate-300">Name</span>
+              <input name="name" required class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
+            </label>
+            <label class="text-sm">
+              <span class="mb-1 block text-slate-600 dark:text-slate-300">Email (optional)</span>
+              <input name="email" type="email" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
+            </label>
+            <label class="text-sm">
+              <span class="mb-1 block text-slate-600 dark:text-slate-300">Phase</span>
+              <select name="currentPhase" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800">${phaseOptions}</select>
+            </label>
             <label class="text-sm">
               <span class="mb-1 block text-slate-600 dark:text-slate-300">Start date</span>
               <input name="startDate" type="date" required class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
@@ -566,14 +593,47 @@ function renderDashboardPage(data: DashboardPageData): string {
               <span class="mb-1 block text-slate-600 dark:text-slate-300">Next meeting (optional)</span>
               <input name="nextMeetingAt" type="datetime-local" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
             </label>
-            <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 sm:col-span-2 lg:col-span-3">Add student</button>
+            <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 sm:col-span-2 lg:col-span-3">Add student</button>
           </form>
         </article>
       </section>
 
       <section class="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900 xl:col-span-2">
-          <h2 class="mb-4 text-lg font-semibold">Students</h2>
+          <div class="mb-4">
+            <h2 class="text-lg font-semibold">Students</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-300">Use filters to quickly find students that need attention.</p>
+          </div>
+          <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">
+              Search
+              <input id="studentSearch" type="search" placeholder="Name or email" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800" />
+            </label>
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">
+              Phase
+              <select id="phaseFilter" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800">${phaseFilterOptions}</select>
+            </label>
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">
+              Meeting status
+              <select id="statusFilter" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800">
+                <option value="">All statuses</option>
+                <option value="not_booked">Not booked</option>
+                <option value="overdue">Overdue</option>
+                <option value="within_2_weeks">Within 2 weeks</option>
+                <option value="scheduled">Scheduled</option>
+              </select>
+            </label>
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">
+              Sort by
+              <select id="sortBy" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800">
+                <option value="nextMeetingAsc">Next meeting (earliest)</option>
+                <option value="targetAsc">Target date (earliest)</option>
+                <option value="nameAsc">Name (A-Z)</option>
+                <option value="statusPriority">Status priority</option>
+              </select>
+            </label>
+          </div>
+          <p id="studentResultsMeta" class="mb-2 text-xs text-slate-500 dark:text-slate-300"></p>
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
               <thead>
@@ -581,13 +641,13 @@ function renderDashboardPage(data: DashboardPageData): string {
                   <th class="px-2 py-2">Student</th>
                   <th class="px-2 py-2">Phase</th>
                   <th class="px-2 py-2">Target</th>
-                  <th class="px-2 py-2">Next meeting</th>
+                  <th class="px-2 py-2">Next meeting (local)</th>
                   <th class="px-2 py-2">Status</th>
                   <th class="px-2 py-2">Logs</th>
                   <th class="px-2 py-2">Action</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">${studentRows}</tbody>
+              <tbody id="studentsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">${studentRows}</tbody>
             </table>
           </div>
         </article>
@@ -598,6 +658,13 @@ function renderDashboardPage(data: DashboardPageData): string {
     <script>
       var themeToggle = document.getElementById("themeToggle");
       var root = document.documentElement;
+      var tableBody = document.getElementById("studentsTableBody");
+      var studentRows = Array.prototype.slice.call(document.querySelectorAll("[data-student-row]"));
+      var searchInput = document.getElementById("studentSearch");
+      var phaseFilter = document.getElementById("phaseFilter");
+      var statusFilter = document.getElementById("statusFilter");
+      var sortBy = document.getElementById("sortBy");
+      var studentResultsMeta = document.getElementById("studentResultsMeta");
 
       function syncThemeToggleAccessibility() {
         var nextMode = root.classList.contains("dark") ? "light" : "dark";
@@ -606,13 +673,85 @@ function renderDashboardPage(data: DashboardPageData): string {
         themeToggle.setAttribute("aria-label", label);
       }
 
+      function toTimestamp(value) {
+        if (!value) return Number.POSITIVE_INFINITY;
+        var ts = Date.parse(value);
+        return Number.isNaN(ts) ? Number.POSITIVE_INFINITY : ts;
+      }
+
+      function statusPriority(statusId) {
+        if (statusId === "overdue") return 0;
+        if (statusId === "not_booked") return 1;
+        if (statusId === "within_2_weeks") return 2;
+        if (statusId === "scheduled") return 3;
+        return 4;
+      }
+
+      function applyStudentSort() {
+        if (!tableBody || !sortBy || studentRows.length === 0) return;
+        var mode = sortBy.value;
+        studentRows.sort(function (a, b) {
+          if (mode === "nameAsc") {
+            return (a.getAttribute("data-name") || "").localeCompare(b.getAttribute("data-name") || "");
+          }
+          if (mode === "targetAsc") {
+            return toTimestamp(a.getAttribute("data-target-date")) - toTimestamp(b.getAttribute("data-target-date"));
+          }
+          if (mode === "statusPriority") {
+            return statusPriority(a.getAttribute("data-status-id") || "") - statusPriority(b.getAttribute("data-status-id") || "");
+          }
+          return toTimestamp(a.getAttribute("data-next-meeting-date")) - toTimestamp(b.getAttribute("data-next-meeting-date"));
+        });
+
+        studentRows.forEach(function (row) {
+          tableBody.appendChild(row);
+        });
+      }
+
+      function applyStudentFilters() {
+        var query = searchInput ? searchInput.value.toLowerCase().trim() : "";
+        var phase = phaseFilter ? phaseFilter.value : "";
+        var status = statusFilter ? statusFilter.value : "";
+        var visibleCount = 0;
+
+        studentRows.forEach(function (row) {
+          var name = row.getAttribute("data-name") || "";
+          var email = row.getAttribute("data-email") || "";
+          var rowPhase = row.getAttribute("data-phase") || "";
+          var rowStatus = row.getAttribute("data-status-id") || "";
+
+          var matchesQuery = !query || name.indexOf(query) !== -1 || email.indexOf(query) !== -1;
+          var matchesPhase = !phase || rowPhase === phase;
+          var matchesStatus = !status || rowStatus === status;
+          var visible = matchesQuery && matchesPhase && matchesStatus;
+
+          row.style.display = visible ? "" : "none";
+          if (visible) visibleCount += 1;
+        });
+
+        if (studentResultsMeta) {
+          studentResultsMeta.textContent = "Showing " + visibleCount + " of " + studentRows.length + " students";
+        }
+      }
+
+      function refreshStudentTable() {
+        applyStudentSort();
+        applyStudentFilters();
+      }
+
       syncThemeToggleAccessibility();
+      refreshStudentTable();
 
       themeToggle.addEventListener("click", function () {
         root.classList.toggle("dark");
         localStorage.setItem("theme", root.classList.contains("dark") ? "dark" : "light");
         syncThemeToggleAccessibility();
       });
+
+      if (searchInput) searchInput.addEventListener("input", applyStudentFilters);
+      if (phaseFilter) phaseFilter.addEventListener("change", applyStudentFilters);
+      if (statusFilter) statusFilter.addEventListener("change", applyStudentFilters);
+      if (sortBy) sortBy.addEventListener("change", refreshStudentTable);
     </script>
   </body>
 </html>`;
@@ -651,7 +790,7 @@ function renderSelectedStudentPanel(student: Student, logs: MeetingLog[]): strin
     <article class="space-y-6 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900">
       <section>
         <h2 class="text-lg font-semibold">Edit Student</h2>
-        <p class="text-sm text-slate-600 dark:text-slate-300">${escapeHtml(student.name)}</p>
+        <p class="text-sm text-slate-600 dark:text-slate-300">Currently viewing: ${escapeHtml(student.name)}</p>
         <form action="/actions/update-student/${student.id}" method="post" class="mt-3 space-y-3">
           <label class="block text-sm">
             <span class="mb-1 block text-slate-600 dark:text-slate-300">Name</span>
@@ -681,7 +820,7 @@ function renderSelectedStudentPanel(student: Student, logs: MeetingLog[]): strin
               toDateTimeLocalInput(student.nextMeetingAt)
             )}" class="w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-800" />
           </label>
-          <button type="submit" class="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Save student updates</button>
+          <button type="submit" class="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900">Save student updates</button>
         </form>
       </section>
 
@@ -704,7 +843,7 @@ function renderSelectedStudentPanel(student: Student, logs: MeetingLog[]): strin
             <span class="mb-1 block text-slate-600 dark:text-slate-300">Next-step deadline (optional)</span>
             <input name="nextStepDeadline" type="date" class="w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-800" />
           </label>
-          <button type="submit" class="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Save log entry</button>
+          <button type="submit" class="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900">Save log entry</button>
         </form>
       </section>
 
@@ -846,7 +985,8 @@ function formatDateTime(isoValue: string): string {
     month: "short",
     day: "numeric",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
+    timeZoneName: "short"
   }).format(date);
 }
 
@@ -881,6 +1021,21 @@ function meetingStatusText(student: Student): string {
     return "Within 2 weeks";
   }
   return "Scheduled";
+}
+
+function meetingStatusId(student: Student): string {
+  if (!student.nextMeetingAt) {
+    return "not_booked";
+  }
+  const nextMeeting = new Date(student.nextMeetingAt);
+  const now = new Date();
+  if (nextMeeting < now) {
+    return "overdue";
+  }
+  if (nextMeeting.getTime() - now.getTime() <= 14 * 24 * 60 * 60 * 1000) {
+    return "within_2_weeks";
+  }
+  return "scheduled";
 }
 
 function meetingStatusClass(student: Student): string {
