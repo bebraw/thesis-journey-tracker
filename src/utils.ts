@@ -1,7 +1,12 @@
-import type { PhaseId, Student } from "./db";
+import type { DegreeId, PhaseId, Student } from "./db";
 
 export interface PhaseDefinition {
   id: PhaseId;
+  label: string;
+}
+
+export interface DegreeDefinition {
+  id: DegreeId;
   label: string;
 }
 
@@ -101,6 +106,19 @@ export function normalizePhase(
   return phases.some((phase) => phase.id === text) ? (text as PhaseId) : null;
 }
 
+export function normalizeDegree(
+  value: FormDataEntryValue | string | null | undefined,
+  degrees: readonly DegreeDefinition[],
+): DegreeId | null {
+  const text = normalizeString(value);
+  if (!text) {
+    return null;
+  }
+  return degrees.some((degree) => degree.id === text)
+    ? (text as DegreeId)
+    : null;
+}
+
 export function addSixMonths(dateText: string | null): string | null {
   if (!dateText) {
     return null;
@@ -147,6 +165,14 @@ export function getPhaseLabel(
 ): string {
   const phase = phases.find((item) => item.id === phaseId);
   return phase ? phase.label : phaseId;
+}
+
+export function getDegreeLabel(
+  degreeId: DegreeId,
+  degrees: readonly DegreeDefinition[],
+): string {
+  const degree = degrees.find((item) => item.id === degreeId);
+  return degree ? degree.label : degreeId;
 }
 
 export function meetingStatusText(student: Student): string {

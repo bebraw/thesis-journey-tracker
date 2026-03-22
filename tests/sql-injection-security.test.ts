@@ -9,6 +9,7 @@ interface StudentRowStore {
   id: number;
   name: string;
   email: string | null;
+  degree_type: string;
   start_date: string;
   target_submission_date: string;
   current_phase: string;
@@ -45,6 +46,7 @@ class MockD1Database {
       id: this.nextStudentId++,
       name: "Base Student",
       email: "base@example.edu",
+      degree_type: "msc",
       start_date: "2026-01-01",
       target_submission_date: "2026-07-01",
       current_phase: "researching",
@@ -61,11 +63,20 @@ class MockD1Database {
     const q = normalizeQuery(query);
 
     if (q.startsWith("INSERT INTO students")) {
-      const [name, email, startDate, targetDate, phase, nextMeetingAt] = values;
+      const [
+        name,
+        email,
+        degreeType,
+        startDate,
+        targetDate,
+        phase,
+        nextMeetingAt,
+      ] = values;
       const row: StudentRowStore = {
         id: this.nextStudentId++,
         name: String(name),
         email: email === null ? null : String(email),
+        degree_type: String(degreeType),
         start_date: String(startDate),
         target_submission_date: String(targetDate),
         current_phase: String(phase),
@@ -80,6 +91,7 @@ class MockD1Database {
       const [
         name,
         email,
+        degreeType,
         startDate,
         targetDate,
         phase,
@@ -93,6 +105,7 @@ class MockD1Database {
       }
       row.name = String(name);
       row.email = email === null ? null : String(email);
+      row.degree_type = String(degreeType);
       row.start_date = String(startDate);
       row.target_submission_date = String(targetDate);
       row.current_phase = String(phase);
@@ -279,6 +292,7 @@ describe("SQL injection safety", () => {
         body: new URLSearchParams({
           name: payload,
           email: "safe@example.edu",
+          degreeType: "msc",
           startDate: "2026-02-01",
           targetSubmissionDate: "2026-08-01",
           currentPhase: "research_plan",
@@ -312,6 +326,7 @@ describe("SQL injection safety", () => {
         body: new URLSearchParams({
           name: payload,
           email: "updated@example.edu",
+          degreeType: "dsc",
           startDate: "2026-01-01",
           targetSubmissionDate: "2026-07-01",
           currentPhase: "editing",
@@ -323,6 +338,7 @@ describe("SQL injection safety", () => {
 
     expect(response.status).toBe(302);
     expect(env.DB.students[0]?.name).toBe(payload);
+    expect(env.DB.students[0]?.degree_type).toBe("dsc");
     expect(env.DB.students.length).toBe(1);
     expect(env.DB.calls.some((call) => call.query.includes(payload))).toBe(
       false,

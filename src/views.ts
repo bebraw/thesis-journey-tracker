@@ -3,11 +3,13 @@ import {
   escapeHtml,
   escapeJsString,
   formatDateTime,
+  getDegreeLabel,
   getPhaseLabel,
   meetingStatusClass,
   meetingStatusId,
   meetingStatusText,
   toDateTimeLocalInput,
+  type DegreeDefinition,
   type PhaseDefinition,
 } from "./utils";
 
@@ -39,6 +41,12 @@ export const PHASES: PhaseDefinition[] = [
   { id: "editing", label: "Editing" },
   { id: "submission_ready", label: "Draft ready to submit" },
   { id: "submitted", label: "Submitted" },
+];
+
+export const DEGREE_TYPES: DegreeDefinition[] = [
+  { id: "bsc", label: "BSc" },
+  { id: "msc", label: "MSc" },
+  { id: "dsc", label: "DSc" },
 ];
 
 const BODY_CLASS =
@@ -197,6 +205,12 @@ export function renderDashboardPage(data: DashboardPageData): string {
       (phase) => `<option value="${phase.id}">${phase.label}</option>`,
     ),
   ].join("");
+  const degreeFilterOptions = [
+    '<option value="">All degree types</option>',
+    ...DEGREE_TYPES.map(
+      (degree) => `<option value="${degree.id}">${degree.label}</option>`,
+    ),
+  ].join("");
   const phaseLaneCards = PHASES.map((phase) => {
     const laneStudents = students
       .filter((student) => student.currentPhase === phase.id)
@@ -220,6 +234,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
               <div class="flex flex-wrap items-start justify-between gap-2">
                 <a href="/?selected=${student.id}" data-inline-select="1" data-lane-select="1" data-student-id="${student.id}" class="min-w-0 flex-1 break-words font-medium text-slate-800 dark:text-slate-100 ${TEXT_LINK}">${escapeHtml(student.name)}</a>
                 <div class="flex max-w-full flex-wrap justify-end gap-1">
+                  <span class="rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-200">${escapeHtml(getDegreeLabel(student.degreeType, DEGREE_TYPES))}</span>
                   ${student.isMock ? `<span class="${MOCK_BADGE}">Mock</span>` : ""}
                 </div>
               </div>
@@ -261,6 +276,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
               data-student-id="${student.id}"
               data-name="${escapeHtml(student.name).toLowerCase()}"
               data-email="${escapeHtml(student.email || "").toLowerCase()}"
+              data-degree="${escapeHtml(student.degreeType)}"
               data-phase="${escapeHtml(student.currentPhase)}"
               data-status-id="${statusId}"
               data-target-date="${escapeHtml(student.targetSubmissionDate)}"
@@ -272,9 +288,10 @@ export function renderDashboardPage(data: DashboardPageData): string {
                 <div class="font-medium">
                   <a class="${TEXT_LINK}" href="/?selected=${student.id}" data-inline-select="1" data-student-id="${student.id}">${escapeHtml(student.name)}</a>
                 </div>
-                <div class="${MUTED_TEXT_XS}">${escapeHtml(student.email || "-")}</div>
+                <div class="${MUTED_TEXT_XS}">${escapeHtml(getDegreeLabel(student.degreeType, DEGREE_TYPES))} · ${escapeHtml(student.email || "-")}</div>
                 ${student.isMock ? `<span class="mt-1 inline-block ${MOCK_BADGE}">Mock</span>` : ""}
               </td>
+              <td class="px-2 py-2 align-top">${escapeHtml(getDegreeLabel(student.degreeType, DEGREE_TYPES))}</td>
               <td class="px-2 py-2 align-top">${escapeHtml(getPhaseLabel(student.currentPhase, PHASES))}</td>
               <td class="px-2 py-2 align-top">${escapeHtml(student.targetSubmissionDate)}</td>
               <td class="px-2 py-2 align-top">${student.nextMeetingAt ? escapeHtml(formatDateTime(student.nextMeetingAt)) : "Not booked"}</td>
@@ -287,7 +304,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
           `;
         })
         .join("")
-    : '<tr><td colspan="7" class="px-2 py-3 text-sm text-slate-500 dark:text-slate-300">No students yet.</td></tr>';
+    : '<tr><td colspan="8" class="px-2 py-3 text-sm text-slate-500 dark:text-slate-300">No students yet.</td></tr>';
 
   const selectedPanel = selectedStudent
     ? renderSelectedStudentPanel(selectedStudent, logs)
@@ -337,10 +354,14 @@ export function renderDashboardPage(data: DashboardPageData): string {
             <h2 class="text-lg font-semibold">Students</h2>
             <p class="${MUTED_TEXT_XS}">Use filters to quickly find students that need attention.</p>
           </div>
-          <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <label class="${FILTER_LABEL}">
               Search
               <input id="studentSearch" type="search" placeholder="Name or email" class="${FIELD_CONTROL_WITH_MARGIN}" />
+            </label>
+            <label class="${FILTER_LABEL}">
+              Degree type
+              <select id="degreeFilter" class="${FIELD_CONTROL_WITH_MARGIN}">${degreeFilterOptions}</select>
             </label>
             <label class="${FILTER_LABEL}">
               Phase
@@ -373,6 +394,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
               <thead>
                 <tr class="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">
                   <th class="px-2 py-2">Student</th>
+                  <th class="px-2 py-2">Degree</th>
                   <th class="px-2 py-2">Phase</th>
                   <th class="px-2 py-2">Target</th>
                   <th class="px-2 py-2">Next meeting (local)</th>
@@ -396,6 +418,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
       var studentRows = Array.prototype.slice.call(document.querySelectorAll("[data-student-row]"));
       var laneStudentCards = Array.prototype.slice.call(document.querySelectorAll("[data-lane-student-card]"));
       var searchInput = document.getElementById("studentSearch");
+      var degreeFilter = document.getElementById("degreeFilter");
       var phaseFilter = document.getElementById("phaseFilter");
       var statusFilter = document.getElementById("statusFilter");
       var sortBy = document.getElementById("sortBy");
@@ -440,6 +463,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
 
       function applyStudentFilters() {
         var query = searchInput ? searchInput.value.toLowerCase().trim() : "";
+        var degree = degreeFilter ? degreeFilter.value : "";
         var phase = phaseFilter ? phaseFilter.value : "";
         var status = statusFilter ? statusFilter.value : "";
         var visibleCount = 0;
@@ -447,13 +471,15 @@ export function renderDashboardPage(data: DashboardPageData): string {
         studentRows.forEach(function (row) {
           var name = row.getAttribute("data-name") || "";
           var email = row.getAttribute("data-email") || "";
+          var rowDegree = row.getAttribute("data-degree") || "";
           var rowPhase = row.getAttribute("data-phase") || "";
           var rowStatus = row.getAttribute("data-status-id") || "";
 
           var matchesQuery = !query || name.indexOf(query) !== -1 || email.indexOf(query) !== -1;
+          var matchesDegree = !degree || rowDegree === degree;
           var matchesPhase = !phase || rowPhase === phase;
           var matchesStatus = !status || rowStatus === status;
-          var visible = matchesQuery && matchesPhase && matchesStatus;
+          var visible = matchesQuery && matchesDegree && matchesPhase && matchesStatus;
 
           row.style.display = visible ? "" : "none";
           if (visible) visibleCount += 1;
@@ -629,6 +655,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
       bindHistorySelection();
 
       if (searchInput) searchInput.addEventListener("input", applyStudentFilters);
+      if (degreeFilter) degreeFilter.addEventListener("change", applyStudentFilters);
       if (phaseFilter) phaseFilter.addEventListener("change", applyStudentFilters);
       if (statusFilter) statusFilter.addEventListener("change", applyStudentFilters);
       if (sortBy) sortBy.addEventListener("change", refreshStudentTable);
@@ -639,6 +666,10 @@ export function renderDashboardPage(data: DashboardPageData): string {
 
 export function renderAddStudentPage(data: AddStudentPageData): string {
   const { notice, error } = data;
+  const degreeOptions = DEGREE_TYPES.map(
+    (degree) =>
+      `<option value="${degree.id}" ${degree.id === "msc" ? "selected" : ""}>${degree.label}</option>`,
+  ).join("");
   const phaseOptions = PHASES.map(
     (phase) => `<option value="${phase.id}">${phase.label}</option>`,
   ).join("");
@@ -663,6 +694,10 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
           <label class="${FORM_LABEL}">
             <span class="${FIELD_LABEL}">Email (optional)</span>
             <input name="studentEmail" type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" data-bwignore="true" data-lpignore="true" data-1p-ignore="true" class="${FIELD_CONTROL_SM}" />
+          </label>
+          <label class="${FORM_LABEL}">
+            <span class="${FIELD_LABEL}">Degree type</span>
+            <select name="degreeType" class="${FIELD_CONTROL_SM}">${degreeOptions}</select>
           </label>
           <label class="${FORM_LABEL}">
             <span class="${FIELD_LABEL}">Phase</span>
@@ -703,6 +738,10 @@ export function renderSelectedStudentPanel(
   student: Student,
   logs: MeetingLog[],
 ): string {
+  const degreeOptions = DEGREE_TYPES.map((degree) => {
+    const selected = degree.id === student.degreeType ? "selected" : "";
+    return `<option value="${degree.id}" ${selected}>${degree.label}</option>`;
+  }).join("");
   const phaseOptions = PHASES.map((phase) => {
     const selected = phase.id === student.currentPhase ? "selected" : "";
     return `<option value="${phase.id}" ${selected}>${phase.label}</option>`;
@@ -742,6 +781,10 @@ export function renderSelectedStudentPanel(
           <label class="${FORM_LABEL}">
             <span class="${FIELD_LABEL}">Email</span>
             <input name="studentEmail" type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" data-bwignore="true" data-lpignore="true" data-1p-ignore="true" value="${escapeHtml(student.email || "")}" class="${FIELD_CONTROL}" />
+          </label>
+          <label class="${FORM_LABEL}">
+            <span class="${FIELD_LABEL}">Degree type</span>
+            <select name="degreeType" class="${FIELD_CONTROL}">${degreeOptions}</select>
           </label>
           <label class="${FORM_LABEL}">
             <span class="${FIELD_LABEL}">Phase</span>

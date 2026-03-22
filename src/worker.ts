@@ -21,6 +21,7 @@ import {
   iconResponse,
   isAuthenticated,
   normalizeDate,
+  normalizeDegree,
   normalizeDateTime,
   normalizePhase,
   normalizeString,
@@ -28,6 +29,7 @@ import {
   shouldIncludeTestData,
 } from "./utils";
 import {
+  DEGREE_TYPES,
   PHASES,
   renderAddStudentPage,
   renderDashboardPage,
@@ -259,6 +261,10 @@ async function handleAddStudent(request: Request, env: Env): Promise<Response> {
   const targetSubmissionDate =
     targetSubmissionDateInput ||
     (typeof startDate === "string" ? addSixMonths(startDate) : null);
+  const degreeType = normalizeDegree(
+    formData.get("degreeType") || "msc",
+    DEGREE_TYPES,
+  );
   const currentPhase = normalizePhase(
     formData.get("currentPhase") || "research_plan",
     PHASES,
@@ -269,6 +275,7 @@ async function handleAddStudent(request: Request, env: Env): Promise<Response> {
     !name ||
     !startDate ||
     !targetSubmissionDate ||
+    !degreeType ||
     !currentPhase ||
     nextMeetingAt === undefined
   ) {
@@ -278,6 +285,7 @@ async function handleAddStudent(request: Request, env: Env): Promise<Response> {
   const selected = await createStudent(env.DB, {
     name,
     email,
+    degreeType,
     startDate,
     targetSubmissionDate,
     currentPhase,
@@ -297,6 +305,7 @@ async function handleUpdateStudent(
   const email = normalizeString(
     formData.get("studentEmail") ?? formData.get("email"),
   );
+  const degreeType = normalizeDegree(formData.get("degreeType"), DEGREE_TYPES);
   const startDate = normalizeDate(formData.get("startDate"));
   const targetSubmissionDate = normalizeDate(
     formData.get("targetSubmissionDate"),
@@ -308,6 +317,7 @@ async function handleUpdateStudent(
     !name ||
     !startDate ||
     !targetSubmissionDate ||
+    !degreeType ||
     !currentPhase ||
     nextMeetingAt === undefined
   ) {
@@ -321,6 +331,7 @@ async function handleUpdateStudent(
   await updateStudent(env.DB, studentId, {
     name,
     email,
+    degreeType,
     startDate,
     targetSubmissionDate,
     currentPhase,

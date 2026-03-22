@@ -1,6 +1,7 @@
 INSERT INTO students (
   name,
   email,
+  degree_type,
   start_date,
   target_submission_date,
   current_phase,
@@ -10,6 +11,7 @@ INSERT INTO students (
 SELECT
   'Mia Koskinen',
   'mia.koskinen@example.edu',
+  'msc',
   '2026-01-10',
   '2026-07-10',
   'researching',
@@ -20,6 +22,7 @@ WHERE NOT EXISTS (SELECT 1 FROM students WHERE name = 'Mia Koskinen' AND is_mock
 INSERT INTO students (
   name,
   email,
+  degree_type,
   start_date,
   target_submission_date,
   current_phase,
@@ -29,6 +32,7 @@ INSERT INTO students (
 SELECT
   'Noah Virtanen',
   'noah.virtanen@example.edu',
+  'msc',
   '2025-12-01',
   '2026-06-01',
   'first_complete_draft',
@@ -39,6 +43,7 @@ WHERE NOT EXISTS (SELECT 1 FROM students WHERE name = 'Noah Virtanen' AND is_moc
 INSERT INTO students (
   name,
   email,
+  degree_type,
   start_date,
   target_submission_date,
   current_phase,
@@ -48,6 +53,7 @@ INSERT INTO students (
 SELECT
   'Aino Lehtinen',
   'aino.lehtinen@example.edu',
+  'dsc',
   '2025-11-15',
   '2026-05-15',
   'editing',

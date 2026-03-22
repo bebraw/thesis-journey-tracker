@@ -14,6 +14,7 @@ This project implements a thesis advising dashboard for tracking students throug
   - Draft ready to submit
   - Submitted
 - Per-student next meeting date/time (optional)
+- Per-student degree type tracking (BSc, MSc, DSc)
 - Per-student log history:
   - What was discussed
   - Agreed plan / next actions
@@ -37,6 +38,7 @@ This project implements a thesis advising dashboard for tracking students throug
 - `src/styles.css`: compiled/minified Tailwind output served at `/styles.css`
 - `migrations/0001_init.sql`: Schema, indexes, and triggers
 - `migrations/0002_cleanup_mock_data.sql`: One-time cleanup for legacy mock rows and obsolete settings table
+- `migrations/0003_add_degree_type.sql`: Adds persisted student degree type
 - `tests/e2e/mock-data.sql`: Seeded test students/logs for isolated E2E runs
 - `wrangler.toml`: Worker + D1 binding config
 - `tailwind.config.cjs`: Tailwind scanning + dark mode config
@@ -151,8 +153,9 @@ npm run deploy
 
 ## Usage Notes
 
-- Add students with start date. If target submission date is omitted, it defaults to start date + 6 months.
+- Add students with degree type and start date. If target submission date is omitted, it defaults to start date + 6 months.
 - Use **View & Edit** on a student row to edit details and add/view log entries.
+- Filter the Students table by degree type, phase, and meeting status.
 - If a next meeting is not known, leave it empty.
 - Seeded test students are not part of your normal workspace and are only loaded into the isolated E2E database.
 - Dark mode is controlled directly from the header toggle.

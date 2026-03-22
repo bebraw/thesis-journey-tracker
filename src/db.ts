@@ -6,10 +6,13 @@ export type PhaseId =
   | "submission_ready"
   | "submitted";
 
+export type DegreeId = "bsc" | "msc" | "dsc";
+
 export interface Student {
   id: number;
   name: string;
   email: string | null;
+  degreeType: DegreeId;
   startDate: string;
   targetSubmissionDate: string;
   currentPhase: PhaseId;
@@ -59,6 +62,7 @@ interface StudentRow {
   id: number | string;
   name: string;
   email: string | null;
+  degree_type: DegreeId;
   start_date: string;
   target_submission_date: string;
   current_phase: PhaseId;
@@ -80,6 +84,7 @@ interface LogRow {
 export interface CreateStudentInput {
   name: string;
   email: string | null;
+  degreeType: DegreeId;
   startDate: string;
   targetSubmissionDate: string;
   currentPhase: PhaseId;
@@ -89,6 +94,7 @@ export interface CreateStudentInput {
 export interface UpdateStudentInput {
   name: string;
   email: string | null;
+  degreeType: DegreeId;
   startDate: string;
   targetSubmissionDate: string;
   currentPhase: PhaseId;
@@ -133,6 +139,7 @@ export async function listStudents(
     id: parseDbNumber(row.id),
     name: row.name,
     email: row.email,
+    degreeType: row.degree_type as DegreeId,
     startDate: row.start_date,
     targetSubmissionDate: row.target_submission_date,
     currentPhase: row.current_phase as PhaseId,
@@ -176,12 +183,13 @@ export async function createStudent(
 ): Promise<number> {
   const result = await db
     .prepare(
-      `INSERT INTO students (name, email, start_date, target_submission_date, current_phase, next_meeting_at, is_mock)
-       VALUES (?, ?, ?, ?, ?, ?, 0)`,
+      `INSERT INTO students (name, email, degree_type, start_date, target_submission_date, current_phase, next_meeting_at, is_mock)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
     )
     .bind(
       input.name,
       input.email,
+      input.degreeType,
       input.startDate,
       input.targetSubmissionDate,
       input.currentPhase,
@@ -211,12 +219,13 @@ export async function updateStudent(
   await db
     .prepare(
       `UPDATE students
-       SET name = ?, email = ?, start_date = ?, target_submission_date = ?, current_phase = ?, next_meeting_at = ?
+       SET name = ?, email = ?, degree_type = ?, start_date = ?, target_submission_date = ?, current_phase = ?, next_meeting_at = ?
        WHERE id = ?`,
     )
     .bind(
       input.name,
       input.email,
+      input.degreeType,
       input.startDate,
       input.targetSubmissionDate,
       input.currentPhase,
