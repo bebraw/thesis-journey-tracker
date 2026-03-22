@@ -481,7 +481,21 @@ function renderDashboardPage(data: DashboardPageData): string {
           <p class="text-sm text-slate-600 dark:text-slate-300">Track phases, next meetings, and supervision logs in one place.</p>
         </div>
         <div class="flex items-center gap-3">
-          <button id="themeToggle" type="button" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800">Toggle dark mode</button>
+          <button
+            id="themeToggle"
+            type="button"
+            title="Switch to dark mode"
+            aria-label="Switch to dark mode"
+            class="inline-flex items-center justify-center rounded-md border border-slate-300 p-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          >
+            <svg class="h-5 w-5 text-slate-700 dark:hidden dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-9-9 7 7 0 0 0 9 9Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <svg class="hidden h-5 w-5 text-slate-700 dark:block dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" />
+              <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.41 1.41M16.95 16.95l1.41 1.41M18.36 5.64l-1.41 1.41M7.05 16.95l-1.41 1.41" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </button>
           <form action="/logout" method="post">
             <button type="submit" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800">Log out</button>
           </form>
@@ -582,10 +596,22 @@ function renderDashboardPage(data: DashboardPageData): string {
     </div>
 
     <script>
-      document.getElementById("themeToggle").addEventListener("click", function () {
-        var root = document.documentElement;
+      var themeToggle = document.getElementById("themeToggle");
+      var root = document.documentElement;
+
+      function syncThemeToggleAccessibility() {
+        var nextMode = root.classList.contains("dark") ? "light" : "dark";
+        var label = "Switch to " + nextMode + " mode";
+        themeToggle.setAttribute("title", label);
+        themeToggle.setAttribute("aria-label", label);
+      }
+
+      syncThemeToggleAccessibility();
+
+      themeToggle.addEventListener("click", function () {
         root.classList.toggle("dark");
         localStorage.setItem("theme", root.classList.contains("dark") ? "dark" : "light");
+        syncThemeToggleAccessibility();
       });
     </script>
   </body>
