@@ -63,14 +63,26 @@
           "source.jsx",
           "source.ts",
           "source.tsx"
-        ]
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.htmlisp": "htmlisp"
+        },
+        "tokenTypes": {
+          "meta.embedded.block.htmlisp": "other"
+        }
       },
       {
         "scopeName": "text.html.htmlisp.typescripthtmlisp.injection",
         "path": "./syntaxes/typescripthtmlisp-htmlisp-injection.tmLanguage.json",
         "injectTo": [
           "source.typescripthtmlisp"
-        ]
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.htmlisp": "htmlisp"
+        },
+        "tokenTypes": {
+          "meta.embedded.block.htmlisp": "other"
+        }
       }
     ]
   }
