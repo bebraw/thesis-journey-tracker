@@ -1,0 +1,9 @@
+name = "thesis-journey-tracker"
+main = "src/worker.js"
+compatibility_date = "2026-03-22"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "thesis_tracker_db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "migrations"

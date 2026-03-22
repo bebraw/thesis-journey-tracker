@@ -1,0 +1,15 @@
+{
+  "name": "thesis-journey-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply thesis_tracker_db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply thesis_tracker_db --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.8.0"
+  }
+}

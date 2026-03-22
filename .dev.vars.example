@@ -1,0 +1,2 @@
+APP_PASSWORD=change-this-to-a-long-random-password
+SESSION_SECRET=change-this-to-a-long-random-secret
