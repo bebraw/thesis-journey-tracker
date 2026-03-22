@@ -1,7 +1,114 @@
+type PhaseId =
+  | "research_plan"
+  | "researching"
+  | "first_complete_draft"
+  | "editing"
+  | "submission_ready"
+  | "submitted";
+
+interface Phase {
+  id: PhaseId;
+  label: string;
+}
+
+interface Student {
+  id: number;
+  name: string;
+  email: string | null;
+  startDate: string;
+  targetSubmissionDate: string;
+  currentPhase: PhaseId;
+  nextMeetingAt: string | null;
+  isMock: boolean;
+  logCount: number;
+  lastLogAt: string | null;
+}
+
+interface MeetingLog {
+  id: number;
+  happenedAt: string;
+  discussed: string;
+  agreedPlan: string;
+  nextStepDeadline: string | null;
+  isMock: boolean;
+}
+
+interface Metrics {
+  total: number;
+  noMeeting: number;
+  pastTarget: number;
+  submitted: number;
+}
+
+interface DashboardPageData {
+  showMockData: boolean;
+  students: Student[];
+  selectedStudent: Student | null;
+  logs: MeetingLog[];
+  notice: string | null;
+  error: string | null;
+  metrics: Metrics;
+}
+
+type D1Value = string | number | null;
+
+interface D1ExecMeta {
+  last_row_id?: number | string;
+  changes?: number;
+}
+
+interface D1ExecResult {
+  success: boolean;
+  meta: D1ExecMeta;
+}
+
+interface D1AllResult<T> {
+  results: T[];
+}
+
+interface D1PreparedStatement {
+  bind(...values: D1Value[]): D1PreparedStatement;
+  first<T = Record<string, unknown>>(): Promise<T | null>;
+  all<T = Record<string, unknown>>(): Promise<D1AllResult<T>>;
+  run(): Promise<D1ExecResult>;
+}
+
+interface D1Database {
+  prepare(query: string): D1PreparedStatement;
+}
+
+interface Env {
+  DB: D1Database;
+  APP_PASSWORD: string;
+  SESSION_SECRET: string;
+}
+
+interface StudentRow {
+  id: number;
+  name: string;
+  email: string | null;
+  start_date: string;
+  target_submission_date: string;
+  current_phase: PhaseId;
+  next_meeting_at: string | null;
+  is_mock: number;
+  log_count: number | string | null;
+  last_log_at: string | null;
+}
+
+interface LogRow {
+  id: number;
+  happened_at: string;
+  discussed: string;
+  agreed_plan: string;
+  next_step_deadline: string | null;
+  is_mock: number;
+}
+
 const SESSION_COOKIE = "thesis_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 
-const PHASES = [
+const PHASES: Phase[] = [
   { id: "research_plan", label: "Research plan" },
   { id: "researching", label: "Researching" },
   { id: "first_complete_draft", label: "First complete draft" },
@@ -11,7 +118,7 @@ const PHASES = [
 ];
 
 export default {
-  async fetch(request, env) {
+  async fetch(request: Request, env: Env): Promise<Response> {
     try {
       return await handleRequest(request, env);
     } catch (error) {
@@ -21,7 +128,7 @@ export default {
   }
 };
 
-async function handleRequest(request, env) {
+async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const { pathname } = url;
 
@@ -86,7 +193,7 @@ async function handleRequest(request, env) {
   return new Response("Not found", { status: 404 });
 }
 
-async function renderDashboard(request, env, url) {
+async function renderDashboard(request: Request, env: Env, url: URL): Promise<Response> {
   const showMockData = await getShowMockData(env.DB);
   const students = await listStudents(env.DB, showMockData);
 
@@ -109,7 +216,6 @@ async function renderDashboard(request, env, url) {
 
   return htmlResponse(
     renderDashboardPage({
-      request,
       showMockData,
       students,
       selectedStudent,
@@ -121,14 +227,15 @@ async function renderDashboard(request, env, url) {
   );
 }
 
-async function handleAddStudent(request, env) {
+async function handleAddStudent(request: Request, env: Env): Promise<Response> {
   const formData = await request.formData();
 
   const name = normalizeString(formData.get("name"));
   const email = normalizeString(formData.get("email"));
   const startDate = normalizeDate(formData.get("startDate"));
+  const targetSubmissionDateInput = normalizeDate(formData.get("targetSubmissionDate"), true);
   const targetSubmissionDate =
-    normalizeDate(formData.get("targetSubmissionDate"), true) || addSixMonths(startDate);
+    targetSubmissionDateInput || (typeof startDate === "string" ? addSixMonths(startDate) : null);
   const currentPhase = normalizePhase(formData.get("currentPhase") || "research_plan");
   const nextMeetingAt = normalizeDateTime(formData.get("nextMeetingAt"), true);
 
@@ -143,11 +250,11 @@ async function handleAddStudent(request, env) {
     .bind(name, email, startDate, targetSubmissionDate, currentPhase, nextMeetingAt)
     .run();
 
-  const selected = Number(result.meta.last_row_id);
+  const selected = Number(result.meta.last_row_id ?? 0);
   return redirect(`/?selected=${selected}&notice=Student+added`);
 }
 
-async function handleUpdateStudent(request, env, studentId) {
+async function handleUpdateStudent(request: Request, env: Env, studentId: number): Promise<Response> {
   const formData = await request.formData();
 
   const name = normalizeString(formData.get("name"));
@@ -177,7 +284,7 @@ async function handleUpdateStudent(request, env, studentId) {
   return redirect(`/?selected=${studentId}&notice=Student+updated`);
 }
 
-async function handleAddLog(request, env, studentId) {
+async function handleAddLog(request: Request, env: Env, studentId: number): Promise<Response> {
   const formData = await request.formData();
 
   const happenedAt = normalizeDateTime(formData.get("happenedAt"), true) || new Date().toISOString();
@@ -204,7 +311,7 @@ async function handleAddLog(request, env, studentId) {
   return redirect(`/?selected=${studentId}&notice=Log+saved`);
 }
 
-async function handleToggleMock(request, env) {
+async function handleToggleMock(request: Request, env: Env): Promise<Response> {
   const formData = await request.formData();
   const selected = normalizeInteger(formData.get("selected"));
   const showMockData = formData.get("showMockData") === "1";
@@ -221,12 +328,14 @@ async function handleToggleMock(request, env) {
   return redirect(`/?${selectedPart}notice=Mock+data+visibility+updated`);
 }
 
-async function getShowMockData(db) {
-  const row = await db.prepare(`SELECT value FROM settings WHERE key = 'show_mock_data'`).first();
+async function getShowMockData(db: D1Database): Promise<boolean> {
+  const row = await db
+    .prepare(`SELECT value FROM settings WHERE key = 'show_mock_data'`)
+    .first<{ value: string }>();
   return row ? row.value === "1" : false;
 }
 
-async function listStudents(db, showMockData) {
+async function listStudents(db: D1Database, showMockData: boolean): Promise<Student[]> {
   const includeMock = showMockData ? 1 : 0;
   const rows = await db
     .prepare(
@@ -247,15 +356,15 @@ async function listStudents(db, showMockData) {
          s.name ASC`
     )
     .bind(includeMock, includeMock)
-    .all();
+    .all<StudentRow>();
 
-  return (rows.results || []).map((row) => ({
+  return rows.results.map((row) => ({
     id: row.id,
     name: row.name,
     email: row.email,
     startDate: row.start_date,
     targetSubmissionDate: row.target_submission_date,
-    currentPhase: row.current_phase,
+    currentPhase: row.current_phase as PhaseId,
     nextMeetingAt: row.next_meeting_at,
     isMock: Boolean(row.is_mock),
     logCount: Number(row.log_count || 0),
@@ -263,7 +372,11 @@ async function listStudents(db, showMockData) {
   }));
 }
 
-async function listLogsForStudent(db, studentId, showMockData) {
+async function listLogsForStudent(
+  db: D1Database,
+  studentId: number,
+  showMockData: boolean
+): Promise<MeetingLog[]> {
   const includeMock = showMockData ? 1 : 0;
   const rows = await db
     .prepare(
@@ -274,9 +387,9 @@ async function listLogsForStudent(db, studentId, showMockData) {
        ORDER BY happened_at DESC, id DESC`
     )
     .bind(studentId, includeMock)
-    .all();
+    .all<LogRow>();
 
-  return (rows.results || []).map((row) => ({
+  return rows.results.map((row) => ({
     id: row.id,
     happenedAt: row.happened_at,
     discussed: row.discussed,
@@ -286,7 +399,7 @@ async function listLogsForStudent(db, studentId, showMockData) {
   }));
 }
 
-function renderDashboardPage(data) {
+function renderDashboardPage(data: DashboardPageData): string {
   const {
     showMockData,
     students,
@@ -474,7 +587,7 @@ function renderDashboardPage(data) {
 </html>`;
 }
 
-function renderSelectedStudentPanel(student, logs) {
+function renderSelectedStudentPanel(student: Student, logs: MeetingLog[]): string {
   const phaseOptions = PHASES.map((phase) => {
     const selected = phase.id === student.currentPhase ? "selected" : "";
     return `<option value="${phase.id}" ${selected}>${phase.label}</option>`;
@@ -572,7 +685,7 @@ function renderSelectedStudentPanel(student, logs) {
   `;
 }
 
-function renderLoginPage(showError) {
+function renderLoginPage(showError: boolean): string {
   return `<!doctype html>
 <html lang="en" class="h-full">
   <head>
@@ -611,7 +724,7 @@ function renderLoginPage(showError) {
 </html>`;
 }
 
-function htmlResponse(html) {
+function htmlResponse(html: string): Response {
   return new Response(html, {
     headers: {
       "content-type": "text/html; charset=utf-8",
@@ -620,7 +733,7 @@ function htmlResponse(html) {
   });
 }
 
-function normalizeString(value) {
+function normalizeString(value: FormDataEntryValue | string | null | undefined): string | null {
   if (value === null || value === undefined) {
     return null;
   }
@@ -628,7 +741,10 @@ function normalizeString(value) {
   return text.length > 0 ? text : null;
 }
 
-function normalizeDate(value, allowNull = false) {
+function normalizeDate(
+  value: FormDataEntryValue | string | null | undefined,
+  allowNull = false
+): string | null | undefined {
   if (value === null || value === undefined || value === "") {
     return allowNull ? null : null;
   }
@@ -639,7 +755,10 @@ function normalizeDate(value, allowNull = false) {
   return text;
 }
 
-function normalizeDateTime(value, allowNull = false) {
+function normalizeDateTime(
+  value: FormDataEntryValue | string | null | undefined,
+  allowNull = false
+): string | null | undefined {
   if (value === null || value === undefined || value === "") {
     return allowNull ? null : null;
   }
@@ -650,15 +769,15 @@ function normalizeDateTime(value, allowNull = false) {
   return date.toISOString();
 }
 
-function normalizePhase(value) {
+function normalizePhase(value: FormDataEntryValue | string | null | undefined): PhaseId | null {
   const text = normalizeString(value);
   if (!text) {
     return null;
   }
-  return PHASES.some((phase) => phase.id === text) ? text : null;
+  return PHASES.some((phase) => phase.id === text) ? (text as PhaseId) : null;
 }
 
-function normalizeInteger(value) {
+function normalizeInteger(value: FormDataEntryValue | string | null | undefined): number | null {
   if (value === null || value === undefined || value === "") {
     return null;
   }
@@ -666,7 +785,7 @@ function normalizeInteger(value) {
   return Number.isInteger(number) && number > 0 ? number : null;
 }
 
-function addSixMonths(dateText) {
+function addSixMonths(dateText: string | null): string | null {
   if (!dateText) {
     return null;
   }
@@ -678,7 +797,7 @@ function addSixMonths(dateText) {
   return date.toISOString().slice(0, 10);
 }
 
-function formatDateTime(isoValue) {
+function formatDateTime(isoValue: string): string {
   const date = new Date(isoValue);
   if (Number.isNaN(date.getTime())) {
     return isoValue;
@@ -692,7 +811,7 @@ function formatDateTime(isoValue) {
   }).format(date);
 }
 
-function toDateTimeLocalInput(isoValue) {
+function toDateTimeLocalInput(isoValue: string | null): string {
   if (!isoValue) {
     return "";
   }
@@ -705,12 +824,12 @@ function toDateTimeLocalInput(isoValue) {
   return localDate.toISOString().slice(0, 16);
 }
 
-function getPhaseLabel(phaseId) {
+function getPhaseLabel(phaseId: PhaseId): string {
   const phase = PHASES.find((item) => item.id === phaseId);
   return phase ? phase.label : phaseId;
 }
 
-function meetingStatusText(student) {
+function meetingStatusText(student: Student): string {
   if (!student.nextMeetingAt) {
     return "Not booked";
   }
@@ -725,7 +844,7 @@ function meetingStatusText(student) {
   return "Scheduled";
 }
 
-function meetingStatusClass(student) {
+function meetingStatusClass(student: Student): string {
   if (!student.nextMeetingAt) {
     return "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200";
   }
@@ -740,7 +859,7 @@ function meetingStatusClass(student) {
   return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200";
 }
 
-function escapeHtml(value) {
+function escapeHtml(value: string | number): string {
   return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -749,29 +868,29 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function redirect(pathname, extraHeaders = {}) {
+function redirect(pathname: string, extraHeaders: HeadersInit = {}): Response {
   const headers = new Headers({ Location: pathname, ...extraHeaders });
   return new Response(null, { status: 302, headers });
 }
 
-function buildSessionCookie(token, requestUrl) {
+function buildSessionCookie(token: string, requestUrl: string): string {
   const securePart = new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
   return `${SESSION_COOKIE}=${token}; HttpOnly;${securePart} Path=/; SameSite=Strict; Max-Age=${SESSION_TTL_SECONDS}`;
 }
 
-function clearSessionCookie(requestUrl) {
+function clearSessionCookie(requestUrl: string): string {
   const securePart = new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
   return `${SESSION_COOKIE}=; HttpOnly;${securePart} Path=/; SameSite=Strict; Max-Age=0`;
 }
 
-async function createSessionToken(secret) {
+async function createSessionToken(secret: string): Promise<string> {
   const expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000;
   const payload = String(expiresAt);
   const signature = await hmacSign(payload, secret);
   return `${payload}.${signature}`;
 }
 
-async function isAuthenticated(request, env) {
+async function isAuthenticated(request: Request, env: Env): Promise<boolean> {
   const cookieHeader = request.headers.get("cookie") || "";
   const token = readCookie(cookieHeader, SESSION_COOKIE);
   if (!token) {
@@ -792,7 +911,7 @@ async function isAuthenticated(request, env) {
   return timingSafeEqual(signature, expectedSignature);
 }
 
-function readCookie(cookieHeader, name) {
+function readCookie(cookieHeader: string, name: string): string | null {
   const items = cookieHeader.split(";");
   for (const item of items) {
     const [key, ...valueParts] = item.trim().split("=");
@@ -803,7 +922,7 @@ function readCookie(cookieHeader, name) {
   return null;
 }
 
-async function hmacSign(value, secret) {
+async function hmacSign(value: string, secret: string): Promise<string> {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
@@ -817,7 +936,7 @@ async function hmacSign(value, secret) {
   return bufferToBase64Url(signatureBuffer);
 }
 
-function bufferToBase64Url(buffer) {
+function bufferToBase64Url(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = "";
   for (const byte of bytes) {
@@ -826,7 +945,7 @@ function bufferToBase64Url(buffer) {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
-function timingSafeEqual(a, b) {
+function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) {
     return false;
   }

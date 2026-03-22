@@ -27,11 +27,11 @@ Private thesis advising dashboard for tracking MSc students through thesis phase
 
 - Cloudflare Workers (runtime + hosting)
 - Cloudflare D1 (SQLite)
-- Vanilla JavaScript + HTML + Tailwind (CDN)
+- TypeScript (Worker) + HTML + Tailwind (CDN)
 
 ## Project Structure
 
-- `src/worker.js`: App routes, auth, page rendering, business logic
+- `src/worker.ts`: App routes, auth, page rendering, business logic
 - `migrations/0001_init.sql`: Schema + initial settings + seeded mock records
 - `wrangler.toml`: Worker + D1 binding config
 - `.dev.vars.example`: local env variable template
@@ -84,6 +84,12 @@ npm run dev
 ```
 
 Open the local URL shown by Wrangler (typically `http://127.0.0.1:8787`).
+
+Optional: run static type checking:
+
+```bash
+npm run typecheck
+```
 
 ## Deploy to Cloudflare
 
