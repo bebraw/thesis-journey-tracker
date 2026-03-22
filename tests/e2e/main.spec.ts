@@ -184,7 +184,7 @@ test.describe("dashboard e2e", () => {
     expect(dialog.message()).toContain(`Delete ${secondaryStudentName}?`);
     await dialog.accept();
 
-    await expect(page).toHaveURL(/notice=Student\+deleted/);
+    await expect(page).toHaveURL(/\/$/);
     await page.locator("#studentSearch").fill(secondaryStudentName);
     await expect(
       page.locator("[data-student-row]", { hasText: secondaryStudentName }),

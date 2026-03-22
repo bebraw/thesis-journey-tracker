@@ -374,7 +374,7 @@ async function handleDeleteStudent(
   }
 
   await deleteStudent(env.DB, studentId);
-  return redirect("/?notice=Student+deleted");
+  return redirect("/");
 }
 
 function renderDashboardPage(data: DashboardPageData): string {
