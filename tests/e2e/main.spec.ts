@@ -14,17 +14,12 @@ async function login(page: Page) {
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(
-    page.getByRole("heading", { name: "MSc Thesis Journey Tracker" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "MSc Thesis Journey Tracker" })).toBeVisible();
 }
 
 function resolvePassword() {
   return (
-    readEnvValue(
-      resolve(process.cwd(), "tests/e2e/.env.e2e"),
-      "APP_PASSWORD",
-    ) ??
+    readEnvValue(resolve(process.cwd(), "tests/e2e/.env.e2e"), "APP_PASSWORD") ??
     readEnvValue(resolve(process.cwd(), ".dev.vars"), "APP_PASSWORD") ??
     "e2e-password"
   );
@@ -42,17 +37,10 @@ function readEnvValue(filePath: string, key: string) {
 
 async function selectStudentFromTable(page: Page, studentName: string) {
   await page.locator("#studentSearch").fill(studentName);
-  const partialResponse = page.waitForResponse((response) =>
-    response.url().includes("/partials/student/"),
-  );
-  await page
-    .locator("[data-student-row]", { hasText: studentName })
-    .first()
-    .click();
+  const partialResponse = page.waitForResponse((response) => response.url().includes("/partials/student/"));
+  await page.locator("[data-student-row]", { hasText: studentName }).first().click();
   await partialResponse;
-  await expect(page.locator("#selectedStudentPanel")).toContainText(
-    `Currently viewing: ${studentName}`,
-  );
+  await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${studentName}`);
 }
 
 async function addStudent(
@@ -73,17 +61,13 @@ async function addStudent(
   await page.getByRole("button", { name: "Add student" }).click();
 
   await expect(page).toHaveURL(/\/\?selected=/);
-  await expect(page.locator("#selectedStudentPanel")).toContainText(
-    `Currently viewing: ${studentName}`,
-  );
+  await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${studentName}`);
 }
 
 test.describe("dashboard e2e", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("shows seeded test data only in the dedicated e2e environment", async ({
-    page,
-  }) => {
+  test("shows seeded test data only in the dedicated e2e environment", async ({ page }) => {
     await login(page);
 
     await page.getByRole("link", { name: "Style guide" }).click();
@@ -92,70 +76,37 @@ test.describe("dashboard e2e", () => {
     await page.getByRole("link", { name: "Dashboard" }).first().click();
     await expect(page).toHaveURL(/\/$/);
 
-    await expect(
-      page.locator("[data-student-row]", { hasText: "Mia Koskinen" }),
-    ).toBeVisible();
-    await expect(
-      page.locator("[data-lane-student-card]", { hasText: "Noah Virtanen" }),
-    ).toBeVisible();
+    await expect(page.locator("[data-student-row]", { hasText: "Mia Koskinen" })).toBeVisible();
+    await expect(page.locator("[data-lane-student-card]", { hasText: "Noah Virtanen" })).toBeVisible();
   });
 
-  test("can add a student and select from table and lanes without reload", async ({
-    page,
-  }) => {
+  test("can add a student and select from table and lanes without reload", async ({ page }) => {
     await login(page);
 
     const suffix = Date.now().toString();
     createdStudentName = `E2E Student ${suffix} A`;
     secondaryStudentName = `E2E Student ${suffix} B`;
 
-    await addStudent(
-      page,
-      createdStudentName,
-      `e2e-a-${suffix}@example.edu`,
-      "BSc",
-      `Topic ${suffix} A`,
-    );
-    await addStudent(
-      page,
-      secondaryStudentName,
-      `e2e-b-${suffix}@example.edu`,
-      "DSc",
-      `Topic ${suffix} B`,
-    );
+    await addStudent(page, createdStudentName, `e2e-a-${suffix}@example.edu`, "BSc", `Topic ${suffix} A`);
+    await addStudent(page, secondaryStudentName, `e2e-b-${suffix}@example.edu`, "DSc", `Topic ${suffix} B`);
 
     await selectStudentFromTable(page, createdStudentName);
-    await expect(
-      page.locator("[data-student-row]", { hasText: createdStudentName }),
-    ).toContainText("BSc");
-    await expect(
-      page.locator("[data-student-row]", { hasText: createdStudentName }),
-    ).toContainText(`Topic ${suffix} A`);
+    await expect(page.locator("[data-student-row]", { hasText: createdStudentName })).toContainText("BSc");
+    await expect(page.locator("[data-student-row]", { hasText: createdStudentName })).toContainText(`Topic ${suffix} A`);
     await page.locator("#studentSearch").fill("");
 
     await page.locator("#degreeFilter").selectOption({ label: "DSc" });
-    await expect(
-      page.locator("[data-student-row]", { hasText: secondaryStudentName }),
-    ).toHaveCount(1);
-    await expect(
-      page.locator("[data-student-row]", { hasText: createdStudentName }),
-    ).toBeHidden();
+    await expect(page.locator("[data-student-row]", { hasText: secondaryStudentName })).toHaveCount(1);
+    await expect(page.locator("[data-student-row]", { hasText: createdStudentName })).toBeHidden();
     await page.locator("#degreeFilter").selectOption({
       label: "All degree types",
     });
 
-    const lanePartialResponse = page.waitForResponse((response) =>
-      response.url().includes("/partials/student/"),
-    );
-    await page
-      .locator("[data-lane-student-card]", { hasText: secondaryStudentName })
-      .first()
-      .click();
+    const lanePartialResponse = page.waitForResponse((response) => response.url().includes("/partials/student/"));
+    await page.locator("[data-lane-student-card]", { hasText: secondaryStudentName }).first().click();
     await lanePartialResponse;
 
-    await expect(page.locator("#selectedStudentPanel")).toContainText(
-      `Currently viewing: ${secondaryStudentName}`,
-    );
+    await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${secondaryStudentName}`);
     await expect(page).toHaveURL(/\/\?selected=/);
   });
 
@@ -171,75 +122,28 @@ test.describe("dashboard e2e", () => {
     const discussedText = `Discussed milestone ${suffix}`;
     const agreedPlanText = `Agreed action plan ${suffix}`;
 
-    await page
-      .locator("#selectedStudentPanel")
-      .locator("summary", { hasText: "Additional student details" })
-      .click();
-    await page
-      .locator("#selectedStudentPanel")
-      .getByLabel("Name")
-      .fill(updatedStudentName);
-    await page
-      .locator("#selectedStudentPanel")
-      .getByLabel("Email")
-      .fill(updatedEmail);
-    await page
-      .locator("#selectedStudentPanel")
-      .getByLabel("Degree type")
-      .selectOption({ label: "MSc" });
-    await page
-      .locator("#selectedStudentPanel")
-      .getByLabel("Thesis topic (optional)")
-      .fill(updatedTopic);
-    await page
-      .locator("#selectedStudentPanel")
-      .getByRole("button", { name: "Save student updates" })
-      .click();
+    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Additional student details" }).click();
+    await page.locator("#selectedStudentPanel").getByLabel("Name").fill(updatedStudentName);
+    await page.locator("#selectedStudentPanel").getByLabel("Email").fill(updatedEmail);
+    await page.locator("#selectedStudentPanel").getByLabel("Degree type").selectOption({ label: "MSc" });
+    await page.locator("#selectedStudentPanel").getByLabel("Thesis topic (optional)").fill(updatedTopic);
+    await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save student updates" }).click();
 
     await expect(page).toHaveURL(/notice=Student\+updated/);
-    await expect(
-      page.locator("#selectedStudentPanel").getByLabel("Name"),
-    ).toHaveValue(updatedStudentName);
-    await expect(
-      page.locator("#selectedStudentPanel").getByLabel("Email"),
-    ).toHaveValue(updatedEmail);
-    await expect(
-      page.locator("#selectedStudentPanel").getByLabel("Degree type"),
-    ).toHaveValue("msc");
-    await expect(
-      page
-        .locator("#selectedStudentPanel")
-        .getByLabel("Thesis topic (optional)"),
-    ).toHaveValue(updatedTopic);
+    await expect(page.locator("#selectedStudentPanel").getByLabel("Name")).toHaveValue(updatedStudentName);
+    await expect(page.locator("#selectedStudentPanel").getByLabel("Email")).toHaveValue(updatedEmail);
+    await expect(page.locator("#selectedStudentPanel").getByLabel("Degree type")).toHaveValue("msc");
+    await expect(page.locator("#selectedStudentPanel").getByLabel("Thesis topic (optional)")).toHaveValue(updatedTopic);
 
-    await page
-      .locator("#selectedStudentPanel")
-      .locator("summary", { hasText: "Add Log Entry" })
-      .click();
-    await page
-      .locator("#selectedStudentPanel")
-      .getByLabel("What was discussed")
-      .fill(discussedText);
-    await page
-      .locator("#selectedStudentPanel")
-      .getByLabel("Agreed plan / next actions")
-      .fill(agreedPlanText);
-    await page
-      .locator("#selectedStudentPanel")
-      .getByRole("button", { name: "Save log entry" })
-      .click();
+    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Add Log Entry" }).click();
+    await page.locator("#selectedStudentPanel").getByLabel("What was discussed").fill(discussedText);
+    await page.locator("#selectedStudentPanel").getByLabel("Agreed plan / next actions").fill(agreedPlanText);
+    await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save log entry" }).click();
 
     await expect(page).toHaveURL(/notice=Log\+saved/);
-    await page
-      .locator("#selectedStudentPanel")
-      .locator("summary", { hasText: "Meeting Log History" })
-      .click();
-    await expect(page.locator("#selectedStudentPanel")).toContainText(
-      discussedText,
-    );
-    await expect(page.locator("#selectedStudentPanel")).toContainText(
-      agreedPlanText,
-    );
+    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Meeting Log History" }).click();
+    await expect(page.locator("#selectedStudentPanel")).toContainText(discussedText);
+    await expect(page.locator("#selectedStudentPanel")).toContainText(agreedPlanText);
   });
 
   test("can delete a student after confirmation", async ({ page }) => {
@@ -247,10 +151,7 @@ test.describe("dashboard e2e", () => {
 
     await selectStudentFromTable(page, secondaryStudentName);
 
-    await page
-      .locator("#selectedStudentPanel")
-      .locator("summary", { hasText: "Delete Student" })
-      .click();
+    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Delete Student" }).click();
 
     const dialogPromise = page.waitForEvent("dialog");
     await page
@@ -268,9 +169,7 @@ test.describe("dashboard e2e", () => {
 
     await expect(page).toHaveURL(/\/$/);
     await page.locator("#studentSearch").fill(secondaryStudentName);
-    await expect(
-      page.locator("[data-student-row]", { hasText: secondaryStudentName }),
-    ).toHaveCount(0);
+    await expect(page.locator("[data-student-row]", { hasText: secondaryStudentName })).toHaveCount(0);
     await expect(page.locator("#selectedStudentPanel")).toContainText(
       "Select a student from the table to edit details and view/add supervision logs.",
     );

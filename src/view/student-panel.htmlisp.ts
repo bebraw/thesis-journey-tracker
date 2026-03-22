@@ -60,10 +60,7 @@ function prepareLogEntries(logs: MeetingLog[]): PreparedLogEntry[] {
   }));
 }
 
-export function renderSelectedStudentPanel(
-  student: Student,
-  logs: MeetingLog[],
-): string {
+export function renderSelectedStudentPanel(student: Student, logs: MeetingLog[]): string {
   const components: HtmlispComponents = {
     MeetingLogEntry: `<article &class="(get props cardClass)">
     <p class="font-medium"><span &children="(get props timestampText)"></span></p>
@@ -234,9 +231,7 @@ export function renderSelectedStudentPanel(
       emptyStateClass: escapeHtml(EMPTY_STATE_CARD),
       formStack: escapeHtml(FORM_STACK),
       logSummaryText: escapeHtml(
-        preparedLogs.length > 0
-          ? `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"}`
-          : "Empty",
+        preparedLogs.length > 0 ? `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"}` : "Empty",
       ),
       logEntryClass: escapeHtml(SOFT_SURFACE_CARD),
       subtleText: escapeHtml(SUBTLE_TEXT),
@@ -251,9 +246,7 @@ export function renderSelectedStudentPanel(
       logs: preparedLogs,
       deleteAction: escapeHtml(`/actions/delete-student/${student.id}`),
       deleteConfirm: escapeHtml(
-        `return window.confirm('Delete ${escapeJsString(
-          student.name,
-        )}? This will also remove all supervision logs for this student.');`,
+        `return window.confirm('Delete ${escapeJsString(student.name)}? This will also remove all supervision logs for this student.');`,
       ),
       deleteButtonHtml: renderButton({
         label: "Delete student",

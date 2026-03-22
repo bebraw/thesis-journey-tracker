@@ -1,13 +1,7 @@
 import { PAGE_WRAP_NARROW, SUBTLE_TEXT, renderButton, renderCard } from "../ui";
 import { getDefaultStudentFormValues } from "../student-form";
 import { escapeHtml } from "../utils";
-import {
-  THEME_TOGGLE_SCRIPT,
-  renderAuthedPageHeader,
-  renderDocument,
-  renderFlashMessages,
-  renderView,
-} from "./shared.htmlisp";
+import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderFlashMessages, renderView } from "./shared.htmlisp";
 import { renderStudentFormFields } from "./student-form-fields";
 import { type AddStudentPageData } from "./types";
 
@@ -74,9 +68,7 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
           <noop &children="(get props formHtml)"></noop>`,
           {
             subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
-            description: escapeHtml(
-              "Target submission defaults to six months from start date when left empty.",
-            ),
+            description: escapeHtml("Target submission defaults to six months from start date when left empty."),
             formHtml,
           },
         ),

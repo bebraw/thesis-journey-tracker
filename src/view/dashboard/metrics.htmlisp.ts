@@ -24,7 +24,16 @@ export function renderMetricCards(metrics: Metrics): string {
   };
 
   return renderView(
-    '<section class="grid grid-cols-1 gap-panel-sm sm:grid-cols-2 xl:grid-cols-4"><noop &foreach="(get props metrics)"><MetricCard &cardClass="(get props cardClass)" &labelClass="(get props labelClass)" &label="(get props label)" &metricValue="(get props metricValue)"></MetricCard></noop></section>',
+    `<section class="grid grid-cols-1 gap-panel-sm sm:grid-cols-2 xl:grid-cols-4">
+      <noop &foreach="(get props metrics)">
+        <MetricCard
+          &cardClass="(get props cardClass)"
+          &labelClass="(get props labelClass)"
+          &label="(get props label)"
+          &metricValue="(get props metricValue)"
+        ></MetricCard>
+      </noop>
+    </section>`,
     {
       metrics: preparedMetrics,
       cardClass: escapeHtml(SURFACE_CARD_SM),

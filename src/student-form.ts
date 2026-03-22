@@ -1,21 +1,8 @@
 import type { DegreeId, PhaseId, Student, StudentMutationInput } from "./db";
-import {
-  addSixMonths,
-  normalizeDate,
-  normalizeDateTime,
-  normalizeString,
-  toDateTimeLocalInput,
-} from "./utils";
+import { addSixMonths, normalizeDate, normalizeDateTime, normalizeString, toDateTimeLocalInput } from "./utils";
 
 const DEGREE_IDS: DegreeId[] = ["bsc", "msc", "dsc"];
-const PHASE_IDS: PhaseId[] = [
-  "research_plan",
-  "researching",
-  "first_complete_draft",
-  "editing",
-  "submission_ready",
-  "submitted",
-];
+const PHASE_IDS: PhaseId[] = ["research_plan", "researching", "first_complete_draft", "editing", "submission_ready", "submitted"];
 
 export const STUDENT_FORM_FIELDS = {
   name: "name",
@@ -73,82 +60,36 @@ export function getStudentFormValues(student: Student): StudentFormValues {
   };
 }
 
-export function parseStudentFormSubmission(
-  formData: FormData,
-  options: ParseStudentFormOptions,
-): StudentMutationInput | null {
+export function parseStudentFormSubmission(formData: FormData, options: ParseStudentFormOptions): StudentMutationInput | null {
   const { mode, existingStudent } = options;
 
-  const name = normalizeString(
-    readRequiredField(
-      formData,
-      STUDENT_FORM_FIELDS.name,
-      existingStudent?.name,
-    ),
-  );
+  const name = normalizeString(readRequiredField(formData, STUDENT_FORM_FIELDS.name, existingStudent?.name));
   const email = normalizeString(
-    readOptionalField(
-      formData,
-      STUDENT_FORM_FIELDS.email,
-      existingStudent?.email ?? null,
-      LEGACY_STUDENT_EMAIL_FIELD,
-    ),
+    readOptionalField(formData, STUDENT_FORM_FIELDS.email, existingStudent?.email ?? null, LEGACY_STUDENT_EMAIL_FIELD),
   );
-  const thesisTopic = normalizeString(
-    readOptionalField(
-      formData,
-      STUDENT_FORM_FIELDS.thesisTopic,
-      existingStudent?.thesisTopic ?? null,
-    ),
-  );
+  const thesisTopic = normalizeString(readOptionalField(formData, STUDENT_FORM_FIELDS.thesisTopic, existingStudent?.thesisTopic ?? null));
 
-  const startDate = normalizeDate(
-    readRequiredField(
-      formData,
-      STUDENT_FORM_FIELDS.startDate,
-      existingStudent?.startDate,
-    ),
-  );
+  const startDate = normalizeDate(readRequiredField(formData, STUDENT_FORM_FIELDS.startDate, existingStudent?.startDate));
 
   const targetSubmissionSource = readTargetSubmissionField(formData, options);
-  const targetSubmissionDate = normalizeTargetSubmissionDate(
-    targetSubmissionSource,
-    startDate,
-    mode,
-  );
+  const targetSubmissionDate = normalizeTargetSubmissionDate(targetSubmissionSource, startDate, mode);
 
   const degreeType = normalizeDegreeId(
-    readRequiredField(
-      formData,
-      STUDENT_FORM_FIELDS.degreeType,
-      existingStudent?.degreeType ?? (mode === "create" ? "msc" : null),
-    ),
+    readRequiredField(formData, STUDENT_FORM_FIELDS.degreeType, existingStudent?.degreeType ?? (mode === "create" ? "msc" : null)),
   );
   const currentPhase = normalizePhaseId(
     readRequiredField(
       formData,
       STUDENT_FORM_FIELDS.currentPhase,
-      existingStudent?.currentPhase ??
-        (mode === "create" ? "research_plan" : null),
+      existingStudent?.currentPhase ?? (mode === "create" ? "research_plan" : null),
     ),
   );
   const nextMeetingAt = normalizeDateTime(
-    readOptionalField(
-      formData,
-      STUDENT_FORM_FIELDS.nextMeetingAt,
-      existingStudent?.nextMeetingAt ?? null,
-    ),
+    readOptionalField(formData, STUDENT_FORM_FIELDS.nextMeetingAt, existingStudent?.nextMeetingAt ?? null),
     true,
   );
 
-  if (
-    !name ||
-    !startDate ||
-    !targetSubmissionDate ||
-    !degreeType ||
-    !currentPhase ||
-    nextMeetingAt === undefined
-  ) {
+  if (!name || !startDate || !targetSubmissionDate || !degreeType || !currentPhase || nextMeetingAt === undefined) {
     return null;
   }
 
@@ -164,9 +105,7 @@ export function parseStudentFormSubmission(
   };
 }
 
-function normalizeDegreeId(
-  value: FormDataEntryValue | string | null | undefined,
-): DegreeId | null {
+function normalizeDegreeId(value: FormDataEntryValue | string | null | undefined): DegreeId | null {
   const text = normalizeString(value);
   if (!text) {
     return null;
@@ -174,9 +113,7 @@ function normalizeDegreeId(
   return DEGREE_IDS.includes(text as DegreeId) ? (text as DegreeId) : null;
 }
 
-function normalizePhaseId(
-  value: FormDataEntryValue | string | null | undefined,
-): PhaseId | null {
+function normalizePhaseId(value: FormDataEntryValue | string | null | undefined): PhaseId | null {
   const text = normalizeString(value);
   if (!text) {
     return null;
@@ -228,10 +165,7 @@ function readOptionalField(
   return fallbackValue;
 }
 
-function readTargetSubmissionField(
-  formData: FormData,
-  options: ParseStudentFormOptions,
-): FormDataEntryValue | string | null | undefined {
+function readTargetSubmissionField(formData: FormData, options: ParseStudentFormOptions): FormDataEntryValue | string | null | undefined {
   if (formData.has(STUDENT_FORM_FIELDS.targetSubmissionDate)) {
     return formData.get(STUDENT_FORM_FIELDS.targetSubmissionDate);
   }

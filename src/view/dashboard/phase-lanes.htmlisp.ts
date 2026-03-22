@@ -9,13 +9,7 @@ import {
   renderBadge,
 } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
-import {
-  escapeHtml,
-  formatDateTime,
-  getDegreeLabel,
-  meetingStatusId,
-  meetingStatusText,
-} from "../../utils";
+import { escapeHtml, formatDateTime, getDegreeLabel, meetingStatusId, meetingStatusText } from "../../utils";
 import { renderView } from "../shared.htmlisp";
 import { DEGREE_TYPES, PHASES } from "../../reference-data";
 
@@ -41,19 +35,12 @@ interface PreparedPhaseLane {
   students: PreparedLaneStudent[];
 }
 
-function preparePhaseLanes(
-  students: Student[],
-  selectedStudent: Student | null,
-): PreparedPhaseLane[] {
+function preparePhaseLanes(students: Student[], selectedStudent: Student | null): PreparedPhaseLane[] {
   return PHASES.map((phase) => {
     const laneStudents = students
       .filter((student) => student.currentPhase === phase.id)
       .slice()
-      .sort(
-        (a, b) =>
-          a.targetSubmissionDate.localeCompare(b.targetSubmissionDate) ||
-          a.name.localeCompare(b.name),
-      );
+      .sort((a, b) => a.targetSubmissionDate.localeCompare(b.targetSubmissionDate) || a.name.localeCompare(b.name));
 
     return {
       label: escapeHtml(phase.label),
@@ -64,9 +51,7 @@ function preparePhaseLanes(
       hasStudents: laneStudents.length > 0,
       isEmpty: laneStudents.length === 0,
       students: laneStudents.map((student) => {
-        const isSelected = selectedStudent
-          ? selectedStudent.id === student.id
-          : false;
+        const isSelected = selectedStudent ? selectedStudent.id === student.id : false;
         const badgesHtml = [
           renderBadge({
             label: getDegreeLabel(student.degreeType, DEGREE_TYPES),
@@ -78,9 +63,7 @@ function preparePhaseLanes(
           selectedAttr: isSelected ? "true" : "false",
           cardClass: escapeHtml(
             `rounded-card border border-app-line bg-app-surface-soft p-stack-xs transition-colors cursor-pointer dark:border-app-line-dark dark:bg-app-surface-soft-dark/70 hover:border-app-line-strong dark:hover:border-app-line-dark-strong${
-              isSelected
-                ? " ring-2 ring-app-brand-ring/60 dark:ring-app-brand-ring/40"
-                : ""
+              isSelected ? " ring-2 ring-app-brand-ring/60 dark:ring-app-brand-ring/40" : ""
             }`,
           ),
           href: escapeHtml(`/?selected=${student.id}`),
@@ -89,11 +72,7 @@ function preparePhaseLanes(
           topicVisible: Boolean(student.thesisTopic),
           topic: escapeHtml(student.thesisTopic || ""),
           targetText: escapeHtml(`Target: ${student.targetSubmissionDate}`),
-          nextMeetingText: escapeHtml(
-            student.nextMeetingAt
-              ? `Next: ${formatDateTime(student.nextMeetingAt)}`
-              : "Next: not booked",
-          ),
+          nextMeetingText: escapeHtml(student.nextMeetingAt ? `Next: ${formatDateTime(student.nextMeetingAt)}` : "Next: not booked"),
           statusBadgeHtml: `<span class="${escapeHtml(
             `${STATUS_BADGE} ${getMeetingStatusBadgeClass(meetingStatusId(student))}`,
           )}">${escapeHtml(meetingStatusText(student))}</span>`,
@@ -103,10 +82,7 @@ function preparePhaseLanes(
   });
 }
 
-export function renderPhaseLanes(
-  students: Student[],
-  selectedStudent: Student | null,
-): string {
+export function renderPhaseLanes(students: Student[], selectedStudent: Student | null): string {
   const components: HtmlispComponents = {
     PhaseLane: `<article &class="(get props cardClass)">
     <div class="flex items-start justify-between gap-stack-xs">

@@ -27,17 +27,9 @@ export function renderTextareaField(options: TextareaFieldOptions): string {
   } = options;
 
   const parsedAttributes = parseHtmlispAttributes(attributes);
-  const resolvedRequired =
-    required || hasHtmlispBooleanAttribute(parsedAttributes, "required");
-  const resolvedRows =
-    getHtmlispAttributeValue(parsedAttributes, "rows") ?? String(rows);
-  const extraAttributes = omitHtmlispAttributes(parsedAttributes, [
-    "name",
-    "id",
-    "rows",
-    "required",
-    "class",
-  ]);
+  const resolvedRequired = required || hasHtmlispBooleanAttribute(parsedAttributes, "required");
+  const resolvedRows = getHtmlispAttributeValue(parsedAttributes, "rows") ?? String(rows);
+  const extraAttributes = omitHtmlispAttributes(parsedAttributes, ["name", "id", "rows", "required", "class"]);
   const baseAttributes = serializeHtmlispAttributes(
     buildHtmlispAttributes([
       { name: "name", value: escapeOptional(name) },
@@ -50,7 +42,10 @@ export function renderTextareaField(options: TextareaFieldOptions): string {
 
   const controlHtml = renderHTMLisp(
     fillTemplate(
-      '<textarea__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__ &children="(get props value)"></textarea>',
+      `<textarea
+        __BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__
+        &children="(get props value)"
+      ></textarea>`,
       {
         __BASE_ATTRIBUTES__: baseAttributes,
         __EXTRA_ATTRIBUTES__: serializeHtmlispAttributes(extraAttributes),

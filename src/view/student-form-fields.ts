@@ -1,11 +1,4 @@
-import {
-  FIELD_CONTROL,
-  FIELD_CONTROL_SM,
-  FORM_LABEL,
-  renderInputField,
-  renderSelectField,
-  type SelectOption,
-} from "../ui";
+import { FIELD_CONTROL, FIELD_CONTROL_SM, FORM_LABEL, renderInputField, renderSelectField, type SelectOption } from "../ui";
 import { STUDENT_FORM_FIELDS, type StudentFormValues } from "../student-form";
 import { DEGREE_TYPES, PHASES } from "../reference-data";
 
@@ -28,9 +21,7 @@ interface RenderStudentFormFieldsOptions {
   topicWrapperClassName?: string;
 }
 
-export function renderStudentFormFields(
-  options: RenderStudentFormFieldsOptions,
-): StudentFormFieldMap {
+export function renderStudentFormFields(options: RenderStudentFormFieldsOptions): StudentFormFieldMap {
   const {
     values,
     controlSize = "default",
@@ -39,8 +30,7 @@ export function renderStudentFormFields(
     topicWrapperClassName,
   } = options;
 
-  const controlClass =
-    controlSize === "compact" ? FIELD_CONTROL_SM : FIELD_CONTROL;
+  const controlClass = controlSize === "compact" ? FIELD_CONTROL_SM : FIELD_CONTROL;
 
   const degreeOptions: SelectOption[] = DEGREE_TYPES.map((degree) => ({
     label: degree.label,
@@ -106,8 +96,7 @@ export function renderStudentFormFields(
       required: controlSize !== "compact",
     }),
     nextMeetingField: renderInputField({
-      label:
-        controlSize === "compact" ? "Next meeting (optional)" : "Next meeting",
+      label: controlSize === "compact" ? "Next meeting (optional)" : "Next meeting",
       name: STUDENT_FORM_FIELDS.nextMeetingAt,
       type: "datetime-local",
       value: values.nextMeetingAt,

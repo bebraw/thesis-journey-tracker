@@ -52,9 +52,7 @@ export function iconResponse(icon: ArrayBuffer): Response {
   });
 }
 
-export function normalizeString(
-  value: FormDataEntryValue | string | null | undefined,
-): string | null {
+export function normalizeString(value: FormDataEntryValue | string | null | undefined): string | null {
   if (value === null || value === undefined) {
     return null;
   }
@@ -62,10 +60,7 @@ export function normalizeString(
   return text.length > 0 ? text : null;
 }
 
-export function normalizeDate(
-  value: FormDataEntryValue | string | null | undefined,
-  allowNull = false,
-): string | null | undefined {
+export function normalizeDate(value: FormDataEntryValue | string | null | undefined, allowNull = false): string | null | undefined {
   if (value === null || value === undefined || value === "") {
     return allowNull ? null : null;
   }
@@ -76,10 +71,7 @@ export function normalizeDate(
   return text;
 }
 
-export function normalizeDateTime(
-  value: FormDataEntryValue | string | null | undefined,
-  allowNull = false,
-): string | null | undefined {
+export function normalizeDateTime(value: FormDataEntryValue | string | null | undefined, allowNull = false): string | null | undefined {
   if (value === null || value === undefined || value === "") {
     return allowNull ? null : null;
   }
@@ -90,10 +82,7 @@ export function normalizeDateTime(
   return date.toISOString();
 }
 
-export function normalizePhase(
-  value: FormDataEntryValue | string | null | undefined,
-  phases: readonly PhaseDefinition[],
-): PhaseId | null {
+export function normalizePhase(value: FormDataEntryValue | string | null | undefined, phases: readonly PhaseDefinition[]): PhaseId | null {
   const text = normalizeString(value);
   if (!text) {
     return null;
@@ -109,9 +98,7 @@ export function normalizeDegree(
   if (!text) {
     return null;
   }
-  return degrees.some((degree) => degree.id === text)
-    ? (text as DegreeId)
-    : null;
+  return degrees.some((degree) => degree.id === text) ? (text as DegreeId) : null;
 }
 
 export function addSixMonths(dateText: string | null): string | null {
@@ -154,18 +141,12 @@ export function toDateTimeLocalInput(isoValue: string | null): string {
   return localDate.toISOString().slice(0, 16);
 }
 
-export function getPhaseLabel(
-  phaseId: PhaseId,
-  phases: readonly PhaseDefinition[],
-): string {
+export function getPhaseLabel(phaseId: PhaseId, phases: readonly PhaseDefinition[]): string {
   const phase = phases.find((item) => item.id === phaseId);
   return phase ? phase.label : phaseId;
 }
 
-export function getDegreeLabel(
-  degreeId: DegreeId,
-  degrees: readonly DegreeDefinition[],
-): string {
+export function getDegreeLabel(degreeId: DegreeId, degrees: readonly DegreeDefinition[]): string {
   const degree = degrees.find((item) => item.id === degreeId);
   return degree ? degree.label : degreeId;
 }
@@ -210,55 +191,32 @@ export function escapeHtml(value: string | number): string {
 }
 
 export function escapeJsString(value: string): string {
-  return value
-    .replaceAll("\\", "\\\\")
-    .replaceAll("'", "\\'")
-    .replaceAll("\r", "\\r")
-    .replaceAll("\n", "\\n");
+  return value.replaceAll("\\", "\\\\").replaceAll("'", "\\'").replaceAll("\r", "\\r").replaceAll("\n", "\\n");
 }
 
-export function redirect(
-  pathname: string,
-  extraHeaders: HeadersInit = {},
-): Response {
+export function redirect(pathname: string, extraHeaders: HeadersInit = {}): Response {
   const headers = new Headers({ Location: pathname, ...extraHeaders });
   return new Response(null, { status: 302, headers });
 }
 
-export function buildSessionCookie(
-  token: string,
-  requestUrl: string,
-  session: SessionConfig,
-): string {
-  const securePart =
-    new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
+export function buildSessionCookie(token: string, requestUrl: string, session: SessionConfig): string {
+  const securePart = new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
   return `${session.cookieName}=${token}; HttpOnly;${securePart} Path=/; SameSite=Strict; Max-Age=${session.ttlSeconds}`;
 }
 
-export function clearSessionCookie(
-  requestUrl: string,
-  session: SessionConfig,
-): string {
-  const securePart =
-    new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
+export function clearSessionCookie(requestUrl: string, session: SessionConfig): string {
+  const securePart = new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
   return `${session.cookieName}=; HttpOnly;${securePart} Path=/; SameSite=Strict; Max-Age=0`;
 }
 
-export async function createSessionToken(
-  secret: string,
-  ttlSeconds: number,
-): Promise<string> {
+export async function createSessionToken(secret: string, ttlSeconds: number): Promise<string> {
   const expiresAt = Date.now() + ttlSeconds * 1000;
   const payload = String(expiresAt);
   const signature = await hmacSign(payload, secret);
   return `${payload}.${signature}`;
 }
 
-export async function isAuthenticated(
-  request: Request,
-  secret: string,
-  cookieName: string,
-): Promise<boolean> {
+export async function isAuthenticated(request: Request, secret: string, cookieName: string): Promise<boolean> {
   const cookieHeader = request.headers.get("cookie") || "";
   const token = readCookie(cookieHeader, cookieName);
   if (!token) {
@@ -292,19 +250,9 @@ function readCookie(cookieHeader: string, name: string): string | null {
 
 async function hmacSign(value: string, secret: string): Promise<string> {
   const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
 
-  const signatureBuffer = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    encoder.encode(value),
-  );
+  const signatureBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(value));
   return bufferToBase64Url(signatureBuffer);
 }
 
@@ -314,10 +262,7 @@ function bufferToBase64Url(buffer: ArrayBuffer): string {
   for (const byte of bytes) {
     binary += String.fromCharCode(byte);
   }
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 function timingSafeEqual(a: string, b: string): boolean {

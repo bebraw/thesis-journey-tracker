@@ -1,11 +1,4 @@
-import {
-  ALERT_CLASS_MAP,
-  BODY_CLASS,
-  HEADER_CARD,
-  SUBTLE_TEXT,
-  THEME_TOGGLE_BUTTON,
-  renderButton,
-} from "../ui";
+import { ALERT_CLASS_MAP, BODY_CLASS, HEADER_CARD, SUBTLE_TEXT, THEME_TOGGLE_BUTTON, renderButton } from "../ui";
 import { type HtmlispComponents, renderHTMLisp } from "../htmlisp";
 import { escapeHtml } from "../utils";
 
@@ -38,19 +31,11 @@ export const THEME_TOGGLE_SCRIPT = `<script>
     });
   </script>`;
 
-export function renderView(
-  htmlInput: string,
-  props: Record<string, unknown> = {},
-  components: HtmlispComponents = {},
-): string {
+export function renderView(htmlInput: string, props: Record<string, unknown> = {}, components: HtmlispComponents = {}): string {
   return renderHTMLisp(htmlInput, props, components);
 }
 
-export function renderDocument(
-  title: string,
-  bodyContent: string,
-  bodyClass = BODY_CLASS,
-): string {
+export function renderDocument(title: string, bodyContent: string, bodyClass = BODY_CLASS): string {
   const components: HtmlispComponents = {
     Document: `<!doctype html>
 <html lang="en" class="h-full">
@@ -69,7 +54,12 @@ export function renderDocument(
   };
 
   return renderView(
-    '<Document &title="(get props title)" &bodyClass="(get props bodyClass)" &bodyContent="(get props bodyContent)" &themeBootstrapScript="(get props themeBootstrapScript)"></Document>',
+    `<Document
+      &title="(get props title)"
+      &bodyClass="(get props bodyClass)"
+      &bodyContent="(get props bodyContent)"
+      &themeBootstrapScript="(get props themeBootstrapScript)"
+    ></Document>`,
     {
       title: escapeHtml(title),
       bodyClass: escapeHtml(bodyClass),
@@ -80,19 +70,35 @@ export function renderDocument(
   );
 }
 
-export function renderFlashMessages(
-  notice: string | null,
-  error: string | null,
-): string {
+export function renderFlashMessages(notice: string | null, error: string | null): string {
   const components: HtmlispComponents = {
-    NoticeFlash:
-      '<p &visibleIf="(get props visible)" role="status" aria-live="polite" &class="(get props noticeClass)" &children="(get props message)"></p>',
-    ErrorFlash:
-      '<p &visibleIf="(get props visible)" role="alert" aria-live="assertive" &class="(get props errorClass)" &children="(get props message)"></p>',
+    NoticeFlash: `<p
+      &visibleIf="(get props visible)"
+      role="status"
+      aria-live="polite"
+      &class="(get props noticeClass)"
+      &children="(get props message)"
+    ></p>`,
+    ErrorFlash: `<p
+      &visibleIf="(get props visible)"
+      role="alert"
+      aria-live="assertive"
+      &class="(get props errorClass)"
+      &children="(get props message)"
+    ></p>`,
   };
 
   return renderView(
-    '<noop><NoticeFlash &visible="(get props noticeVisible)" &message="(get props noticeMessage)"></NoticeFlash><ErrorFlash &visible="(get props errorVisible)" &message="(get props errorMessage)"></ErrorFlash></noop>',
+    `<noop>
+      <NoticeFlash
+        &visible="(get props noticeVisible)"
+        &message="(get props noticeMessage)"
+      ></NoticeFlash>
+      <ErrorFlash
+        &visible="(get props errorVisible)"
+        &message="(get props errorMessage)"
+      ></ErrorFlash>
+    </noop>`,
     {
       noticeVisible: Boolean(notice),
       noticeClass: escapeHtml(ALERT_CLASS_MAP.success),
@@ -105,11 +111,7 @@ export function renderFlashMessages(
   );
 }
 
-export function renderAuthedPageHeader(
-  title: string,
-  description: string,
-  actionsHtml: string,
-): string {
+export function renderAuthedPageHeader(title: string, description: string, actionsHtml: string): string {
   const components: HtmlispComponents = {
     ThemeToggleButton: `<button
     id="themeToggle"
@@ -142,7 +144,15 @@ export function renderAuthedPageHeader(
   };
 
   return renderView(
-    '<AuthHeader &headerClass="(get props headerClass)" &title="(get props title)" &description="(get props description)" &descriptionClass="(get props descriptionClass)" &actionsHtml="(get props actionsHtml)" &themeToggleClass="(get props themeToggleClass)" &logoutButtonHtml="(get props logoutButtonHtml)"></AuthHeader>',
+    `<AuthHeader
+      &headerClass="(get props headerClass)"
+      &title="(get props title)"
+      &description="(get props description)"
+      &descriptionClass="(get props descriptionClass)"
+      &actionsHtml="(get props actionsHtml)"
+      &themeToggleClass="(get props themeToggleClass)"
+      &logoutButtonHtml="(get props logoutButtonHtml)"
+    ></AuthHeader>`,
     {
       headerClass: escapeHtml(HEADER_CARD),
       title: escapeHtml(title),

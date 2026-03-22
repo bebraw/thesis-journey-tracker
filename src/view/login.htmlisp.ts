@@ -1,10 +1,4 @@
-import {
-  ALERT_CLASS_MAP,
-  BODY_CLASS_LOGIN,
-  FIELD_CONTROL_SM,
-  LOGIN_CARD,
-  renderButton,
-} from "../ui";
+import { ALERT_CLASS_MAP, BODY_CLASS_LOGIN, FIELD_CONTROL_SM, LOGIN_CARD, renderButton } from "../ui";
 import { type HtmlispComponents } from "../htmlisp";
 import { escapeHtml } from "../utils";
 import { renderDocument, renderView } from "./shared.htmlisp";
@@ -12,8 +6,13 @@ import { SUBTLE_TEXT } from "../ui";
 
 export function renderLoginPage(showError: boolean): string {
   const components: HtmlispComponents = {
-    ErrorFlash:
-      '<p &visibleIf="(get props visible)" role="alert" aria-live="assertive" &class="(get props errorClass)" &children="(get props message)"></p>',
+    ErrorFlash: `<p
+      &visibleIf="(get props visible)"
+      role="alert"
+      aria-live="assertive"
+      &class="(get props errorClass)"
+      &children="(get props message)"
+    ></p>`,
   };
 
   const bodyContent = renderView(
@@ -32,9 +31,7 @@ export function renderLoginPage(showError: boolean): string {
     {
       cardClass: escapeHtml(LOGIN_CARD),
       errorClass: escapeHtml(ALERT_CLASS_MAP.error),
-      passwordFieldClass: escapeHtml(
-        `${FIELD_CONTROL_SM} outline-none ring-app-brand focus:ring-2`,
-      ),
+      passwordFieldClass: escapeHtml(`${FIELD_CONTROL_SM} outline-none ring-app-brand focus:ring-2`),
       subtleText: escapeHtml(`mt-2 ${SUBTLE_TEXT}`),
       showError,
       errorMessage: escapeHtml("Invalid password. Please try again."),
@@ -48,9 +45,5 @@ export function renderLoginPage(showError: boolean): string {
     components,
   );
 
-  return renderDocument(
-    "Thesis Journey Tracker - Login",
-    bodyContent,
-    BODY_CLASS_LOGIN,
-  );
+  return renderDocument("Thesis Journey Tracker - Login", bodyContent, BODY_CLASS_LOGIN);
 }

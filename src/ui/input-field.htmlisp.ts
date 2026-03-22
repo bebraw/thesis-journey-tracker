@@ -28,19 +28,9 @@ export function renderInputField(options: FieldOptions): string {
   } = options;
 
   const parsedAttributes = parseHtmlispAttributes(attributes);
-  const resolvedType =
-    getHtmlispAttributeValue(parsedAttributes, "type") ?? type;
-  const resolvedRequired =
-    required || hasHtmlispBooleanAttribute(parsedAttributes, "required");
-  const extraAttributes = omitHtmlispAttributes(parsedAttributes, [
-    "type",
-    "name",
-    "id",
-    "value",
-    "placeholder",
-    "required",
-    "class",
-  ]);
+  const resolvedType = getHtmlispAttributeValue(parsedAttributes, "type") ?? type;
+  const resolvedRequired = required || hasHtmlispBooleanAttribute(parsedAttributes, "required");
+  const extraAttributes = omitHtmlispAttributes(parsedAttributes, ["type", "name", "id", "value", "placeholder", "required", "class"]);
   const baseAttributes = serializeHtmlispAttributes(
     buildHtmlispAttributes([
       { name: "name", value: escapeOptional(name) },

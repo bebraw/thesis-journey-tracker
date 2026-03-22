@@ -16,12 +16,7 @@ import {
   type SelectOption,
 } from "../ui";
 import { escapeHtml } from "../utils";
-import {
-  THEME_TOGGLE_SCRIPT,
-  renderAuthedPageHeader,
-  renderDocument,
-  renderView,
-} from "./shared.htmlisp";
+import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderView } from "./shared.htmlisp";
 import { DEGREE_TYPES } from "../reference-data";
 
 export function renderStyleGuidePage(): string {
@@ -46,9 +41,7 @@ export function renderStyleGuidePage(): string {
       </div>`,
       {
         subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
-        description: escapeHtml(
-          "Primary actions, supporting actions, and destructive actions all come from the same helper.",
-        ),
+        description: escapeHtml("Primary actions, supporting actions, and destructive actions all come from the same helper."),
         primaryButton: renderButton({
           label: "Primary",
           href: "#",
@@ -96,18 +89,12 @@ export function renderStyleGuidePage(): string {
       </div>`,
       {
         subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
-        description: escapeHtml(
-          "Badges keep metadata visually consistent across tables, cards, and logs.",
-        ),
+        description: escapeHtml("Badges keep metadata visually consistent across tables, cards, and logs."),
         degreeBadge: renderBadge({ label: "MSc" }),
         mockBadge: renderBadge({ label: "Mock", variant: "mock" }),
         countBadge: renderBadge({ label: "12", variant: "count" }),
-        scheduledBadgeClass: escapeHtml(
-          `${STATUS_BADGE} ${MEETING_STATUS_BADGE_CLASS_MAP.scheduled}`,
-        ),
-        overdueBadgeClass: escapeHtml(
-          `${STATUS_BADGE} ${MEETING_STATUS_BADGE_CLASS_MAP.overdue}`,
-        ),
+        scheduledBadgeClass: escapeHtml(`${STATUS_BADGE} ${MEETING_STATUS_BADGE_CLASS_MAP.scheduled}`),
+        overdueBadgeClass: escapeHtml(`${STATUS_BADGE} ${MEETING_STATUS_BADGE_CLASS_MAP.overdue}`),
       },
     ),
   );
@@ -146,8 +133,7 @@ export function renderStyleGuidePage(): string {
         }),
         notesField: renderTextareaField({
           label: "Advisor notes",
-          value:
-            "This textarea uses the same label and border patterns as the forms in the app.",
+          value: "This textarea uses the same label and border patterns as the forms in the app.",
           className: FIELD_CONTROL_SM,
           wrapperClassName: `${FORM_LABEL} sm:col-span-2`,
         }),
@@ -165,9 +151,7 @@ export function renderStyleGuidePage(): string {
       </div>`,
       {
         subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
-        description: escapeHtml(
-          "Cards help sections feel consistent while still allowing different densities.",
-        ),
+        description: escapeHtml("Cards help sections feel consistent while still allowing different densities."),
         compactCard: renderCompactCard(
           renderView(
             `<h3 class="text-sm font-semibold">Compact Card</h3>
@@ -184,9 +168,7 @@ export function renderStyleGuidePage(): string {
             <p &class="(get props subtleText)" &children="(get props description)"></p>`,
             {
               subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
-              description: escapeHtml(
-                "Used for larger panels like the student editor and form pages.",
-              ),
+              description: escapeHtml("Used for larger panels like the student editor and form pages."),
             },
           ),
           "p-panel-sm",

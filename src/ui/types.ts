@@ -1,10 +1,4 @@
-export type ButtonVariant =
-  | "neutral"
-  | "primary"
-  | "primaryBlock"
-  | "successBlock"
-  | "dangerBlock"
-  | "inline";
+export type ButtonVariant = "neutral" | "primary" | "primaryBlock" | "successBlock" | "dangerBlock" | "inline";
 
 export type BadgeVariant = "neutral" | "mock" | "count";
 

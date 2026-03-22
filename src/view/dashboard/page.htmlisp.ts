@@ -1,16 +1,7 @@
 import { PAGE_WRAP, renderButton } from "../../ui";
 import { escapeHtml } from "../../utils";
-import {
-  renderEmptySelectedPanel,
-  renderSelectedStudentPanel,
-} from "../student-panel.htmlisp";
-import {
-  THEME_TOGGLE_SCRIPT,
-  renderAuthedPageHeader,
-  renderDocument,
-  renderFlashMessages,
-  renderView,
-} from "../shared.htmlisp";
+import { renderEmptySelectedPanel, renderSelectedStudentPanel } from "../student-panel.htmlisp";
+import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderFlashMessages, renderView } from "../shared.htmlisp";
 import type { DashboardPageData } from "../types";
 import { renderDashboardScriptTag } from "./interaction-script";
 import { renderMetricCards } from "./metrics.htmlisp";
@@ -19,9 +10,7 @@ import { renderStudentsTable } from "./students-table.htmlisp";
 
 export function renderDashboardPage(data: DashboardPageData): string {
   const { students, selectedStudent, logs, notice, error, metrics } = data;
-  const selectedPanel = selectedStudent
-    ? renderSelectedStudentPanel(selectedStudent, logs)
-    : renderEmptySelectedPanel();
+  const selectedPanel = selectedStudent ? renderSelectedStudentPanel(selectedStudent, logs) : renderEmptySelectedPanel();
 
   const bodyContent = renderView(
     `<div &class="(get props pageWrap)">
@@ -51,12 +40,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
       flashHtml: renderFlashMessages(notice, error),
       metricsHtml: renderMetricCards(metrics),
       phaseLanesHtml: renderPhaseLanes(students, selectedStudent),
-      studentsTableHtml: renderStudentsTable(
-        students,
-        selectedStudent,
-        selectedPanel,
-        renderEmptySelectedPanel(),
-      ),
+      studentsTableHtml: renderStudentsTable(students, selectedStudent, selectedPanel, renderEmptySelectedPanel()),
       dashboardScript: renderDashboardScriptTag(),
       themeToggleScript: THEME_TOGGLE_SCRIPT,
     },

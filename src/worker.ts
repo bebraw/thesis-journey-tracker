@@ -74,10 +74,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   if (!env.DB) {
-    return new Response(
-      "D1 binding is missing. Configure DB in wrangler.toml.",
-      { status: 500 },
-    );
+    return new Response("D1 binding is missing. Configure DB in wrangler.toml.", { status: 500 });
   }
 
   if (!env.APP_PASSWORD || !env.SESSION_SECRET) {
@@ -101,10 +98,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       return redirect("/login?error=1");
     }
 
-    const token = await createSessionToken(
-      env.SESSION_SECRET,
-      SESSION_TTL_SECONDS,
-    );
+    const token = await createSessionToken(env.SESSION_SECRET, SESSION_TTL_SECONDS);
     return redirect("/", {
       "Set-Cookie": buildSessionCookie(token, request.url, {
         cookieName: SESSION_COOKIE,
@@ -122,11 +116,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     });
   }
 
-  const authenticated = await isAuthenticated(
-    request,
-    env.SESSION_SECRET,
-    SESSION_COOKIE,
-  );
+  const authenticated = await isAuthenticated(request, env.SESSION_SECRET, SESSION_COOKIE);
   if (!authenticated) {
     return redirect("/login");
   }
@@ -170,23 +160,14 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   return new Response("Not found", { status: 404 });
 }
 
-async function renderDashboard(
-  request: Request,
-  env: Env,
-  url: URL,
-): Promise<Response> {
+async function renderDashboard(request: Request, env: Env, url: URL): Promise<Response> {
   const students = await listStudents(env.DB);
 
   const selectedIdParam = url.searchParams.get("selected");
-  const parsedSelectedId = selectedIdParam
-    ? Number.parseInt(selectedIdParam, 10)
-    : 0;
+  const parsedSelectedId = selectedIdParam ? Number.parseInt(selectedIdParam, 10) : 0;
   const selectedId = Number.isFinite(parsedSelectedId) ? parsedSelectedId : 0;
-  const selectedStudent =
-    students.find((student) => student.id === selectedId) || null;
-  const logs = selectedStudent
-    ? await listLogsForStudent(env.DB, selectedStudent.id)
-    : [];
+  const selectedStudent = students.find((student) => student.id === selectedId) || null;
+  const logs = selectedStudent ? await listLogsForStudent(env.DB, selectedStudent.id) : [];
 
   const notice = url.searchParams.get("notice");
   const error = url.searchParams.get("error");
@@ -195,14 +176,8 @@ async function renderDashboard(
   const metrics = {
     total: students.length,
     noMeeting: students.filter((student) => !student.nextMeetingAt).length,
-    pastTarget: students.filter(
-      (student) =>
-        student.targetSubmissionDate < today &&
-        student.currentPhase !== "submitted",
-    ).length,
-    submitted: students.filter(
-      (student) => student.currentPhase === "submitted",
-    ).length,
+    pastTarget: students.filter((student) => student.targetSubmissionDate < today && student.currentPhase !== "submitted").length,
+    submitted: students.filter((student) => student.currentPhase === "submitted").length,
   };
 
   return htmlResponse(
@@ -229,23 +204,15 @@ function renderAddStudent(url: URL): Response {
   );
 }
 
-async function renderStudentPanelPartial(
-  env: Env,
-  studentId: number,
-): Promise<Response> {
+async function renderStudentPanelPartial(env: Env, studentId: number): Promise<Response> {
   const selectedStudent = await getStudentById(env.DB, studentId);
 
   if (!selectedStudent) {
-    return htmlFragmentResponse(
-      renderEmptySelectedPanel("Student not found."),
-      404,
-    );
+    return htmlFragmentResponse(renderEmptySelectedPanel("Student not found."), 404);
   }
 
   const logs = await listLogsForStudent(env.DB, studentId);
-  return htmlFragmentResponse(
-    renderSelectedStudentPanel(selectedStudent, logs),
-  );
+  return htmlFragmentResponse(renderSelectedStudentPanel(selectedStudent, logs));
 }
 
 async function handleAddStudent(request: Request, env: Env): Promise<Response> {
@@ -259,11 +226,7 @@ async function handleAddStudent(request: Request, env: Env): Promise<Response> {
   return redirect(`/?selected=${selected}&notice=Student+added`);
 }
 
-async function handleUpdateStudent(
-  request: Request,
-  env: Env,
-  studentId: number,
-): Promise<Response> {
+async function handleUpdateStudent(request: Request, env: Env, studentId: number): Promise<Response> {
   const existingStudent = await getStudentById(env.DB, studentId);
   if (!existingStudent) {
     return redirect("/?error=Student+not+found");
@@ -284,22 +247,13 @@ async function handleUpdateStudent(
   return redirect(`/?selected=${studentId}&notice=Student+updated`);
 }
 
-async function handleAddLog(
-  request: Request,
-  env: Env,
-  studentId: number,
-): Promise<Response> {
+async function handleAddLog(request: Request, env: Env, studentId: number): Promise<Response> {
   const formData = await request.formData();
 
-  const happenedAt =
-    normalizeDateTime(formData.get("happenedAt"), true) ||
-    new Date().toISOString();
+  const happenedAt = normalizeDateTime(formData.get("happenedAt"), true) || new Date().toISOString();
   const discussed = normalizeString(formData.get("discussed"));
   const agreedPlan = normalizeString(formData.get("agreedPlan"));
-  const nextStepDeadline = normalizeDate(
-    formData.get("nextStepDeadline"),
-    true,
-  );
+  const nextStepDeadline = normalizeDate(formData.get("nextStepDeadline"), true);
 
   if (!discussed || !agreedPlan || nextStepDeadline === undefined) {
     return redirect(`/?selected=${studentId}&error=Invalid+log+input`);
@@ -320,10 +274,7 @@ async function handleAddLog(
   return redirect(`/?selected=${studentId}&notice=Log+saved`);
 }
 
-async function handleDeleteStudent(
-  env: Env,
-  studentId: number,
-): Promise<Response> {
+async function handleDeleteStudent(env: Env, studentId: number): Promise<Response> {
   if (!(await studentExists(env.DB, studentId))) {
     return redirect("/?error=Student+not+found");
   }

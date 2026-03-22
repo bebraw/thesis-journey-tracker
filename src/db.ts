@@ -1,10 +1,4 @@
-export type PhaseId =
-  | "research_plan"
-  | "researching"
-  | "first_complete_draft"
-  | "editing"
-  | "submission_ready"
-  | "submitted";
+export type PhaseId = "research_plan" | "researching" | "first_complete_draft" | "editing" | "submission_ready" | "submitted";
 
 export type DegreeId = "bsc" | "msc" | "dsc";
 
@@ -135,10 +129,7 @@ export async function listStudents(db: D1Database): Promise<Student[]> {
   }));
 }
 
-export async function getStudentById(
-  db: D1Database,
-  studentId: number,
-): Promise<Student | null> {
+export async function getStudentById(db: D1Database, studentId: number): Promise<Student | null> {
   const row = await db
     .prepare(
       `SELECT
@@ -173,10 +164,7 @@ export async function getStudentById(
   };
 }
 
-export async function listLogsForStudent(
-  db: D1Database,
-  studentId: number,
-): Promise<MeetingLog[]> {
+export async function listLogsForStudent(db: D1Database, studentId: number): Promise<MeetingLog[]> {
   const rows = await db
     .prepare(
       `SELECT *
@@ -196,10 +184,7 @@ export async function listLogsForStudent(
   }));
 }
 
-export async function createStudent(
-  db: D1Database,
-  input: CreateStudentInput,
-): Promise<number> {
+export async function createStudent(db: D1Database, input: CreateStudentInput): Promise<number> {
   const result = await db
     .prepare(
       `INSERT INTO students (name, email, degree_type, thesis_topic, start_date, target_submission_date, current_phase, next_meeting_at)
@@ -220,22 +205,12 @@ export async function createStudent(
   return parseDbNumber(result.meta.last_row_id ?? 0);
 }
 
-export async function studentExists(
-  db: D1Database,
-  studentId: number,
-): Promise<boolean> {
-  const row = await db
-    .prepare("SELECT id FROM students WHERE id = ?")
-    .bind(studentId)
-    .first();
+export async function studentExists(db: D1Database, studentId: number): Promise<boolean> {
+  const row = await db.prepare("SELECT id FROM students WHERE id = ?").bind(studentId).first();
   return Boolean(row);
 }
 
-export async function updateStudent(
-  db: D1Database,
-  studentId: number,
-  input: UpdateStudentInput,
-): Promise<void> {
+export async function updateStudent(db: D1Database, studentId: number, input: UpdateStudentInput): Promise<void> {
   await db
     .prepare(
       `UPDATE students
@@ -256,29 +231,17 @@ export async function updateStudent(
     .run();
 }
 
-export async function deleteStudent(
-  db: D1Database,
-  studentId: number,
-): Promise<void> {
+export async function deleteStudent(db: D1Database, studentId: number): Promise<void> {
   await db.prepare("DELETE FROM students WHERE id = ?").bind(studentId).run();
 }
 
-export async function createMeetingLog(
-  db: D1Database,
-  input: CreateLogInput,
-): Promise<void> {
+export async function createMeetingLog(db: D1Database, input: CreateLogInput): Promise<void> {
   await db
     .prepare(
       `INSERT INTO meeting_logs (student_id, happened_at, discussed, agreed_plan, next_step_deadline)
        VALUES (?, ?, ?, ?, ?)`,
     )
-    .bind(
-      input.studentId,
-      input.happenedAt,
-      input.discussed,
-      input.agreedPlan,
-      input.nextStepDeadline,
-    )
+    .bind(input.studentId, input.happenedAt, input.discussed, input.agreedPlan, input.nextStepDeadline)
     .run();
 }
 

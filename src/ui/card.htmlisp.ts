@@ -5,7 +5,9 @@ import { SURFACE_CARD, SURFACE_CARD_SM } from "./styles";
 
 export function renderCard(content: string, className?: string): string {
   return renderHTMLisp(
-    '<article &class="(get props className)"><noop &children="(get props content)"></noop></article>',
+    `<article &class="(get props className)">
+      <noop &children="(get props content)"></noop>
+    </article>`,
     {
       className: escapeHtml(mergeClasses(SURFACE_CARD, className)),
       content,
@@ -15,7 +17,9 @@ export function renderCard(content: string, className?: string): string {
 
 export function renderCompactCard(content: string, className?: string): string {
   return renderHTMLisp(
-    '<article &class="(get props className)"><noop &children="(get props content)"></noop></article>',
+    `<article &class="(get props className)">
+      <noop &children="(get props content)"></noop>
+    </article>`,
     {
       className: escapeHtml(mergeClasses(SURFACE_CARD_SM, className)),
       content,

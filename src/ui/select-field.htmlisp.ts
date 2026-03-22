@@ -18,30 +18,15 @@ interface RenderableSelectOption {
 }
 
 export function renderSelectField(options: SelectFieldOptions): string {
-  const {
-    label,
-    name,
-    id,
-    options: selectOptions,
-    value,
-    className = FIELD_CONTROL,
-    wrapperClassName = FORM_LABEL,
-    attributes,
-  } = options;
+  const { label, name, id, options: selectOptions, value, className = FIELD_CONTROL, wrapperClassName = FORM_LABEL, attributes } = options;
 
   const parsedAttributes = parseHtmlispAttributes(attributes);
-  const extraAttributes = omitHtmlispAttributes(parsedAttributes, [
-    "name",
-    "id",
-    "class",
-  ]);
-  const normalizedOptions: RenderableSelectOption[] = selectOptions.map(
-    (option) => ({
-      label: escapeHtml(option.label),
-      optionValue: escapeHtml(option.value),
-      selectedAttr: option.value === value ? "selected" : undefined,
-    }),
-  );
+  const extraAttributes = omitHtmlispAttributes(parsedAttributes, ["name", "id", "class"]);
+  const normalizedOptions: RenderableSelectOption[] = selectOptions.map((option) => ({
+    label: escapeHtml(option.label),
+    optionValue: escapeHtml(option.value),
+    selectedAttr: option.value === value ? "selected" : undefined,
+  }));
   const baseAttributes = serializeHtmlispAttributes(
     buildHtmlispAttributes([
       { name: "name", value: escapeOptional(name) },
@@ -52,7 +37,15 @@ export function renderSelectField(options: SelectFieldOptions): string {
 
   const controlHtml = renderHTMLisp(
     fillTemplate(
-      '<select__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__><noop &foreach="(get props options)"><option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option></noop></select>',
+      `<select__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__>
+        <noop &foreach="(get props options)">
+          <option
+            &value="(get props optionValue)"
+            &selected="(get props selectedAttr)"
+            &children="(get props label)"
+          ></option>
+        </noop>
+      </select>`,
       {
         __BASE_ATTRIBUTES__: baseAttributes,
         __EXTRA_ATTRIBUTES__: serializeHtmlispAttributes(extraAttributes),

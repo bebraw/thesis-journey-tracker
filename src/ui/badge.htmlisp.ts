@@ -8,7 +8,10 @@ export function renderBadge(options: BadgeOptions): string {
   const { label, variant = "neutral", className } = options;
 
   return renderHTMLisp(
-    '<span &class="(get props className)" &children="(get props label)"></span>',
+    `<span
+      &class="(get props className)"
+      &children="(get props label)"
+    ></span>`,
     {
       className: escapeHtml(mergeClasses(BADGE_CLASS_MAP[variant], className)),
       label: escapeHtml(label),

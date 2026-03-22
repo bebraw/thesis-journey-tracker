@@ -62,16 +62,7 @@ class MockD1Database {
     const q = normalizeQuery(query);
 
     if (q.startsWith("INSERT INTO students")) {
-      const [
-        name,
-        email,
-        degreeType,
-        thesisTopic,
-        startDate,
-        targetDate,
-        phase,
-        nextMeetingAt,
-      ] = values;
+      const [name, email, degreeType, thesisTopic, startDate, targetDate, phase, nextMeetingAt] = values;
       const row: StudentRowStore = {
         id: this.nextStudentId++,
         name: String(name),
@@ -88,17 +79,7 @@ class MockD1Database {
     }
 
     if (q.startsWith("UPDATE students")) {
-      const [
-        name,
-        email,
-        degreeType,
-        thesisTopic,
-        startDate,
-        targetDate,
-        phase,
-        nextMeetingAt,
-        studentId,
-      ] = values;
+      const [name, email, degreeType, thesisTopic, startDate, targetDate, phase, nextMeetingAt, studentId] = values;
       const id = Number(studentId);
       const row = this.students.find((student) => student.id === id);
       if (!row) {
@@ -111,31 +92,26 @@ class MockD1Database {
       row.start_date = String(startDate);
       row.target_submission_date = String(targetDate);
       row.current_phase = String(phase);
-      row.next_meeting_at =
-        nextMeetingAt === null ? null : String(nextMeetingAt);
+      row.next_meeting_at = nextMeetingAt === null ? null : String(nextMeetingAt);
       return { success: true, meta: { changes: 1 } };
     }
 
     if (q === "DELETE FROM students WHERE id = ?") {
       const id = Number(values[0]);
       this.students = this.students.filter((student) => student.id !== id);
-      this.meetingLogs = this.meetingLogs.filter(
-        (log) => log.student_id !== id,
-      );
+      this.meetingLogs = this.meetingLogs.filter((log) => log.student_id !== id);
       return { success: true, meta: { changes: 1 } };
     }
 
     if (q.startsWith("INSERT INTO meeting_logs")) {
-      const [studentId, happenedAt, discussed, agreedPlan, nextStepDeadline] =
-        values;
+      const [studentId, happenedAt, discussed, agreedPlan, nextStepDeadline] = values;
       const row: MeetingLogStore = {
         id: this.nextLogId++,
         student_id: Number(studentId),
         happened_at: String(happenedAt),
         discussed: String(discussed),
         agreed_plan: String(agreedPlan),
-        next_step_deadline:
-          nextStepDeadline === null ? null : String(nextStepDeadline),
+        next_step_deadline: nextStepDeadline === null ? null : String(nextStepDeadline),
       };
       this.meetingLogs.push(row);
       return { success: true, meta: { last_row_id: row.id, changes: 1 } };
@@ -179,9 +155,7 @@ class MockD1Database {
 
     if (q.startsWith("SELECT s.*, COUNT(ml.id) AS log_count,")) {
       const results = this.students.map((student) => {
-        const logs = this.meetingLogs.filter(
-          (log) => log.student_id === student.id,
-        );
+        const logs = this.meetingLogs.filter((log) => log.student_id === student.id);
         const lastLog = logs.length ? logs[logs.length - 1] : null;
         return {
           ...student,
@@ -250,10 +224,7 @@ function normalizeQuery(query: string): string {
   return query.replace(/\s+/g, " ").trim();
 }
 
-async function login(
-  fetchHandler: (request: Request, env: unknown) => Promise<Response>,
-  env: Record<string, unknown>,
-): Promise<string> {
+async function login(fetchHandler: (request: Request, env: unknown) => Promise<Response>, env: Record<string, unknown>): Promise<string> {
   const response = await fetchHandler(
     new Request("http://localhost/login", {
       method: "POST",
@@ -284,43 +255,38 @@ describe("SQL injection safety", () => {
     };
   });
 
-  it.each([
-    "Robert'); DROP TABLE students;--",
-    "'; DELETE FROM meeting_logs; --",
-    "\"; UPDATE students SET name='pwned' WHERE id=1; --",
-  ])("treats add-student payload as data (%s)", async (payload) => {
-    const cookie = await login(fetchHandler, env);
+  it.each(["Robert'); DROP TABLE students;--", "'; DELETE FROM meeting_logs; --", "\"; UPDATE students SET name='pwned' WHERE id=1; --"])(
+    "treats add-student payload as data (%s)",
+    async (payload) => {
+      const cookie = await login(fetchHandler, env);
 
-    const response = await fetchHandler(
-      new Request("http://localhost/actions/add-student", {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          cookie,
-        },
-        body: new URLSearchParams({
-          name: payload,
-          email: "safe@example.edu",
-          degreeType: "msc",
-          thesisTopic: "Secure advising workflows",
-          startDate: "2026-02-01",
-          targetSubmissionDate: "2026-08-01",
-          currentPhase: "research_plan",
-          nextMeetingAt: "",
+      const response = await fetchHandler(
+        new Request("http://localhost/actions/add-student", {
+          method: "POST",
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+            cookie,
+          },
+          body: new URLSearchParams({
+            name: payload,
+            email: "safe@example.edu",
+            degreeType: "msc",
+            thesisTopic: "Secure advising workflows",
+            startDate: "2026-02-01",
+            targetSubmissionDate: "2026-08-01",
+            currentPhase: "research_plan",
+            nextMeetingAt: "",
+          }),
         }),
-      }),
-      env,
-    );
+        env,
+      );
 
-    expect(response.status).toBe(302);
-    expect(env.DB.students.some((student) => student.name === payload)).toBe(
-      true,
-    );
-    expect(env.DB.students.length).toBe(2);
-    expect(env.DB.calls.some((call) => call.query.includes(payload))).toBe(
-      false,
-    );
-  });
+      expect(response.status).toBe(302);
+      expect(env.DB.students.some((student) => student.name === payload)).toBe(true);
+      expect(env.DB.students.length).toBe(2);
+      expect(env.DB.calls.some((call) => call.query.includes(payload))).toBe(false);
+    },
+  );
 
   it("treats update-student payload as data and keeps schema intact", async () => {
     const cookie = await login(fetchHandler, env);
@@ -352,41 +318,37 @@ describe("SQL injection safety", () => {
     expect(env.DB.students[0]?.degree_type).toBe("dsc");
     expect(env.DB.students[0]?.thesis_topic).toBe("Updated topic");
     expect(env.DB.students.length).toBe(1);
-    expect(env.DB.calls.some((call) => call.query.includes(payload))).toBe(
-      false,
-    );
+    expect(env.DB.calls.some((call) => call.query.includes(payload))).toBe(false);
   });
 
-  it.each([
-    "'); DROP TABLE meeting_logs;--",
-    "'; UPDATE students SET name='pwned' WHERE id=1;--",
-  ])("treats add-log payload as data (%s)", async (payload) => {
-    const cookie = await login(fetchHandler, env);
+  it.each(["'); DROP TABLE meeting_logs;--", "'; UPDATE students SET name='pwned' WHERE id=1;--"])(
+    "treats add-log payload as data (%s)",
+    async (payload) => {
+      const cookie = await login(fetchHandler, env);
 
-    const response = await fetchHandler(
-      new Request("http://localhost/actions/add-log/1", {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          cookie,
-        },
-        body: new URLSearchParams({
-          happenedAt: "",
-          discussed: payload,
-          agreedPlan: "Complete chapter 2",
-          nextStepDeadline: "2026-03-30",
+      const response = await fetchHandler(
+        new Request("http://localhost/actions/add-log/1", {
+          method: "POST",
+          headers: {
+            "content-type": "application/x-www-form-urlencoded",
+            cookie,
+          },
+          body: new URLSearchParams({
+            happenedAt: "",
+            discussed: payload,
+            agreedPlan: "Complete chapter 2",
+            nextStepDeadline: "2026-03-30",
+          }),
         }),
-      }),
-      env,
-    );
+        env,
+      );
 
-    expect(response.status).toBe(302);
-    expect(env.DB.meetingLogs.length).toBe(1);
-    expect(env.DB.meetingLogs[0]?.discussed).toBe(payload);
-    expect(env.DB.calls.some((call) => call.query.includes(payload))).toBe(
-      false,
-    );
-  });
+      expect(response.status).toBe(302);
+      expect(env.DB.meetingLogs.length).toBe(1);
+      expect(env.DB.meetingLogs[0]?.discussed).toBe(payload);
+      expect(env.DB.calls.some((call) => call.query.includes(payload))).toBe(false);
+    },
+  );
 
   it("deletes a student and cascades meeting logs", async () => {
     const cookie = await login(fetchHandler, env);

@@ -48,11 +48,7 @@ async function main() {
       modes: results,
     };
 
-    await writeFile(
-      resolve(REPORT_DIR, "summary.json"),
-      JSON.stringify(summary, null, 2),
-      "utf8",
-    );
+    await writeFile(resolve(REPORT_DIR, "summary.json"), JSON.stringify(summary, null, 2), "utf8");
 
     printSummary(results);
     assertBudgets(results);
@@ -63,10 +59,7 @@ async function main() {
 
 async function resolvePassword() {
   return (
-    (await readEnvValue(
-      resolve(process.cwd(), "tests/e2e/.env.e2e"),
-      "APP_PASSWORD",
-    )) ??
+    (await readEnvValue(resolve(process.cwd(), "tests/e2e/.env.e2e"), "APP_PASSWORD")) ??
     (await readEnvValue(resolve(process.cwd(), ".dev.vars"), "APP_PASSWORD")) ??
     "e2e-password"
   );
@@ -111,12 +104,8 @@ function startServer() {
       }
     };
 
-    server.stdout.on("data", (chunk) =>
-      handleChunk(chunk, process.stdout.write.bind(process.stdout)),
-    );
-    server.stderr.on("data", (chunk) =>
-      handleChunk(chunk, process.stderr.write.bind(process.stderr)),
-    );
+    server.stdout.on("data", (chunk) => handleChunk(chunk, process.stdout.write.bind(process.stdout)));
+    server.stderr.on("data", (chunk) => handleChunk(chunk, process.stderr.write.bind(process.stderr)));
 
     server.on("exit", (code) => {
       if (settled) {
@@ -124,9 +113,7 @@ function startServer() {
       }
       settled = true;
       clearTimeout(timeout);
-      rejectPromise(
-        new Error(`Lighthouse test server exited before ready (code ${code}).`),
-      );
+      rejectPromise(new Error(`Lighthouse test server exited before ready (code ${code}).`));
     });
 
     server.on("error", (error) => {
@@ -185,9 +172,7 @@ async function loginAndGetCookie(password) {
     await page.waitForURL(DASHBOARD_URL, { timeout: 15_000 });
 
     const cookies = await context.cookies(BASE_URL);
-    const cookieHeader = cookies
-      .map((cookie) => `${cookie.name}=${cookie.value}`)
-      .join("; ");
+    const cookieHeader = cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ");
 
     if (!cookieHeader) {
       throw new Error("Failed to obtain authenticated session cookie.");
@@ -224,9 +209,7 @@ async function runAudit({ mode, cookieHeader, chromePath }) {
       throw new Error(`Lighthouse did not produce a report for ${mode.id}.`);
     }
 
-    const reports = Array.isArray(runnerResult.report)
-      ? runnerResult.report
-      : [runnerResult.report];
+    const reports = Array.isArray(runnerResult.report) ? runnerResult.report : [runnerResult.report];
     const [htmlReport, jsonReport] = reports;
 
     await writeFile(resolve(REPORT_DIR, `${mode.id}.html`), htmlReport, "utf8");
@@ -261,8 +244,7 @@ function numericAudit(lhr, auditId) {
 }
 
 function renderBlockingSavingsMs(lhr) {
-  const value =
-    lhr.audits["render-blocking-resources"]?.details?.overallSavingsMs;
+  const value = lhr.audits["render-blocking-resources"]?.details?.overallSavingsMs;
   return typeof value === "number" ? Math.round(value) : null;
 }
 
@@ -304,9 +286,7 @@ function printSummary(results) {
 
 function assertBudgets(results) {
   const failures = results.filter(
-    (result) =>
-      typeof result.performanceScore === "number" &&
-      result.performanceScore < MIN_PERFORMANCE_SCORE,
+    (result) => typeof result.performanceScore === "number" && result.performanceScore < MIN_PERFORMANCE_SCORE,
   );
 
   if (failures.length === 0) {
@@ -314,10 +294,7 @@ function assertBudgets(results) {
   }
 
   const details = failures
-    .map(
-      (result) =>
-        `${result.mode} performance score ${result.performanceScore} is below ${MIN_PERFORMANCE_SCORE}`,
-    )
+    .map((result) => `${result.mode} performance score ${result.performanceScore} is below ${MIN_PERFORMANCE_SCORE}`)
     .join("; ");
 
   throw new Error(`Lighthouse budget failed: ${details}`);

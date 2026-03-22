@@ -14,14 +14,7 @@ import {
   renderButton,
 } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
-import {
-  escapeHtml,
-  formatDateTime,
-  getDegreeLabel,
-  getPhaseLabel,
-  meetingStatusId,
-  meetingStatusText,
-} from "../../utils";
+import { escapeHtml, formatDateTime, getDegreeLabel, getPhaseLabel, meetingStatusId, meetingStatusText } from "../../utils";
 import { renderView } from "../shared.htmlisp";
 import { DEGREE_TYPES, PHASES } from "../../reference-data";
 
@@ -53,25 +46,18 @@ interface PreparedStudentRow {
   actionButtonHtml: string;
 }
 
-function prepareFilterOptions(
-  options: Array<{ value: string; label: string }>,
-): PreparedFilterOption[] {
+function prepareFilterOptions(options: Array<{ value: string; label: string }>): PreparedFilterOption[] {
   return options.map((option) => ({
     optionValue: escapeHtml(option.value),
     label: escapeHtml(option.label),
   }));
 }
 
-function prepareStudentRows(
-  students: Student[],
-  selectedStudent: Student | null,
-): PreparedStudentRow[] {
+function prepareStudentRows(students: Student[], selectedStudent: Student | null): PreparedStudentRow[] {
   return students.map((student) => {
     const statusText = meetingStatusText(student);
     const statusId = meetingStatusId(student);
-    const isSelected = selectedStudent
-      ? selectedStudent.id === student.id
-      : false;
+    const isSelected = selectedStudent ? selectedStudent.id === student.id : false;
     const summaryHtml = renderView(
       `<div class="font-medium">
         <a &class="(get props linkClass)" &href="(get props href)" data-inline-select="1" &data-student-id="(get props studentIdAttr)" &children="(get props name)"></a>
@@ -107,11 +93,7 @@ function prepareStudentRows(
       degreeLabel: escapeHtml(getDegreeLabel(student.degreeType, DEGREE_TYPES)),
       phaseLabel: escapeHtml(getPhaseLabel(student.currentPhase, PHASES)),
       targetDate: escapeHtml(student.targetSubmissionDate),
-      nextMeetingText: escapeHtml(
-        student.nextMeetingAt
-          ? formatDateTime(student.nextMeetingAt)
-          : "Not booked",
-      ),
+      nextMeetingText: escapeHtml(student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked"),
       statusBadgeHtml: `<span class="${escapeHtml(
         `${STATUS_BADGE} ${getMeetingStatusBadgeClass(statusId)}`,
       )}">${escapeHtml(statusText)}</span>`,
@@ -278,9 +260,7 @@ export function renderStudentsTable(
       <template id="emptySelectedStudentPanelTemplate"><noop &children="(get props emptySelectedPanel)"></noop></template>
     </section>`,
     {
-      studentsCardClass: escapeHtml(
-        `overflow-hidden xl:col-span-2 ${SURFACE_CARD}`,
-      ),
+      studentsCardClass: escapeHtml(`overflow-hidden xl:col-span-2 ${SURFACE_CARD}`),
       cellClass: escapeHtml(TABLE_CELL),
       mutedTextXs: escapeHtml(MUTED_TEXT_XS),
       filterLabelClass: escapeHtml(FILTER_LABEL),
