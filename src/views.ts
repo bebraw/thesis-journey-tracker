@@ -238,6 +238,11 @@ export function renderDashboardPage(data: DashboardPageData): string {
                   ${student.isMock ? `<span class="${MOCK_BADGE}">Mock</span>` : ""}
                 </div>
               </div>
+              ${
+                student.thesisTopic
+                  ? `<p class="mt-1 text-xs font-medium text-slate-700 dark:text-slate-200">${escapeHtml(student.thesisTopic)}</p>`
+                  : ""
+              }
               <p class="mt-1 ${MUTED_TEXT_XS}">Target: ${escapeHtml(student.targetSubmissionDate)}</p>
               <p class="mt-1 ${MUTED_TEXT_XS}">${student.nextMeetingAt ? `Next: ${escapeHtml(formatDateTime(student.nextMeetingAt))}` : "Next: not booked"}</p>
               <p class="mt-2"><span class="${STATUS_BADGE} ${meetingStatusClass(student)}">${meetingStatusText(student)}</span></p>
@@ -276,6 +281,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
               data-student-id="${student.id}"
               data-name="${escapeHtml(student.name).toLowerCase()}"
               data-email="${escapeHtml(student.email || "").toLowerCase()}"
+              data-topic="${escapeHtml(student.thesisTopic || "").toLowerCase()}"
               data-degree="${escapeHtml(student.degreeType)}"
               data-phase="${escapeHtml(student.currentPhase)}"
               data-status-id="${statusId}"
@@ -288,6 +294,11 @@ export function renderDashboardPage(data: DashboardPageData): string {
                 <div class="font-medium">
                   <a class="${TEXT_LINK}" href="/?selected=${student.id}" data-inline-select="1" data-student-id="${student.id}">${escapeHtml(student.name)}</a>
                 </div>
+                ${
+                  student.thesisTopic
+                    ? `<div class="mt-1 text-xs font-medium text-slate-700 dark:text-slate-200">${escapeHtml(student.thesisTopic)}</div>`
+                    : ""
+                }
                 <div class="${MUTED_TEXT_XS}">${escapeHtml(getDegreeLabel(student.degreeType, DEGREE_TYPES))} · ${escapeHtml(student.email || "-")}</div>
                 ${student.isMock ? `<span class="mt-1 inline-block ${MOCK_BADGE}">Mock</span>` : ""}
               </td>
@@ -357,7 +368,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
           <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <label class="${FILTER_LABEL}">
               Search
-              <input id="studentSearch" type="search" placeholder="Name or email" class="${FIELD_CONTROL_WITH_MARGIN}" />
+              <input id="studentSearch" type="search" placeholder="Name, email, or topic" class="${FIELD_CONTROL_WITH_MARGIN}" />
             </label>
             <label class="${FILTER_LABEL}">
               Degree type
@@ -471,11 +482,12 @@ export function renderDashboardPage(data: DashboardPageData): string {
         studentRows.forEach(function (row) {
           var name = row.getAttribute("data-name") || "";
           var email = row.getAttribute("data-email") || "";
+          var topic = row.getAttribute("data-topic") || "";
           var rowDegree = row.getAttribute("data-degree") || "";
           var rowPhase = row.getAttribute("data-phase") || "";
           var rowStatus = row.getAttribute("data-status-id") || "";
 
-          var matchesQuery = !query || name.indexOf(query) !== -1 || email.indexOf(query) !== -1;
+          var matchesQuery = !query || name.indexOf(query) !== -1 || email.indexOf(query) !== -1 || topic.indexOf(query) !== -1;
           var matchesDegree = !degree || rowDegree === degree;
           var matchesPhase = !phase || rowPhase === phase;
           var matchesStatus = !status || rowStatus === status;
@@ -699,6 +711,10 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
             <span class="${FIELD_LABEL}">Degree type</span>
             <select name="degreeType" class="${FIELD_CONTROL_SM}">${degreeOptions}</select>
           </label>
+          <label class="${FORM_LABEL} sm:col-span-2 lg:col-span-3">
+            <span class="${FIELD_LABEL}">Thesis topic (optional)</span>
+            <input name="thesisTopic" class="${FIELD_CONTROL_SM}" />
+          </label>
           <label class="${FORM_LABEL}">
             <span class="${FIELD_LABEL}">Phase</span>
             <select name="currentPhase" class="${FIELD_CONTROL_SM}">${phaseOptions}</select>
@@ -773,6 +789,11 @@ export function renderSelectedStudentPanel(
       <section>
         <h2 class="text-lg font-semibold">Edit Student</h2>
         <p class="${SUBTLE_TEXT}">Currently viewing: ${escapeHtml(student.name)}</p>
+        ${
+          student.thesisTopic
+            ? `<p class="mt-1 text-sm font-medium text-slate-700 dark:text-slate-200">${escapeHtml(student.thesisTopic)}</p>`
+            : ""
+        }
         <form action="/actions/update-student/${student.id}" method="post" class="mt-3 space-y-3">
           <label class="${FORM_LABEL}">
             <span class="${FIELD_LABEL}">Name</span>
@@ -785,6 +806,10 @@ export function renderSelectedStudentPanel(
           <label class="${FORM_LABEL}">
             <span class="${FIELD_LABEL}">Degree type</span>
             <select name="degreeType" class="${FIELD_CONTROL}">${degreeOptions}</select>
+          </label>
+          <label class="${FORM_LABEL}">
+            <span class="${FIELD_LABEL}">Thesis topic (optional)</span>
+            <input name="thesisTopic" value="${escapeHtml(student.thesisTopic || "")}" class="${FIELD_CONTROL}" />
           </label>
           <label class="${FORM_LABEL}">
             <span class="${FIELD_LABEL}">Phase</span>

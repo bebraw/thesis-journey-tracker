@@ -10,6 +10,7 @@ interface StudentRowStore {
   name: string;
   email: string | null;
   degree_type: string;
+  thesis_topic: string | null;
   start_date: string;
   target_submission_date: string;
   current_phase: string;
@@ -47,6 +48,7 @@ class MockD1Database {
       name: "Base Student",
       email: "base@example.edu",
       degree_type: "msc",
+      thesis_topic: "Baseline supervision topic",
       start_date: "2026-01-01",
       target_submission_date: "2026-07-01",
       current_phase: "researching",
@@ -67,6 +69,7 @@ class MockD1Database {
         name,
         email,
         degreeType,
+        thesisTopic,
         startDate,
         targetDate,
         phase,
@@ -77,6 +80,7 @@ class MockD1Database {
         name: String(name),
         email: email === null ? null : String(email),
         degree_type: String(degreeType),
+        thesis_topic: thesisTopic === null ? null : String(thesisTopic),
         start_date: String(startDate),
         target_submission_date: String(targetDate),
         current_phase: String(phase),
@@ -92,6 +96,7 @@ class MockD1Database {
         name,
         email,
         degreeType,
+        thesisTopic,
         startDate,
         targetDate,
         phase,
@@ -106,6 +111,7 @@ class MockD1Database {
       row.name = String(name);
       row.email = email === null ? null : String(email);
       row.degree_type = String(degreeType);
+      row.thesis_topic = thesisTopic === null ? null : String(thesisTopic);
       row.start_date = String(startDate);
       row.target_submission_date = String(targetDate);
       row.current_phase = String(phase);
@@ -293,6 +299,7 @@ describe("SQL injection safety", () => {
           name: payload,
           email: "safe@example.edu",
           degreeType: "msc",
+          thesisTopic: "Secure advising workflows",
           startDate: "2026-02-01",
           targetSubmissionDate: "2026-08-01",
           currentPhase: "research_plan",
@@ -327,6 +334,7 @@ describe("SQL injection safety", () => {
           name: payload,
           email: "updated@example.edu",
           degreeType: "dsc",
+          thesisTopic: "Updated topic",
           startDate: "2026-01-01",
           targetSubmissionDate: "2026-07-01",
           currentPhase: "editing",
@@ -339,6 +347,7 @@ describe("SQL injection safety", () => {
     expect(response.status).toBe(302);
     expect(env.DB.students[0]?.name).toBe(payload);
     expect(env.DB.students[0]?.degree_type).toBe("dsc");
+    expect(env.DB.students[0]?.thesis_topic).toBe("Updated topic");
     expect(env.DB.students.length).toBe(1);
     expect(env.DB.calls.some((call) => call.query.includes(payload))).toBe(
       false,

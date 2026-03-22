@@ -253,6 +253,7 @@ async function handleAddStudent(request: Request, env: Env): Promise<Response> {
   const email = normalizeString(
     formData.get("studentEmail") ?? formData.get("email"),
   );
+  const thesisTopic = normalizeString(formData.get("thesisTopic"));
   const startDate = normalizeDate(formData.get("startDate"));
   const targetSubmissionDateInput = normalizeDate(
     formData.get("targetSubmissionDate"),
@@ -286,6 +287,7 @@ async function handleAddStudent(request: Request, env: Env): Promise<Response> {
     name,
     email,
     degreeType,
+    thesisTopic,
     startDate,
     targetSubmissionDate,
     currentPhase,
@@ -306,6 +308,7 @@ async function handleUpdateStudent(
     formData.get("studentEmail") ?? formData.get("email"),
   );
   const degreeType = normalizeDegree(formData.get("degreeType"), DEGREE_TYPES);
+  const thesisTopic = normalizeString(formData.get("thesisTopic"));
   const startDate = normalizeDate(formData.get("startDate"));
   const targetSubmissionDate = normalizeDate(
     formData.get("targetSubmissionDate"),
@@ -332,6 +335,7 @@ async function handleUpdateStudent(
     name,
     email,
     degreeType,
+    thesisTopic,
     startDate,
     targetSubmissionDate,
     currentPhase,

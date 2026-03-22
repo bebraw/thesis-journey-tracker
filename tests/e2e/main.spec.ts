@@ -60,6 +60,7 @@ async function addStudent(
   studentName: string,
   email: string,
   degreeType: "BSc" | "MSc" | "DSc" = "MSc",
+  thesisTopic = "Test thesis topic",
 ) {
   await page.getByRole("link", { name: "Add student" }).click();
   await expect(page).toHaveURL(/\/students\/new$/);
@@ -67,6 +68,7 @@ async function addStudent(
   await page.getByLabel("Name").fill(studentName);
   await page.getByLabel("Email (optional)").fill(email);
   await page.getByLabel("Degree type").selectOption({ label: degreeType });
+  await page.getByLabel("Thesis topic (optional)").fill(thesisTopic);
   await page.getByLabel("Start date").fill("2026-03-01");
   await page.getByRole("button", { name: "Add student" }).click();
 
@@ -101,18 +103,23 @@ test.describe("dashboard e2e", () => {
       createdStudentName,
       `e2e-a-${suffix}@example.edu`,
       "BSc",
+      `Topic ${suffix} A`,
     );
     await addStudent(
       page,
       secondaryStudentName,
       `e2e-b-${suffix}@example.edu`,
       "DSc",
+      `Topic ${suffix} B`,
     );
 
     await selectStudentFromTable(page, createdStudentName);
     await expect(
       page.locator("[data-student-row]", { hasText: createdStudentName }),
     ).toContainText("BSc");
+    await expect(
+      page.locator("[data-student-row]", { hasText: createdStudentName }),
+    ).toContainText(`Topic ${suffix} A`);
     await page.locator("#studentSearch").fill("");
 
     await page.locator("#degreeFilter").selectOption({ label: "DSc" });
@@ -149,6 +156,7 @@ test.describe("dashboard e2e", () => {
     const suffix = Date.now().toString();
     updatedStudentName = `${createdStudentName} Updated`;
     const updatedEmail = `updated-${suffix}@example.edu`;
+    const updatedTopic = `Updated thesis topic ${suffix}`;
     const discussedText = `Discussed milestone ${suffix}`;
     const agreedPlanText = `Agreed action plan ${suffix}`;
 
@@ -166,6 +174,10 @@ test.describe("dashboard e2e", () => {
       .selectOption({ label: "MSc" });
     await page
       .locator("#selectedStudentPanel")
+      .getByLabel("Thesis topic (optional)")
+      .fill(updatedTopic);
+    await page
+      .locator("#selectedStudentPanel")
       .getByRole("button", { name: "Save student updates" })
       .click();
 
@@ -179,6 +191,11 @@ test.describe("dashboard e2e", () => {
     await expect(
       page.locator("#selectedStudentPanel").getByLabel("Degree type"),
     ).toHaveValue("msc");
+    await expect(
+      page
+        .locator("#selectedStudentPanel")
+        .getByLabel("Thesis topic (optional)"),
+    ).toHaveValue(updatedTopic);
 
     await page
       .locator("#selectedStudentPanel")

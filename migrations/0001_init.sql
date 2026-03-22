@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS students (
   name TEXT NOT NULL,
   email TEXT,
   degree_type TEXT NOT NULL DEFAULT 'msc' CHECK (degree_type IN ('bsc', 'msc', 'dsc')),
+  thesis_topic TEXT,
   start_date TEXT NOT NULL,
   target_submission_date TEXT NOT NULL,
   current_phase TEXT NOT NULL CHECK (current_phase IN (
