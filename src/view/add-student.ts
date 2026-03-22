@@ -31,7 +31,7 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
   }));
 
   const formHtml = renderView(
-    `<form action="/actions/add-student" method="post" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    `<form action="/actions/add-student" method="post" class="mt-panel-sm grid grid-cols-1 gap-stack-xs sm:grid-cols-2 lg:grid-cols-3">
       <noop &children="(get props nameField)"></noop>
       <noop &children="(get props emailField)"></noop>
       <noop &children="(get props degreeField)"></noop>

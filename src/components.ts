@@ -76,52 +76,108 @@ export interface TextareaFieldOptions {
 }
 
 export const BODY_CLASS =
-  "min-h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100";
+  "min-h-full bg-app-canvas text-app-text dark:bg-app-canvas-dark dark:text-app-text-dark";
 export const BODY_CLASS_LOGIN =
-  "h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100";
+  "h-full bg-app-canvas text-app-text dark:bg-app-canvas-dark dark:text-app-text-dark";
 export const PAGE_WRAP =
-  "mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8";
+  "mx-auto max-w-layout space-y-stack px-page-x py-page-y sm:px-page-x-sm lg:px-page-x-lg";
 export const PAGE_WRAP_NARROW =
-  "mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8";
+  "mx-auto max-w-layout-narrow space-y-stack px-page-x py-page-y sm:px-page-x-sm lg:px-page-x-lg";
 export const HEADER_CARD =
-  "flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between";
+  "flex flex-col gap-panel-sm rounded-panel border border-app-line bg-app-surface p-panel-sm shadow-panel dark:border-app-line-dark dark:bg-app-surface-dark sm:flex-row sm:items-center sm:justify-between";
 export const SURFACE_CARD =
-  "rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900";
+  "rounded-panel border border-app-line bg-app-surface p-panel dark:border-app-line-dark dark:bg-app-surface-dark";
 export const SURFACE_CARD_SM =
-  "rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900";
-export const SUBTLE_TEXT = "text-sm text-slate-600 dark:text-slate-300";
-export const MUTED_TEXT = "text-sm text-slate-500 dark:text-slate-300";
-export const MUTED_TEXT_XS = "text-xs text-slate-500 dark:text-slate-300";
-export const FIELD_LABEL = "mb-1 block text-slate-600 dark:text-slate-300";
+  "rounded-card border border-app-line bg-app-surface p-panel-sm dark:border-app-line-dark dark:bg-app-surface-dark";
+export const SOFT_SURFACE_CARD =
+  "rounded-card border border-app-line bg-app-surface-soft p-stack-xs text-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/70";
+export const EMPTY_STATE_CARD =
+  "rounded-control border border-app-line p-stack-xs text-sm text-app-text-soft dark:border-app-line-dark dark:text-app-text-soft-dark";
+export const LOGIN_CARD =
+  "w-full rounded-panel border border-app-line bg-app-surface p-panel-lg shadow-elevated dark:border-app-line-dark dark:bg-app-surface-dark";
+export const SUBTLE_TEXT =
+  "text-sm text-app-text-soft dark:text-app-text-soft-dark";
+export const MUTED_TEXT =
+  "text-sm text-app-text-muted dark:text-app-text-muted-dark";
+export const MUTED_TEXT_XS =
+  "text-xs text-app-text-muted dark:text-app-text-muted-dark";
+export const TOPIC_TEXT =
+  "mt-1 text-sm font-medium text-app-text-soft dark:text-app-text-soft-dark";
+export const TOPIC_TEXT_SM =
+  "mt-1 text-xs font-medium text-app-text-soft dark:text-app-text-soft-dark";
+export const FIELD_LABEL =
+  "mb-1 block text-app-text-soft dark:text-app-text-soft-dark";
 export const FORM_LABEL = "block text-sm";
 export const FILTER_LABEL =
-  "text-xs font-medium text-slate-600 dark:text-slate-300";
+  "text-xs font-medium text-app-text-soft dark:text-app-text-soft-dark";
 export const FIELD_CONTROL =
-  "w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-800";
+  "w-full rounded-control border border-app-field bg-app-surface px-control-x py-control-y text-app-text dark:border-app-field-dark dark:bg-app-surface-soft-dark dark:text-app-text-dark";
 export const FIELD_CONTROL_SM = `${FIELD_CONTROL} text-sm`;
 export const FIELD_CONTROL_WITH_MARGIN = `mt-1 ${FIELD_CONTROL_SM}`;
 export const FOCUS_RING =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark";
 export const TEXT_LINK = `underline-offset-2 hover:underline ${FOCUS_RING}`;
-export const STATUS_BADGE = "rounded px-2 py-1 text-xs";
+export const STATUS_BADGE =
+  "rounded-control px-badge-pill-x py-badge-pill-y text-xs";
+export const THEME_TOGGLE_BUTTON = `inline-flex items-center justify-center rounded-control border border-app-field p-control-y text-sm font-medium text-app-text hover:bg-app-surface-soft dark:border-app-field-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark ${FOCUS_RING}`;
+export const DANGER_PANEL =
+  "rounded-panel border border-app-danger-line bg-app-danger-soft/60 p-panel-sm dark:border-app-danger-soft-dark/60 dark:bg-app-danger-soft-dark/30";
+export const DANGER_TITLE =
+  "text-lg font-semibold text-app-danger-text dark:text-app-danger-text-dark";
+export const DANGER_TEXT =
+  "mt-1 text-sm text-app-danger-text dark:text-app-danger-text-dark";
+export const EMPTY_DASHED_CARD =
+  "rounded-card border border-dashed border-app-line-strong px-control-x py-panel-sm text-xs text-app-text-muted dark:border-app-line-dark-strong dark:text-app-text-muted-dark";
+export const TABLE_HEADER_ROW =
+  "text-left text-xs uppercase tracking-wide text-app-text-muted dark:text-app-text-muted-dark";
+export const TABLE_CELL = "px-cell-x py-cell-y align-top";
+export const FORM_STACK = "mt-stack-xs space-y-stack-xs";
+export const PANEL_STACK = "space-y-stack";
+export const SECTION_STACK_SM = "space-y-stack-xs";
+
+export const ALERT_CLASS_MAP = {
+  success:
+    "rounded-control border border-app-success-line bg-app-success-soft px-control-x py-control-y text-sm text-app-success-text dark:border-app-success-line-dark/40 dark:bg-app-success-soft-dark/30 dark:text-app-success-text-dark",
+  error:
+    "rounded-control border border-app-danger-line bg-app-danger-soft px-control-x py-control-y text-sm text-app-danger-text dark:border-app-danger-line-dark/40 dark:bg-app-danger-soft-dark/30 dark:text-app-danger-text-dark",
+} as const;
+
+export const MEETING_STATUS_BADGE_CLASS_MAP = {
+  not_booked:
+    "bg-app-line px-badge-pill-x py-badge-pill-y text-app-text-soft dark:bg-app-line-dark dark:text-app-text-soft-dark",
+  overdue:
+    "bg-app-danger-soft px-badge-pill-x py-badge-pill-y text-app-danger-text dark:bg-app-danger-soft-dark/40 dark:text-app-danger-text-dark",
+  within_2_weeks:
+    "bg-app-warning px-badge-pill-x py-badge-pill-y text-app-warning-text dark:bg-app-warning-soft-dark/40 dark:text-app-warning-text-dark",
+  scheduled:
+    "bg-app-success-soft px-badge-pill-x py-badge-pill-y text-app-success-text dark:bg-app-success-soft-dark/40 dark:text-app-success-text-dark",
+} as const;
+
+export function getMeetingStatusBadgeClass(statusId: string): string {
+  return (
+    MEETING_STATUS_BADGE_CLASS_MAP[
+      statusId as keyof typeof MEETING_STATUS_BADGE_CLASS_MAP
+    ] ?? MEETING_STATUS_BADGE_CLASS_MAP.not_booked
+  );
+}
 
 const BUTTON_CLASS_MAP: Record<ButtonVariant, string> = {
-  neutral: `rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800 ${FOCUS_RING}`,
-  primary: `rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 ${FOCUS_RING}`,
-  primaryBlock: `w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 ${FOCUS_RING}`,
+  neutral: `rounded-control border border-app-field px-control-x py-control-y text-sm font-medium text-app-text hover:bg-app-surface-soft dark:border-app-field-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark ${FOCUS_RING}`,
+  primary: `rounded-control bg-app-brand px-control-x py-control-y text-sm font-medium text-white hover:bg-app-brand-strong ${FOCUS_RING}`,
+  primaryBlock: `w-full rounded-control bg-app-brand px-panel-sm py-control-y text-sm font-semibold text-white hover:bg-app-brand-strong ${FOCUS_RING}`,
   successBlock:
-    "w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900",
+    "w-full rounded-control bg-app-success px-panel-sm py-control-y text-sm font-semibold text-white hover:bg-app-success-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-success focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark",
   dangerBlock:
-    "w-full rounded-md bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900",
-  inline: `rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800/70 ${FOCUS_RING}`,
+    "w-full rounded-control bg-app-danger px-panel-sm py-control-y text-sm font-semibold text-white hover:bg-app-danger-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-danger focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark",
+  inline: `rounded-control border border-app-field px-badge-x py-badge-pill-y text-xs text-app-text hover:bg-app-surface-soft dark:border-app-field-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark/70 ${FOCUS_RING}`,
 };
 
 const BADGE_CLASS_MAP: Record<BadgeVariant, string> = {
   neutral:
-    "rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-200",
-  mock: "rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200",
+    "rounded-control bg-app-line px-badge-x py-badge-y text-xs text-app-text-soft dark:bg-app-line-dark dark:text-app-text-soft-dark",
+  mock: "rounded-control bg-app-mock-soft px-badge-x py-badge-y text-xs text-app-mock-text dark:bg-app-mock-soft-dark/50 dark:text-app-mock-text-dark",
   count:
-    "shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200",
+    "shrink-0 rounded-full bg-app-surface-soft px-badge-pill-x py-badge-pill-y text-xs font-semibold text-app-text-soft dark:bg-app-line-dark dark:text-app-text-soft-dark",
 };
 
 function mergeClasses(...classes: Array<string | undefined>): string {

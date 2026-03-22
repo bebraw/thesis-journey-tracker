@@ -97,10 +97,10 @@ export const DASHBOARD_INTERACTION_SCRIPT = `<script>
       function applySelectedRowState(selectedId) {
         studentRows.forEach(function (row) {
           var isSelected = selectedId > 0 && getRowStudentId(row) === selectedId;
-          row.classList.toggle("bg-blue-50", isSelected);
-          row.classList.toggle("dark:bg-blue-900/20", isSelected);
-          row.classList.toggle("hover:bg-slate-50", !isSelected);
-          row.classList.toggle("dark:hover:bg-slate-800/35", !isSelected);
+          row.classList.toggle("bg-app-brand-soft", isSelected);
+          row.classList.toggle("dark:bg-app-brand-soft-dark/20", isSelected);
+          row.classList.toggle("hover:bg-app-surface-soft", !isSelected);
+          row.classList.toggle("dark:hover:bg-app-surface-soft-dark/35", !isSelected);
           row.setAttribute("aria-selected", isSelected ? "true" : "false");
         });
       }
@@ -109,8 +109,8 @@ export const DASHBOARD_INTERACTION_SCRIPT = `<script>
         laneStudentCards.forEach(function (card) {
           var isSelected = selectedId > 0 && getLaneStudentId(card) === selectedId;
           card.classList.toggle("ring-2", isSelected);
-          card.classList.toggle("ring-blue-400/60", isSelected);
-          card.classList.toggle("dark:ring-blue-400/40", isSelected);
+          card.classList.toggle("ring-app-brand-ring/60", isSelected);
+          card.classList.toggle("dark:ring-app-brand-ring/40", isSelected);
           card.setAttribute("aria-selected", isSelected ? "true" : "false");
         });
       }

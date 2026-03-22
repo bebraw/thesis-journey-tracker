@@ -5,7 +5,11 @@ import {
   MUTED_TEXT_XS,
   STATUS_BADGE,
   SURFACE_CARD,
+  TABLE_CELL,
+  TABLE_HEADER_ROW,
   TEXT_LINK,
+  TOPIC_TEXT_SM,
+  getMeetingStatusBadgeClass,
   renderBadge,
   renderButton,
 } from "../../components";
@@ -15,7 +19,6 @@ import {
   formatDateTime,
   getDegreeLabel,
   getPhaseLabel,
-  meetingStatusClass,
   meetingStatusId,
   meetingStatusText,
 } from "../../utils";
@@ -73,7 +76,7 @@ function prepareStudentRows(
       `<div class="font-medium">
         <a &class="(get props linkClass)" &href="(get props href)" data-inline-select="1" &data-student-id="(get props studentIdAttr)" &children="(get props name)"></a>
       </div>
-      <div &visibleIf="(get props topicVisible)" class="mt-1 text-xs font-medium text-slate-700 dark:text-slate-200" &children="(get props topic)"></div>
+      <div &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></div>
       <div &class="(get props metaClass)" &children="(get props metaText)"></div>
       <noop &children="(get props mockBadgeHtml)"></noop>`,
       {
@@ -83,6 +86,7 @@ function prepareStudentRows(
         name: escapeHtml(student.name),
         topicVisible: Boolean(student.thesisTopic),
         topic: escapeHtml(student.thesisTopic || ""),
+        topicTextClass: escapeHtml(TOPIC_TEXT_SM),
         metaClass: escapeHtml(MUTED_TEXT_XS),
         metaText: escapeHtml(
           `${getDegreeLabel(student.degreeType, DEGREE_TYPES)} · ${
@@ -101,7 +105,7 @@ function prepareStudentRows(
 
     return {
       rowClass: escapeHtml(
-        `${isSelected ? "bg-blue-50 dark:bg-blue-900/20" : "hover:bg-slate-50 dark:hover:bg-slate-800/35"} cursor-pointer`,
+        `${isSelected ? "bg-app-brand-soft dark:bg-app-brand-soft-dark/20" : "hover:bg-app-surface-soft dark:hover:bg-app-surface-soft-dark/35"} cursor-pointer`,
       ),
       selectedAttr: isSelected ? "true" : "false",
       selectHref: escapeHtml(`/?selected=${student.id}`),
@@ -124,7 +128,7 @@ function prepareStudentRows(
           : "Not booked",
       ),
       statusBadgeHtml: `<span class="${escapeHtml(
-        `${STATUS_BADGE} ${meetingStatusClass(student)}`,
+        `${STATUS_BADGE} ${getMeetingStatusBadgeClass(statusId)}`,
       )}">${escapeHtml(statusText)}</span>`,
       logCountText: String(student.logCount),
       actionButtonHtml: renderButton({
@@ -160,14 +164,14 @@ export function renderStudentsTable(
     &aria-selected="(get props selectedAttr)"
     tabindex="0"
   >
-    <td class="px-2 py-2 align-top"><noop &children="(get props summaryHtml)"></noop></td>
-    <td class="px-2 py-2 align-top" &children="(get props degreeLabel)"></td>
-    <td class="px-2 py-2 align-top" &children="(get props phaseLabel)"></td>
-    <td class="px-2 py-2 align-top" &children="(get props targetDate)"></td>
-    <td class="px-2 py-2 align-top" &children="(get props nextMeetingText)"></td>
-    <td class="px-2 py-2 align-top"><noop &children="(get props statusBadgeHtml)"></noop></td>
-    <td class="px-2 py-2 align-top" &children="(get props logCountText)"></td>
-    <td class="px-2 py-2 align-top"><noop &children="(get props actionButtonHtml)"></noop></td>
+    <td &class="(get props cellClass)"><noop &children="(get props summaryHtml)"></noop></td>
+    <td &class="(get props cellClass)" &children="(get props degreeLabel)"></td>
+    <td &class="(get props cellClass)" &children="(get props phaseLabel)"></td>
+    <td &class="(get props cellClass)" &children="(get props targetDate)"></td>
+    <td &class="(get props cellClass)" &children="(get props nextMeetingText)"></td>
+    <td &class="(get props cellClass)"><noop &children="(get props statusBadgeHtml)"></noop></td>
+    <td &class="(get props cellClass)" &children="(get props logCountText)"></td>
+    <td &class="(get props cellClass)"><noop &children="(get props actionButtonHtml)"></noop></td>
   </tr>`,
   };
 
@@ -188,13 +192,13 @@ export function renderStudentsTable(
   const studentRows = prepareStudentRows(students, selectedStudent);
 
   return renderView(
-    `<section class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+    `<section class="grid grid-cols-1 gap-stack xl:grid-cols-3">
       <article &class="(get props studentsCardClass)">
-        <div class="mb-4">
+        <div class="mb-panel-sm">
           <h2 class="text-lg font-semibold">Students</h2>
           <p &class="(get props mutedTextXs)">Use filters to quickly find students that need attention.</p>
         </div>
-        <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div class="mb-panel-sm grid grid-cols-1 gap-stack-xs sm:grid-cols-2 xl:grid-cols-5">
           <label &class="(get props filterLabelClass)">
             Search
             <input id="studentSearch" type="search" placeholder="Name, email, or topic" &class="(get props filterControlClass)" />
@@ -235,23 +239,23 @@ export function renderStudentsTable(
             </select>
           </label>
         </div>
-        <p id="studentResultsMeta" class="mb-2 text-xs text-slate-500 dark:text-slate-300"></p>
-        <p class="mb-2 text-xs text-slate-500 dark:text-slate-300">Tip: click a row to open student details.</p>
+        <p id="studentResultsMeta" class="mb-badge-pill-y text-xs text-app-text-muted dark:text-app-text-muted-dark"></p>
+        <p class="mb-badge-pill-y text-xs text-app-text-muted dark:text-app-text-muted-dark">Tip: click a row to open student details.</p>
         <div class="overflow-x-auto">
-          <table class="w-full min-w-[58rem] divide-y divide-slate-200 text-sm dark:divide-slate-700">
+          <table class="w-full min-w-table divide-y divide-app-line text-sm dark:divide-app-line-dark">
             <thead>
-              <tr class="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-300">
-                <th class="px-2 py-2">Student</th>
-                <th class="px-2 py-2">Degree</th>
-                <th class="px-2 py-2">Phase</th>
-                <th class="px-2 py-2">Target</th>
-                <th class="px-2 py-2">Next meeting (local)</th>
-                <th class="px-2 py-2">Status</th>
-                <th class="px-2 py-2">Logs</th>
-                <th class="px-2 py-2">Action</th>
+              <tr &class="(get props tableHeaderClass)">
+                <th class="px-cell-x py-cell-y">Student</th>
+                <th class="px-cell-x py-cell-y">Degree</th>
+                <th class="px-cell-x py-cell-y">Phase</th>
+                <th class="px-cell-x py-cell-y">Target</th>
+                <th class="px-cell-x py-cell-y">Next meeting (local)</th>
+                <th class="px-cell-x py-cell-y">Status</th>
+                <th class="px-cell-x py-cell-y">Logs</th>
+                <th class="px-cell-x py-cell-y">Action</th>
               </tr>
             </thead>
-            <tbody id="studentsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody id="studentsTableBody" class="divide-y divide-app-surface-soft dark:divide-app-surface-soft-dark">
               <noop &visibleIf="(get props hasStudentRows)">
                 <noop &foreach="(get props studentRows)">
                   <StudentTableRow
@@ -279,7 +283,7 @@ export function renderStudentsTable(
                 </noop>
               </noop>
               <tr &visibleIf="(get props showEmptyRow)">
-                <td colspan="8" class="px-2 py-3 text-sm text-slate-500 dark:text-slate-300">No students yet.</td>
+                <td colspan="8" class="px-cell-x py-stack-xs text-sm text-app-text-muted dark:text-app-text-muted-dark">No students yet.</td>
               </tr>
             </tbody>
           </table>
@@ -292,9 +296,11 @@ export function renderStudentsTable(
       studentsCardClass: escapeHtml(
         `overflow-hidden xl:col-span-2 ${SURFACE_CARD}`,
       ),
+      cellClass: escapeHtml(TABLE_CELL),
       mutedTextXs: escapeHtml(MUTED_TEXT_XS),
       filterLabelClass: escapeHtml(FILTER_LABEL),
       filterControlClass: escapeHtml(FIELD_CONTROL_WITH_MARGIN),
+      tableHeaderClass: escapeHtml(TABLE_HEADER_ROW),
       degreeFilterOptions,
       phaseFilterOptions,
       hasStudentRows: studentRows.length > 0,

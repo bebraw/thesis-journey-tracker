@@ -1,8 +1,9 @@
 import {
+  ALERT_CLASS_MAP,
   BODY_CLASS,
-  FOCUS_RING,
   HEADER_CARD,
   SUBTLE_TEXT,
+  THEME_TOGGLE_BUTTON,
   renderButton,
 } from "../components";
 import { type HtmlispComponents, renderHTMLisp } from "../htmlisp";
@@ -85,17 +86,19 @@ export function renderFlashMessages(
 ): string {
   const components: HtmlispComponents = {
     NoticeFlash:
-      '<p &visibleIf="(get props visible)" role="status" aria-live="polite" class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-200" &children="(get props message)"></p>',
+      '<p &visibleIf="(get props visible)" role="status" aria-live="polite" &class="(get props noticeClass)" &children="(get props message)"></p>',
     ErrorFlash:
-      '<p &visibleIf="(get props visible)" role="alert" aria-live="assertive" class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200" &children="(get props message)"></p>',
+      '<p &visibleIf="(get props visible)" role="alert" aria-live="assertive" &class="(get props errorClass)" &children="(get props message)"></p>',
   };
 
   return renderView(
     '<noop><NoticeFlash &visible="(get props noticeVisible)" &message="(get props noticeMessage)"></NoticeFlash><ErrorFlash &visible="(get props errorVisible)" &message="(get props errorMessage)"></ErrorFlash></noop>',
     {
       noticeVisible: Boolean(notice),
+      noticeClass: escapeHtml(ALERT_CLASS_MAP.success),
       noticeMessage: escapeHtml(notice || ""),
       errorVisible: Boolean(error),
+      errorClass: escapeHtml(ALERT_CLASS_MAP.error),
       errorMessage: escapeHtml(error || ""),
     },
     components,
@@ -115,10 +118,10 @@ export function renderAuthedPageHeader(
     aria-label="Switch to dark mode"
     &class="(get props className)"
   >
-    <svg class="h-5 w-5 text-slate-700 dark:hidden dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg class="h-5 w-5 text-app-text-soft dark:hidden dark:text-app-text-soft-dark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M21 12a9 9 0 1 1-9-9 7 7 0 0 0 9 9Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
-    <svg class="hidden h-5 w-5 text-slate-700 dark:block dark:text-slate-200" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg class="hidden h-5 w-5 text-app-text-soft dark:block dark:text-app-text-soft-dark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8" />
       <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.41 1.41M16.95 16.95l1.41 1.41M18.36 5.64l-1.41 1.41M7.05 16.95l-1.41 1.41" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
     </svg>
@@ -128,7 +131,7 @@ export function renderAuthedPageHeader(
       <h1 class="text-xl font-semibold" &children="(get props title)"></h1>
       <p &class="(get props descriptionClass)" &children="(get props description)"></p>
     </div>
-    <div class="flex flex-wrap items-center gap-2 sm:justify-end sm:gap-3">
+    <div class="flex flex-wrap items-center gap-badge-pill-y sm:justify-end sm:gap-stack-xs">
       <noop &children="(get props actionsHtml)"></noop>
       <ThemeToggleButton &className="(get props themeToggleClass)" />
       <form action="/logout" method="post">
@@ -146,9 +149,7 @@ export function renderAuthedPageHeader(
       description: escapeHtml(description),
       descriptionClass: escapeHtml(SUBTLE_TEXT),
       actionsHtml,
-      themeToggleClass: escapeHtml(
-        `inline-flex items-center justify-center rounded-md border border-slate-300 p-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800 ${FOCUS_RING}`,
-      ),
+      themeToggleClass: escapeHtml(THEME_TOGGLE_BUTTON),
       logoutButtonHtml: renderButton({
         label: "Log out",
         type: "submit",

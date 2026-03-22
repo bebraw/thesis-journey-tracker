@@ -1,6 +1,7 @@
 import {
   FIELD_CONTROL_SM,
   FORM_LABEL,
+  MEETING_STATUS_BADGE_CLASS_MAP,
   MUTED_TEXT_XS,
   PAGE_WRAP,
   STATUS_BADGE,
@@ -33,12 +34,12 @@ export function renderStyleGuidePage(): string {
     renderView(
       `<h2 class="text-lg font-semibold">Buttons</h2>
       <p &class="(get props subtleText)" &children="(get props description)"></p>
-      <div class="mt-4 flex flex-wrap gap-3">
+      <div class="mt-panel-sm flex flex-wrap gap-stack-xs">
         <noop &children="(get props primaryButton)"></noop>
         <noop &children="(get props neutralButton)"></noop>
         <noop &children="(get props inlineButton)"></noop>
       </div>
-      <div class="mt-4 grid gap-3 sm:grid-cols-2">
+      <div class="mt-panel-sm grid gap-stack-xs sm:grid-cols-2">
         <noop &children="(get props primaryBlockButton)"></noop>
         <noop &children="(get props successBlockButton)"></noop>
         <noop &children="(get props dangerBlockButton)"></noop>
@@ -86,7 +87,7 @@ export function renderStyleGuidePage(): string {
     renderView(
       `<h2 class="text-lg font-semibold">Badges</h2>
       <p &class="(get props subtleText)" &children="(get props description)"></p>
-      <div class="mt-4 flex flex-wrap gap-3">
+      <div class="mt-panel-sm flex flex-wrap gap-stack-xs">
         <noop &children="(get props degreeBadge)"></noop>
         <noop &children="(get props mockBadge)"></noop>
         <noop &children="(get props countBadge)"></noop>
@@ -102,10 +103,10 @@ export function renderStyleGuidePage(): string {
         mockBadge: renderBadge({ label: "Mock", variant: "mock" }),
         countBadge: renderBadge({ label: "12", variant: "count" }),
         scheduledBadgeClass: escapeHtml(
-          `${STATUS_BADGE} bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200`,
+          `${STATUS_BADGE} ${MEETING_STATUS_BADGE_CLASS_MAP.scheduled}`,
         ),
         overdueBadgeClass: escapeHtml(
-          `${STATUS_BADGE} bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200`,
+          `${STATUS_BADGE} ${MEETING_STATUS_BADGE_CLASS_MAP.overdue}`,
         ),
       },
     ),
@@ -115,7 +116,7 @@ export function renderStyleGuidePage(): string {
     renderView(
       `<h2 class="text-lg font-semibold">Form Fields</h2>
       <p &class="(get props subtleText)" &children="(get props description)"></p>
-      <form class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <form class="mt-panel-sm grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
         <noop &children="(get props studentNameField)"></noop>
         <noop &children="(get props degreeField)"></noop>
         <noop &children="(get props topicField)"></noop>
@@ -158,7 +159,7 @@ export function renderStyleGuidePage(): string {
     renderView(
       `<h2 class="text-lg font-semibold">Surfaces</h2>
       <p &class="(get props subtleText)" &children="(get props description)"></p>
-      <div class="mt-4 grid gap-4">
+      <div class="mt-panel-sm grid gap-panel-sm">
         <noop &children="(get props compactCard)"></noop>
         <noop &children="(get props standardCard)"></noop>
       </div>`,
@@ -188,7 +189,7 @@ export function renderStyleGuidePage(): string {
               ),
             },
           ),
-          "p-4",
+          "p-panel-sm",
         ),
       },
     ),
@@ -197,11 +198,11 @@ export function renderStyleGuidePage(): string {
   const bodyContent = renderView(
     `<div &class="(get props pageWrap)">
       <noop &children="(get props headerHtml)"></noop>
-      <section class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <section class="grid grid-cols-1 gap-stack xl:grid-cols-2">
         <noop &children="(get props buttonsCard)"></noop>
         <noop &children="(get props badgesCard)"></noop>
       </section>
-      <section class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <section class="grid grid-cols-1 gap-stack xl:grid-cols-2">
         <noop &children="(get props formFieldsCard)"></noop>
         <noop &children="(get props surfacesCard)"></noop>
       </section>

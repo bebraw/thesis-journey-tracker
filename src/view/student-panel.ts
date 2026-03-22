@@ -1,8 +1,16 @@
 import type { MeetingLog, Student } from "../db";
 import {
+  DANGER_PANEL,
+  DANGER_TEXT,
+  DANGER_TITLE,
+  EMPTY_STATE_CARD,
   FIELD_CONTROL,
+  FORM_STACK,
+  PANEL_STACK,
+  SOFT_SURFACE_CARD,
   SURFACE_CARD,
   SUBTLE_TEXT,
+  TOPIC_TEXT,
   renderBadge,
   renderButton,
   renderInputField,
@@ -63,7 +71,7 @@ export function renderSelectedStudentPanel(
   logs: MeetingLog[],
 ): string {
   const components: HtmlispComponents = {
-    MeetingLogEntry: `<article class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/60">
+    MeetingLogEntry: `<article &class="(get props cardClass)">
     <p class="font-medium"><span &children="(get props timestampText)"></span><noop &children="(get props mockBadgeHtml)"></noop></p>
     <p class="mt-1"><span class="font-medium">Discussed:</span> <span &children="(get props discussed)"></span></p>
     <p class="mt-1"><span class="font-medium">Agreed:</span> <span &children="(get props agreedPlan)"></span></p>
@@ -82,7 +90,7 @@ export function renderSelectedStudentPanel(
   const preparedLogs = prepareLogEntries(logs);
 
   const editFormHtml = renderView(
-    `<form &action="(get props action)" method="post" class="mt-3 space-y-3">
+    `<form &action="(get props action)" method="post" &class="(get props formStack)">
       <noop &children="(get props nameField)"></noop>
       <noop &children="(get props emailField)"></noop>
       <noop &children="(get props degreeField)"></noop>
@@ -95,6 +103,7 @@ export function renderSelectedStudentPanel(
     </form>`,
     {
       action: escapeHtml(`/actions/update-student/${student.id}`),
+      formStack: escapeHtml(FORM_STACK),
       nameField: renderInputField({
         label: "Name",
         name: "name",
@@ -162,7 +171,7 @@ export function renderSelectedStudentPanel(
   );
 
   const addLogFormHtml = renderView(
-    `<form &action="(get props action)" method="post" class="mt-3 space-y-3">
+    `<form &action="(get props action)" method="post" &class="(get props formStack)">
       <noop &children="(get props happenedAtField)"></noop>
       <noop &children="(get props discussedField)"></noop>
       <noop &children="(get props agreedPlanField)"></noop>
@@ -171,6 +180,7 @@ export function renderSelectedStudentPanel(
     </form>`,
     {
       action: escapeHtml(`/actions/add-log/${student.id}`),
+      formStack: escapeHtml(FORM_STACK),
       happenedAtField: renderInputField({
         label: "Meeting date/time",
         name: "happenedAt",
@@ -208,7 +218,7 @@ export function renderSelectedStudentPanel(
       <section>
         <h2 class="text-lg font-semibold">Edit Student</h2>
         <p &class="(get props subtleText)" &children="(get props currentlyViewingText)"></p>
-        <p &visibleIf="(get props topicVisible)" class="mt-1 text-sm font-medium text-slate-700 dark:text-slate-200" &children="(get props topic)"></p>
+        <p &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></p>
         <noop &children="(get props editFormHtml)"></noop>
       </section>
 
@@ -219,9 +229,10 @@ export function renderSelectedStudentPanel(
 
       <section>
         <h2 class="text-lg font-semibold">Meeting Log History</h2>
-        <div class="mt-3 space-y-3" &visibleIf="(get props hasLogs)">
+        <div &class="(get props formStack)" &visibleIf="(get props hasLogs)">
           <noop &foreach="(get props logs)">
             <MeetingLogEntry
+              &cardClass="(get props logEntryClass)"
               &timestampText="(get props timestampText)"
               &mockBadgeHtml="(get props mockBadgeHtml)"
               &discussed="(get props discussed)"
@@ -231,16 +242,16 @@ export function renderSelectedStudentPanel(
             ></MeetingLogEntry>
           </noop>
         </div>
-        <p &visibleIf="(get props showNoLogs)" class="rounded-md border border-slate-200 p-3 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300">No entries yet.</p>
+        <p &visibleIf="(get props showNoLogs)" &class="(get props emptyStateClass)">No entries yet.</p>
       </section>
 
-      <section class="rounded-2xl border border-rose-200 bg-rose-50/60 p-4 dark:border-rose-900/60 dark:bg-rose-950/30">
-        <h2 class="text-lg font-semibold text-rose-900 dark:text-rose-100">Delete Student</h2>
-        <p class="mt-1 text-sm text-rose-800 dark:text-rose-200">This removes the student and all related meeting log entries permanently.</p>
+      <section &class="(get props dangerPanelClass)">
+        <h2 &class="(get props dangerTitleClass)">Delete Student</h2>
+        <p &class="(get props dangerTextClass)">This removes the student and all related meeting log entries permanently.</p>
         <form
           &action="(get props deleteAction)"
           method="post"
-          class="mt-4"
+          class="mt-panel-sm"
           &onsubmit="(get props deleteConfirm)"
         >
           <noop &children="(get props deleteButtonHtml)"></noop>
@@ -248,8 +259,15 @@ export function renderSelectedStudentPanel(
       </section>
     </article>`,
     {
-      cardClass: escapeHtml(`space-y-6 ${SURFACE_CARD}`),
+      cardClass: escapeHtml(`${PANEL_STACK} ${SURFACE_CARD}`),
+      dangerPanelClass: escapeHtml(DANGER_PANEL),
+      dangerTextClass: escapeHtml(DANGER_TEXT),
+      dangerTitleClass: escapeHtml(DANGER_TITLE),
+      emptyStateClass: escapeHtml(EMPTY_STATE_CARD),
+      formStack: escapeHtml(FORM_STACK),
+      logEntryClass: escapeHtml(SOFT_SURFACE_CARD),
       subtleText: escapeHtml(SUBTLE_TEXT),
+      topicTextClass: escapeHtml(TOPIC_TEXT),
       currentlyViewingText: escapeHtml(`Currently viewing: ${student.name}`),
       topicVisible: Boolean(student.thesisTopic),
       topic: escapeHtml(student.thesisTopic || ""),

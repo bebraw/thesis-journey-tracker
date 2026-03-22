@@ -1,8 +1,11 @@
 import type { Student } from "../../db";
 import {
+  EMPTY_DASHED_CARD,
   MUTED_TEXT_XS,
-  STATUS_BADGE,
   SURFACE_CARD_SM,
+  STATUS_BADGE,
+  TOPIC_TEXT_SM,
+  getMeetingStatusBadgeClass,
   renderBadge,
 } from "../../components";
 import { type HtmlispComponents } from "../../htmlisp";
@@ -10,7 +13,7 @@ import {
   escapeHtml,
   formatDateTime,
   getDegreeLabel,
-  meetingStatusClass,
+  meetingStatusId,
   meetingStatusText,
 } from "../../utils";
 import { renderView } from "../shared";
@@ -75,8 +78,10 @@ function preparePhaseLanes(
           idAttr: String(student.id),
           selectedAttr: isSelected ? "true" : "false",
           cardClass: escapeHtml(
-            `rounded-lg border border-slate-200 bg-slate-50 p-3 transition-colors cursor-pointer dark:border-slate-700 dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-500${
-              isSelected ? " ring-2 ring-blue-400/60 dark:ring-blue-400/40" : ""
+            `rounded-card border border-app-line bg-app-surface-soft p-stack-xs transition-colors cursor-pointer dark:border-app-line-dark dark:bg-app-surface-soft-dark/70 hover:border-app-line-strong dark:hover:border-app-line-dark-strong${
+              isSelected
+                ? " ring-2 ring-app-brand-ring/60 dark:ring-app-brand-ring/40"
+                : ""
             }`,
           ),
           href: escapeHtml(`/?selected=${student.id}`),
@@ -91,7 +96,7 @@ function preparePhaseLanes(
               : "Next: not booked",
           ),
           statusBadgeHtml: `<span class="${escapeHtml(
-            `${STATUS_BADGE} ${meetingStatusClass(student)}`,
+            `${STATUS_BADGE} ${getMeetingStatusBadgeClass(meetingStatusId(student))}`,
           )}">${escapeHtml(meetingStatusText(student))}</span>`,
         };
       }),
@@ -105,11 +110,11 @@ export function renderPhaseLanes(
 ): string {
   const components: HtmlispComponents = {
     PhaseLane: `<article &class="(get props cardClass)">
-    <div class="flex items-start justify-between gap-3">
+    <div class="flex items-start justify-between gap-stack-xs">
       <h3 class="min-h-10 flex-1 text-sm font-semibold leading-5" &children="(get props label)"></h3>
       <noop &children="(get props countBadgeHtml)"></noop>
     </div>
-    <ul class="mt-3 space-y-2" &visibleIf="(get props hasStudents)">
+    <ul class="mt-stack-xs space-y-badge-pill-y" &visibleIf="(get props hasStudents)">
       <noop &foreach="(get props students)">
         <LaneStudentCard
           &idAttr="(get props idAttr)"
@@ -126,7 +131,7 @@ export function renderPhaseLanes(
         />
       </noop>
     </ul>
-    <p &visibleIf="(get props isEmpty)" class="rounded-lg border border-dashed border-slate-300 px-3 py-4 text-xs text-slate-500 dark:border-slate-600 dark:text-slate-300">No students in this phase.</p>
+    <p &visibleIf="(get props isEmpty)" &class="(get props emptyStateClass)">No students in this phase.</p>
   </article>`,
     LaneStudentCard: `<li
     &class="(get props cardClass)"
@@ -135,33 +140,33 @@ export function renderPhaseLanes(
     &aria-selected="(get props selectedAttr)"
     tabindex="0"
   >
-    <div class="flex flex-wrap items-start justify-between gap-2">
+    <div class="flex flex-wrap items-start justify-between gap-badge-pill-y">
       <a
         &href="(get props href)"
         data-inline-select="1"
         data-lane-select="1"
         &data-student-id="(get props idAttr)"
-        class="min-w-0 flex-1 break-words font-medium text-slate-800 dark:text-slate-100 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+        class="min-w-0 flex-1 break-words font-medium text-app-text dark:text-app-text-dark underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark"
         &children="(get props name)"
       ></a>
-      <div class="flex max-w-full flex-wrap justify-end gap-1">
+      <div class="flex max-w-full flex-wrap justify-end gap-badge-y">
         <noop &children="(get props badgesHtml)"></noop>
       </div>
     </div>
-    <p &visibleIf="(get props topicVisible)" class="mt-1 text-xs font-medium text-slate-700 dark:text-slate-200" &children="(get props topic)"></p>
-    <p class="mt-1 text-xs text-slate-500 dark:text-slate-300" &children="(get props targetText)"></p>
-    <p class="mt-1 text-xs text-slate-500 dark:text-slate-300" &children="(get props nextMeetingText)"></p>
+    <p &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></p>
+    <p class="mt-1 text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="(get props targetText)"></p>
+    <p class="mt-1 text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="(get props nextMeetingText)"></p>
     <p class="mt-2"><noop &children="(get props statusBadgeHtml)"></noop></p>
   </li>`,
   };
 
   return renderView(
-    `<section class="space-y-3">
+    `<section class="space-y-stack-xs">
       <div>
         <h2 class="text-lg font-semibold">Phase Lanes</h2>
         <p &class="(get props mutedTextXs)">Overview of where students currently are in the thesis process.</p>
       </div>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div class="grid grid-cols-1 gap-panel-sm sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <noop &foreach="(get props lanes)">
           <PhaseLane
             &cardClass="(get props cardClass)"
@@ -176,7 +181,9 @@ export function renderPhaseLanes(
     </section>`,
     {
       mutedTextXs: escapeHtml(MUTED_TEXT_XS),
-      cardClass: escapeHtml(`snap-start min-h-[14rem] ${SURFACE_CARD_SM}`),
+      cardClass: escapeHtml(`snap-start min-h-lane ${SURFACE_CARD_SM}`),
+      emptyStateClass: escapeHtml(EMPTY_DASHED_CARD),
+      topicTextClass: escapeHtml(TOPIC_TEXT_SM),
       lanes: preparePhaseLanes(students, selectedStudent),
     },
     components,
