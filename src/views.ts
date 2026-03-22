@@ -1,5 +1,33 @@
 import type { MeetingLog, Student } from "./db";
 import {
+  BODY_CLASS,
+  BODY_CLASS_LOGIN,
+  FIELD_CONTROL,
+  FIELD_CONTROL_SM,
+  FIELD_CONTROL_WITH_MARGIN,
+  FILTER_LABEL,
+  FOCUS_RING,
+  FORM_LABEL,
+  HEADER_CARD,
+  MUTED_TEXT,
+  MUTED_TEXT_XS,
+  PAGE_WRAP,
+  PAGE_WRAP_NARROW,
+  STATUS_BADGE,
+  SUBTLE_TEXT,
+  SURFACE_CARD,
+  SURFACE_CARD_SM,
+  TEXT_LINK,
+  renderBadge,
+  renderButton,
+  renderCard,
+  renderCompactCard,
+  renderInputField,
+  renderSelectField,
+  renderTextareaField,
+  type SelectOption,
+} from "./components";
+import {
   escapeHtml,
   escapeJsString,
   formatDateTime,
@@ -48,44 +76,6 @@ export const DEGREE_TYPES: DegreeDefinition[] = [
   { id: "msc", label: "MSc" },
   { id: "dsc", label: "DSc" },
 ];
-
-const BODY_CLASS =
-  "min-h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100";
-const BODY_CLASS_LOGIN =
-  "h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100";
-const PAGE_WRAP = "mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8";
-const PAGE_WRAP_NARROW =
-  "mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8";
-const HEADER_CARD =
-  "flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between";
-const SURFACE_CARD =
-  "rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900";
-const SURFACE_CARD_SM =
-  "rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900";
-const SUBTLE_TEXT = "text-sm text-slate-600 dark:text-slate-300";
-const MUTED_TEXT = "text-sm text-slate-500 dark:text-slate-300";
-const MUTED_TEXT_XS = "text-xs text-slate-500 dark:text-slate-300";
-const FIELD_LABEL = "mb-1 block text-slate-600 dark:text-slate-300";
-const FORM_LABEL = "block text-sm";
-const FILTER_LABEL = "text-xs font-medium text-slate-600 dark:text-slate-300";
-const FIELD_CONTROL =
-  "w-full rounded-md border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-800";
-const FIELD_CONTROL_SM = `${FIELD_CONTROL} text-sm`;
-const FIELD_CONTROL_WITH_MARGIN = `mt-1 ${FIELD_CONTROL_SM}`;
-const FOCUS_RING =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900";
-const BUTTON_NEUTRAL = `rounded-md border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800 ${FOCUS_RING}`;
-const BUTTON_PRIMARY = `rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 ${FOCUS_RING}`;
-const BUTTON_PRIMARY_BLOCK = `w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 ${FOCUS_RING}`;
-const BUTTON_SUCCESS_BLOCK =
-  "w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900";
-const BUTTON_DANGER_BLOCK =
-  "w-full rounded-md bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900";
-const BUTTON_INLINE = `rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800/70 ${FOCUS_RING}`;
-const TEXT_LINK = `underline-offset-2 hover:underline ${FOCUS_RING}`;
-const MOCK_BADGE =
-  "rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200";
-const STATUS_BADGE = "rounded px-2 py-1 text-xs";
 
 function renderDocument(
   title: string,
@@ -190,7 +180,7 @@ function renderAuthedPageHeader(
           ${actionsHtml}
           ${renderThemeToggleButton()}
           <form action="/logout" method="post">
-            <button type="submit" class="${BUTTON_NEUTRAL}">Log out</button>
+            ${renderButton({ label: "Log out", type: "submit", variant: "neutral" })}
           </form>
         </div>
       </header>`;
@@ -234,8 +224,8 @@ export function renderDashboardPage(data: DashboardPageData): string {
               <div class="flex flex-wrap items-start justify-between gap-2">
                 <a href="/?selected=${student.id}" data-inline-select="1" data-lane-select="1" data-student-id="${student.id}" class="min-w-0 flex-1 break-words font-medium text-slate-800 dark:text-slate-100 ${TEXT_LINK}">${escapeHtml(student.name)}</a>
                 <div class="flex max-w-full flex-wrap justify-end gap-1">
-                  <span class="rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-200">${escapeHtml(getDegreeLabel(student.degreeType, DEGREE_TYPES))}</span>
-                  ${student.isMock ? `<span class="${MOCK_BADGE}">Mock</span>` : ""}
+                  ${renderBadge({ label: getDegreeLabel(student.degreeType, DEGREE_TYPES) })}
+                  ${student.isMock ? renderBadge({ label: "Mock", variant: "mock" }) : ""}
                 </div>
               </div>
               ${
@@ -256,7 +246,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
       <article class="snap-start min-h-[14rem] ${SURFACE_CARD_SM}">
         <div class="flex items-start justify-between gap-3">
           <h3 class="min-h-10 flex-1 text-sm font-semibold leading-5">${escapeHtml(phase.label)}</h3>
-          <span class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">${laneStudents.length}</span>
+          ${renderBadge({ label: String(laneStudents.length), variant: "count" })}
         </div>
         <ul class="mt-3 space-y-2">${laneStudentItems}</ul>
       </article>
@@ -300,7 +290,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
                     : ""
                 }
                 <div class="${MUTED_TEXT_XS}">${escapeHtml(getDegreeLabel(student.degreeType, DEGREE_TYPES))} · ${escapeHtml(student.email || "-")}</div>
-                ${student.isMock ? `<span class="mt-1 inline-block ${MOCK_BADGE}">Mock</span>` : ""}
+                ${student.isMock ? renderBadge({ label: "Mock", variant: "mock", className: "mt-1 inline-block" }) : ""}
               </td>
               <td class="px-2 py-2 align-top">${escapeHtml(getDegreeLabel(student.degreeType, DEGREE_TYPES))}</td>
               <td class="px-2 py-2 align-top">${escapeHtml(getPhaseLabel(student.currentPhase, PHASES))}</td>
@@ -309,7 +299,12 @@ export function renderDashboardPage(data: DashboardPageData): string {
               <td class="px-2 py-2 align-top"><span class="${STATUS_BADGE} ${meetingStatusClass(student)}">${statusText}</span></td>
               <td class="px-2 py-2 align-top">${student.logCount}</td>
               <td class="px-2 py-2 align-top">
-                <a class="${BUTTON_INLINE}" href="/?selected=${student.id}" data-inline-select="1" data-student-id="${student.id}">View & Edit</a>
+                ${renderButton({
+                  label: "View & Edit",
+                  href: `/?selected=${student.id}`,
+                  variant: "inline",
+                  attributes: `data-inline-select=\"1\" data-student-id=\"${student.id}\"`,
+                })}
               </td>
             </tr>
           `;
@@ -327,7 +322,8 @@ export function renderDashboardPage(data: DashboardPageData): string {
       ${renderAuthedPageHeader(
         "MSc Thesis Journey Tracker",
         "Track phases, next meetings, and supervision logs in one place.",
-        `<a href="/students/new" class="${BUTTON_PRIMARY}">Add student</a>`,
+        `${renderButton({ label: "Style guide", href: "/style-guide", variant: "neutral" })}
+        ${renderButton({ label: "Add student", href: "/students/new", variant: "primary" })}`,
       )}
       ${renderFlashMessages(notice, error)}
       <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -678,13 +674,14 @@ export function renderDashboardPage(data: DashboardPageData): string {
 
 export function renderAddStudentPage(data: AddStudentPageData): string {
   const { notice, error } = data;
-  const degreeOptions = DEGREE_TYPES.map(
-    (degree) =>
-      `<option value="${degree.id}" ${degree.id === "msc" ? "selected" : ""}>${degree.label}</option>`,
-  ).join("");
-  const phaseOptions = PHASES.map(
-    (phase) => `<option value="${phase.id}">${phase.label}</option>`,
-  ).join("");
+  const degreeOptions: SelectOption[] = DEGREE_TYPES.map((degree) => ({
+    label: degree.label,
+    value: degree.id,
+  }));
+  const phaseOptions: SelectOption[] = PHASES.map((phase) => ({
+    label: phase.label,
+    value: phase.id,
+  }));
 
   return renderDocument(
     "Thesis Journey Tracker - Add Student",
@@ -692,47 +689,172 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
       ${renderAuthedPageHeader(
         "Add Student",
         "Create a new thesis supervision entry.",
-        `<a href="/" class="${BUTTON_NEUTRAL}">Dashboard</a>`,
+        `${renderButton({ label: "Dashboard", href: "/", variant: "neutral" })}
+        ${renderButton({ label: "Style guide", href: "/style-guide", variant: "neutral" })}`,
       )}
       ${renderFlashMessages(notice, error)}
-      <section class="${SURFACE_CARD}">
+      ${renderCard(`
         <h2 class="text-lg font-semibold">Student Details</h2>
         <p class="mt-1 ${SUBTLE_TEXT}">Target submission defaults to six months from start date when left empty.</p>
         <form action="/actions/add-student" method="post" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Name</span>
-            <input name="name" required class="${FIELD_CONTROL_SM}" />
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Email (optional)</span>
-            <input name="studentEmail" type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" data-bwignore="true" data-lpignore="true" data-1p-ignore="true" class="${FIELD_CONTROL_SM}" />
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Degree type</span>
-            <select name="degreeType" class="${FIELD_CONTROL_SM}">${degreeOptions}</select>
-          </label>
-          <label class="${FORM_LABEL} sm:col-span-2 lg:col-span-3">
-            <span class="${FIELD_LABEL}">Thesis topic (optional)</span>
-            <input name="thesisTopic" class="${FIELD_CONTROL_SM}" />
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Phase</span>
-            <select name="currentPhase" class="${FIELD_CONTROL_SM}">${phaseOptions}</select>
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Start date</span>
-            <input name="startDate" type="date" required class="${FIELD_CONTROL_SM}" />
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Target submission (optional)</span>
-            <input name="targetSubmissionDate" type="date" class="${FIELD_CONTROL_SM}" />
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Next meeting (optional)</span>
-            <input name="nextMeetingAt" type="datetime-local" class="${FIELD_CONTROL_SM}" />
-          </label>
-          <button type="submit" class="${BUTTON_PRIMARY_BLOCK} sm:col-span-2 lg:col-span-3">Add student</button>
+          ${renderInputField({
+            label: "Name",
+            name: "name",
+            required: true,
+            className: FIELD_CONTROL_SM,
+          })}
+          ${renderInputField({
+            label: "Email (optional)",
+            name: "studentEmail",
+            className: FIELD_CONTROL_SM,
+            attributes:
+              'type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" data-bwignore="true" data-lpignore="true" data-1p-ignore="true"',
+          })}
+          ${renderSelectField({
+            label: "Degree type",
+            name: "degreeType",
+            options: degreeOptions,
+            value: "msc",
+            className: FIELD_CONTROL_SM,
+          })}
+          ${renderInputField({
+            label: "Thesis topic (optional)",
+            name: "thesisTopic",
+            className: FIELD_CONTROL_SM,
+            wrapperClassName: `${FORM_LABEL} sm:col-span-2 lg:col-span-3`,
+          })}
+          ${renderSelectField({
+            label: "Phase",
+            name: "currentPhase",
+            options: phaseOptions,
+            className: FIELD_CONTROL_SM,
+          })}
+          ${renderInputField({
+            label: "Start date",
+            name: "startDate",
+            type: "date",
+            required: true,
+            className: FIELD_CONTROL_SM,
+          })}
+          ${renderInputField({
+            label: "Target submission (optional)",
+            name: "targetSubmissionDate",
+            type: "date",
+            className: FIELD_CONTROL_SM,
+          })}
+          ${renderInputField({
+            label: "Next meeting (optional)",
+            name: "nextMeetingAt",
+            type: "datetime-local",
+            className: FIELD_CONTROL_SM,
+          })}
+          ${renderButton({
+            label: "Add student",
+            type: "submit",
+            variant: "primaryBlock",
+            className: "sm:col-span-2 lg:col-span-3",
+          })}
         </form>
+      `)}
+    </div>
+    ${renderThemeToggleScript()}`,
+  );
+}
+
+export function renderStyleGuidePage(): string {
+  const sampleDegreeOptions: SelectOption[] = DEGREE_TYPES.map((degree) => ({
+    label: degree.label,
+    value: degree.id,
+  }));
+
+  return renderDocument(
+    "Thesis Journey Tracker - Style Guide",
+    `<div class="${PAGE_WRAP}">
+      ${renderAuthedPageHeader(
+        "Style Guide",
+        "Reusable UI patterns for buttons, badges, fields, and surfaces.",
+        `${renderButton({ label: "Dashboard", href: "/", variant: "neutral" })}
+        ${renderButton({ label: "Add student", href: "/students/new", variant: "primary" })}`,
+      )}
+
+      <section class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        ${renderCard(`
+          <h2 class="text-lg font-semibold">Buttons</h2>
+          <p class="mt-1 ${SUBTLE_TEXT}">Primary actions, supporting actions, and destructive actions all come from the same helper.</p>
+          <div class="mt-4 flex flex-wrap gap-3">
+            ${renderButton({ label: "Primary", href: "#", variant: "primary" })}
+            ${renderButton({ label: "Neutral", href: "#", variant: "neutral" })}
+            ${renderButton({ label: "Inline", href: "#", variant: "inline" })}
+          </div>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            ${renderButton({ label: "Primary Block", type: "button", variant: "primaryBlock" })}
+            ${renderButton({ label: "Success Block", type: "button", variant: "successBlock" })}
+            ${renderButton({ label: "Danger Block", type: "button", variant: "dangerBlock" })}
+          </div>
+        `)}
+
+        ${renderCard(`
+          <h2 class="text-lg font-semibold">Badges</h2>
+          <p class="mt-1 ${SUBTLE_TEXT}">Badges keep metadata visually consistent across tables, cards, and logs.</p>
+          <div class="mt-4 flex flex-wrap gap-3">
+            ${renderBadge({ label: "MSc" })}
+            ${renderBadge({ label: "Mock", variant: "mock" })}
+            ${renderBadge({ label: "12", variant: "count" })}
+            <span class="${STATUS_BADGE} bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">Scheduled</span>
+            <span class="${STATUS_BADGE} bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200">Overdue</span>
+          </div>
+        `)}
+      </section>
+
+      <section class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        ${renderCard(`
+          <h2 class="text-lg font-semibold">Form Fields</h2>
+          <p class="mt-1 ${SUBTLE_TEXT}">Inputs, selects, and textareas are rendered from small wrapper functions so labels and spacing stay aligned.</p>
+          <form class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            ${renderInputField({
+              label: "Student name",
+              value: "Ada Lovelace",
+              className: FIELD_CONTROL_SM,
+            })}
+            ${renderSelectField({
+              label: "Degree type",
+              options: sampleDegreeOptions,
+              value: "msc",
+              className: FIELD_CONTROL_SM,
+            })}
+            ${renderInputField({
+              label: "Thesis topic",
+              value: "Supervision dashboard usability",
+              className: FIELD_CONTROL_SM,
+              wrapperClassName: `${FORM_LABEL} sm:col-span-2`,
+            })}
+            ${renderTextareaField({
+              label: "Advisor notes",
+              value:
+                "This textarea uses the same label and border patterns as the forms in the app.",
+              className: FIELD_CONTROL_SM,
+              wrapperClassName: `${FORM_LABEL} sm:col-span-2`,
+            })}
+          </form>
+        `)}
+
+        ${renderCard(`
+          <h2 class="text-lg font-semibold">Surfaces</h2>
+          <p class="mt-1 ${SUBTLE_TEXT}">Cards help sections feel consistent while still allowing different densities.</p>
+          <div class="mt-4 grid gap-4">
+            ${renderCompactCard(`
+              <h3 class="text-sm font-semibold">Compact Card</h3>
+              <p class="mt-1 ${MUTED_TEXT_XS}">Used for metrics and lane columns.</p>
+            `)}
+            ${renderCard(
+              `
+              <h3 class="text-sm font-semibold">Standard Card</h3>
+              <p class="mt-1 ${SUBTLE_TEXT}">Used for larger panels like the student editor and form pages.</p>
+            `,
+              "p-4",
+            )}
+          </div>
+        `)}
       </section>
     </div>
     ${renderThemeToggleScript()}`,
@@ -754,14 +876,14 @@ export function renderSelectedStudentPanel(
   student: Student,
   logs: MeetingLog[],
 ): string {
-  const degreeOptions = DEGREE_TYPES.map((degree) => {
-    const selected = degree.id === student.degreeType ? "selected" : "";
-    return `<option value="${degree.id}" ${selected}>${degree.label}</option>`;
-  }).join("");
-  const phaseOptions = PHASES.map((phase) => {
-    const selected = phase.id === student.currentPhase ? "selected" : "";
-    return `<option value="${phase.id}" ${selected}>${phase.label}</option>`;
-  }).join("");
+  const degreeOptions: SelectOption[] = DEGREE_TYPES.map((degree) => ({
+    label: degree.label,
+    value: degree.id,
+  }));
+  const phaseOptions: SelectOption[] = PHASES.map((phase) => ({
+    label: phase.label,
+    value: phase.id,
+  }));
 
   const logsHtml = logs.length
     ? logs
@@ -769,7 +891,13 @@ export function renderSelectedStudentPanel(
           (log) => `
           <article class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/60">
             <p class="font-medium">${escapeHtml(formatDateTime(log.happenedAt))} ${
-              log.isMock ? `<span class="ml-2 ${MOCK_BADGE}">Mock</span>` : ""
+              log.isMock
+                ? renderBadge({
+                    label: "Mock",
+                    variant: "mock",
+                    className: "ml-2",
+                  })
+                : ""
             }</p>
             <p class="mt-1"><span class="font-medium">Discussed:</span> ${escapeHtml(log.discussed)}</p>
             <p class="mt-1"><span class="font-medium">Agreed:</span> ${escapeHtml(log.agreedPlan)}</p>
@@ -795,66 +923,104 @@ export function renderSelectedStudentPanel(
             : ""
         }
         <form action="/actions/update-student/${student.id}" method="post" class="mt-3 space-y-3">
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Name</span>
-            <input name="name" required value="${escapeHtml(student.name)}" class="${FIELD_CONTROL}" />
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Email</span>
-            <input name="studentEmail" type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" data-bwignore="true" data-lpignore="true" data-1p-ignore="true" value="${escapeHtml(student.email || "")}" class="${FIELD_CONTROL}" />
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Degree type</span>
-            <select name="degreeType" class="${FIELD_CONTROL}">${degreeOptions}</select>
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Thesis topic (optional)</span>
-            <input name="thesisTopic" value="${escapeHtml(student.thesisTopic || "")}" class="${FIELD_CONTROL}" />
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Phase</span>
-            <select name="currentPhase" class="${FIELD_CONTROL}">${phaseOptions}</select>
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Start date</span>
-            <input name="startDate" type="date" required value="${escapeHtml(student.startDate)}" class="${FIELD_CONTROL}" />
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Target submission date</span>
-            <input name="targetSubmissionDate" type="date" required value="${escapeHtml(
-              student.targetSubmissionDate,
-            )}" class="${FIELD_CONTROL}" />
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Next meeting</span>
-            <input name="nextMeetingAt" type="datetime-local" value="${escapeHtml(
-              toDateTimeLocalInput(student.nextMeetingAt),
-            )}" class="${FIELD_CONTROL}" />
-          </label>
-          <button type="submit" class="${BUTTON_PRIMARY_BLOCK}">Save student updates</button>
+          ${renderInputField({
+            label: "Name",
+            name: "name",
+            required: true,
+            value: student.name,
+            className: FIELD_CONTROL,
+          })}
+          ${renderInputField({
+            label: "Email",
+            name: "studentEmail",
+            value: student.email || "",
+            className: FIELD_CONTROL,
+            attributes:
+              'type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" data-bwignore="true" data-lpignore="true" data-1p-ignore="true"',
+          })}
+          ${renderSelectField({
+            label: "Degree type",
+            name: "degreeType",
+            options: degreeOptions,
+            value: student.degreeType,
+            className: FIELD_CONTROL,
+          })}
+          ${renderInputField({
+            label: "Thesis topic (optional)",
+            name: "thesisTopic",
+            value: student.thesisTopic || "",
+            className: FIELD_CONTROL,
+          })}
+          ${renderSelectField({
+            label: "Phase",
+            name: "currentPhase",
+            options: phaseOptions,
+            value: student.currentPhase,
+            className: FIELD_CONTROL,
+          })}
+          ${renderInputField({
+            label: "Start date",
+            name: "startDate",
+            type: "date",
+            required: true,
+            value: student.startDate,
+            className: FIELD_CONTROL,
+          })}
+          ${renderInputField({
+            label: "Target submission date",
+            name: "targetSubmissionDate",
+            type: "date",
+            required: true,
+            value: student.targetSubmissionDate,
+            className: FIELD_CONTROL,
+          })}
+          ${renderInputField({
+            label: "Next meeting",
+            name: "nextMeetingAt",
+            type: "datetime-local",
+            value: toDateTimeLocalInput(student.nextMeetingAt),
+            className: FIELD_CONTROL,
+          })}
+          ${renderButton({
+            label: "Save student updates",
+            type: "submit",
+            variant: "primaryBlock",
+          })}
         </form>
       </section>
 
       <section>
         <h2 class="text-lg font-semibold">Add Log Entry</h2>
         <form action="/actions/add-log/${student.id}" method="post" class="mt-3 space-y-3">
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Meeting date/time</span>
-            <input name="happenedAt" type="datetime-local" class="${FIELD_CONTROL}" />
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">What was discussed</span>
-            <textarea name="discussed" required rows="3" class="${FIELD_CONTROL}"></textarea>
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Agreed plan / next actions</span>
-            <textarea name="agreedPlan" required rows="3" class="${FIELD_CONTROL}"></textarea>
-          </label>
-          <label class="${FORM_LABEL}">
-            <span class="${FIELD_LABEL}">Next-step deadline (optional)</span>
-            <input name="nextStepDeadline" type="date" class="${FIELD_CONTROL}" />
-          </label>
-          <button type="submit" class="${BUTTON_SUCCESS_BLOCK}">Save log entry</button>
+          ${renderInputField({
+            label: "Meeting date/time",
+            name: "happenedAt",
+            type: "datetime-local",
+            className: FIELD_CONTROL,
+          })}
+          ${renderTextareaField({
+            label: "What was discussed",
+            name: "discussed",
+            required: true,
+            className: FIELD_CONTROL,
+          })}
+          ${renderTextareaField({
+            label: "Agreed plan / next actions",
+            name: "agreedPlan",
+            required: true,
+            className: FIELD_CONTROL,
+          })}
+          ${renderInputField({
+            label: "Next-step deadline (optional)",
+            name: "nextStepDeadline",
+            type: "date",
+            className: FIELD_CONTROL,
+          })}
+          ${renderButton({
+            label: "Save log entry",
+            type: "submit",
+            variant: "successBlock",
+          })}
         </form>
       </section>
 
@@ -874,12 +1040,11 @@ export function renderSelectedStudentPanel(
             student.name,
           )}? This will also remove all supervision logs for this student.');"
         >
-          <button
-            type="submit"
-            class="${BUTTON_DANGER_BLOCK}"
-          >
-            Delete student
-          </button>
+          ${renderButton({
+            label: "Delete student",
+            type: "submit",
+            variant: "dangerBlock",
+          })}
         </form>
       </section>
     </article>
@@ -901,7 +1066,12 @@ export function renderLoginPage(showError: boolean): string {
         <form action="/login" method="post" class="mt-6 space-y-4">
           <label class="block text-sm font-medium" for="password">Password</label>
           <input id="password" name="password" type="password" autocomplete="current-password" required class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-blue-500 focus:ring-2 dark:border-slate-600 dark:bg-slate-800" />
-          <button type="submit" class="${BUTTON_PRIMARY_BLOCK} transition">Sign in</button>
+          ${renderButton({
+            label: "Sign in",
+            type: "submit",
+            variant: "primaryBlock",
+            className: "transition",
+          })}
         </form>
       </section>
     </main>`,

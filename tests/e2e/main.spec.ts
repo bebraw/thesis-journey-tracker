@@ -86,6 +86,12 @@ test.describe("dashboard e2e", () => {
   }) => {
     await login(page);
 
+    await page.getByRole("link", { name: "Style guide" }).click();
+    await expect(page).toHaveURL(/\/style-guide$/);
+    await expect(page.getByRole("heading", { name: "Buttons" })).toBeVisible();
+    await page.getByRole("link", { name: "Dashboard" }).first().click();
+    await expect(page).toHaveURL(/\/$/);
+
     await expect(page.getByText("Mock", { exact: true }).first()).toBeVisible();
   });
 

@@ -23,6 +23,7 @@ This project implements a thesis advising dashboard for tracking students throug
 - Dashboard phase lanes showing how students are distributed across thesis phases
 - Seeded test data used only in the isolated E2E environment
 - Dark mode
+- Reusable server-rendered UI components and authenticated style guide page
 - Works locally and on Cloudflare Workers
 - Simple server-rendered HTML + locally built Tailwind CSS (no React)
 
@@ -35,6 +36,7 @@ This project implements a thesis advising dashboard for tracking students throug
 ## Project Structure
 
 - `src/worker.ts`: App routes, auth, page rendering, business logic
+- `src/components.ts`: Reusable UI component render helpers and shared Tailwind patterns
 - `src/tailwind-input.css`: Tailwind source file
 - `src/styles.css`: compiled/minified Tailwind output served at `/styles.css`
 - `migrations/0001_init.sql`: Schema, indexes, and triggers
@@ -159,6 +161,7 @@ npm run deploy
 - Use **View & Edit** on a student row to edit details and add/view log entries.
 - Filter the Students table by degree type, phase, and meeting status.
 - If a next meeting is not known, leave it empty.
+- `/style-guide` shows the currently available reusable UI components.
 - Seeded test students are not part of your normal workspace and are only loaded into the isolated E2E database.
 - Dark mode is controlled directly from the header toggle.
 - If you used an older version that inserted mock rows into your main database, run the latest D1 migrations to remove them.

@@ -36,6 +36,7 @@ import {
   renderEmptySelectedPanel,
   renderLoginPage,
   renderSelectedStudentPanel,
+  renderStyleGuidePage,
 } from "./views";
 
 interface Env {
@@ -135,6 +136,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   if (pathname === "/students/new" && request.method === "GET") {
     return renderAddStudent(url);
+  }
+
+  if (pathname === "/style-guide" && request.method === "GET") {
+    return htmlResponse(renderStyleGuidePage());
   }
 
   const partialStudentMatch = pathname.match(/^\/partials\/student\/(\d+)$/);
