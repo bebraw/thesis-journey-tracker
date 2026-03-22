@@ -4,13 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.cjs -i ./src/tailwind-input.css -o ./src/styles.css --minify",
+    "predev": "npm run build:css",
     "dev": "wrangler dev",
+    "predeploy": "npm run build:css",
     "deploy": "wrangler deploy",
     "db:migrate": "wrangler d1 migrations apply thesis_tracker_db --local",
     "db:migrate:remote": "wrangler d1 migrations apply thesis_tracker_db --remote",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "tailwindcss": "^3.4.17",
     "typescript": "^5.9.2",
     "wrangler": "^4.8.0"
   }

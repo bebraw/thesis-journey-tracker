@@ -21,19 +21,22 @@ Private thesis advising dashboard for tracking MSc students through thesis phase
 - Seeded mock data with persisted on/off toggle
 - Dark mode
 - Works locally and on Cloudflare Workers
-- Simple server-rendered HTML + Tailwind CDN (no React)
+- Simple server-rendered HTML + locally built Tailwind CSS (no React)
 
 ## Tech Stack
 
 - Cloudflare Workers (runtime + hosting)
 - Cloudflare D1 (SQLite)
-- TypeScript (Worker) + HTML + Tailwind (CDN)
+- TypeScript (Worker) + HTML + Tailwind CSS build pipeline
 
 ## Project Structure
 
 - `src/worker.ts`: App routes, auth, page rendering, business logic
+- `src/tailwind-input.css`: Tailwind source file
+- `src/styles.css`: compiled/minified Tailwind output served at `/styles.css`
 - `migrations/0001_init.sql`: Schema + initial settings + seeded mock records
 - `wrangler.toml`: Worker + D1 binding config
+- `tailwind.config.cjs`: Tailwind scanning + dark mode config
 - `.dev.vars.example`: local env variable template
 
 ## Local Setup
@@ -89,6 +92,12 @@ Optional: run static type checking:
 
 ```bash
 npm run typecheck
+```
+
+Manual CSS rebuild (usually not needed because `predev`/`predeploy` run it automatically):
+
+```bash
+npm run build:css
 ```
 
 ## Deploy to Cloudflare

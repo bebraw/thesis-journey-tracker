@@ -1,3 +1,5 @@
+import styles from "./styles.css";
+
 type PhaseId =
   | "research_plan"
   | "researching"
@@ -131,6 +133,10 @@ export default {
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const { pathname } = url;
+
+  if (pathname === "/styles.css") {
+    return cssResponse(styles);
+  }
 
   if (!env.DB) {
     return new Response("D1 binding is missing. Configure DB in wrangler.toml.", { status: 500 });
@@ -458,7 +464,6 @@ function renderDashboardPage(data: DashboardPageData): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Thesis Journey Tracker</title>
     <script>
-      tailwind = { config: { darkMode: "class" } };
       (function applyTheme() {
         var stored = localStorage.getItem("theme");
         if (stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
@@ -466,7 +471,7 @@ function renderDashboardPage(data: DashboardPageData): string {
         }
       }());
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="min-h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
     <div class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -693,7 +698,6 @@ function renderLoginPage(showError: boolean): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Thesis Journey Tracker - Login</title>
     <script>
-      tailwind = { config: { darkMode: "class" } };
       (function applyTheme() {
         var stored = localStorage.getItem("theme");
         if (stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
@@ -701,7 +705,7 @@ function renderLoginPage(showError: boolean): string {
         }
       }());
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body class="h-full bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
     <main class="mx-auto flex h-full max-w-md items-center px-6">
@@ -729,6 +733,15 @@ function htmlResponse(html: string): Response {
     headers: {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store"
+    }
+  });
+}
+
+function cssResponse(css: string): Response {
+  return new Response(css, {
+    headers: {
+      "content-type": "text/css; charset=utf-8",
+      "cache-control": "public, max-age=86400"
     }
   });
 }
