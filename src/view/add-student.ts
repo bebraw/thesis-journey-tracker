@@ -1,14 +1,5 @@
-import {
-  FIELD_CONTROL_SM,
-  FORM_LABEL,
-  PAGE_WRAP_NARROW,
-  SUBTLE_TEXT,
-  renderButton,
-  renderCard,
-  renderInputField,
-  renderSelectField,
-  type SelectOption,
-} from "../components";
+import { PAGE_WRAP_NARROW, SUBTLE_TEXT, renderButton, renderCard } from "../ui";
+import { getDefaultStudentFormValues } from "../student-form";
 import { escapeHtml } from "../utils";
 import {
   THEME_TOGGLE_SCRIPT,
@@ -17,18 +8,18 @@ import {
   renderFlashMessages,
   renderView,
 } from "./shared";
-import { DEGREE_TYPES, PHASES, type AddStudentPageData } from "./types";
+import { renderStudentFormFields } from "./student-form-fields";
+import { type AddStudentPageData } from "./types";
 
 export function renderAddStudentPage(data: AddStudentPageData): string {
   const { notice, error } = data;
-  const degreeOptions: SelectOption[] = DEGREE_TYPES.map((degree) => ({
-    label: degree.label,
-    value: degree.id,
-  }));
-  const phaseOptions: SelectOption[] = PHASES.map((phase) => ({
-    label: phase.label,
-    value: phase.id,
-  }));
+  const fields = renderStudentFormFields({
+    values: getDefaultStudentFormValues(),
+    controlSize: "compact",
+    emailLabel: "Email (optional)",
+    targetSubmissionLabel: "Target submission (optional)",
+    topicWrapperClassName: "block text-sm sm:col-span-2 lg:col-span-3",
+  });
 
   const formHtml = renderView(
     `<form action="/actions/add-student" method="post" class="mt-panel-sm grid grid-cols-1 gap-stack-xs sm:grid-cols-2 lg:grid-cols-3">
@@ -43,57 +34,7 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
       <noop &children="(get props submitButton)"></noop>
     </form>`,
     {
-      nameField: renderInputField({
-        label: "Name",
-        name: "name",
-        required: true,
-        className: FIELD_CONTROL_SM,
-      }),
-      emailField: renderInputField({
-        label: "Email (optional)",
-        name: "studentEmail",
-        className: FIELD_CONTROL_SM,
-        attributes:
-          'type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" data-bwignore="true" data-lpignore="true" data-1p-ignore="true"',
-      }),
-      degreeField: renderSelectField({
-        label: "Degree type",
-        name: "degreeType",
-        options: degreeOptions,
-        value: "msc",
-        className: FIELD_CONTROL_SM,
-      }),
-      topicField: renderInputField({
-        label: "Thesis topic (optional)",
-        name: "thesisTopic",
-        className: FIELD_CONTROL_SM,
-        wrapperClassName: `${FORM_LABEL} sm:col-span-2 lg:col-span-3`,
-      }),
-      phaseField: renderSelectField({
-        label: "Phase",
-        name: "currentPhase",
-        options: phaseOptions,
-        className: FIELD_CONTROL_SM,
-      }),
-      startDateField: renderInputField({
-        label: "Start date",
-        name: "startDate",
-        type: "date",
-        required: true,
-        className: FIELD_CONTROL_SM,
-      }),
-      targetDateField: renderInputField({
-        label: "Target submission (optional)",
-        name: "targetSubmissionDate",
-        type: "date",
-        className: FIELD_CONTROL_SM,
-      }),
-      nextMeetingField: renderInputField({
-        label: "Next meeting (optional)",
-        name: "nextMeetingAt",
-        type: "datetime-local",
-        className: FIELD_CONTROL_SM,
-      }),
+      ...fields,
       submitButton: renderButton({
         label: "Add student",
         type: "submit",

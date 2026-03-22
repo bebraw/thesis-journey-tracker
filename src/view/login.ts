@@ -4,11 +4,11 @@ import {
   FIELD_CONTROL_SM,
   LOGIN_CARD,
   renderButton,
-} from "../components";
+} from "../ui";
 import { type HtmlispComponents } from "../htmlisp";
 import { escapeHtml } from "../utils";
 import { renderDocument, renderView } from "./shared";
-import { SUBTLE_TEXT } from "../components";
+import { SUBTLE_TEXT } from "../ui";
 
 export function renderLoginPage(showError: boolean): string {
   const components: HtmlispComponents = {

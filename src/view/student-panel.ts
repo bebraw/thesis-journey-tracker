@@ -18,15 +18,13 @@ import {
   renderBadge,
   renderButton,
   renderInputField,
-  renderSelectField,
   renderTextareaField,
-  type SelectOption,
-} from "../components";
+} from "../ui";
 import { type HtmlispComponents } from "../htmlisp";
-import { escapeHtml, escapeJsString, toDateTimeLocalInput } from "../utils";
+import { getStudentFormValues } from "../student-form";
+import { escapeHtml, escapeJsString, formatDateTime } from "../utils";
 import { renderView } from "./shared";
-import { DEGREE_TYPES, PHASES } from "./types";
-import { formatDateTime } from "../utils";
+import { renderStudentFormFields } from "./student-form-fields";
 
 export function renderEmptySelectedPanel(
   message = "Select a student from the table to edit details and view/add supervision logs.",
@@ -83,15 +81,10 @@ export function renderSelectedStudentPanel(
   </article>`,
   };
 
-  const degreeOptions: SelectOption[] = DEGREE_TYPES.map((degree) => ({
-    label: degree.label,
-    value: degree.id,
-  }));
-  const phaseOptions: SelectOption[] = PHASES.map((phase) => ({
-    label: phase.label,
-    value: phase.id,
-  }));
   const preparedLogs = prepareLogEntries(logs);
+  const fields = renderStudentFormFields({
+    values: getStudentFormValues(student),
+  });
 
   const editFormHtml = renderView(
     `<form &action="(get props action)" method="post" &class="(get props formStack)">
@@ -124,64 +117,7 @@ export function renderSelectedStudentPanel(
       disclosureFieldsClass: escapeHtml(SECTION_STACK_SM),
       disclosureSummaryClass: escapeHtml(DISCLOSURE_SUMMARY),
       formStack: escapeHtml(FORM_STACK),
-      nameField: renderInputField({
-        label: "Name",
-        name: "name",
-        required: true,
-        value: student.name,
-        className: FIELD_CONTROL,
-      }),
-      emailField: renderInputField({
-        label: "Email",
-        name: "studentEmail",
-        value: student.email || "",
-        className: FIELD_CONTROL,
-        attributes:
-          'type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" data-bwignore="true" data-lpignore="true" data-1p-ignore="true"',
-      }),
-      degreeField: renderSelectField({
-        label: "Degree type",
-        name: "degreeType",
-        options: degreeOptions,
-        value: student.degreeType,
-        className: FIELD_CONTROL,
-      }),
-      topicField: renderInputField({
-        label: "Thesis topic (optional)",
-        name: "thesisTopic",
-        value: student.thesisTopic || "",
-        className: FIELD_CONTROL,
-      }),
-      phaseField: renderSelectField({
-        label: "Phase",
-        name: "currentPhase",
-        options: phaseOptions,
-        value: student.currentPhase,
-        className: FIELD_CONTROL,
-      }),
-      startDateField: renderInputField({
-        label: "Start date",
-        name: "startDate",
-        type: "date",
-        required: true,
-        value: student.startDate,
-        className: FIELD_CONTROL,
-      }),
-      targetDateField: renderInputField({
-        label: "Target submission date",
-        name: "targetSubmissionDate",
-        type: "date",
-        required: true,
-        value: student.targetSubmissionDate,
-        className: FIELD_CONTROL,
-      }),
-      nextMeetingField: renderInputField({
-        label: "Next meeting",
-        name: "nextMeetingAt",
-        type: "datetime-local",
-        value: toDateTimeLocalInput(student.nextMeetingAt),
-        className: FIELD_CONTROL,
-      }),
+      ...fields,
       submitButton: renderButton({
         label: "Save student updates",
         type: "submit",

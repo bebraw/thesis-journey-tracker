@@ -158,6 +158,31 @@ class MockD1Database {
       return row ? { id: row.id } : null;
     }
 
+    if (q.startsWith("SELECT s.*, COUNT(ml.id) AS log_count,")) {
+      const includeMock = Number(values[0]) === 1 && Number(values[2]) === 1;
+      const studentId = Number(values[1]);
+      const row = this.students.find(
+        (student) =>
+          student.id === studentId && (includeMock || student.is_mock === 0),
+      );
+
+      if (!row) {
+        return null;
+      }
+
+      const logs = this.meetingLogs.filter(
+        (log) =>
+          log.student_id === row.id && (includeMock || log.is_mock === 0),
+      );
+      const lastLog = logs.length ? logs[logs.length - 1] : null;
+
+      return {
+        ...row,
+        log_count: logs.length,
+        last_log_at: lastLog ? lastLog.happened_at : null,
+      };
+    }
+
     throw new Error(`Unsupported first query: ${query}`);
   }
 

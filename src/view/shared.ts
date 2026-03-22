@@ -5,7 +5,7 @@ import {
   SUBTLE_TEXT,
   THEME_TOGGLE_BUTTON,
   renderButton,
-} from "../components";
+} from "../ui";
 import { type HtmlispComponents, renderHTMLisp } from "../htmlisp";
 import { escapeHtml } from "../utils";
 

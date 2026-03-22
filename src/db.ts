@@ -83,7 +83,7 @@ interface LogRow {
   is_mock: number | string;
 }
 
-export interface CreateStudentInput {
+export interface StudentMutationInput {
   name: string;
   email: string | null;
   degreeType: DegreeId;
@@ -94,16 +94,8 @@ export interface CreateStudentInput {
   nextMeetingAt: string | null;
 }
 
-export interface UpdateStudentInput {
-  name: string;
-  email: string | null;
-  degreeType: DegreeId;
-  thesisTopic: string | null;
-  startDate: string;
-  targetSubmissionDate: string;
-  currentPhase: PhaseId;
-  nextMeetingAt: string | null;
-}
+export type CreateStudentInput = StudentMutationInput;
+export type UpdateStudentInput = StudentMutationInput;
 
 export interface CreateLogInput {
   studentId: number;
@@ -153,6 +145,49 @@ export async function listStudents(
     logCount: parseDbNumber(row.log_count),
     lastLogAt: row.last_log_at || null,
   }));
+}
+
+export async function getStudentById(
+  db: D1Database,
+  studentId: number,
+  includeMockData: boolean,
+): Promise<Student | null> {
+  const includeMock = includeMockData ? 1 : 0;
+  const row = await db
+    .prepare(
+      `SELECT
+         s.*,
+         COUNT(ml.id) AS log_count,
+         MAX(ml.happened_at) AS last_log_at
+       FROM students s
+       LEFT JOIN meeting_logs ml
+         ON ml.student_id = s.id
+        AND (? = 1 OR ml.is_mock = 0)
+       WHERE s.id = ?
+         AND (? = 1 OR s.is_mock = 0)
+       GROUP BY s.id`,
+    )
+    .bind(includeMock, studentId, includeMock)
+    .first<StudentRow>();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: parseDbNumber(row.id),
+    name: row.name,
+    email: row.email,
+    degreeType: row.degree_type as DegreeId,
+    thesisTopic: row.thesis_topic,
+    startDate: row.start_date,
+    targetSubmissionDate: row.target_submission_date,
+    currentPhase: row.current_phase as PhaseId,
+    nextMeetingAt: row.next_meeting_at,
+    isMock: parseDbNumber(row.is_mock) === 1,
+    logCount: parseDbNumber(row.log_count),
+    lastLogAt: row.last_log_at || null,
+  };
 }
 
 export async function listLogsForStudent(

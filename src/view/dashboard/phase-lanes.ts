@@ -7,7 +7,7 @@ import {
   TOPIC_TEXT_SM,
   getMeetingStatusBadgeClass,
   renderBadge,
-} from "../../components";
+} from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
 import {
   escapeHtml,
@@ -17,7 +17,7 @@ import {
   meetingStatusText,
 } from "../../utils";
 import { renderView } from "../shared";
-import { DEGREE_TYPES, PHASES } from "../types";
+import { DEGREE_TYPES, PHASES } from "../../reference-data";
 
 interface PreparedLaneStudent {
   idAttr: string;

@@ -1,4 +1,4 @@
-import { PAGE_WRAP, renderButton } from "../../components";
+import { PAGE_WRAP, renderButton } from "../../ui";
 import { escapeHtml } from "../../utils";
 import {
   renderEmptySelectedPanel,
@@ -12,7 +12,7 @@ import {
   renderView,
 } from "../shared";
 import type { DashboardPageData } from "../types";
-import { DASHBOARD_INTERACTION_SCRIPT } from "./interaction-script";
+import { renderDashboardInteractionScript } from "./interaction-script";
 import { renderMetricCards } from "./metrics";
 import { renderPhaseLanes } from "./phase-lanes";
 import { renderStudentsTable } from "./students-table";
@@ -57,7 +57,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
         selectedPanel,
         renderEmptySelectedPanel(),
       ),
-      dashboardScript: DASHBOARD_INTERACTION_SCRIPT,
+      dashboardScript: renderDashboardInteractionScript(),
       themeToggleScript: THEME_TOGGLE_SCRIPT,
     },
   );

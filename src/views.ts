@@ -6,7 +6,7 @@ export {
   renderSelectedStudentPanel,
 } from "./view/student-panel";
 export { renderStyleGuidePage } from "./view/style-guide";
-export { DEGREE_TYPES, PHASES } from "./view/types";
+export { DEGREE_TYPES, PHASES } from "./reference-data";
 export type {
   AddStudentPageData,
   DashboardPageData,

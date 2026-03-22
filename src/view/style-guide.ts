@@ -14,7 +14,7 @@ import {
   renderSelectField,
   renderTextareaField,
   type SelectOption,
-} from "../components";
+} from "../ui";
 import { escapeHtml } from "../utils";
 import {
   THEME_TOGGLE_SCRIPT,
@@ -22,7 +22,7 @@ import {
   renderDocument,
   renderView,
 } from "./shared";
-import { DEGREE_TYPES } from "./types";
+import { DEGREE_TYPES } from "../reference-data";
 
 export function renderStyleGuidePage(): string {
   const sampleDegreeOptions: SelectOption[] = DEGREE_TYPES.map((degree) => ({

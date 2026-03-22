@@ -1,14 +1,5 @@
 import type { DegreeId, PhaseId, Student } from "./db";
-
-export interface PhaseDefinition {
-  id: PhaseId;
-  label: string;
-}
-
-export interface DegreeDefinition {
-  id: DegreeId;
-  label: string;
-}
+import type { DegreeDefinition, PhaseDefinition } from "./reference-data";
 
 export interface SessionConfig {
   cookieName: string;

@@ -36,7 +36,8 @@ This project implements a thesis advising dashboard for tracking students throug
 ## Project Structure
 
 - `src/worker.ts`: App routes, auth, page rendering, business logic
-- `src/components.ts`: Reusable UI component render helpers and shared Tailwind patterns
+- `src/reference-data.ts`: Shared phase and degree reference data used across UI and logic
+- `src/ui/`: Reusable UI component render helpers and shared Tailwind patterns
 - `src/tailwind-input.css`: Tailwind source file
 - `src/styles.css`: compiled/minified Tailwind output served at `/styles.css`
 - `migrations/0001_init.sql`: Schema, indexes, and triggers

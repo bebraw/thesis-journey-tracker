@@ -5,13 +5,14 @@ import {
   createStudent,
   deleteStudent,
   type D1Database,
+  getStudentById,
   listLogsForStudent,
   listStudents,
   studentExists,
   updateStudent,
 } from "./db";
+import { parseStudentFormSubmission } from "./student-form";
 import {
-  addSixMonths,
   buildSessionCookie,
   clearSessionCookie,
   createSessionToken,
@@ -21,16 +22,12 @@ import {
   iconResponse,
   isAuthenticated,
   normalizeDate,
-  normalizeDegree,
   normalizeDateTime,
-  normalizePhase,
   normalizeString,
   redirect,
   shouldIncludeTestData,
 } from "./utils";
 import {
-  DEGREE_TYPES,
-  PHASES,
   renderAddStudentPage,
   renderDashboardPage,
   renderEmptySelectedPanel,
@@ -234,9 +231,11 @@ async function renderStudentPanelPartial(
   studentId: number,
 ): Promise<Response> {
   const includeTestData = shouldIncludeTestData(env.ENABLE_TEST_DATA);
-  const students = await listStudents(env.DB, includeTestData);
-  const selectedStudent =
-    students.find((student) => student.id === studentId) || null;
+  const selectedStudent = await getStudentById(
+    env.DB,
+    studentId,
+    includeTestData,
+  );
 
   if (!selectedStudent) {
     return htmlFragmentResponse(
@@ -253,51 +252,12 @@ async function renderStudentPanelPartial(
 
 async function handleAddStudent(request: Request, env: Env): Promise<Response> {
   const formData = await request.formData();
-
-  const name = normalizeString(formData.get("name"));
-  const email = normalizeString(
-    formData.get("studentEmail") ?? formData.get("email"),
-  );
-  const thesisTopic = normalizeString(formData.get("thesisTopic"));
-  const startDate = normalizeDate(formData.get("startDate"));
-  const targetSubmissionDateInput = normalizeDate(
-    formData.get("targetSubmissionDate"),
-    true,
-  );
-  const targetSubmissionDate =
-    targetSubmissionDateInput ||
-    (typeof startDate === "string" ? addSixMonths(startDate) : null);
-  const degreeType = normalizeDegree(
-    formData.get("degreeType") || "msc",
-    DEGREE_TYPES,
-  );
-  const currentPhase = normalizePhase(
-    formData.get("currentPhase") || "research_plan",
-    PHASES,
-  );
-  const nextMeetingAt = normalizeDateTime(formData.get("nextMeetingAt"), true);
-
-  if (
-    !name ||
-    !startDate ||
-    !targetSubmissionDate ||
-    !degreeType ||
-    !currentPhase ||
-    nextMeetingAt === undefined
-  ) {
+  const studentInput = parseStudentFormSubmission(formData, { mode: "create" });
+  if (!studentInput) {
     return redirect("/students/new?error=Invalid+student+input");
   }
 
-  const selected = await createStudent(env.DB, {
-    name,
-    email,
-    degreeType,
-    thesisTopic,
-    startDate,
-    targetSubmissionDate,
-    currentPhase,
-    nextMeetingAt,
-  });
+  const selected = await createStudent(env.DB, studentInput);
   return redirect(`/?selected=${selected}&notice=Student+added`);
 }
 
@@ -306,46 +266,27 @@ async function handleUpdateStudent(
   env: Env,
   studentId: number,
 ): Promise<Response> {
-  const formData = await request.formData();
-
-  const name = normalizeString(formData.get("name"));
-  const email = normalizeString(
-    formData.get("studentEmail") ?? formData.get("email"),
+  const includeTestData = shouldIncludeTestData(env.ENABLE_TEST_DATA);
+  const existingStudent = await getStudentById(
+    env.DB,
+    studentId,
+    includeTestData,
   );
-  const degreeType = normalizeDegree(formData.get("degreeType"), DEGREE_TYPES);
-  const thesisTopic = normalizeString(formData.get("thesisTopic"));
-  const startDate = normalizeDate(formData.get("startDate"));
-  const targetSubmissionDate = normalizeDate(
-    formData.get("targetSubmissionDate"),
-  );
-  const currentPhase = normalizePhase(formData.get("currentPhase"), PHASES);
-  const nextMeetingAt = normalizeDateTime(formData.get("nextMeetingAt"), true);
-
-  if (
-    !name ||
-    !startDate ||
-    !targetSubmissionDate ||
-    !degreeType ||
-    !currentPhase ||
-    nextMeetingAt === undefined
-  ) {
-    return redirect(`/?selected=${studentId}&error=Invalid+update+input`);
-  }
-
-  if (!(await studentExists(env.DB, studentId))) {
+  if (!existingStudent) {
     return redirect("/?error=Student+not+found");
   }
 
-  await updateStudent(env.DB, studentId, {
-    name,
-    email,
-    degreeType,
-    thesisTopic,
-    startDate,
-    targetSubmissionDate,
-    currentPhase,
-    nextMeetingAt,
+  const formData = await request.formData();
+  const studentInput = parseStudentFormSubmission(formData, {
+    mode: "update",
+    existingStudent,
   });
+
+  if (!studentInput) {
+    return redirect(`/?selected=${studentId}&error=Invalid+update+input`);
+  }
+
+  await updateStudent(env.DB, studentId, studentInput);
 
   return redirect(`/?selected=${studentId}&notice=Student+updated`);
 }
