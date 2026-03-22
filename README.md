@@ -44,6 +44,7 @@ This project implements a thesis advising dashboard for tracking students throug
 - `migrations/0002_cleanup_mock_data.sql`: One-time cleanup for legacy mock rows and obsolete settings table
 - `migrations/0003_add_degree_type.sql`: Adds persisted student degree type
 - `migrations/0004_add_thesis_topic.sql`: Adds persisted thesis topic per student
+- `migrations/0005_remove_is_mock_columns.sql`: Removes the legacy `is_mock` columns after test data was isolated to E2E
 - `tests/e2e/mock-data.sql`: Seeded test students/logs for isolated E2E runs
 - `wrangler.toml`: Worker + D1 binding config
 - `tailwind.config.cjs`: Tailwind scanning + dark mode config
@@ -167,7 +168,7 @@ npm run deploy
 - `/style-guide` shows the currently available reusable UI components.
 - Seeded test students are not part of your normal workspace and are only loaded into the isolated E2E database.
 - Dark mode is controlled directly from the header toggle.
-- If you used an older version that inserted mock rows into your main database, run the latest D1 migrations to remove them.
+- If you used an older version, run the latest D1 migrations so your schema matches the current app.
 
 ## Security Model
 

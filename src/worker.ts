@@ -25,7 +25,6 @@ import {
   normalizeDateTime,
   normalizeString,
   redirect,
-  shouldIncludeTestData,
 } from "./utils";
 import {
   renderAddStudentPage,
@@ -40,7 +39,6 @@ interface Env {
   DB: D1Database;
   APP_PASSWORD: string;
   SESSION_SECRET: string;
-  ENABLE_TEST_DATA?: string;
 }
 
 const SESSION_COOKIE = "thesis_session";
@@ -171,8 +169,7 @@ async function renderDashboard(
   env: Env,
   url: URL,
 ): Promise<Response> {
-  const includeTestData = shouldIncludeTestData(env.ENABLE_TEST_DATA);
-  const students = await listStudents(env.DB, includeTestData);
+  const students = await listStudents(env.DB);
 
   const selectedIdParam = url.searchParams.get("selected");
   const parsedSelectedId = selectedIdParam
@@ -182,7 +179,7 @@ async function renderDashboard(
   const selectedStudent =
     students.find((student) => student.id === selectedId) || null;
   const logs = selectedStudent
-    ? await listLogsForStudent(env.DB, selectedStudent.id, includeTestData)
+    ? await listLogsForStudent(env.DB, selectedStudent.id)
     : [];
 
   const notice = url.searchParams.get("notice");
@@ -230,12 +227,7 @@ async function renderStudentPanelPartial(
   env: Env,
   studentId: number,
 ): Promise<Response> {
-  const includeTestData = shouldIncludeTestData(env.ENABLE_TEST_DATA);
-  const selectedStudent = await getStudentById(
-    env.DB,
-    studentId,
-    includeTestData,
-  );
+  const selectedStudent = await getStudentById(env.DB, studentId);
 
   if (!selectedStudent) {
     return htmlFragmentResponse(
@@ -244,7 +236,7 @@ async function renderStudentPanelPartial(
     );
   }
 
-  const logs = await listLogsForStudent(env.DB, studentId, includeTestData);
+  const logs = await listLogsForStudent(env.DB, studentId);
   return htmlFragmentResponse(
     renderSelectedStudentPanel(selectedStudent, logs),
   );
@@ -266,12 +258,7 @@ async function handleUpdateStudent(
   env: Env,
   studentId: number,
 ): Promise<Response> {
-  const includeTestData = shouldIncludeTestData(env.ENABLE_TEST_DATA);
-  const existingStudent = await getStudentById(
-    env.DB,
-    studentId,
-    includeTestData,
-  );
+  const existingStudent = await getStudentById(env.DB, studentId);
   if (!existingStudent) {
     return redirect("/?error=Student+not+found");
   }

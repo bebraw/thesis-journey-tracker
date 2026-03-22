@@ -15,7 +15,6 @@ interface StudentRowStore {
   target_submission_date: string;
   current_phase: string;
   next_meeting_at: string | null;
-  is_mock: number;
 }
 
 interface MeetingLogStore {
@@ -25,7 +24,6 @@ interface MeetingLogStore {
   discussed: string;
   agreed_plan: string;
   next_step_deadline: string | null;
-  is_mock: number;
 }
 
 interface QueryCall {
@@ -53,7 +51,6 @@ class MockD1Database {
       target_submission_date: "2026-07-01",
       current_phase: "researching",
       next_meeting_at: null,
-      is_mock: 0,
     });
   }
 
@@ -85,7 +82,6 @@ class MockD1Database {
         target_submission_date: String(targetDate),
         current_phase: String(phase),
         next_meeting_at: nextMeetingAt === null ? null : String(nextMeetingAt),
-        is_mock: 0,
       };
       this.students.push(row);
       return { success: true, meta: { last_row_id: row.id, changes: 1 } };
@@ -140,7 +136,6 @@ class MockD1Database {
         agreed_plan: String(agreedPlan),
         next_step_deadline:
           nextStepDeadline === null ? null : String(nextStepDeadline),
-        is_mock: 0,
       };
       this.meetingLogs.push(row);
       return { success: true, meta: { last_row_id: row.id, changes: 1 } };
@@ -159,21 +154,14 @@ class MockD1Database {
     }
 
     if (q.startsWith("SELECT s.*, COUNT(ml.id) AS log_count,")) {
-      const includeMock = Number(values[0]) === 1 && Number(values[2]) === 1;
-      const studentId = Number(values[1]);
-      const row = this.students.find(
-        (student) =>
-          student.id === studentId && (includeMock || student.is_mock === 0),
-      );
+      const studentId = Number(values[0]);
+      const row = this.students.find((student) => student.id === studentId);
 
       if (!row) {
         return null;
       }
 
-      const logs = this.meetingLogs.filter(
-        (log) =>
-          log.student_id === row.id && (includeMock || log.is_mock === 0),
-      );
+      const logs = this.meetingLogs.filter((log) => log.student_id === row.id);
       const lastLog = logs.length ? logs[logs.length - 1] : null;
 
       return {
@@ -190,15 +178,9 @@ class MockD1Database {
     const q = normalizeQuery(query);
 
     if (q.startsWith("SELECT s.*, COUNT(ml.id) AS log_count,")) {
-      const includeMock = Number(values[0]) === 1 && Number(values[1]) === 1;
-      const filteredStudents = this.students.filter(
-        (student) => includeMock || student.is_mock === 0,
-      );
-
-      const results = filteredStudents.map((student) => {
+      const results = this.students.map((student) => {
         const logs = this.meetingLogs.filter(
-          (log) =>
-            log.student_id === student.id && (includeMock || log.is_mock === 0),
+          (log) => log.student_id === student.id,
         );
         const lastLog = logs.length ? logs[logs.length - 1] : null;
         return {
@@ -213,12 +195,8 @@ class MockD1Database {
 
     if (q.startsWith("SELECT * FROM meeting_logs")) {
       const studentId = Number(values[0]);
-      const includeMock = Number(values[1]) === 1;
       const results = this.meetingLogs
-        .filter(
-          (log) =>
-            log.student_id === studentId && (includeMock || log.is_mock === 0),
-        )
+        .filter((log) => log.student_id === studentId)
         .sort((a, b) => (a.happened_at < b.happened_at ? 1 : -1));
       return { results };
     }
@@ -420,7 +398,6 @@ describe("SQL injection safety", () => {
       discussed: "Initial review",
       agreed_plan: "Write chapter 1",
       next_step_deadline: "2026-03-29",
-      is_mock: 0,
     });
 
     const response = await fetchHandler(

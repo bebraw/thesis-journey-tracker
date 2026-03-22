@@ -67,7 +67,6 @@ interface StudentRow {
   target_submission_date: string;
   current_phase: PhaseId;
   next_meeting_at: string | null;
-  is_mock: number | string;
   log_count: number | string | null;
   last_log_at: string | null;
 }
@@ -78,7 +77,6 @@ interface LogRow {
   discussed: string;
   agreed_plan: string;
   next_step_deadline: string | null;
-  is_mock: number | string;
 }
 
 export interface StudentMutationInput {
@@ -103,11 +101,7 @@ export interface CreateLogInput {
   nextStepDeadline: string | null;
 }
 
-export async function listStudents(
-  db: D1Database,
-  includeMockData: boolean,
-): Promise<Student[]> {
-  const includeMock = includeMockData ? 1 : 0;
+export async function listStudents(db: D1Database): Promise<Student[]> {
   const rows = await db
     .prepare(
       `SELECT
@@ -117,8 +111,6 @@ export async function listStudents(
        FROM students s
        LEFT JOIN meeting_logs ml
          ON ml.student_id = s.id
-        AND (? = 1 OR ml.is_mock = 0)
-       WHERE (? = 1 OR s.is_mock = 0)
        GROUP BY s.id
        ORDER BY
          CASE WHEN s.next_meeting_at IS NULL THEN 1 ELSE 0 END,
@@ -126,7 +118,6 @@ export async function listStudents(
          s.target_submission_date ASC,
          s.name ASC`,
     )
-    .bind(includeMock, includeMock)
     .all<StudentRow>();
 
   return rows.results.map((row) => ({
@@ -147,9 +138,7 @@ export async function listStudents(
 export async function getStudentById(
   db: D1Database,
   studentId: number,
-  includeMockData: boolean,
 ): Promise<Student | null> {
-  const includeMock = includeMockData ? 1 : 0;
   const row = await db
     .prepare(
       `SELECT
@@ -159,12 +148,10 @@ export async function getStudentById(
        FROM students s
        LEFT JOIN meeting_logs ml
          ON ml.student_id = s.id
-        AND (? = 1 OR ml.is_mock = 0)
        WHERE s.id = ?
-         AND (? = 1 OR s.is_mock = 0)
        GROUP BY s.id`,
     )
-    .bind(includeMock, studentId, includeMock)
+    .bind(studentId)
     .first<StudentRow>();
 
   if (!row) {
@@ -189,18 +176,15 @@ export async function getStudentById(
 export async function listLogsForStudent(
   db: D1Database,
   studentId: number,
-  includeMockData: boolean,
 ): Promise<MeetingLog[]> {
-  const includeMock = includeMockData ? 1 : 0;
   const rows = await db
     .prepare(
       `SELECT *
        FROM meeting_logs
        WHERE student_id = ?
-         AND (? = 1 OR is_mock = 0)
        ORDER BY happened_at DESC, id DESC`,
     )
-    .bind(studentId, includeMock)
+    .bind(studentId)
     .all<LogRow>();
 
   return rows.results.map((row) => ({
@@ -218,8 +202,8 @@ export async function createStudent(
 ): Promise<number> {
   const result = await db
     .prepare(
-      `INSERT INTO students (name, email, degree_type, thesis_topic, start_date, target_submission_date, current_phase, next_meeting_at, is_mock)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+      `INSERT INTO students (name, email, degree_type, thesis_topic, start_date, target_submission_date, current_phase, next_meeting_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       input.name,
@@ -285,8 +269,8 @@ export async function createMeetingLog(
 ): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO meeting_logs (student_id, happened_at, discussed, agreed_plan, next_step_deadline, is_mock)
-       VALUES (?, ?, ?, ?, ?, 0)`,
+      `INSERT INTO meeting_logs (student_id, happened_at, discussed, agreed_plan, next_step_deadline)
+       VALUES (?, ?, ?, ?, ?)`,
     )
     .bind(
       input.studentId,

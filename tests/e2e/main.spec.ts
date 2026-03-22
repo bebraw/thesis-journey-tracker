@@ -92,7 +92,12 @@ test.describe("dashboard e2e", () => {
     await page.getByRole("link", { name: "Dashboard" }).first().click();
     await expect(page).toHaveURL(/\/$/);
 
-    await expect(page.getByText("Mock", { exact: true }).first()).toBeVisible();
+    await expect(
+      page.locator("[data-student-row]", { hasText: "Mia Koskinen" }),
+    ).toBeVisible();
+    await expect(
+      page.locator("[data-lane-student-card]", { hasText: "Noah Virtanen" }),
+    ).toBeVisible();
   });
 
   test("can add a student and select from table and lanes without reload", async ({

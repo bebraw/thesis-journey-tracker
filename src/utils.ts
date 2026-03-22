@@ -6,11 +6,6 @@ export interface SessionConfig {
   ttlSeconds: number;
 }
 
-export function shouldIncludeTestData(envValue?: string): boolean {
-  const value = envValue?.trim().toLowerCase();
-  return value === "1" || value === "true" || value === "yes";
-}
-
 export function htmlResponse(html: string): Response {
   return new Response(html, {
     headers: {

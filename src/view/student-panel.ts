@@ -66,7 +66,7 @@ export function renderSelectedStudentPanel(
 ): string {
   const components: HtmlispComponents = {
     MeetingLogEntry: `<article &class="(get props cardClass)">
-    <p class="font-medium"><span &children="(get props timestampText)"></span><noop &children="(get props mockBadgeHtml)"></noop></p>
+    <p class="font-medium"><span &children="(get props timestampText)"></span></p>
     <p class="mt-1"><span class="font-medium">Discussed:</span> <span &children="(get props discussed)"></span></p>
     <p class="mt-1"><span class="font-medium">Agreed:</span> <span &children="(get props agreedPlan)"></span></p>
     <p &visibleIf="(get props hasDeadline)" class="mt-1"><span class="font-medium">Next-step deadline:</span> <span &children="(get props deadlineText)"></span></p>
@@ -191,7 +191,6 @@ export function renderSelectedStudentPanel(
               <MeetingLogEntry
                 &cardClass="(get props logEntryClass)"
                 &timestampText="(get props timestampText)"
-                &mockBadgeHtml="(get props mockBadgeHtml)"
                 &discussed="(get props discussed)"
                 &agreedPlan="(get props agreedPlan)"
                 &hasDeadline="(get props hasDeadline)"
