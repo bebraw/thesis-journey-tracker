@@ -80,6 +80,63 @@ test.describe("dashboard e2e", () => {
     await expect(page.locator("[data-lane-student-card]", { hasText: "Noah Virtanen" })).toBeVisible();
   });
 
+  test("can export and import JSON backups from data tools", async ({ page }) => {
+    await login(page);
+
+    await page.getByRole("link", { name: "Data tools" }).click();
+    await expect(page).toHaveURL(/\/data-tools$/);
+    await expect(page.getByRole("heading", { name: "Data Tools" })).toBeVisible();
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Download JSON export" }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^thesis-journey-tracker-export-\d{4}-\d{2}-\d{2}\.json$/);
+
+    const suffix = Date.now().toString();
+    const importedStudentName = `Imported Backup ${suffix}`;
+    const importJson = JSON.stringify({
+      app: "thesis-journey-tracker",
+      schemaVersion: 1,
+      exportedAt: "2026-03-23T08:00:00.000Z",
+      students: [
+        {
+          name: importedStudentName,
+          email: `imported-${suffix}@example.edu`,
+          degreeType: "msc",
+          thesisTopic: `Imported topic ${suffix}`,
+          startDate: "2026-03-10",
+          targetSubmissionDate: "2026-09-10",
+          currentPhase: "research_plan",
+          nextMeetingAt: null,
+          logs: [
+            {
+              happenedAt: "2026-03-20T10:00:00.000Z",
+              discussed: `Imported discussion ${suffix}`,
+              agreedPlan: `Imported plan ${suffix}`,
+              nextStepDeadline: "2026-03-30",
+            },
+          ],
+        },
+      ],
+    });
+
+    await page.getByLabel("JSON file").setInputFiles({
+      name: "backup.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(importJson, "utf8"),
+    });
+    await page.getByLabel("Import mode").selectOption("append");
+    await page.getByRole("button", { name: "Import JSON file" }).click();
+
+    await expect(page).toHaveURL(/\/data-tools\?notice=/);
+    await expect(page.locator("body")).toContainText("Imported 1 students and 1 logs");
+
+    await page.getByRole("link", { name: "Dashboard" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await page.locator("#studentSearch").fill(importedStudentName);
+    await expect(page.locator("[data-student-row]", { hasText: importedStudentName })).toHaveCount(1);
+  });
+
   test("can add a student and select from table and lanes without reload", async ({ page }) => {
     await login(page);
 

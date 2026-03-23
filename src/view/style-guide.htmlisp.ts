@@ -200,6 +200,10 @@ export function renderStyleGuidePage(): string {
           href: "/",
           variant: "neutral",
         })}${renderButton({
+          label: "Data tools",
+          href: "/data-tools",
+          variant: "neutral",
+        })}${renderButton({
           label: "Add student",
           href: "/students/new",
           variant: "primary",

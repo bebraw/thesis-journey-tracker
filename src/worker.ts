@@ -3,6 +3,7 @@ import favicon from "./favicon.ico";
 import {
   createMeetingLog,
   createStudent,
+  deleteAllStudents,
   deleteStudent,
   type D1Database,
   getStudentById,
@@ -12,6 +13,7 @@ import {
   updateStudent,
 } from "./db";
 import { parseStudentFormSubmission } from "./student-form";
+import { buildExportFilename, countImportedLogs, createDataExport, parseDataImport } from "./import-export";
 import {
   buildSessionCookie,
   clearSessionCookie,
@@ -30,6 +32,7 @@ import {
 import { DASHBOARD_INTERACTION_SCRIPT } from "./view/dashboard/interaction-script";
 import {
   renderAddStudentPage,
+  renderDataToolsPage,
   renderDashboardPage,
   renderEmptySelectedPanel,
   renderLoginPage,
@@ -133,13 +136,25 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return htmlResponse(renderStyleGuidePage());
   }
 
+  if (pathname === "/data-tools" && request.method === "GET") {
+    return await renderDataTools(url, env);
+  }
+
   const partialStudentMatch = pathname.match(/^\/partials\/student\/(\d+)$/);
   if (partialStudentMatch && request.method === "GET") {
     return await renderStudentPanelPartial(env, Number(partialStudentMatch[1]));
   }
 
+  if (pathname === "/actions/export-json" && request.method === "GET") {
+    return await handleExportJson(env);
+  }
+
   if (pathname === "/actions/add-student" && request.method === "POST") {
     return await handleAddStudent(request, env);
+  }
+
+  if (pathname === "/actions/import-json" && request.method === "POST") {
+    return await handleImportJson(request, env);
   }
 
   const updateMatch = pathname.match(/^\/actions\/update-student\/(\d+)$/);
@@ -204,6 +219,22 @@ function renderAddStudent(url: URL): Response {
   );
 }
 
+async function renderDataTools(url: URL, env: Env): Promise<Response> {
+  const notice = url.searchParams.get("notice");
+  const error = url.searchParams.get("error");
+  const students = await listStudents(env.DB);
+  const logCount = students.reduce((total, student) => total + student.logCount, 0);
+
+  return htmlResponse(
+    renderDataToolsPage({
+      notice,
+      error,
+      studentCount: students.length,
+      logCount,
+    }),
+  );
+}
+
 async function renderStudentPanelPartial(env: Env, studentId: number): Promise<Response> {
   const selectedStudent = await getStudentById(env.DB, studentId);
 
@@ -226,6 +257,26 @@ async function handleAddStudent(request: Request, env: Env): Promise<Response> {
   return redirect(`/?selected=${selected}&notice=Student+added`);
 }
 
+async function handleExportJson(env: Env): Promise<Response> {
+  const students = await listStudents(env.DB);
+  const studentBundles = await Promise.all(
+    students.map(async (student) => ({
+      student,
+      logs: await listLogsForStudent(env.DB, student.id),
+    })),
+  );
+
+  const body = JSON.stringify(createDataExport(studentBundles), null, 2);
+
+  return new Response(body, {
+    headers: {
+      "cache-control": "no-store",
+      "content-disposition": `attachment; filename="${buildExportFilename()}"`,
+      "content-type": "application/json; charset=utf-8",
+    },
+  });
+}
+
 async function handleUpdateStudent(request: Request, env: Env, studentId: number): Promise<Response> {
   const existingStudent = await getStudentById(env.DB, studentId);
   if (!existingStudent) {
@@ -245,6 +296,47 @@ async function handleUpdateStudent(request: Request, env: Env, studentId: number
   await updateStudent(env.DB, studentId, studentInput);
 
   return redirect(`/?selected=${studentId}&notice=Student+updated`);
+}
+
+async function handleImportJson(request: Request, env: Env): Promise<Response> {
+  const formData = await request.formData();
+  const file = formData.get("importFile");
+  const mode = formData.get("mode") === "replace" ? "replace" : "append";
+  const replaceConfirmed = formData.get("confirmReplace") === "yes";
+
+  if (!file || typeof file !== "object" || !("text" in file) || typeof file.text !== "function") {
+    return redirect("/data-tools?error=Choose+a+JSON+file+to+import");
+  }
+
+  const { data, error } = parseDataImport(await file.text());
+  if (!data || error) {
+    return redirect(`/data-tools?error=${encodeURIComponent(error || "Import+failed")}`);
+  }
+
+  if (mode === "replace" && !replaceConfirmed) {
+    return redirect("/data-tools?error=Confirm+replacement+before+importing");
+  }
+
+  if (mode === "replace") {
+    await deleteAllStudents(env.DB);
+  }
+
+  for (const bundle of data) {
+    const studentId = await createStudent(env.DB, bundle.student);
+    for (const log of bundle.logs) {
+      await createMeetingLog(env.DB, {
+        studentId,
+        happenedAt: log.happenedAt,
+        discussed: log.discussed,
+        agreedPlan: log.agreedPlan,
+        nextStepDeadline: log.nextStepDeadline,
+      });
+    }
+  }
+
+  const logCount = countImportedLogs(data);
+  const modeText = mode === "replace" ? "replaced existing data" : "appended to existing data";
+  return redirect(`/data-tools?notice=${encodeURIComponent(`Imported ${data.length} students and ${logCount} logs; ${modeText}.`)}`);
 }
 
 async function handleAddLog(request: Request, env: Env, studentId: number): Promise<Response> {

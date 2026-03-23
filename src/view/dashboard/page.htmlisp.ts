@@ -28,6 +28,10 @@ export function renderDashboardPage(data: DashboardPageData): string {
         "MSc Thesis Journey Tracker",
         "Track phases, next meetings, and supervision logs in one place.",
         `${renderButton({
+          label: "Data tools",
+          href: "/data-tools",
+          variant: "neutral",
+        })}${renderButton({
           label: "Style guide",
           href: "/style-guide",
           variant: "neutral",

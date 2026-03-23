@@ -235,6 +235,10 @@ export async function deleteStudent(db: D1Database, studentId: number): Promise<
   await db.prepare("DELETE FROM students WHERE id = ?").bind(studentId).run();
 }
 
+export async function deleteAllStudents(db: D1Database): Promise<void> {
+  await db.prepare("DELETE FROM students").run();
+}
+
 export async function createMeetingLog(db: D1Database, input: CreateLogInput): Promise<void> {
   await db
     .prepare(

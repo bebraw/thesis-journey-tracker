@@ -55,6 +55,10 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
           href: "/",
           variant: "neutral",
         })}${renderButton({
+          label: "Data tools",
+          href: "/data-tools",
+          variant: "neutral",
+        })}${renderButton({
           label: "Style guide",
           href: "/style-guide",
           variant: "neutral",

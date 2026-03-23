@@ -17,6 +17,7 @@ This document gives a technical overview of how the project is put together.
 - [`src/reference-data.ts`](../src/reference-data.ts): shared thesis phase and degree reference data
 - [`src/view/`](../src/view): page and partial rendering helpers
 - [`src/view/dashboard/`](../src/view/dashboard): dashboard-specific sections and interactions
+- [`src/view/data-tools.htmlisp.ts`](../src/view/data-tools.htmlisp.ts): backup import/export page
 - [`src/ui/`](../src/ui): reusable UI components and styling helpers
 - [`src/db.ts`](../src/db.ts): database access helpers
 - [`migrations/`](../migrations): schema changes for D1

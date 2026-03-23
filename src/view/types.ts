@@ -18,3 +18,10 @@ export interface AddStudentPageData {
   notice: string | null;
   error: string | null;
 }
+
+export interface DataToolsPageData {
+  notice: string | null;
+  error: string | null;
+  studentCount: number;
+  logCount: number;
+}

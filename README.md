@@ -17,6 +17,7 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 - Store supervision logs with discussion notes, action items, and optional deadlines.
 - Follow upcoming meetings from the dashboard.
 - Filter the student list by phase, degree type, and meeting status.
+- Export or restore the dataset as JSON backups.
 
 ## Quick Start
 
