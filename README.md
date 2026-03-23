@@ -1,62 +1,24 @@
 # Thesis Journey Tracker
 
-This project implements a thesis advising dashboard for tracking students through thesis phases, meetings, and supervision logs. Note that I generated the project using GPT-5.4 so expect AI slop! But it works more or less.
+Thesis Journey Tracker is a private advising dashboard for following students as they move through a thesis process. It is built for a single advisor workflow: you can keep track of thesis phases, upcoming meetings, thesis topics, and supervision notes in one place.
 
-## Features
+The project is intentionally small and server-rendered. It runs on Cloudflare Workers with D1 for storage, so it stays lightweight while still being easy to deploy.
 
-- Password-protected access (single advisor account)
-- D1 persistence (students and meeting logs)
-- Thesis phase tracking:
-  - Planning research
-  - Researching
-  - First complete draft
-  - Editing
-  - Draft ready to submit
-  - Submitted
-- Per-student next meeting date/time (optional)
-- Per-student degree type tracking (BSc, MSc, DSc)
-- Per-student thesis topic tracking
-- Per-student log history:
-  - What was discussed
-  - Agreed plan / next actions
-  - Optional deadline for next step
-- Dashboard phase lanes showing how students are distributed across thesis phases
-- Seeded test data used only in the isolated E2E environment
-- Dark mode
-- Reusable server-rendered UI components and authenticated style guide page
-- Works locally and on Cloudflare Workers
-- Simple server-rendered HTML + on-demand generated Tailwind CSS (no React)
+## Why This Project Exists
 
-## Tech Stack
+- Keep thesis supervision work organized without relying on spreadsheets or scattered notes.
+- See where students are in the process at a glance.
+- Record meeting outcomes and next steps in a format that is easy to revisit later.
 
-- Cloudflare Workers (runtime + hosting)
-- Cloudflare D1 (SQLite)
-- TypeScript
-- HTMLisp for server-rendered HTML views and UI composition
-- Tailwind CSS for styling
-- Wrangler for local development, D1 migrations, and deployment
-- Playwright and Vitest for testing
+## What You Can Do With It
 
-## Project Structure
+- Add students with degree type, thesis topic, and timeline information.
+- Track each student through thesis phases from planning to submission.
+- Store supervision logs with discussion notes, action items, and optional deadlines.
+- Follow upcoming meetings from the dashboard.
+- Filter the student list by phase, degree type, and meeting status.
 
-- `src/worker.ts`: App routes, auth, page rendering, business logic
-- `src/reference-data.ts`: Shared phase and degree reference data used across UI and logic
-- `src/ui/`: Reusable UI component render helpers and shared Tailwind patterns
-- `src/tailwind-input.css`: Tailwind source file
-- `.generated/styles.css`: generated/minified Tailwind output served at `/styles.css` during dev, E2E, and deploy
-- `migrations/0001_init.sql`: Initial schema, indexes, and triggers
-- `migrations/0002_cleanup_mock_data.sql`: One-time cleanup for legacy mock rows and obsolete settings table
-- `migrations/0003_add_degree_type.sql`: Adds persisted student degree type
-- `migrations/0004_add_thesis_topic.sql`: Adds persisted thesis topic per student
-- `migrations/0005_remove_is_mock_columns.sql`: Removes the legacy `is_mock` columns after test data was isolated to E2E
-- `tests/e2e/mock-data.sql`: Seeded test students/logs for isolated E2E runs
-- `docs/performance-plan.md`: Current Lighthouse baseline and follow-up performance plan
-- `editor-support/vscode-htmlisp/`: VS Code language extension for HTMLisp highlighting
-- `wrangler.toml`: Worker + D1 binding config
-- `tailwind.config.cjs`: Tailwind scanning + dark mode config
-- `.dev.vars.example`: local env variable template
-
-## Local Setup
+## Quick Start
 
 1. Install dependencies:
 
@@ -64,140 +26,51 @@ This project implements a thesis advising dashboard for tracking students throug
 npm install
 ```
 
-2. Create a D1 database (first time only):
+2. Create a local D1 database:
 
 ```bash
 npx wrangler d1 create thesis_tracker_db
 ```
 
-3. Copy the returned `database_id` into `wrangler.toml`:
+3. Put the returned `database_id` into [`wrangler.toml`](./wrangler.toml).
 
-```toml
-[[d1_databases]]
-binding = "DB"
-database_name = "thesis_tracker_db"
-database_id = "YOUR_DATABASE_ID"
-migrations_dir = "migrations"
-```
-
-4. Configure local secrets:
+4. Create local secrets:
 
 ```bash
 cp .dev.vars.example .dev.vars
 ```
 
-Set these values in `.dev.vars`:
-
-- `APP_PASSWORD`: login password for the dashboard
-- `SESSION_SECRET`: long random string used to sign auth session cookies
-
-5. Apply local D1 migrations:
+5. Apply migrations and start the app:
 
 ```bash
 npm run db:migrate
-```
-
-6. Start locally:
-
-```bash
 npm run dev
 ```
 
-Open the local URL shown by Wrangler (typically `http://127.0.0.1:8787`).
+Wrangler will print the local URL, typically `http://127.0.0.1:8787`.
 
-Optional: run static type checking:
+For the full setup flow, see [docs/setup.md](./docs/setup.md).
 
-```bash
-npm run typecheck
-```
+## Documentation
 
-Manual CSS rebuild if you want to force-refresh the generated stylesheet:
+- [docs/setup.md](./docs/setup.md): local setup, environment variables, and first run
+- [docs/development.md](./docs/development.md): scripts, testing, editor support, and day-to-day development notes
+- [docs/deployment.md](./docs/deployment.md): CI, production deployment, and security notes
+- [docs/project-structure.md](./docs/project-structure.md): tech stack, architecture, and directory map
+- [docs/performance-plan.md](./docs/performance-plan.md): Lighthouse baseline and performance follow-up plan
 
-```bash
-npm run build:css
-```
+## Tech Snapshot
 
-Run unit/integration tests (includes SQL-injection safety tests for form actions):
+- Cloudflare Workers for runtime and hosting
+- Cloudflare D1 for persistence
+- TypeScript throughout the app
+- HTMLisp for server-rendered views
+- Tailwind CSS for styling
 
-```bash
-npm test
-```
+## First-Time Reader Notes
 
-Run end-to-end tests:
+- This is a private, password-protected app rather than a multi-user SaaS product.
+- The UI is server-rendered and deliberately simple.
+- Seeded mock students are only used in the isolated end-to-end test environment.
 
-```bash
-npx playwright install chromium
-npm run e2e
-```
-
-Run Lighthouse performance audits against the authenticated dashboard:
-
-```bash
-npm run lighthouse
-```
-
-Generated reports are written to `reports/lighthouse/`.
-The command also enforces a minimum Lighthouse performance score of `90` for both mobile and desktop runs.
-
-Run the HTMLisp VS Code extension locally:
-
-1. Open `editor-support/vscode-htmlisp` in VS Code
-2. Press `F5`
-3. Test highlighting in the Extension Development Host
-
-The extension now supports:
-
-- standalone `.htmlisp` / `.hisp` files
-- dedicated `.htmlisp.ts` files via the `TypeScript HTMLisp` language mode
-
-## CI
-
-- GitHub Actions workflow: `.github/workflows/ci.yml`
-- Triggered on every push and pull request
-- Runs: `npm ci`, `npx playwright install --with-deps chromium`, `npm run typecheck`, `npm test`, `npm run e2e`, `npm run lighthouse`
-
-## Deploy to Cloudflare
-
-1. Authenticate Wrangler:
-
-```bash
-npx wrangler login
-```
-
-2. Set production secrets:
-
-```bash
-npx wrangler secret put APP_PASSWORD
-npx wrangler secret put SESSION_SECRET
-```
-
-3. Apply migrations to remote D1:
-
-```bash
-npm run db:migrate:remote
-
-Wrangler runs the Tailwind build automatically before `dev` and `deploy` via `wrangler.toml`, so the generated CSS does not need to be committed.
-```
-
-4. Deploy:
-
-```bash
-npm run deploy
-```
-
-## Usage Notes
-
-- Add students with degree type, optional thesis topic, and start date. If target submission date is omitted, it defaults to start date + 6 months.
-- Use **View & Edit** on a student row to edit details and add/view log entries.
-- Filter the Students table by degree type, phase, and meeting status.
-- If a next meeting is not known, leave it empty.
-- `/style-guide` shows the currently available reusable UI components.
-- Seeded test students are not part of your normal workspace and are only loaded into the isolated E2E database.
-- Dark mode is controlled directly from the header toggle.
-- If you used an older version, run the latest D1 migrations so your schema matches the current app.
-
-## Security Model
-
-- App access is gated behind password login.
-- Session is stored in an `HttpOnly`, `Secure`, signed cookie.
-- Suitable for private personal use; if needed, this can be upgraded later to Cloudflare Access or SSO.
+If you want to understand how the codebase is organized before diving in, start with [docs/project-structure.md](./docs/project-structure.md).
