@@ -27,7 +27,7 @@ crons = ["30 1 * * *"]
 
 [[r2_buckets]]
 binding = "BACKUP_BUCKET"
-bucket_name = "REPLACE_WITH_YOUR_R2_BACKUP_BUCKET"
+bucket_name = "replace-with-your-r2-backup-bucket"
 
 [vars]
 BACKUP_PREFIX = "automated-backups"
