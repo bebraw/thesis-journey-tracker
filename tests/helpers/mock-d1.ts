@@ -21,6 +21,14 @@ interface MeetingLogStore {
   next_step_deadline: string | null;
 }
 
+interface PhaseAuditEntryStore {
+  id: number;
+  student_id: number;
+  changed_at: string;
+  from_phase: string;
+  to_phase: string;
+}
+
 interface QueryCall {
   query: string;
   values: D1Value[];
@@ -30,10 +38,12 @@ interface QueryCall {
 export class MockD1Database {
   public students: StudentRowStore[] = [];
   public meetingLogs: MeetingLogStore[] = [];
+  public phaseAuditEntries: PhaseAuditEntryStore[] = [];
   public calls: QueryCall[] = [];
 
   private nextStudentId = 1;
   private nextLogId = 1;
+  private nextPhaseAuditId = 1;
 
   constructor() {
     this.students.push({
@@ -95,12 +105,14 @@ export class MockD1Database {
       const id = Number(values[0]);
       this.students = this.students.filter((student) => student.id !== id);
       this.meetingLogs = this.meetingLogs.filter((log) => log.student_id !== id);
+      this.phaseAuditEntries = this.phaseAuditEntries.filter((entry) => entry.student_id !== id);
       return { success: true, meta: { changes: 1 } };
     }
 
     if (q === "DELETE FROM students") {
       this.students = [];
       this.meetingLogs = [];
+      this.phaseAuditEntries = [];
       return { success: true, meta: { changes: 1 } };
     }
 
@@ -115,6 +127,19 @@ export class MockD1Database {
         next_step_deadline: nextStepDeadline === null ? null : String(nextStepDeadline),
       };
       this.meetingLogs.push(row);
+      return { success: true, meta: { last_row_id: row.id, changes: 1 } };
+    }
+
+    if (q.startsWith("INSERT INTO student_phase_audit")) {
+      const [studentId, changedAt, fromPhase, toPhase] = values;
+      const row: PhaseAuditEntryStore = {
+        id: this.nextPhaseAuditId++,
+        student_id: Number(studentId),
+        changed_at: String(changedAt),
+        from_phase: String(fromPhase),
+        to_phase: String(toPhase),
+      };
+      this.phaseAuditEntries.push(row);
       return { success: true, meta: { last_row_id: row.id, changes: 1 } };
     }
 
@@ -173,6 +198,14 @@ export class MockD1Database {
       const results = this.meetingLogs
         .filter((log) => log.student_id === studentId)
         .sort((a, b) => (a.happened_at < b.happened_at ? 1 : -1));
+      return { results };
+    }
+
+    if (q.startsWith("SELECT * FROM student_phase_audit")) {
+      const studentId = Number(values[0]);
+      const results = this.phaseAuditEntries
+        .filter((entry) => entry.student_id === studentId)
+        .sort((a, b) => (a.changed_at < b.changed_at ? 1 : -1));
       return { results };
     }
 

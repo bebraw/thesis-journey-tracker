@@ -9,6 +9,7 @@ export interface DashboardPageData {
   students: import("../db").Student[];
   selectedStudent: import("../db").Student | null;
   logs: import("../db").MeetingLog[];
+  phaseAudit: import("../db").PhaseAuditEntry[];
   notice: string | null;
   error: string | null;
   metrics: Metrics;

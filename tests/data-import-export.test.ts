@@ -42,6 +42,13 @@ describe("data import and export", () => {
       agreed_plan: "Write chapter 1",
       next_step_deadline: "2026-03-29",
     });
+    env.DB.phaseAuditEntries.push({
+      id: 1,
+      student_id: 1,
+      changed_at: "2026-03-21T12:00:00.000Z",
+      from_phase: "research_plan",
+      to_phase: "researching",
+    });
   });
 
   it("exports the current dataset as a JSON attachment", async () => {
@@ -61,7 +68,11 @@ describe("data import and export", () => {
     const body = JSON.parse(await response.text()) as {
       app: string;
       schemaVersion: number;
-      students: Array<{ name: string; logs: Array<{ discussed: string }> }>;
+      students: Array<{
+        name: string;
+        logs: Array<{ discussed: string }>;
+        phaseAudit: Array<{ fromPhase: string; toPhase: string }>;
+      }>;
     };
 
     expect(body.app).toBe("thesis-journey-tracker");
@@ -69,6 +80,8 @@ describe("data import and export", () => {
     expect(body.students).toHaveLength(1);
     expect(body.students[0]?.name).toBe("Base Student");
     expect(body.students[0]?.logs[0]?.discussed).toBe("Initial review");
+    expect(body.students[0]?.phaseAudit[0]?.fromPhase).toBe("research_plan");
+    expect(body.students[0]?.phaseAudit[0]?.toPhase).toBe("researching");
   });
 
   it("exports a professor-friendly markdown status report", async () => {
@@ -91,6 +104,36 @@ describe("data import and export", () => {
     expect(body).toContain("## Student Updates");
     expect(body).toContain("Base Student (MSc)");
     expect(body).toContain('agreed next step "Write chapter 1"');
+  });
+
+  it("records a phase audit entry when a student's phase changes", async () => {
+    const cookie = await login(fetchHandler, env);
+
+    const response = await fetchHandler(
+      new Request("http://localhost/actions/update-student/1", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams({
+          name: "Base Student",
+          email: "base@example.edu",
+          degreeType: "msc",
+          thesisTopic: "Baseline supervision topic",
+          startDate: "",
+          targetSubmissionDate: "2026-07-01",
+          currentPhase: "editing",
+          nextMeetingAt: "",
+        }),
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(env.DB.phaseAuditEntries).toHaveLength(2);
+    expect(env.DB.phaseAuditEntries[1]?.from_phase).toBe("researching");
+    expect(env.DB.phaseAuditEntries[1]?.to_phase).toBe("editing");
   });
 
   it("appends imported students and logs by default", async () => {
@@ -122,6 +165,13 @@ describe("data import and export", () => {
                     nextStepDeadline: "2026-03-30",
                   },
                 ],
+                phaseAudit: [
+                  {
+                    changedAt: "2026-03-15T08:00:00.000Z",
+                    fromPhase: "research_plan",
+                    toPhase: "editing",
+                  },
+                ],
               },
             ],
           }),
@@ -146,6 +196,8 @@ describe("data import and export", () => {
     expect(env.DB.students[1]?.name).toBe("Imported Student");
     expect(env.DB.meetingLogs).toHaveLength(2);
     expect(env.DB.meetingLogs[1]?.discussed).toBe("Imported log");
+    expect(env.DB.phaseAuditEntries).toHaveLength(2);
+    expect(env.DB.phaseAuditEntries[1]?.to_phase).toBe("editing");
   });
 
   it("requires confirmation before replacement import", async () => {
@@ -181,6 +233,7 @@ describe("data import and export", () => {
     expect(response.headers.get("location")).toContain("Confirm+replacement+before+importing");
     expect(env.DB.students).toHaveLength(1);
     expect(env.DB.meetingLogs).toHaveLength(1);
+    expect(env.DB.phaseAuditEntries).toHaveLength(1);
   });
 
   it("replaces the current dataset when replacement is confirmed", async () => {
@@ -205,6 +258,13 @@ describe("data import and export", () => {
                 currentPhase: "research_plan",
                 nextMeetingAt: null,
                 logs: [],
+                phaseAudit: [
+                  {
+                    changedAt: "2026-01-20T08:00:00.000Z",
+                    fromPhase: "research_plan",
+                    toPhase: "researching",
+                  },
+                ],
               },
             ],
           }),
@@ -229,6 +289,8 @@ describe("data import and export", () => {
     expect(env.DB.students).toHaveLength(1);
     expect(env.DB.students[0]?.name).toBe("Replacement Student");
     expect(env.DB.meetingLogs).toHaveLength(0);
+    expect(env.DB.phaseAuditEntries).toHaveLength(1);
+    expect(env.DB.phaseAuditEntries[0]?.to_phase).toBe("researching");
   });
 
   it("rejects invalid JSON imports without changing stored data", async () => {
@@ -249,5 +311,6 @@ describe("data import and export", () => {
     expect(response.headers.get("location")).toContain("not%20valid%20JSON");
     expect(env.DB.students).toHaveLength(1);
     expect(env.DB.meetingLogs).toHaveLength(1);
+    expect(env.DB.phaseAuditEntries).toHaveLength(1);
   });
 });

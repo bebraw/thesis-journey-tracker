@@ -1,4 +1,4 @@
-import type { CreateStudentInput, DegreeId, MeetingLog, PhaseId, Student } from "./db";
+import type { CreateStudentInput, DegreeId, MeetingLog, PhaseAuditEntry, PhaseId, Student } from "./db";
 import { DEGREE_TYPES, PHASES } from "./reference-data";
 import {
   formatDateTime,
@@ -21,6 +21,12 @@ export interface ExportedMeetingLog {
   nextStepDeadline: string | null;
 }
 
+export interface ExportedPhaseAuditEntry {
+  changedAt: string;
+  fromPhase: PhaseId;
+  toPhase: PhaseId;
+}
+
 export interface ExportedStudent {
   name: string;
   email: string | null;
@@ -31,6 +37,7 @@ export interface ExportedStudent {
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
   logs: ExportedMeetingLog[];
+  phaseAudit: ExportedPhaseAuditEntry[];
 }
 
 export interface DataExportFile {
@@ -43,6 +50,7 @@ export interface DataExportFile {
 export interface ImportedStudentBundle {
   student: CreateStudentInput;
   logs: ExportedMeetingLog[];
+  phaseAudit: ExportedPhaseAuditEntry[];
 }
 
 export interface StatusReportStudentBundle {
@@ -55,12 +63,14 @@ interface ImportParseResult {
   error: string | null;
 }
 
-export function createDataExport(studentBundles: Array<{ student: Student; logs: MeetingLog[] }>): DataExportFile {
+export function createDataExport(
+  studentBundles: Array<{ student: Student; logs: MeetingLog[]; phaseAudit: PhaseAuditEntry[] }>,
+): DataExportFile {
   return {
     app: "thesis-journey-tracker",
     schemaVersion: DATA_EXPORT_SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
-    students: studentBundles.map(({ student, logs }) => ({
+    students: studentBundles.map(({ student, logs, phaseAudit }) => ({
       name: student.name,
       email: student.email,
       degreeType: student.degreeType,
@@ -74,6 +84,11 @@ export function createDataExport(studentBundles: Array<{ student: Student; logs:
         discussed: log.discussed,
         agreedPlan: log.agreedPlan,
         nextStepDeadline: log.nextStepDeadline,
+      })),
+      phaseAudit: phaseAudit.map((entry) => ({
+        changedAt: entry.changedAt,
+        fromPhase: entry.fromPhase,
+        toPhase: entry.toPhase,
       })),
     })),
   };
@@ -142,6 +157,10 @@ export function countImportedLogs(studentBundles: ImportedStudentBundle[]): numb
   return studentBundles.reduce((total, bundle) => total + bundle.logs.length, 0);
 }
 
+export function countImportedPhaseAuditEntries(studentBundles: ImportedStudentBundle[]): number {
+  return studentBundles.reduce((total, bundle) => total + bundle.phaseAudit.length, 0);
+}
+
 export function buildExportFilename(timestamp = new Date()): string {
   const safeDate = timestamp.toISOString().slice(0, 10);
   return `thesis-journey-tracker-export-${safeDate}.json`;
@@ -164,9 +183,7 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
     return diff >= 0 && diff <= 14 * 24 * 60 * 60 * 1000;
   });
   const noMeetingBooked = studentBundles.filter(({ student }) => !student.nextMeetingAt);
-  const pastTarget = studentBundles.filter(
-    ({ student }) => student.targetSubmissionDate < today && student.currentPhase !== "submitted",
-  );
+  const pastTarget = studentBundles.filter(({ student }) => student.targetSubmissionDate < today && student.currentPhase !== "submitted");
 
   const phaseLines = PHASES.map((phase) => {
     const count = studentBundles.filter(({ student }) => student.currentPhase === phase.id).length;
@@ -264,6 +281,11 @@ function parseImportedStudent(value: unknown): ImportedStudentBundle | null {
     return null;
   }
 
+  const rawPhaseAudit = value.phaseAudit;
+  if (rawPhaseAudit !== undefined && !Array.isArray(rawPhaseAudit)) {
+    return null;
+  }
+
   const logs: ExportedMeetingLog[] = [];
   for (const rawLog of rawLogs || []) {
     const parsedLog = parseImportedLog(rawLog);
@@ -271,6 +293,15 @@ function parseImportedStudent(value: unknown): ImportedStudentBundle | null {
       return null;
     }
     logs.push(parsedLog);
+  }
+
+  const phaseAudit: ExportedPhaseAuditEntry[] = [];
+  for (const rawEntry of rawPhaseAudit || []) {
+    const parsedEntry = parseImportedPhaseAudit(rawEntry);
+    if (!parsedEntry) {
+      return null;
+    }
+    phaseAudit.push(parsedEntry);
   }
 
   return {
@@ -285,6 +316,7 @@ function parseImportedStudent(value: unknown): ImportedStudentBundle | null {
       nextMeetingAt,
     },
     logs,
+    phaseAudit,
   };
 }
 
@@ -307,6 +339,26 @@ function parseImportedLog(value: unknown): ExportedMeetingLog | null {
     discussed,
     agreedPlan,
     nextStepDeadline,
+  };
+}
+
+function parseImportedPhaseAudit(value: unknown): ExportedPhaseAuditEntry | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const changedAt = normalizeDateTime(value.changedAt as string | null | undefined);
+  const fromPhase = normalizePhase(value.fromPhase as string | null | undefined, PHASES);
+  const toPhase = normalizePhase(value.toPhase as string | null | undefined, PHASES);
+
+  if (!changedAt || !fromPhase || !toPhase) {
+    return null;
+  }
+
+  return {
+    changedAt,
+    fromPhase,
+    toPhase,
   };
 }
 

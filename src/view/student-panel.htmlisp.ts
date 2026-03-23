@@ -1,4 +1,4 @@
-import type { MeetingLog, Student } from "../db";
+import type { MeetingLog, PhaseAuditEntry, Student } from "../db";
 import {
   DANGER_PANEL,
   DANGER_TEXT,
@@ -21,8 +21,9 @@ import {
   renderTextareaField,
 } from "../ui";
 import { type HtmlispComponents } from "../htmlisp";
+import { PHASES } from "../reference-data";
 import { getStudentFormValues } from "../student-form";
-import { escapeHtml, escapeJsString, formatDateTime } from "../utils";
+import { escapeHtml, escapeJsString, formatDateTime, getPhaseLabel } from "../utils";
 import { renderView } from "./shared.htmlisp";
 import { renderStudentFormFields } from "./student-form-fields";
 
@@ -50,6 +51,11 @@ interface PreparedLogEntry {
   deadlineText: string;
 }
 
+interface PreparedPhaseAuditEntry {
+  timestampText: string;
+  transitionText: string;
+}
+
 function prepareLogEntries(logs: MeetingLog[]): PreparedLogEntry[] {
   return logs.map((log) => ({
     timestampText: escapeHtml(formatDateTime(log.happenedAt)),
@@ -60,7 +66,14 @@ function prepareLogEntries(logs: MeetingLog[]): PreparedLogEntry[] {
   }));
 }
 
-export function renderSelectedStudentPanel(student: Student, logs: MeetingLog[]): string {
+function preparePhaseAuditEntries(entries: PhaseAuditEntry[]): PreparedPhaseAuditEntry[] {
+  return entries.map((entry) => ({
+    timestampText: escapeHtml(formatDateTime(entry.changedAt)),
+    transitionText: escapeHtml(`${getPhaseLabel(entry.fromPhase, PHASES)} -> ${getPhaseLabel(entry.toPhase, PHASES)}`),
+  }));
+}
+
+export function renderSelectedStudentPanel(student: Student, logs: MeetingLog[], phaseAudit: PhaseAuditEntry[]): string {
   const components: HtmlispComponents = {
     MeetingLogEntry: `<article &class="(get props cardClass)">
     <p class="font-medium"><span &children="(get props timestampText)"></span></p>
@@ -68,9 +81,14 @@ export function renderSelectedStudentPanel(student: Student, logs: MeetingLog[])
     <p class="mt-1"><span class="font-medium">Agreed:</span> <span &children="(get props agreedPlan)"></span></p>
     <p &visibleIf="(get props hasDeadline)" class="mt-1"><span class="font-medium">Next-step deadline:</span> <span &children="(get props deadlineText)"></span></p>
   </article>`,
+    PhaseAuditLogEntry: `<article &class="(get props cardClass)">
+    <p class="font-medium"><span &children="(get props timestampText)"></span></p>
+    <p class="mt-1"><span class="font-medium">Phase change:</span> <span &children="(get props transitionText)"></span></p>
+  </article>`,
   };
 
   const preparedLogs = prepareLogEntries(logs);
+  const preparedPhaseAudit = preparePhaseAuditEntries(phaseAudit);
   const fields = renderStudentFormFields({
     values: getStudentFormValues(student),
   });
@@ -201,6 +219,25 @@ export function renderSelectedStudentPanel(student: Student, logs: MeetingLog[])
 
       <details &class="(get props disclosureClass)">
         <summary &class="(get props disclosureSummaryClass)">
+          <span>Phase Change Audit</span>
+          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props auditSummaryText)"></span>
+        </summary>
+        <div &class="(get props disclosureContentClass)">
+          <div &class="(get props formStack)" &visibleIf="(get props hasPhaseAudit)">
+            <noop &foreach="(get props phaseAuditEntries)">
+              <PhaseAuditLogEntry
+                &cardClass="(get props logEntryClass)"
+                &timestampText="(get props timestampText)"
+                &transitionText="(get props transitionText)"
+              ></PhaseAuditLogEntry>
+            </noop>
+          </div>
+          <p &visibleIf="(get props showNoPhaseAudit)" &class="(get props emptyStateClass)">No phase changes recorded yet.</p>
+        </div>
+      </details>
+
+      <details &class="(get props disclosureClass)">
+        <summary &class="(get props disclosureSummaryClass)">
           <span>Delete Student</span>
           <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Rarely needed</span>
         </summary>
@@ -233,6 +270,9 @@ export function renderSelectedStudentPanel(student: Student, logs: MeetingLog[])
       logSummaryText: escapeHtml(
         preparedLogs.length > 0 ? `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"}` : "Empty",
       ),
+      auditSummaryText: escapeHtml(
+        preparedPhaseAudit.length > 0 ? `${preparedPhaseAudit.length} change${preparedPhaseAudit.length === 1 ? "" : "s"}` : "Empty",
+      ),
       logEntryClass: escapeHtml(SOFT_SURFACE_CARD),
       subtleText: escapeHtml(SUBTLE_TEXT),
       topicTextClass: escapeHtml(TOPIC_TEXT),
@@ -244,6 +284,9 @@ export function renderSelectedStudentPanel(student: Student, logs: MeetingLog[])
       hasLogs: preparedLogs.length > 0,
       showNoLogs: preparedLogs.length === 0,
       logs: preparedLogs,
+      hasPhaseAudit: preparedPhaseAudit.length > 0,
+      showNoPhaseAudit: preparedPhaseAudit.length === 0,
+      phaseAuditEntries: preparedPhaseAudit,
       deleteAction: escapeHtml(`/actions/delete-student/${student.id}`),
       deleteConfirm: escapeHtml(
         `return window.confirm('Delete ${escapeJsString(student.name)}? This will also remove all supervision logs for this student.');`,

@@ -142,7 +142,7 @@ test.describe("dashboard e2e", () => {
     await page.getByRole("button", { name: "Import JSON file" }).click();
 
     await expect(page).toHaveURL(/\/data-tools\?notice=/);
-    await expect(page.locator("body")).toContainText("Imported 1 students and 1 logs");
+    await expect(page.locator("body")).toContainText("Imported 1 students, 1 logs");
 
     await page.getByRole("link", { name: "Dashboard" }).click();
     await expect(page).toHaveURL(/\/$/);
@@ -212,6 +212,7 @@ test.describe("dashboard e2e", () => {
     await page.locator("#selectedStudentPanel").getByLabel("Name").fill(updatedStudentName);
     await page.locator("#selectedStudentPanel").getByLabel("Email").fill(updatedEmail);
     await page.locator("#selectedStudentPanel").getByLabel("Degree type").selectOption({ label: "MSc" });
+    await page.locator("#selectedStudentPanel").getByLabel("Phase").selectOption({ label: "Editing" });
     await page.locator("#selectedStudentPanel").getByLabel("Thesis topic (optional)").fill(updatedTopic);
     await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save student updates" }).click();
 
@@ -219,6 +220,7 @@ test.describe("dashboard e2e", () => {
     await expect(page.locator("#selectedStudentPanel").getByLabel("Name")).toHaveValue(updatedStudentName);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Email")).toHaveValue(updatedEmail);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Degree type")).toHaveValue("msc");
+    await expect(page.locator("#selectedStudentPanel").getByLabel("Phase")).toHaveValue("editing");
     await expect(page.locator("#selectedStudentPanel").getByLabel("Thesis topic (optional)")).toHaveValue(updatedTopic);
 
     await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Add Log Entry" }).click();
@@ -230,6 +232,9 @@ test.describe("dashboard e2e", () => {
     await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Meeting Log History" }).click();
     await expect(page.locator("#selectedStudentPanel")).toContainText(discussedText);
     await expect(page.locator("#selectedStudentPanel")).toContainText(agreedPlanText);
+
+    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Phase Change Audit" }).click();
+    await expect(page.locator("#selectedStudentPanel")).toContainText("Planning research -> Editing");
   });
 
   test("can delete a student after confirmation", async ({ page }) => {

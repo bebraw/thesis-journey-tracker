@@ -2,12 +2,14 @@ import styles from "../.generated/styles.css";
 import favicon from "./favicon.ico";
 import {
   createMeetingLog,
+  createPhaseAuditEntry,
   createStudent,
   deleteAllStudents,
   deleteStudent,
   type D1Database,
   getStudentById,
   listLogsForStudent,
+  listPhaseAuditEntriesForStudent,
   listStudents,
   studentExists,
   updateStudent,
@@ -16,6 +18,7 @@ import { parseStudentFormSubmission } from "./student-form";
 import {
   buildExportFilename,
   buildProfessorReportFilename,
+  countImportedPhaseAuditEntries,
   countImportedLogs,
   createDataExport,
   createProfessorStatusReport,
@@ -194,6 +197,7 @@ async function renderDashboard(request: Request, env: Env, url: URL): Promise<Re
   const selectedId = Number.isFinite(parsedSelectedId) ? parsedSelectedId : 0;
   const selectedStudent = students.find((student) => student.id === selectedId) || null;
   const logs = selectedStudent ? await listLogsForStudent(env.DB, selectedStudent.id) : [];
+  const phaseAudit = selectedStudent ? await listPhaseAuditEntriesForStudent(env.DB, selectedStudent.id) : [];
 
   const notice = url.searchParams.get("notice");
   const error = url.searchParams.get("error");
@@ -211,6 +215,7 @@ async function renderDashboard(request: Request, env: Env, url: URL): Promise<Re
       students,
       selectedStudent,
       logs,
+      phaseAudit,
       notice,
       error,
       metrics,
@@ -254,7 +259,8 @@ async function renderStudentPanelPartial(env: Env, studentId: number): Promise<R
   }
 
   const logs = await listLogsForStudent(env.DB, studentId);
-  return htmlFragmentResponse(renderSelectedStudentPanel(selectedStudent, logs));
+  const phaseAudit = await listPhaseAuditEntriesForStudent(env.DB, studentId);
+  return htmlFragmentResponse(renderSelectedStudentPanel(selectedStudent, logs, phaseAudit));
 }
 
 async function handleAddStudent(request: Request, env: Env): Promise<Response> {
@@ -274,6 +280,7 @@ async function handleExportJson(env: Env): Promise<Response> {
     students.map(async (student) => ({
       student,
       logs: await listLogsForStudent(env.DB, student.id),
+      phaseAudit: await listPhaseAuditEntriesForStudent(env.DB, student.id),
     })),
   );
 
@@ -329,6 +336,15 @@ async function handleUpdateStudent(request: Request, env: Env, studentId: number
 
   await updateStudent(env.DB, studentId, studentInput);
 
+  if (existingStudent.currentPhase !== studentInput.currentPhase) {
+    await createPhaseAuditEntry(env.DB, {
+      studentId,
+      changedAt: new Date().toISOString(),
+      fromPhase: existingStudent.currentPhase,
+      toPhase: studentInput.currentPhase,
+    });
+  }
+
   return redirect(`/?selected=${studentId}&notice=Student+updated`);
 }
 
@@ -366,11 +382,22 @@ async function handleImportJson(request: Request, env: Env): Promise<Response> {
         nextStepDeadline: log.nextStepDeadline,
       });
     }
+    for (const entry of bundle.phaseAudit) {
+      await createPhaseAuditEntry(env.DB, {
+        studentId,
+        changedAt: entry.changedAt,
+        fromPhase: entry.fromPhase,
+        toPhase: entry.toPhase,
+      });
+    }
   }
 
   const logCount = countImportedLogs(data);
+  const phaseAuditCount = countImportedPhaseAuditEntries(data);
   const modeText = mode === "replace" ? "replaced existing data" : "appended to existing data";
-  return redirect(`/data-tools?notice=${encodeURIComponent(`Imported ${data.length} students and ${logCount} logs; ${modeText}.`)}`);
+  return redirect(
+    `/data-tools?notice=${encodeURIComponent(`Imported ${data.length} students, ${logCount} logs, and ${phaseAuditCount} phase changes; ${modeText}.`)}`,
+  );
 }
 
 async function handleAddLog(request: Request, env: Env, studentId: number): Promise<Response> {

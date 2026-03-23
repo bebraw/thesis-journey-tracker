@@ -9,8 +9,8 @@ import { renderPhaseLanes } from "./phase-lanes.htmlisp";
 import { renderStudentsTable } from "./students-table.htmlisp";
 
 export function renderDashboardPage(data: DashboardPageData): string {
-  const { students, selectedStudent, logs, notice, error, metrics } = data;
-  const selectedPanel = selectedStudent ? renderSelectedStudentPanel(selectedStudent, logs) : renderEmptySelectedPanel();
+  const { students, selectedStudent, logs, phaseAudit, notice, error, metrics } = data;
+  const selectedPanel = selectedStudent ? renderSelectedStudentPanel(selectedStudent, logs, phaseAudit) : renderEmptySelectedPanel();
 
   const bodyContent = renderView(
     `<div &class="(get props pageWrap)">

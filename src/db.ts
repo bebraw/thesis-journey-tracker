@@ -24,6 +24,13 @@ export interface MeetingLog {
   nextStepDeadline: string | null;
 }
 
+export interface PhaseAuditEntry {
+  id: number;
+  changedAt: string;
+  fromPhase: PhaseId;
+  toPhase: PhaseId;
+}
+
 type D1Value = string | number | null;
 
 interface D1ExecMeta {
@@ -73,6 +80,13 @@ interface LogRow {
   next_step_deadline: string | null;
 }
 
+interface PhaseAuditRow {
+  id: number | string;
+  changed_at: string;
+  from_phase: PhaseId;
+  to_phase: PhaseId;
+}
+
 export interface StudentMutationInput {
   name: string;
   email: string | null;
@@ -93,6 +107,13 @@ export interface CreateLogInput {
   discussed: string;
   agreedPlan: string;
   nextStepDeadline: string | null;
+}
+
+export interface CreatePhaseAuditInput {
+  studentId: number;
+  changedAt: string;
+  fromPhase: PhaseId;
+  toPhase: PhaseId;
 }
 
 export async function listStudents(db: D1Database): Promise<Student[]> {
@@ -184,6 +205,25 @@ export async function listLogsForStudent(db: D1Database, studentId: number): Pro
   }));
 }
 
+export async function listPhaseAuditEntriesForStudent(db: D1Database, studentId: number): Promise<PhaseAuditEntry[]> {
+  const rows = await db
+    .prepare(
+      `SELECT *
+       FROM student_phase_audit
+       WHERE student_id = ?
+       ORDER BY changed_at DESC, id DESC`,
+    )
+    .bind(studentId)
+    .all<PhaseAuditRow>();
+
+  return rows.results.map((row) => ({
+    id: parseDbNumber(row.id),
+    changedAt: row.changed_at,
+    fromPhase: row.from_phase as PhaseId,
+    toPhase: row.to_phase as PhaseId,
+  }));
+}
+
 export async function createStudent(db: D1Database, input: CreateStudentInput): Promise<number> {
   const result = await db
     .prepare(
@@ -246,6 +286,16 @@ export async function createMeetingLog(db: D1Database, input: CreateLogInput): P
        VALUES (?, ?, ?, ?, ?)`,
     )
     .bind(input.studentId, input.happenedAt, input.discussed, input.agreedPlan, input.nextStepDeadline)
+    .run();
+}
+
+export async function createPhaseAuditEntry(db: D1Database, input: CreatePhaseAuditInput): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO student_phase_audit (student_id, changed_at, from_phase, to_phase)
+       VALUES (?, ?, ?, ?)`,
+    )
+    .bind(input.studentId, input.changedAt, input.fromPhase, input.toPhase)
     .run();
 }
 
