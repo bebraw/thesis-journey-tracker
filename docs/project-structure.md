@@ -22,6 +22,37 @@ This document gives a technical overview of how the project is put together.
 - [`migrations/`](../migrations): schema changes for D1
 - [`tests/`](../tests): end-to-end and security-oriented automated tests
 
+## Architecture Diagram
+
+```mermaid
+graph TD
+    Browser[Browser]
+    Worker[src/worker.ts<br/>Routes, auth, page rendering]
+    Views[src/view/<br/>Page templates]
+    Dashboard[src/view/dashboard/<br/>Dashboard sections and interactions]
+    UI[src/ui/<br/>Reusable UI components]
+    Reference[src/reference-data.ts<br/>Phases and degree types]
+    DB[src/db.ts<br/>Database helpers]
+    D1[(Cloudflare D1)]
+    Migrations[migrations/<br/>Schema changes]
+    Tests[tests/<br/>Vitest and Playwright]
+    CSS[src/tailwind-input.css + .generated/styles.css]
+
+    Browser --> Worker
+    Worker --> Views
+    Worker --> Dashboard
+    Worker --> UI
+    Worker --> Reference
+    Worker --> DB
+    Worker --> CSS
+    DB --> D1
+    Migrations --> D1
+    Tests --> Worker
+    Tests --> D1
+```
+
+The Worker is the center of the app: it handles requests, checks authentication, talks to D1 through the database helpers, and renders server-side HTML using the shared view and UI layers.
+
 ## Repository Map
 
 - [`README.md`](../README.md): first-stop overview for new readers
