@@ -1,6 +1,16 @@
 import type { CreateStudentInput, DegreeId, MeetingLog, PhaseId, Student } from "./db";
 import { DEGREE_TYPES, PHASES } from "./reference-data";
-import { normalizeDate, normalizeDateTime, normalizeDegree, normalizePhase, normalizeString } from "./utils";
+import {
+  formatDateTime,
+  getDegreeLabel,
+  getPhaseLabel,
+  meetingStatusText,
+  normalizeDate,
+  normalizeDateTime,
+  normalizeDegree,
+  normalizePhase,
+  normalizeString,
+} from "./utils";
 
 export const DATA_EXPORT_SCHEMA_VERSION = 1;
 
@@ -33,6 +43,11 @@ export interface DataExportFile {
 export interface ImportedStudentBundle {
   student: CreateStudentInput;
   logs: ExportedMeetingLog[];
+}
+
+export interface StatusReportStudentBundle {
+  student: Student;
+  latestLog: MeetingLog | null;
 }
 
 interface ImportParseResult {
@@ -130,6 +145,100 @@ export function countImportedLogs(studentBundles: ImportedStudentBundle[]): numb
 export function buildExportFilename(timestamp = new Date()): string {
   const safeDate = timestamp.toISOString().slice(0, 10);
   return `thesis-journey-tracker-export-${safeDate}.json`;
+}
+
+export function buildProfessorReportFilename(timestamp = new Date()): string {
+  const safeDate = timestamp.toISOString().slice(0, 10);
+  return `thesis-journey-status-report-${safeDate}.md`;
+}
+
+export function createProfessorStatusReport(studentBundles: StatusReportStudentBundle[], generatedAt = new Date()): string {
+  const today = generatedAt.toISOString().slice(0, 10);
+  const overdueMeetings = studentBundles.filter(({ student }) => student.nextMeetingAt && new Date(student.nextMeetingAt) < generatedAt);
+  const upcomingSoon = studentBundles.filter(({ student }) => {
+    if (!student.nextMeetingAt) {
+      return false;
+    }
+    const nextMeeting = new Date(student.nextMeetingAt);
+    const diff = nextMeeting.getTime() - generatedAt.getTime();
+    return diff >= 0 && diff <= 14 * 24 * 60 * 60 * 1000;
+  });
+  const noMeetingBooked = studentBundles.filter(({ student }) => !student.nextMeetingAt);
+  const pastTarget = studentBundles.filter(
+    ({ student }) => student.targetSubmissionDate < today && student.currentPhase !== "submitted",
+  );
+
+  const phaseLines = PHASES.map((phase) => {
+    const count = studentBundles.filter(({ student }) => student.currentPhase === phase.id).length;
+    return `- ${phase.label}: ${count}`;
+  });
+
+  const needsAttention = studentBundles
+    .filter(({ student }) => {
+      const meetingStatus = meetingStatusText(student);
+      return meetingStatus === "Overdue" || meetingStatus === "Not booked" || student.targetSubmissionDate < today;
+    })
+    .map(({ student, latestLog }) => {
+      const parts = [
+        `${student.name} (${getDegreeLabel(student.degreeType, DEGREE_TYPES)})`,
+        `phase ${getPhaseLabel(student.currentPhase, PHASES)}`,
+        `target ${student.targetSubmissionDate}`,
+        `meeting ${meetingStatusText(student).toLowerCase()}`,
+      ];
+
+      if (latestLog) {
+        parts.push(`last update ${formatDateTime(latestLog.happenedAt)}`);
+      }
+
+      return `- ${parts.join("; ")}`;
+    });
+
+  const studentLines = studentBundles.map(({ student, latestLog }) => {
+    const parts = [
+      `${student.name} (${getDegreeLabel(student.degreeType, DEGREE_TYPES)})`,
+      `phase ${getPhaseLabel(student.currentPhase, PHASES)}`,
+      `target ${student.targetSubmissionDate}`,
+      `meeting ${meetingStatusText(student).toLowerCase()}`,
+    ];
+
+    if (student.thesisTopic) {
+      parts.push(`topic "${student.thesisTopic}"`);
+    }
+
+    if (latestLog) {
+      parts.push(`last log ${formatDateTime(latestLog.happenedAt)}`);
+      parts.push(`agreed next step "${latestLog.agreedPlan}"`);
+    } else {
+      parts.push("no supervision log yet");
+    }
+
+    return `- ${parts.join("; ")}`;
+  });
+
+  return [
+    "# Thesis Supervision Status Report",
+    "",
+    `Generated: ${generatedAt.toISOString().slice(0, 10)}`,
+    "",
+    "## Summary",
+    `- Total students: ${studentBundles.length}`,
+    `- Submitted: ${studentBundles.filter(({ student }) => student.currentPhase === "submitted").length}`,
+    `- Draft ready to submit: ${studentBundles.filter(({ student }) => student.currentPhase === "submission_ready").length}`,
+    `- Overdue meetings: ${overdueMeetings.length}`,
+    `- Meetings within 2 weeks: ${upcomingSoon.length}`,
+    `- No meeting booked: ${noMeetingBooked.length}`,
+    `- Past target date and not yet submitted: ${pastTarget.length}`,
+    "",
+    "## Phase Breakdown",
+    ...phaseLines,
+    "",
+    "## Students Needing Attention",
+    ...(needsAttention.length > 0 ? needsAttention : ["- None at the moment."]),
+    "",
+    "## Student Updates",
+    ...studentLines,
+    "",
+  ].join("\n");
 }
 
 function parseImportedStudent(value: unknown): ImportedStudentBundle | null {

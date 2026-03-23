@@ -92,6 +92,11 @@ test.describe("dashboard e2e", () => {
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/^thesis-journey-tracker-export-\d{4}-\d{2}-\d{2}\.json$/);
 
+    const reportDownloadPromise = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Download email-ready report" }).click();
+    const reportDownload = await reportDownloadPromise;
+    expect(reportDownload.suggestedFilename()).toMatch(/^thesis-journey-status-report-\d{4}-\d{2}-\d{2}\.md$/);
+
     const suffix = Date.now().toString();
     const importedStudentName = `Imported Backup ${suffix}`;
     const importJson = JSON.stringify({

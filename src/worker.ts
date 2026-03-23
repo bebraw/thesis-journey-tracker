@@ -13,7 +13,14 @@ import {
   updateStudent,
 } from "./db";
 import { parseStudentFormSubmission } from "./student-form";
-import { buildExportFilename, countImportedLogs, createDataExport, parseDataImport } from "./import-export";
+import {
+  buildExportFilename,
+  buildProfessorReportFilename,
+  countImportedLogs,
+  createDataExport,
+  createProfessorStatusReport,
+  parseDataImport,
+} from "./import-export";
 import {
   buildSessionCookie,
   clearSessionCookie,
@@ -149,6 +156,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return await handleExportJson(env);
   }
 
+  if (pathname === "/actions/export-professor-report" && request.method === "GET") {
+    return await handleProfessorReportExport(env);
+  }
+
   if (pathname === "/actions/add-student" && request.method === "POST") {
     return await handleAddStudent(request, env);
   }
@@ -273,6 +284,29 @@ async function handleExportJson(env: Env): Promise<Response> {
       "cache-control": "no-store",
       "content-disposition": `attachment; filename="${buildExportFilename()}"`,
       "content-type": "application/json; charset=utf-8",
+    },
+  });
+}
+
+async function handleProfessorReportExport(env: Env): Promise<Response> {
+  const students = await listStudents(env.DB);
+  const studentBundles = await Promise.all(
+    students.map(async (student) => {
+      const logs = await listLogsForStudent(env.DB, student.id);
+      return {
+        student,
+        latestLog: logs[0] || null,
+      };
+    }),
+  );
+
+  const body = createProfessorStatusReport(studentBundles);
+
+  return new Response(body, {
+    headers: {
+      "cache-control": "no-store",
+      "content-disposition": `attachment; filename="${buildProfessorReportFilename()}"`,
+      "content-type": "text/markdown; charset=utf-8",
     },
   });
 }

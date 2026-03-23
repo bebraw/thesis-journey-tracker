@@ -24,6 +24,7 @@ export function renderDataToolsPage(data: DataToolsPageData): string {
       <p &class="(get props metaText)" &children="(get props currentDataText)"></p>
       <div class="mt-panel-sm flex flex-wrap gap-stack-xs">
         <noop &children="(get props exportButton)"></noop>
+        <noop &children="(get props professorReportButton)"></noop>
       </div>`,
       {
         subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
@@ -34,6 +35,11 @@ export function renderDataToolsPage(data: DataToolsPageData): string {
           label: "Download JSON export",
           href: "/actions/export-json",
           variant: "primary",
+        }),
+        professorReportButton: renderButton({
+          label: "Download email-ready report",
+          href: "/actions/export-professor-report",
+          variant: "neutral",
         }),
       },
     ),

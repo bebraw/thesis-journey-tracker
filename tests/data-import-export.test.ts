@@ -71,6 +71,28 @@ describe("data import and export", () => {
     expect(body.students[0]?.logs[0]?.discussed).toBe("Initial review");
   });
 
+  it("exports a professor-friendly markdown status report", async () => {
+    const cookie = await login(fetchHandler, env);
+
+    const response = await fetchHandler(
+      new Request("http://localhost/actions/export-professor-report", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/markdown");
+    expect(response.headers.get("content-disposition")).toContain("thesis-journey-status-report-");
+
+    const body = await response.text();
+    expect(body).toContain("# Thesis Supervision Status Report");
+    expect(body).toContain("## Summary");
+    expect(body).toContain("## Student Updates");
+    expect(body).toContain("Base Student (MSc)");
+    expect(body).toContain('agreed next step "Write chapter 1"');
+  });
+
   it("appends imported students and logs by default", async () => {
     const cookie = await login(fetchHandler, env);
     const formData = new FormData();
