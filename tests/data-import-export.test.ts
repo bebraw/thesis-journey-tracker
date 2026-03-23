@@ -200,7 +200,7 @@ describe("data import and export", () => {
                 email: null,
                 degreeType: "bsc",
                 thesisTopic: null,
-                startDate: "2026-01-15",
+                startDate: null,
                 targetSubmissionDate: "2026-06-15",
                 currentPhase: "research_plan",
                 nextMeetingAt: null,

@@ -26,7 +26,7 @@ export interface ExportedStudent {
   email: string | null;
   degreeType: DegreeId;
   thesisTopic: string | null;
-  startDate: string;
+  startDate: string | null;
   targetSubmissionDate: string;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
@@ -250,12 +250,12 @@ function parseImportedStudent(value: unknown): ImportedStudentBundle | null {
   const email = normalizeString(value.email as string | null | undefined);
   const degreeType = normalizeDegree(value.degreeType as string | null | undefined, DEGREE_TYPES);
   const thesisTopic = normalizeString(value.thesisTopic as string | null | undefined);
-  const startDate = normalizeDate(value.startDate as string | null | undefined);
+  const startDate = normalizeDate(value.startDate as string | null | undefined, true);
   const targetSubmissionDate = normalizeDate(value.targetSubmissionDate as string | null | undefined);
   const currentPhase = normalizePhase(value.currentPhase as string | null | undefined, PHASES);
   const nextMeetingAt = normalizeDateTime(value.nextMeetingAt as string | null | undefined, true);
 
-  if (!name || !degreeType || !startDate || !targetSubmissionDate || !currentPhase || nextMeetingAt === undefined) {
+  if (startDate === undefined || !name || !degreeType || !targetSubmissionDate || !currentPhase || nextMeetingAt === undefined) {
     return null;
   }
 

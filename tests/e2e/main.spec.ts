@@ -49,6 +49,7 @@ async function addStudent(
   email: string,
   degreeType: "BSc" | "MSc" | "DSc" = "MSc",
   thesisTopic = "Test thesis topic",
+  options?: { startDate?: string; targetSubmissionDate?: string },
 ) {
   await page.getByRole("link", { name: "Add student" }).click();
   await expect(page).toHaveURL(/\/students\/new$/);
@@ -57,7 +58,14 @@ async function addStudent(
   await page.getByLabel("Email (optional)").fill(email);
   await page.getByLabel("Degree type").selectOption({ label: degreeType });
   await page.getByLabel("Thesis topic (optional)").fill(thesisTopic);
-  await page.getByLabel("Start date").fill("2026-03-01");
+  if (options?.startDate !== undefined) {
+    await page.getByLabel("Start date (optional)").fill(options.startDate);
+  } else {
+    await page.getByLabel("Start date (optional)").fill("2026-03-01");
+  }
+  if (options?.targetSubmissionDate !== undefined) {
+    await page.getByLabel("Target submission (optional)").fill(options.targetSubmissionDate);
+  }
   await page.getByRole("button", { name: "Add student" }).click();
 
   await expect(page).toHaveURL(/\/\?selected=/);
@@ -170,6 +178,22 @@ test.describe("dashboard e2e", () => {
 
     await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${secondaryStudentName}`);
     await expect(page).toHaveURL(/\/\?selected=/);
+  });
+
+  test("can add a student without a start date when target submission is provided", async ({ page }) => {
+    await login(page);
+
+    const suffix = Date.now().toString();
+    const noStartDateStudentName = `No Start Date ${suffix}`;
+
+    await addStudent(page, noStartDateStudentName, `nostart-${suffix}@example.edu`, "MSc", `Topic ${suffix}`, {
+      startDate: "",
+      targetSubmissionDate: "2026-10-01",
+    });
+
+    await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${noStartDateStudentName}`);
+    await expect(page.locator("#selectedStudentPanel").getByLabel("Start date (optional)")).toHaveValue("");
+    await expect(page.locator("[data-student-row]", { hasText: noStartDateStudentName })).toContainText("2026-10-01");
   });
 
   test("can update a student and add a meeting log", async ({ page }) => {

@@ -8,7 +8,7 @@ export interface Student {
   email: string | null;
   degreeType: DegreeId;
   thesisTopic: string | null;
-  startDate: string;
+  startDate: string | null;
   targetSubmissionDate: string;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
@@ -57,7 +57,7 @@ interface StudentRow {
   email: string | null;
   degree_type: DegreeId;
   thesis_topic: string | null;
-  start_date: string;
+  start_date: string | null;
   target_submission_date: string;
   current_phase: PhaseId;
   next_meeting_at: string | null;
@@ -78,7 +78,7 @@ export interface StudentMutationInput {
   email: string | null;
   degreeType: DegreeId;
   thesisTopic: string | null;
-  startDate: string;
+  startDate: string | null;
   targetSubmissionDate: string;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;

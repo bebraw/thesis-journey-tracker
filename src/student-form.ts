@@ -53,7 +53,7 @@ export function getStudentFormValues(student: Student): StudentFormValues {
     email: student.email || "",
     degreeType: student.degreeType,
     thesisTopic: student.thesisTopic || "",
-    startDate: student.startDate,
+    startDate: student.startDate || "",
     targetSubmissionDate: student.targetSubmissionDate,
     currentPhase: student.currentPhase,
     nextMeetingAt: toDateTimeLocalInput(student.nextMeetingAt),
@@ -69,7 +69,7 @@ export function parseStudentFormSubmission(formData: FormData, options: ParseStu
   );
   const thesisTopic = normalizeString(readOptionalField(formData, STUDENT_FORM_FIELDS.thesisTopic, existingStudent?.thesisTopic ?? null));
 
-  const startDate = normalizeDate(readRequiredField(formData, STUDENT_FORM_FIELDS.startDate, existingStudent?.startDate));
+  const startDate = normalizeDate(readOptionalField(formData, STUDENT_FORM_FIELDS.startDate, existingStudent?.startDate ?? null), true);
 
   const targetSubmissionSource = readTargetSubmissionField(formData, options);
   const targetSubmissionDate = normalizeTargetSubmissionDate(targetSubmissionSource, startDate, mode);
@@ -89,7 +89,7 @@ export function parseStudentFormSubmission(formData: FormData, options: ParseStu
     true,
   );
 
-  if (!name || !startDate || !targetSubmissionDate || !degreeType || !currentPhase || nextMeetingAt === undefined) {
+  if (!name || startDate === undefined || !targetSubmissionDate || !degreeType || !currentPhase || nextMeetingAt === undefined) {
     return null;
   }
 

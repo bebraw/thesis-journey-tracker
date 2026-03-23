@@ -79,10 +79,9 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
       className: controlClass,
     }),
     startDateField: renderInputField({
-      label: "Start date",
+      label: "Start date (optional)",
       name: STUDENT_FORM_FIELDS.startDate,
       type: "date",
-      required: true,
       value: values.startDate,
       className: controlClass,
     }),

@@ -6,7 +6,7 @@ interface StudentRowStore {
   email: string | null;
   degree_type: string;
   thesis_topic: string | null;
-  start_date: string;
+  start_date: string | null;
   target_submission_date: string;
   current_phase: string;
   next_meeting_at: string | null;
@@ -64,7 +64,7 @@ export class MockD1Database {
         email: email === null ? null : String(email),
         degree_type: String(degreeType),
         thesis_topic: thesisTopic === null ? null : String(thesisTopic),
-        start_date: String(startDate),
+        start_date: startDate === null ? null : String(startDate),
         target_submission_date: String(targetDate),
         current_phase: String(phase),
         next_meeting_at: nextMeetingAt === null ? null : String(nextMeetingAt),
@@ -84,7 +84,7 @@ export class MockD1Database {
       row.email = email === null ? null : String(email);
       row.degree_type = String(degreeType);
       row.thesis_topic = thesisTopic === null ? null : String(thesisTopic);
-      row.start_date = String(startDate);
+      row.start_date = startDate === null ? null : String(startDate);
       row.target_submission_date = String(targetDate);
       row.current_phase = String(phase);
       row.next_meeting_at = nextMeetingAt === null ? null : String(nextMeetingAt);

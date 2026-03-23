@@ -72,7 +72,9 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
           <noop &children="(get props formHtml)"></noop>`,
           {
             subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
-            description: escapeHtml("Target submission defaults to six months from start date when left empty."),
+            description: escapeHtml(
+              "Start date is optional. If you leave target submission empty, it will default to six months from start date when a start date is provided.",
+            ),
             formHtml,
           },
         ),
