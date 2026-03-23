@@ -14,6 +14,7 @@ This document gives a technical overview of how the project is put together.
 ## Architecture At A Glance
 
 - [`src/worker.ts`](../src/worker.ts): route handling, auth, rendering, and core app logic
+- [`src/backup.ts`](../src/backup.ts): scheduled R2 backup generation and object layout
 - [`src/reference-data.ts`](../src/reference-data.ts): shared thesis phase and degree reference data
 - [`src/view/`](../src/view): page and partial rendering helpers
 - [`src/view/dashboard/`](../src/view/dashboard): dashboard-specific sections and interactions
@@ -34,10 +35,13 @@ graph TD
     UI[src/ui/<br/>Reusable UI components]
     Reference[src/reference-data.ts<br/>Phases and degree types]
     DB[src/db.ts<br/>Database helpers]
+    Backup[src/backup.ts<br/>Scheduled backup generation]
     D1[(Cloudflare D1)]
+    R2[(Cloudflare R2 backups)]
     Migrations[migrations/<br/>Schema changes]
     Tests[tests/<br/>Vitest and Playwright]
     CSS[src/tailwind-input.css + .generated/styles.css]
+    Cron[Cloudflare Cron Trigger]
 
     Browser --> Worker
     Worker --> Views
@@ -45,14 +49,18 @@ graph TD
     Worker --> UI
     Worker --> Reference
     Worker --> DB
+    Worker --> Backup
     Worker --> CSS
     DB --> D1
+    Cron --> Worker
+    Backup --> D1
+    Backup --> R2
     Migrations --> D1
     Tests --> Worker
     Tests --> D1
 ```
 
-The Worker is the center of the app: it handles requests, checks authentication, talks to D1 through the database helpers, and renders server-side HTML using the shared view and UI layers.
+The Worker is the center of the app: it handles requests, checks authentication, talks to D1 through the database helpers, renders server-side HTML using the shared view and UI layers, and can run scheduled backups into R2 when deployed on Cloudflare.
 
 ## Repository Map
 

@@ -18,6 +18,7 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 - Follow upcoming meetings from the dashboard.
 - Filter the student list by phase, degree type, and meeting status.
 - Export or restore the dataset as JSON backups.
+- Store automated Cloudflare backups in R2 when deployed with the scheduled backup setup.
 
 ## Quick Start
 
@@ -58,6 +59,7 @@ For the full setup flow, see [docs/setup.md](./docs/setup.md).
 - [docs/development.md](./docs/development.md): scripts, testing, editor support, and day-to-day development notes
 - [docs/deployment.md](./docs/deployment.md): CI, production deployment, and security notes
 - [docs/project-structure.md](./docs/project-structure.md): tech stack, architecture, and directory map
+- [docs/backups.md](./docs/backups.md): automated R2 backups, restore flow, and retention notes
 - [docs/performance-plan.md](./docs/performance-plan.md): Lighthouse baseline and performance follow-up plan
 
 ## Tech Snapshot

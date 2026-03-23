@@ -1,5 +1,6 @@
 import styles from "../.generated/styles.css";
 import favicon from "./favicon.ico";
+import { runAutomatedBackup, type R2BucketLike } from "./backup";
 import {
   createMeetingLog,
   createPhaseAuditEntry,
@@ -52,8 +53,14 @@ import {
 
 interface Env {
   DB: D1Database;
+  BACKUP_BUCKET?: R2BucketLike;
+  BACKUP_PREFIX?: string;
   APP_PASSWORD: string;
   SESSION_SECRET: string;
+}
+
+interface ScheduledControllerLike {
+  cron: string;
 }
 
 const SESSION_COOKIE = "thesis_session";
@@ -66,6 +73,14 @@ export default {
     } catch (error) {
       console.error("Unhandled error", error);
       return new Response("Internal server error", { status: 500 });
+    }
+  },
+  async scheduled(controller: ScheduledControllerLike, env: Env): Promise<void> {
+    try {
+      await handleScheduledBackup(controller, env);
+    } catch (error) {
+      console.error("Scheduled backup failed", error);
+      throw error;
     }
   },
 };
@@ -316,6 +331,25 @@ async function handleProfessorReportExport(env: Env): Promise<Response> {
       "content-type": "text/markdown; charset=utf-8",
     },
   });
+}
+
+async function handleScheduledBackup(controller: ScheduledControllerLike, env: Env): Promise<void> {
+  if (!env.DB) {
+    console.warn("Skipping automated backup because the D1 binding is missing.");
+    return;
+  }
+
+  if (!env.BACKUP_BUCKET) {
+    console.warn("Skipping automated backup because the R2 BACKUP_BUCKET binding is missing.");
+    return;
+  }
+
+  const result = await runAutomatedBackup(env.DB, env.BACKUP_BUCKET, {
+    backupPrefix: env.BACKUP_PREFIX,
+    cron: controller.cron,
+  });
+
+  console.log(`Automated backup completed: ${result.manifestKey}`);
 }
 
 async function handleUpdateStudent(request: Request, env: Env, studentId: number): Promise<Response> {

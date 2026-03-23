@@ -21,3 +21,13 @@ binding = "DB"
 database_name = "thesis_tracker_db"
 database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
 migrations_dir = "migrations"
+
+[triggers]
+crons = ["30 1 * * *"]
+
+[[r2_buckets]]
+binding = "BACKUP_BUCKET"
+bucket_name = "REPLACE_WITH_YOUR_R2_BACKUP_BUCKET"
+
+[vars]
+BACKUP_PREFIX = "automated-backups"
