@@ -72,7 +72,9 @@ function preparePhaseLanes(students: Student[], selectedStudent: Student | null)
           topicVisible: Boolean(student.thesisTopic),
           topic: escapeHtml(student.thesisTopic || ""),
           targetText: escapeHtml(`Target: ${student.targetSubmissionDate}`),
-          nextMeetingText: escapeHtml(student.nextMeetingAt ? `Next: ${formatDateTime(student.nextMeetingAt)}` : "Next: not booked"),
+          nextMeetingText: escapeHtml(
+            student.nextMeetingAt ? `Next meeting: ${formatDateTime(student.nextMeetingAt)}` : "Next meeting: Not booked",
+          ),
           statusBadgeHtml: `<span class="${escapeHtml(
             `${STATUS_BADGE} ${getMeetingStatusBadgeClass(meetingStatusId(student))}`,
           )}">${escapeHtml(meetingStatusText(student))}</span>`,
