@@ -15,15 +15,14 @@ import {
   SURFACE_CARD,
   SUBTLE_TEXT,
   TOPIC_TEXT,
-  renderBadge,
   renderButton,
   renderInputField,
   renderTextareaField,
 } from "../ui";
 import { type HtmlispComponents } from "../htmlisp";
-import { PHASES } from "../reference-data";
+import { DEGREE_TYPES, PHASES } from "../reference-data";
 import { getStudentFormValues } from "../student-form";
-import { escapeHtml, escapeJsString, formatDateTime, getPhaseLabel } from "../utils";
+import { escapeHtml, escapeJsString, formatDateTime, getDegreeLabel, getPhaseLabel } from "../utils";
 import { renderView } from "./shared.htmlisp";
 import { renderStudentFormFields } from "./student-form-fields";
 
@@ -56,6 +55,15 @@ interface PreparedPhaseAuditEntry {
   transitionText: string;
 }
 
+interface StudentPanelOptions {
+  canEdit?: boolean;
+}
+
+interface PreparedReadonlyField {
+  label: string;
+  text: string;
+}
+
 function prepareLogEntries(logs: MeetingLog[]): PreparedLogEntry[] {
   return logs.map((log) => ({
     timestampText: escapeHtml(formatDateTime(log.happenedAt)),
@@ -73,7 +81,60 @@ function preparePhaseAuditEntries(entries: PhaseAuditEntry[]): PreparedPhaseAudi
   }));
 }
 
-export function renderSelectedStudentPanel(student: Student, logs: MeetingLog[], phaseAudit: PhaseAuditEntry[]): string {
+function prepareReadonlyFields(student: Student): PreparedReadonlyField[] {
+  return [
+    { label: "Name", value: student.name },
+    { label: "Email", value: student.email || "Not set" },
+    { label: "Degree type", value: getDegreeLabel(student.degreeType, DEGREE_TYPES) },
+    { label: "Phase", value: getPhaseLabel(student.currentPhase, PHASES) },
+    { label: "Thesis topic", value: student.thesisTopic || "Not set" },
+    { label: "Start date", value: student.startDate || "Not set" },
+    { label: "Target submission", value: student.targetSubmissionDate },
+    { label: "Next meeting", value: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked" },
+    { label: "Saved meeting logs", value: String(student.logCount) },
+  ].map((field) => ({
+    label: escapeHtml(field.label),
+    text: escapeHtml(field.value),
+  }));
+}
+
+function renderReadonlyStudentSummary(student: Student): string {
+  const readonlyFields = prepareReadonlyFields(student);
+
+  return renderView(
+    `<section>
+      <h2 class="text-lg font-semibold">Student Overview</h2>
+      <p &class="(get props subtleText)" &children="(get props currentlyViewingText)"></p>
+      <p &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></p>
+      <p &class="(get props readonlyNoticeClass)">Read-only access: student details, supervision logs, and phase history.</p>
+      <dl class="mt-stack-xs grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
+        <noop &foreach="(get props readonlyFields)">
+          <div class="rounded-card border border-app-line bg-app-surface-soft/70 px-panel-sm py-stack-xs text-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/40">
+            <dt class="text-xs font-medium uppercase tracking-wide text-app-text-muted dark:text-app-text-muted-dark" &children="(get props label)"></dt>
+            <dd class="mt-1 font-medium" &children="(get props text)"></dd>
+          </div>
+        </noop>
+      </dl>
+    </section>`,
+    {
+      subtleText: escapeHtml(SUBTLE_TEXT),
+      topicTextClass: escapeHtml(TOPIC_TEXT),
+      readonlyNoticeClass: escapeHtml(`mt-3 ${SUBTLE_TEXT}`),
+      currentlyViewingText: escapeHtml(`Currently viewing: ${student.name}`),
+      topicVisible: Boolean(student.thesisTopic),
+      topic: escapeHtml(student.thesisTopic || ""),
+      readonlyFields,
+    },
+  );
+}
+
+export function renderSelectedStudentPanel(
+  student: Student,
+  logs: MeetingLog[],
+  phaseAudit: PhaseAuditEntry[],
+  options: StudentPanelOptions = {},
+): string {
+  const { canEdit = true } = options;
   const components: HtmlispComponents = {
     MeetingLogEntry: `<article &class="(get props cardClass)">
     <p class="font-medium"><span &children="(get props timestampText)"></span></p>
@@ -175,6 +236,78 @@ export function renderSelectedStudentPanel(student: Student, logs: MeetingLog[],
       }),
     },
   );
+
+  if (!canEdit) {
+    return renderView(
+      `<article &class="(get props cardClass)">
+        <noop &children="(get props summaryHtml)"></noop>
+
+        <details &class="(get props disclosureClass)">
+          <summary &class="(get props disclosureSummaryClass)">
+            <span>Meeting Log History</span>
+            <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props logSummaryText)"></span>
+          </summary>
+          <div &class="(get props disclosureContentClass)">
+            <div &class="(get props formStack)" &visibleIf="(get props hasLogs)">
+              <noop &foreach="(get props logs)">
+                <MeetingLogEntry
+                  &cardClass="(get props logEntryClass)"
+                  &timestampText="(get props timestampText)"
+                  &discussed="(get props discussed)"
+                  &agreedPlan="(get props agreedPlan)"
+                  &hasDeadline="(get props hasDeadline)"
+                  &deadlineText="(get props deadlineText)"
+                ></MeetingLogEntry>
+              </noop>
+            </div>
+            <p &visibleIf="(get props showNoLogs)" &class="(get props emptyStateClass)">No entries yet.</p>
+          </div>
+        </details>
+
+        <details &class="(get props disclosureClass)">
+          <summary &class="(get props disclosureSummaryClass)">
+            <span>Phase Change Audit</span>
+            <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props auditSummaryText)"></span>
+          </summary>
+          <div &class="(get props disclosureContentClass)">
+            <div &class="(get props formStack)" &visibleIf="(get props hasPhaseAudit)">
+              <noop &foreach="(get props phaseAuditEntries)">
+                <PhaseAuditLogEntry
+                  &cardClass="(get props logEntryClass)"
+                  &timestampText="(get props timestampText)"
+                  &transitionText="(get props transitionText)"
+                ></PhaseAuditLogEntry>
+              </noop>
+            </div>
+            <p &visibleIf="(get props showNoPhaseAudit)" &class="(get props emptyStateClass)">No phase changes recorded yet.</p>
+          </div>
+        </details>
+      </article>`,
+      {
+        cardClass: escapeHtml(`${PANEL_STACK} ${SURFACE_CARD}`),
+        disclosureClass: escapeHtml(DISCLOSURE),
+        disclosureContentClass: escapeHtml(DISCLOSURE_CONTENT),
+        disclosureSummaryClass: escapeHtml(DISCLOSURE_SUMMARY),
+        emptyStateClass: escapeHtml(EMPTY_STATE_CARD),
+        formStack: escapeHtml(FORM_STACK),
+        logSummaryText: escapeHtml(
+          preparedLogs.length > 0 ? `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"}` : "Empty",
+        ),
+        auditSummaryText: escapeHtml(
+          preparedPhaseAudit.length > 0 ? `${preparedPhaseAudit.length} change${preparedPhaseAudit.length === 1 ? "" : "s"}` : "Empty",
+        ),
+        logEntryClass: escapeHtml(SOFT_SURFACE_CARD),
+        summaryHtml: renderReadonlyStudentSummary(student),
+        hasLogs: preparedLogs.length > 0,
+        showNoLogs: preparedLogs.length === 0,
+        logs: preparedLogs,
+        hasPhaseAudit: preparedPhaseAudit.length > 0,
+        showNoPhaseAudit: preparedPhaseAudit.length === 0,
+        phaseAuditEntries: preparedPhaseAudit,
+      },
+      components,
+    );
+  }
 
   return renderView(
     `<article &class="(get props cardClass)">

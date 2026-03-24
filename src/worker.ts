@@ -1,5 +1,6 @@
 import styles from "../.generated/styles.css";
 import favicon from "./favicon.ico";
+import { type AuthUser, isAccessRole, type SessionUser } from "./auth";
 import { runAutomatedBackup, type R2BucketLike } from "./backup";
 import {
   createMeetingLog,
@@ -30,11 +31,11 @@ import {
   clearSessionCookie,
   createSessionToken,
   cssResponse,
+  getSessionUser,
   javascriptResponse,
   htmlFragmentResponse,
   htmlResponse,
   iconResponse,
-  isAuthenticated,
   normalizeDate,
   normalizeDateTime,
   normalizeString,
@@ -55,8 +56,9 @@ interface Env {
   DB: D1Database;
   BACKUP_BUCKET?: R2BucketLike;
   BACKUP_PREFIX?: string;
-  APP_PASSWORD: string;
-  SESSION_SECRET: string;
+  APP_PASSWORD?: string;
+  APP_USERS_JSON?: string;
+  SESSION_SECRET?: string;
 }
 
 interface ScheduledControllerLike {
@@ -105,28 +107,46 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return new Response("D1 binding is missing. Configure DB in wrangler.toml.", { status: 500 });
   }
 
-  if (!env.APP_PASSWORD || !env.SESSION_SECRET) {
-    return new Response("APP_PASSWORD and SESSION_SECRET must be configured.", {
+  const authConfig = resolveAuthConfig(env);
+  if (!authConfig || !env.SESSION_SECRET) {
+    return new Response(authConfig?.error || "APP_USERS_JSON (or APP_PASSWORD) and SESSION_SECRET must be configured.", {
       status: 500,
     });
   }
 
+  const sessionUser = await getSessionUser(request, env.SESSION_SECRET, SESSION_COOKIE);
+
   if (pathname === "/login" && request.method === "GET") {
-    if (await isAuthenticated(request, env.SESSION_SECRET, SESSION_COOKIE)) {
+    if (sessionUser) {
       return redirect("/");
     }
     const showError = url.searchParams.get("error") === "1";
-    return htmlResponse(renderLoginPage(showError));
+    return htmlResponse(renderLoginPage(showError, authConfig.users.length > 1));
   }
 
   if (pathname === "/login" && request.method === "POST") {
     const formData = await request.formData();
+    const enteredName = (formData.get("name") || "").toString().trim();
     const password = (formData.get("password") || "").toString();
-    if (password !== env.APP_PASSWORD) {
+    const matchedUser = authConfig.users.find((user) => {
+      if (user.password !== password) {
+        return false;
+      }
+
+      if (authConfig.users.length === 1 && !enteredName) {
+        return true;
+      }
+
+      return user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase();
+    });
+    if (!matchedUser) {
       return redirect("/login?error=1");
     }
 
-    const token = await createSessionToken(env.SESSION_SECRET, SESSION_TTL_SECONDS);
+    const token = await createSessionToken(env.SESSION_SECRET, SESSION_TTL_SECONDS, {
+      name: matchedUser.name,
+      role: matchedUser.role,
+    });
     return redirect("/", {
       "Set-Cookie": buildSessionCookie(token, request.url, {
         cookieName: SESSION_COOKIE,
@@ -144,67 +164,101 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     });
   }
 
-  const authenticated = await isAuthenticated(request, env.SESSION_SECRET, SESSION_COOKIE);
-  if (!authenticated) {
+  if (!sessionUser) {
     return redirect("/login");
   }
 
   if (pathname === "/" && request.method === "GET") {
-    return await renderDashboard(request, env, url);
+    return await renderDashboard(env, url, sessionUser);
   }
 
   if (pathname === "/students/new" && request.method === "GET") {
-    return renderAddStudent(url);
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect("/");
+    }
+    return renderAddStudent(url, sessionUser);
   }
 
   if (pathname === "/style-guide" && request.method === "GET") {
-    return htmlResponse(renderStyleGuidePage());
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect("/");
+    }
+    return htmlResponse(
+      renderStyleGuidePage({
+        name: sessionUser.name,
+        role: sessionUser.role,
+      }),
+    );
   }
 
   if (pathname === "/data-tools" && request.method === "GET") {
-    return await renderDataTools(url, env);
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect("/");
+    }
+    return await renderDataTools(url, env, sessionUser);
   }
 
   const partialStudentMatch = pathname.match(/^\/partials\/student\/(\d+)$/);
   if (partialStudentMatch && request.method === "GET") {
-    return await renderStudentPanelPartial(env, Number(partialStudentMatch[1]));
+    return await renderStudentPanelPartial(env, Number(partialStudentMatch[1]), sessionUser);
   }
 
   if (pathname === "/actions/export-json" && request.method === "GET") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect("/");
+    }
     return await handleExportJson(env);
   }
 
   if (pathname === "/actions/export-professor-report" && request.method === "GET") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect("/");
+    }
     return await handleProfessorReportExport(env);
   }
 
   if (pathname === "/actions/add-student" && request.method === "POST") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect("/");
+    }
     return await handleAddStudent(request, env);
   }
 
   if (pathname === "/actions/import-json" && request.method === "POST") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect("/");
+    }
     return await handleImportJson(request, env);
   }
 
   const updateMatch = pathname.match(/^\/actions\/update-student\/(\d+)$/);
   if (updateMatch && request.method === "POST") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect(`/?selected=${Number(updateMatch[1])}`);
+    }
     return await handleUpdateStudent(request, env, Number(updateMatch[1]));
   }
 
   const addLogMatch = pathname.match(/^\/actions\/add-log\/(\d+)$/);
   if (addLogMatch && request.method === "POST") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect(`/?selected=${Number(addLogMatch[1])}`);
+    }
     return await handleAddLog(request, env, Number(addLogMatch[1]));
   }
 
   const deleteMatch = pathname.match(/^\/actions\/delete-student\/(\d+)$/);
   if (deleteMatch && request.method === "POST") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect(`/?selected=${Number(deleteMatch[1])}`);
+    }
     return await handleDeleteStudent(env, Number(deleteMatch[1]));
   }
 
   return new Response("Not found", { status: 404 });
 }
 
-async function renderDashboard(request: Request, env: Env, url: URL): Promise<Response> {
+async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser): Promise<Response> {
   const students = await listStudents(env.DB);
 
   const selectedIdParam = url.searchParams.get("selected");
@@ -227,6 +281,10 @@ async function renderDashboard(request: Request, env: Env, url: URL): Promise<Re
 
   return htmlResponse(
     renderDashboardPage({
+      viewer: {
+        name: sessionUser.name,
+        role: sessionUser.role,
+      },
       students,
       selectedStudent,
       logs,
@@ -238,19 +296,23 @@ async function renderDashboard(request: Request, env: Env, url: URL): Promise<Re
   );
 }
 
-function renderAddStudent(url: URL): Response {
+function renderAddStudent(url: URL, sessionUser: SessionUser): Response {
   const notice = url.searchParams.get("notice");
   const error = url.searchParams.get("error");
 
   return htmlResponse(
     renderAddStudentPage({
+      viewer: {
+        name: sessionUser.name,
+        role: sessionUser.role,
+      },
       notice,
       error,
     }),
   );
 }
 
-async function renderDataTools(url: URL, env: Env): Promise<Response> {
+async function renderDataTools(url: URL, env: Env, sessionUser: SessionUser): Promise<Response> {
   const notice = url.searchParams.get("notice");
   const error = url.searchParams.get("error");
   const students = await listStudents(env.DB);
@@ -258,6 +320,10 @@ async function renderDataTools(url: URL, env: Env): Promise<Response> {
 
   return htmlResponse(
     renderDataToolsPage({
+      viewer: {
+        name: sessionUser.name,
+        role: sessionUser.role,
+      },
       notice,
       error,
       studentCount: students.length,
@@ -266,7 +332,7 @@ async function renderDataTools(url: URL, env: Env): Promise<Response> {
   );
 }
 
-async function renderStudentPanelPartial(env: Env, studentId: number): Promise<Response> {
+async function renderStudentPanelPartial(env: Env, studentId: number, sessionUser: SessionUser): Promise<Response> {
   const selectedStudent = await getStudentById(env.DB, studentId);
 
   if (!selectedStudent) {
@@ -275,7 +341,11 @@ async function renderStudentPanelPartial(env: Env, studentId: number): Promise<R
 
   const logs = await listLogsForStudent(env.DB, studentId);
   const phaseAudit = await listPhaseAuditEntriesForStudent(env.DB, studentId);
-  return htmlFragmentResponse(renderSelectedStudentPanel(selectedStudent, logs, phaseAudit));
+  return htmlFragmentResponse(
+    renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, {
+      canEdit: !isReadonlyUser(sessionUser),
+    }),
+  );
 }
 
 async function handleAddStudent(request: Request, env: Env): Promise<Response> {
@@ -468,4 +538,78 @@ async function handleDeleteStudent(env: Env, studentId: number): Promise<Respons
 
   await deleteStudent(env.DB, studentId);
   return redirect("/");
+}
+
+function resolveAuthConfig(env: Env): { users: AuthUser[]; error?: string } | null {
+  if (env.APP_USERS_JSON) {
+    try {
+      const parsed = JSON.parse(env.APP_USERS_JSON) as unknown;
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        return {
+          users: [],
+          error: "APP_USERS_JSON must be a non-empty JSON array.",
+        };
+      }
+
+      const users = parsed.flatMap((value) => {
+        if (!value || typeof value !== "object") {
+          return [];
+        }
+
+        const candidate = value as Record<string, unknown>;
+        const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
+        const password = typeof candidate.password === "string" ? candidate.password : "";
+        const role = candidate.role;
+
+        if (!name || !password || !isAccessRole(role)) {
+          return [];
+        }
+
+        return [
+          {
+            name,
+            password,
+            role,
+          },
+        ];
+      });
+
+      if (users.length !== parsed.length) {
+        return {
+          users: [],
+          error: 'Each APP_USERS_JSON entry must include "name", "password", and role "editor" or "readonly".',
+        };
+      }
+
+      return { users };
+    } catch {
+      return {
+        users: [],
+        error: "APP_USERS_JSON must be valid JSON.",
+      };
+    }
+  }
+
+  if (env.APP_PASSWORD) {
+    return {
+      users: [
+        {
+          name: "Advisor",
+          password: env.APP_PASSWORD,
+          role: "editor",
+        },
+      ],
+    };
+  }
+
+  return null;
+}
+
+function isReadonlyUser(user: SessionUser): boolean {
+  return user.role === "readonly";
+}
+
+function readonlyRedirect(pathname: string): Response {
+  const separator = pathname.includes("?") ? "&" : "?";
+  return redirect(`${pathname}${separator}error=Read-only+access`);
 }

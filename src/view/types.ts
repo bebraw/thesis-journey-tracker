@@ -1,3 +1,8 @@
+export interface ViewerContext {
+  name: string;
+  role: "editor" | "readonly";
+}
+
 export interface Metrics {
   total: number;
   noMeeting: number;
@@ -6,6 +11,7 @@ export interface Metrics {
 }
 
 export interface DashboardPageData {
+  viewer: ViewerContext;
   students: import("../db").Student[];
   selectedStudent: import("../db").Student | null;
   logs: import("../db").MeetingLog[];
@@ -16,11 +22,13 @@ export interface DashboardPageData {
 }
 
 export interface AddStudentPageData {
+  viewer: ViewerContext;
   notice: string | null;
   error: string | null;
 }
 
 export interface DataToolsPageData {
+  viewer: ViewerContext;
   notice: string | null;
   error: string | null;
   studentCount: number;

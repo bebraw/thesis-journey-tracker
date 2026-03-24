@@ -62,6 +62,8 @@ graph TD
 
 The Worker is the center of the app: it handles requests, checks authentication, talks to D1 through the database helpers, renders server-side HTML using the shared view and UI layers, and can run scheduled backups into R2 when deployed on Cloudflare.
 
+Authentication remains intentionally lightweight: accounts are configured through environment secrets, and the Worker stores the signed session together with the viewer role (`editor` or `readonly`) in an `HttpOnly` cookie.
+
 ## Repository Map
 
 - [`README.md`](../README.md): first-stop overview for new readers

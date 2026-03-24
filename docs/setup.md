@@ -42,8 +42,17 @@ cp .dev.vars.example .dev.vars
 
 Set these values in `.dev.vars`:
 
-- `APP_PASSWORD`: the password used to log into the dashboard
+- `APP_USERS_JSON`: a JSON array of accounts, each with `name`, `password`, and `role`
 - `SESSION_SECRET`: a long random string used to sign auth cookies
+
+Example:
+
+```env
+APP_USERS_JSON=[{"name":"Advisor","password":"editor-password","role":"editor"},{"name":"Professor","password":"readonly-password","role":"readonly"}]
+SESSION_SECRET=change-this-to-a-long-random-secret
+```
+
+If you are upgrading an older local setup, `APP_PASSWORD` still works as a fallback and creates a single editor account.
 
 ## 4. Apply Migrations
 
@@ -65,6 +74,7 @@ Open the local URL shown by Wrangler, usually `http://127.0.0.1:8787`.
 
 - If the app cannot start, make sure `database_id` is set in [`wrangler.toml`](../wrangler.toml).
 - If login fails, confirm that `.dev.vars` contains the values you expect.
+- If you use `APP_USERS_JSON`, verify that it is valid JSON on a single line.
 - If the schema is out of date, run `npm run db:migrate` again.
 
 ## Related Docs

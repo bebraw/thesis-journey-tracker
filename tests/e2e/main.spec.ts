@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
-const PASSWORD = resolvePassword();
+const { name: LOGIN_NAME, password: LOGIN_PASSWORD } = resolveLoginCredentials();
 
 let createdStudentName = "";
 let secondaryStudentName = "";
@@ -11,18 +11,46 @@ let updatedStudentName = "";
 async function login(page: Page) {
   await page.goto("/");
   await expect(page).toHaveURL(/\/login$/);
-  await page.getByLabel("Password").fill(PASSWORD);
+  const nameField = page.getByLabel("Name");
+  if ((await nameField.count()) > 0) {
+    await nameField.fill(LOGIN_NAME);
+  }
+  await page.getByLabel("Password").fill(LOGIN_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "MSc Thesis Journey Tracker" })).toBeVisible();
 }
 
-function resolvePassword() {
-  return (
-    readEnvValue(resolve(process.cwd(), "tests/e2e/.env.e2e"), "APP_PASSWORD") ??
-    readEnvValue(resolve(process.cwd(), ".dev.vars"), "APP_PASSWORD") ??
-    "e2e-password"
-  );
+function resolveLoginCredentials() {
+  const appUsersJson =
+    readEnvValue(resolve(process.cwd(), "tests/e2e/.env.e2e"), "APP_USERS_JSON") ??
+    readEnvValue(resolve(process.cwd(), ".dev.vars"), "APP_USERS_JSON");
+  const editorUser = readEditorUser(appUsersJson);
+
+  return {
+    name: editorUser?.name ?? "Advisor",
+    password:
+      editorUser?.password ??
+      readEnvValue(resolve(process.cwd(), "tests/e2e/.env.e2e"), "APP_PASSWORD") ??
+      readEnvValue(resolve(process.cwd(), ".dev.vars"), "APP_PASSWORD") ??
+      "e2e-password",
+  };
+}
+
+function readEditorUser(appUsersJson: string | null) {
+  if (!appUsersJson) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(appUsersJson) as Array<{ name?: string; password?: string; role?: string }>;
+    const editorUser = parsed.find(
+      (user) => user?.role === "editor" && typeof user.password === "string" && typeof user.name === "string",
+    );
+    return editorUser ? { name: editorUser.name, password: editorUser.password } : null;
+  } catch {
+    return null;
+  }
 }
 
 function readEnvValue(filePath: string, key: string) {

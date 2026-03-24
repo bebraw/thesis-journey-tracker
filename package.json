@@ -10,7 +10,7 @@
     "db:migrate": "wrangler d1 migrations apply thesis_tracker_db --local",
     "db:migrate:remote": "wrangler d1 migrations apply thesis_tracker_db --remote",
     "e2e:prepare": "HOME=$PWD wrangler d1 migrations apply thesis_tracker_db --local --persist-to .wrangler/state/e2e --env-file tests/e2e/.env.e2e && HOME=$PWD wrangler d1 execute thesis_tracker_db --local --persist-to .wrangler/state/e2e --env-file tests/e2e/.env.e2e --file tests/e2e/mock-data.sql",
-    "e2e:dev": "HOME=$PWD wrangler dev --local --port 8788 --persist-to .wrangler/state/e2e --env-file tests/e2e/.env.e2e --var APP_PASSWORD:e2e-password --var SESSION_SECRET:e2e-session-secret",
+    "e2e:dev": "HOME=$PWD wrangler dev --local --port 8788 --persist-to .wrangler/state/e2e --env-file tests/e2e/.env.e2e --var APP_USERS_JSON:'[{\"name\":\"Advisor\",\"password\":\"e2e-password\",\"role\":\"editor\"},{\"name\":\"Professor\",\"password\":\"readonly-e2e-password\",\"role\":\"readonly\"}]' --var SESSION_SECRET:e2e-session-secret",
     "e2e:server": "npm run e2e:prepare && npm run e2e:dev",
     "e2e": "playwright test",
     "lighthouse": "node ./scripts/run-lighthouse.mjs",

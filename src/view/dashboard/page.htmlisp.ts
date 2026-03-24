@@ -9,8 +9,15 @@ import { renderPhaseLanes } from "./phase-lanes.htmlisp";
 import { renderStudentsTable } from "./students-table.htmlisp";
 
 export function renderDashboardPage(data: DashboardPageData): string {
-  const { students, selectedStudent, logs, phaseAudit, notice, error, metrics } = data;
-  const selectedPanel = selectedStudent ? renderSelectedStudentPanel(selectedStudent, logs, phaseAudit) : renderEmptySelectedPanel();
+  const { viewer, students, selectedStudent, logs, phaseAudit, notice, error, metrics } = data;
+  const canEdit = viewer.role === "editor";
+  const selectedPanel = selectedStudent
+    ? renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, { canEdit })
+    : renderEmptySelectedPanel(
+        canEdit
+          ? "Select a student from the table to edit details and view/add supervision logs."
+          : "Select a student from the table to view details, supervision logs, and phase history.",
+      );
 
   const bodyContent = renderView(
     `<div &class="(get props pageWrap)">
@@ -26,25 +33,40 @@ export function renderDashboardPage(data: DashboardPageData): string {
       pageWrap: escapeHtml(PAGE_WRAP),
       headerHtml: renderAuthedPageHeader(
         "MSc Thesis Journey Tracker",
-        "Track phases, next meetings, and supervision logs in one place.",
-        `${renderButton({
-          label: "Data tools",
-          href: "/data-tools",
-          variant: "neutral",
-        })}${renderButton({
-          label: "Style guide",
-          href: "/style-guide",
-          variant: "neutral",
-        })}${renderButton({
-          label: "Add student",
-          href: "/students/new",
-          variant: "primary",
-        })}`,
+        canEdit
+          ? "Track phases, next meetings, and supervision logs in one place."
+          : "Read-only access for checking student progress, meetings, and supervision history.",
+        canEdit
+          ? `${renderButton({
+              label: "Data tools",
+              href: "/data-tools",
+              variant: "neutral",
+            })}${renderButton({
+              label: "Style guide",
+              href: "/style-guide",
+              variant: "neutral",
+            })}${renderButton({
+              label: "Add student",
+              href: "/students/new",
+              variant: "primary",
+            })}`
+          : "",
+        viewer,
       ),
       flashHtml: renderFlashMessages(notice, error),
       metricsHtml: renderMetricCards(metrics),
       phaseLanesHtml: renderPhaseLanes(students, selectedStudent),
-      studentsTableHtml: renderStudentsTable(students, selectedStudent, selectedPanel, renderEmptySelectedPanel()),
+      studentsTableHtml: renderStudentsTable(
+        students,
+        selectedStudent,
+        selectedPanel,
+        renderEmptySelectedPanel(
+          canEdit
+            ? "Select a student from the table to edit details and view/add supervision logs."
+            : "Select a student from the table to view details, supervision logs, and phase history.",
+        ),
+        canEdit,
+      ),
       dashboardScript: renderDashboardScriptTag(),
       themeToggleScript: THEME_TOGGLE_SCRIPT,
     },

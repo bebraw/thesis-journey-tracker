@@ -53,7 +53,7 @@ function prepareFilterOptions(options: Array<{ value: string; label: string }>):
   }));
 }
 
-function prepareStudentRows(students: Student[], selectedStudent: Student | null): PreparedStudentRow[] {
+function prepareStudentRows(students: Student[], selectedStudent: Student | null, canEdit: boolean): PreparedStudentRow[] {
   return students.map((student) => {
     const statusText = meetingStatusText(student);
     const statusId = meetingStatusId(student);
@@ -99,7 +99,7 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
       )}">${escapeHtml(statusText)}</span>`,
       logCountText: String(student.logCount),
       actionButtonHtml: renderButton({
-        label: "View & Edit",
+        label: canEdit ? "View & Edit" : "View",
         href: `/?selected=${student.id}`,
         variant: "inline",
         attributes: `data-inline-select="1" data-student-id="${student.id}"`,
@@ -113,6 +113,7 @@ export function renderStudentsTable(
   selectedStudent: Student | null,
   selectedPanel: string,
   emptySelectedPanel: string,
+  canEdit: boolean,
 ): string {
   const components: HtmlispComponents = {
     StudentTableRow: `<tr
@@ -156,7 +157,7 @@ export function renderStudentsTable(
       label: phase.label,
     })),
   ]);
-  const studentRows = prepareStudentRows(students, selectedStudent);
+  const studentRows = prepareStudentRows(students, selectedStudent, canEdit);
 
   return renderView(
     `<section class="grid grid-cols-1 gap-stack xl:grid-cols-3">
@@ -207,7 +208,9 @@ export function renderStudentsTable(
           </label>
         </div>
         <p id="studentResultsMeta" class="mb-badge-pill-y text-xs text-app-text-muted dark:text-app-text-muted-dark"></p>
-        <p class="mb-badge-pill-y text-xs text-app-text-muted dark:text-app-text-muted-dark">Tip: click a row to open student details.</p>
+        <p class="mb-badge-pill-y text-xs text-app-text-muted dark:text-app-text-muted-dark">
+          Tip: click a row to open student details.
+        </p>
         <div class="overflow-x-auto">
           <table class="w-full min-w-table divide-y divide-app-line text-sm dark:divide-app-line-dark">
             <thead>

@@ -1,10 +1,9 @@
-import { ALERT_CLASS_MAP, BODY_CLASS_LOGIN, FIELD_CONTROL_SM, LOGIN_CARD, renderButton } from "../ui";
+import { ALERT_CLASS_MAP, BODY_CLASS_LOGIN, FIELD_CONTROL_SM, LOGIN_CARD, renderButton, SUBTLE_TEXT } from "../ui";
 import { type HtmlispComponents } from "../htmlisp";
 import { escapeHtml } from "../utils";
 import { renderDocument, renderView } from "./shared.htmlisp";
-import { SUBTLE_TEXT } from "../ui";
 
-export function renderLoginPage(showError: boolean): string {
+export function renderLoginPage(showError: boolean, supportsMultipleAccounts = false): string {
   const components: HtmlispComponents = {
     ErrorFlash: `<p
       &visibleIf="(get props visible)"
@@ -19,9 +18,20 @@ export function renderLoginPage(showError: boolean): string {
     `<main class="mx-auto flex h-full max-w-auth items-center px-page-x-sm">
       <section &class="(get props cardClass)">
         <h1 class="text-2xl font-semibold">Thesis Journey Tracker</h1>
-        <p &class="(get props subtleText)">Private advisor dashboard login</p>
+        <p &class="(get props subtleText)" &children="(get props subtitle)"></p>
         <ErrorFlash &visible="(get props showError)" &message="(get props errorMessage)"></ErrorFlash>
         <form action="/login" method="post" class="mt-stack space-y-panel-sm">
+          <label &visibleIf="(get props showNameField)" class="block text-sm font-medium" for="name">Name</label>
+          <input
+            &visibleIf="(get props showNameField)"
+            id="name"
+            name="name"
+            type="text"
+            autocomplete="username"
+            autocapitalize="words"
+            required
+            &class="(get props passwordFieldClass)"
+          />
           <label class="block text-sm font-medium" for="password">Password</label>
           <input id="password" name="password" type="password" autocomplete="current-password" required &class="(get props passwordFieldClass)" />
           <noop &children="(get props signInButtonHtml)"></noop>
@@ -33,14 +43,16 @@ export function renderLoginPage(showError: boolean): string {
       errorClass: escapeHtml(ALERT_CLASS_MAP.error),
       passwordFieldClass: escapeHtml(`${FIELD_CONTROL_SM} outline-none ring-app-brand focus:ring-2`),
       subtleText: escapeHtml(`mt-2 ${SUBTLE_TEXT}`),
+      showNameField: supportsMultipleAccounts,
       showError,
-      errorMessage: escapeHtml("Invalid password. Please try again."),
+      errorMessage: escapeHtml(supportsMultipleAccounts ? "Invalid name or password. Please try again." : "Invalid password. Please try again."),
       signInButtonHtml: renderButton({
         label: "Sign in",
         type: "submit",
         variant: "primaryBlock",
         className: "transition",
       }),
+      subtitle: escapeHtml(supportsMultipleAccounts ? "Private supervision dashboard login for assigned accounts" : "Private advisor dashboard login"),
     },
     components,
   );

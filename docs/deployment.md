@@ -26,9 +26,17 @@ npx wrangler login
 2. Set production secrets:
 
 ```bash
-npx wrangler secret put APP_PASSWORD
+npx wrangler secret put APP_USERS_JSON
 npx wrangler secret put SESSION_SECRET
 ```
+
+`APP_USERS_JSON` should contain a JSON array such as:
+
+```json
+[{"name":"Advisor","password":"editor-password","role":"editor"},{"name":"Professor","password":"readonly-password","role":"readonly"}]
+```
+
+If you are keeping an older single-user deployment, `APP_PASSWORD` remains supported as a fallback editor login.
 
 3. Apply remote migrations:
 
@@ -82,7 +90,9 @@ For more detailed backup notes, see [backups.md](./backups.md).
 
 ## Security Model
 
-- App access is protected by a single password login flow.
+- App access is protected by signed session cookies and lightweight account roles.
+- `editor` accounts can add, edit, import, export, and delete data.
+- `readonly` accounts can view the dashboard, student details, meeting logs, and phase history.
 - Sessions are stored in an `HttpOnly`, `Secure`, signed cookie.
 - The current model is suitable for private personal or small-team use.
 - If stronger access control is needed later, Cloudflare Access or another SSO layer would be a natural next step.

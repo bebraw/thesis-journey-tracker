@@ -15,7 +15,7 @@ import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderFlas
 import type { DataToolsPageData } from "./types";
 
 export function renderDataToolsPage(data: DataToolsPageData): string {
-  const { notice, error, studentCount, logCount } = data;
+  const { viewer, notice, error, studentCount, logCount } = data;
 
   const exportCard = renderCard(
     renderView(
@@ -122,6 +122,7 @@ export function renderDataToolsPage(data: DataToolsPageData): string {
           href: "/students/new",
           variant: "primary",
         })}`,
+        viewer,
       ),
       flashHtml: renderFlashMessages(notice, error),
       exportCard,

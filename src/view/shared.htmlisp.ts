@@ -1,6 +1,7 @@
 import { ALERT_CLASS_MAP, BODY_CLASS, HEADER_CARD, SUBTLE_TEXT, THEME_TOGGLE_BUTTON, renderButton } from "../ui";
 import { type HtmlispComponents, renderHTMLisp } from "../htmlisp";
 import { escapeHtml } from "../utils";
+import type { ViewerContext } from "./types";
 
 const THEME_BOOTSTRAP_SCRIPT = `<script>
       (function applyTheme() {
@@ -111,7 +112,7 @@ export function renderFlashMessages(notice: string | null, error: string | null)
   );
 }
 
-export function renderAuthedPageHeader(title: string, description: string, actionsHtml: string): string {
+export function renderAuthedPageHeader(title: string, description: string, actionsHtml: string, viewer: ViewerContext): string {
   const components: HtmlispComponents = {
     ThemeToggleButton: `<button
     id="themeToggle"
@@ -134,6 +135,10 @@ export function renderAuthedPageHeader(title: string, description: string, actio
       <p &class="(get props descriptionClass)" &children="(get props description)"></p>
     </div>
     <div class="flex flex-wrap items-center gap-badge-pill-y sm:justify-end sm:gap-stack-xs">
+      <div &class="(get props viewerSummaryClass)">
+        <span &children="(get props viewerNameText)"></span>
+        <span class="font-semibold" &children="(get props viewerRoleText)"></span>
+      </div>
       <noop &children="(get props actionsHtml)"></noop>
       <ThemeToggleButton &className="(get props themeToggleClass)" />
       <form action="/logout" method="post">
@@ -149,6 +154,9 @@ export function renderAuthedPageHeader(title: string, description: string, actio
       &title="(get props title)"
       &description="(get props description)"
       &descriptionClass="(get props descriptionClass)"
+      &viewerSummaryClass="(get props viewerSummaryClass)"
+      &viewerNameText="(get props viewerNameText)"
+      &viewerRoleText="(get props viewerRoleText)"
       &actionsHtml="(get props actionsHtml)"
       &themeToggleClass="(get props themeToggleClass)"
       &logoutButtonHtml="(get props logoutButtonHtml)"
@@ -158,6 +166,11 @@ export function renderAuthedPageHeader(title: string, description: string, actio
       title: escapeHtml(title),
       description: escapeHtml(description),
       descriptionClass: escapeHtml(SUBTLE_TEXT),
+      viewerSummaryClass: escapeHtml(
+        "inline-flex items-center gap-badge-x rounded-control border border-app-field px-control-x py-badge-pill-y text-xs text-app-text-soft dark:border-app-field-dark dark:text-app-text-soft-dark",
+      ),
+      viewerNameText: escapeHtml(`Signed in as ${viewer.name}`),
+      viewerRoleText: escapeHtml(viewer.role === "readonly" ? "Read-only" : "Editor"),
       actionsHtml,
       themeToggleClass: escapeHtml(THEME_TOGGLE_BUTTON),
       logoutButtonHtml: renderButton({

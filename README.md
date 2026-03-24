@@ -1,6 +1,6 @@
 # Thesis Journey Tracker
 
-Thesis Journey Tracker is a private advising dashboard for following students as they move through a thesis process. It is built for a single advisor workflow: you can keep track of thesis phases, upcoming meetings, thesis topics, and supervision notes in one place.
+Thesis Journey Tracker is a private advising dashboard for following students as they move through a thesis process. It is built for small supervision teams: you can keep track of thesis phases, upcoming meetings, thesis topics, and supervision notes in one place, with editor or readonly access per account.
 
 The project is intentionally small and server-rendered. It runs on Cloudflare Workers with D1 for storage, so it stays lightweight while still being easy to deploy.
 
@@ -72,7 +72,8 @@ For the full setup flow, see [docs/setup.md](./docs/setup.md).
 
 ## First-Time Reader Notes
 
-- This is a private, password-protected app rather than a multi-user SaaS product.
+- This is a private, password-protected app with lightweight role-based access rather than a multi-tenant SaaS product.
+- `APP_USERS_JSON` lets you configure multiple accounts, including readonly viewers such as a professor.
 - The UI is server-rendered and deliberately simple.
 - Seeded mock students are only used in the isolated end-to-end test environment.
 

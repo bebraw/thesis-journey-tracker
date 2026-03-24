@@ -18,8 +18,9 @@ import {
 import { escapeHtml } from "../utils";
 import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderView } from "./shared.htmlisp";
 import { DEGREE_TYPES } from "../reference-data";
+import type { ViewerContext } from "./types";
 
-export function renderStyleGuidePage(): string {
+export function renderStyleGuidePage(viewer: ViewerContext): string {
   const sampleDegreeOptions: SelectOption[] = DEGREE_TYPES.map((degree) => ({
     label: degree.label,
     value: degree.id,
@@ -208,6 +209,7 @@ export function renderStyleGuidePage(): string {
           href: "/students/new",
           variant: "primary",
         })}`,
+        viewer,
       ),
       buttonsCard,
       badgesCard,

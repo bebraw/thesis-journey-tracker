@@ -9,7 +9,7 @@ async function login(fetchHandler: (request: Request, env: unknown) => Promise<R
     new Request("http://localhost/login", {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ password: String(env.APP_PASSWORD) }),
+      body: new URLSearchParams({ name: "Advisor", password: String(env.APP_PASSWORD) }),
     }),
     env,
   );
