@@ -82,7 +82,6 @@ describe("automated backups", () => {
       DB: new MockD1Database(),
       BACKUP_BUCKET: new MockR2Bucket(),
       BACKUP_PREFIX: "nightly",
-      APP_PASSWORD: "test-password",
       SESSION_SECRET: "test-secret",
     };
 

@@ -42,14 +42,28 @@ npx wrangler d1 create thesis_tracker_db
 cp .dev.vars.example .dev.vars
 ```
 
-5. Apply migrations and start the app:
+5. Apply migrations and create your first account:
 
 ```bash
 npm run db:migrate
+npm run account:create -- --name "Advisor" --password "change-this-password" --role editor
+```
+
+6. Start the app:
+
+```bash
 npm run dev
 ```
 
 Wrangler will print the local URL, typically `http://127.0.0.1:8787`.
+
+To add more accounts later, run the same script again with a different `name` and `role`:
+
+```bash
+npm run account:create -- --name "Professor" --password "change-this-password" --role readonly
+```
+
+By default this writes to the local D1 database. Add `--remote` if you want to create an account in the deployed database instead.
 
 For the full setup flow, see [docs/setup.md](./docs/setup.md).
 
@@ -73,7 +87,7 @@ For the full setup flow, see [docs/setup.md](./docs/setup.md).
 ## First-Time Reader Notes
 
 - This is a private, password-protected app with lightweight role-based access rather than a multi-tenant SaaS product.
-- `APP_USERS_JSON` lets you configure multiple accounts, including readonly viewers such as a professor.
+- Auth accounts now live in the D1 database, with a tiny CLI helper for creating editor and readonly users.
 - The UI is server-rendered and deliberately simple.
 - Seeded mock students are only used in the isolated end-to-end test environment.
 

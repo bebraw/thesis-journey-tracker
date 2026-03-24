@@ -29,6 +29,13 @@ interface PhaseAuditEntryStore {
   to_phase: string;
 }
 
+interface AppUserStore {
+  id: number;
+  name: string;
+  password_hash: string;
+  role: string;
+}
+
 interface QueryCall {
   query: string;
   values: D1Value[];
@@ -39,11 +46,13 @@ export class MockD1Database {
   public students: StudentRowStore[] = [];
   public meetingLogs: MeetingLogStore[] = [];
   public phaseAuditEntries: PhaseAuditEntryStore[] = [];
+  public appUsers: AppUserStore[] = [];
   public calls: QueryCall[] = [];
 
   private nextStudentId = 1;
   private nextLogId = 1;
   private nextPhaseAuditId = 1;
+  private nextAppUserId = 1;
 
   constructor() {
     this.students.push({
@@ -61,6 +70,15 @@ export class MockD1Database {
 
   prepare(query: string) {
     return new MockPreparedStatement(this, query);
+  }
+
+  seedAuthUser(user: Omit<AppUserStore, "id">) {
+    const row: AppUserStore = {
+      id: this.nextAppUserId++,
+      ...user,
+    };
+    this.appUsers.push(row);
+    return row.id;
   }
 
   runQuery(query: string, values: D1Value[]) {
@@ -143,6 +161,28 @@ export class MockD1Database {
       return { success: true, meta: { last_row_id: row.id, changes: 1 } };
     }
 
+    if (q.startsWith("INSERT INTO app_users")) {
+      const [name, passwordHash, role] = values;
+      const normalizedName = String(name);
+      const existingUser = this.appUsers.find((user) => user.name.toLocaleLowerCase() === normalizedName.toLocaleLowerCase());
+
+      if (existingUser) {
+        existingUser.name = normalizedName;
+        existingUser.password_hash = String(passwordHash);
+        existingUser.role = String(role);
+        return { success: true, meta: { last_row_id: existingUser.id, changes: 1 } };
+      }
+
+      const row: AppUserStore = {
+        id: this.nextAppUserId++,
+        name: normalizedName,
+        password_hash: String(passwordHash),
+        role: String(role),
+      };
+      this.appUsers.push(row);
+      return { success: true, meta: { last_row_id: row.id, changes: 1 } };
+    }
+
     throw new Error(`Unsupported run query: ${query}`);
   }
 
@@ -171,6 +211,12 @@ export class MockD1Database {
         log_count: logs.length,
         last_log_at: lastLog ? lastLog.happened_at : null,
       };
+    }
+
+    if (q === "SELECT id, name, password_hash, role FROM app_users WHERE name = ? COLLATE NOCASE") {
+      const lookupName = String(values[0] || "");
+      const row = this.appUsers.find((user) => user.name.toLocaleLowerCase() === lookupName.toLocaleLowerCase());
+      return row || null;
     }
 
     throw new Error(`Unsupported first query: ${query}`);
@@ -206,6 +252,11 @@ export class MockD1Database {
       const results = this.phaseAuditEntries
         .filter((entry) => entry.student_id === studentId)
         .sort((a, b) => (a.changed_at < b.changed_at ? 1 : -1));
+      return { results };
+    }
+
+    if (q === "SELECT id, name, password_hash, role FROM app_users ORDER BY name ASC") {
+      const results = [...this.appUsers].sort((left, right) => left.name.localeCompare(right.name));
       return { results };
     }
 

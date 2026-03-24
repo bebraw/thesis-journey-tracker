@@ -1,8 +1,7 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
-const { name: LOGIN_NAME, password: LOGIN_PASSWORD } = resolveLoginCredentials();
+const LOGIN_NAME = "Advisor";
+const LOGIN_PASSWORD = "e2e-password";
 
 let createdStudentName = "";
 let secondaryStudentName = "";
@@ -19,48 +18,6 @@ async function login(page: Page) {
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "MSc Thesis Journey Tracker" })).toBeVisible();
-}
-
-function resolveLoginCredentials() {
-  const appUsersJson =
-    readEnvValue(resolve(process.cwd(), "tests/e2e/.env.e2e"), "APP_USERS_JSON") ??
-    readEnvValue(resolve(process.cwd(), ".dev.vars"), "APP_USERS_JSON");
-  const editorUser = readEditorUser(appUsersJson);
-
-  return {
-    name: editorUser?.name ?? "Advisor",
-    password:
-      editorUser?.password ??
-      readEnvValue(resolve(process.cwd(), "tests/e2e/.env.e2e"), "APP_PASSWORD") ??
-      readEnvValue(resolve(process.cwd(), ".dev.vars"), "APP_PASSWORD") ??
-      "e2e-password",
-  };
-}
-
-function readEditorUser(appUsersJson: string | null) {
-  if (!appUsersJson) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(appUsersJson) as Array<{ name?: string; password?: string; role?: string }>;
-    const editorUser = parsed.find(
-      (user) => user?.role === "editor" && typeof user.password === "string" && typeof user.name === "string",
-    );
-    return editorUser ? { name: editorUser.name, password: editorUser.password } : null;
-  } catch {
-    return null;
-  }
-}
-
-function readEnvValue(filePath: string, key: string) {
-  try {
-    const content = readFileSync(filePath, "utf8");
-    const match = content.match(new RegExp(`^${key}=(.*)$`, "m"));
-    return match ? match[1].trim() : null;
-  } catch {
-    return null;
-  }
 }
 
 async function selectStudentFromTable(page: Page, studentName: string) {

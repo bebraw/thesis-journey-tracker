@@ -1,4 +1,1 @@
-APP_USERS_JSON=[{"name":"Advisor","password":"change-this-editor-password","role":"editor"},{"name":"Professor","password":"change-this-readonly-password","role":"readonly"}]
-# Legacy single-password fallback:
-# APP_PASSWORD=change-this-to-a-long-random-password
 SESSION_SECRET=change-this-to-a-long-random-secret

@@ -62,7 +62,7 @@ graph TD
 
 The Worker is the center of the app: it handles requests, checks authentication, talks to D1 through the database helpers, renders server-side HTML using the shared view and UI layers, and can run scheduled backups into R2 when deployed on Cloudflare.
 
-Authentication remains intentionally lightweight: accounts are configured through environment secrets, and the Worker stores the signed session together with the viewer role (`editor` or `readonly`) in an `HttpOnly` cookie.
+Authentication remains intentionally lightweight: accounts are stored in the `app_users` D1 table with hashed passwords, and the Worker stores the signed session together with the viewer role (`editor` or `readonly`) in an `HttpOnly` cookie. Legacy `APP_USERS_JSON` or `APP_PASSWORD` values are only used as a one-time bootstrap path when the auth table is still empty.
 
 ## Repository Map
 
@@ -77,5 +77,6 @@ Authentication remains intentionally lightweight: accounts are configured throug
 ## Data And Environment Notes
 
 - Local secrets are kept in `.dev.vars`.
+- Runtime accounts are stored in D1 instead of environment variables.
 - Test-only seeded data lives in [`tests/e2e/mock-data.sql`](../tests/e2e/mock-data.sql).
 - Seeded mock students are isolated to the E2E environment and are not part of the normal local app data.

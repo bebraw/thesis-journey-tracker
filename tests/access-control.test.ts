@@ -1,32 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { seedTestUsers, loginWithPassword } from "./helpers/auth";
 import { MockD1Database } from "./helpers/mock-d1";
 
 vi.mock("../.generated/styles.css", () => ({ default: "" }));
 vi.mock("../src/favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 
-async function loginWithPassword(
-  fetchHandler: (request: Request, env: unknown) => Promise<Response>,
-  env: Record<string, unknown>,
-  name: string,
-  password: string,
-): Promise<string> {
-  const response = await fetchHandler(
-    new Request("http://localhost/login", {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ name, password }),
-    }),
-    env,
-  );
-
-  const setCookie = response.headers.get("set-cookie") || "";
-  const cookie = setCookie.split(";")[0];
-  expect(cookie.startsWith("thesis_session=")).toBe(true);
-  return cookie;
-}
-
 describe("multi-user access control", () => {
-  let env: { DB: MockD1Database; APP_USERS_JSON: string; SESSION_SECRET: string };
+  let env: { DB: MockD1Database; SESSION_SECRET: string; APP_USERS_JSON?: string };
   let fetchHandler: (request: Request, env: unknown) => Promise<Response>;
 
   beforeEach(async () => {
@@ -35,16 +15,17 @@ describe("multi-user access control", () => {
     fetchHandler = workerModule.default.fetch;
     env = {
       DB: new MockD1Database(),
-      APP_USERS_JSON: JSON.stringify([
-        { name: "Advisor", password: "editor-password", role: "editor" },
-        { name: "Professor", password: "readonly-password", role: "readonly" },
-      ]),
       SESSION_SECRET: "test-secret",
     };
+    await seedTestUsers(env.DB, [
+      { name: "Advisor", password: "editor-password", role: "editor" },
+      { name: "Professor", password: "readonly-password", role: "readonly" },
+    ]);
   });
 
   it("shows a readonly dashboard for readonly accounts", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Professor", "readonly-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     const response = await fetchHandler(
       new Request("http://localhost/", {
@@ -65,6 +46,7 @@ describe("multi-user access control", () => {
 
   it("renders the student partial for readonly accounts", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Professor", "readonly-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     env.DB.meetingLogs.push({
       id: 1,
@@ -97,6 +79,7 @@ describe("multi-user access control", () => {
 
   it("blocks readonly accounts from editor-only pages and mutations", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Professor", "readonly-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     const dataToolsResponse = await fetchHandler(
       new Request("http://localhost/data-tools", {
@@ -135,8 +118,9 @@ describe("multi-user access control", () => {
     expect(env.DB.phaseAuditEntries).toHaveLength(0);
   });
 
-  it("still allows editor accounts when APP_USERS_JSON is configured", async () => {
+  it("still allows editor accounts with database-backed users", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     const response = await fetchHandler(
       new Request("http://localhost/actions/add-student", {
@@ -162,5 +146,23 @@ describe("multi-user access control", () => {
     expect(response.status).toBe(302);
     expect(env.DB.students).toHaveLength(2);
     expect(env.DB.students[1]?.name).toBe("Second Student");
+  });
+
+  it("bootstraps auth users from legacy APP_USERS_JSON when the auth table is empty", async () => {
+    env = {
+      DB: new MockD1Database(),
+      APP_USERS_JSON: JSON.stringify([
+        { name: "Advisor", password: "editor-password", role: "editor" },
+        { name: "Professor", password: "readonly-password", role: "readonly" },
+      ]),
+      SESSION_SECRET: "test-secret",
+    };
+
+    const cookie = await loginWithPassword(fetchHandler, env, "Professor", "readonly-password");
+
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+    expect(env.DB.appUsers).toHaveLength(2);
+    expect(env.DB.appUsers.some((user) => user.name === "Professor" && user.role === "readonly")).toBe(true);
+    expect(env.DB.appUsers.every((user) => !user.password_hash.includes("readonly-password"))).toBe(true);
   });
 });

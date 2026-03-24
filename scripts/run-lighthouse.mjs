@@ -1,6 +1,5 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import process from "node:process";
 import { chromium } from "@playwright/test";
@@ -14,6 +13,8 @@ const DASHBOARD_URL = `${BASE_URL}/`;
 const SERVER_READY_PATTERN = /Ready on http:\/\/(?:localhost|127\.0\.0\.1):8788/;
 const SERVER_START_TIMEOUT_MS = 120_000;
 const MIN_PERFORMANCE_SCORE = 90;
+const LOGIN_NAME = "Advisor";
+const LOGIN_PASSWORD = "e2e-password";
 
 const auditModes = [
   { id: "mobile", config: undefined },
@@ -57,50 +58,11 @@ async function main() {
   }
 }
 
-async function resolveLoginCredentials() {
-  const appUsersJson =
-    (await readEnvValue(resolve(process.cwd(), "tests/e2e/.env.e2e"), "APP_USERS_JSON")) ??
-    (await readEnvValue(resolve(process.cwd(), ".dev.vars"), "APP_USERS_JSON"));
-  const editorUser = readEditorUser(appUsersJson);
-
+function resolveLoginCredentials() {
   return {
-    name: editorUser?.name ?? "Advisor",
-    password:
-      editorUser?.password ??
-      (await readEnvValue(resolve(process.cwd(), "tests/e2e/.env.e2e"), "APP_PASSWORD")) ??
-      (await readEnvValue(resolve(process.cwd(), ".dev.vars"), "APP_PASSWORD")) ??
-      "e2e-password",
+    name: LOGIN_NAME,
+    password: LOGIN_PASSWORD,
   };
-}
-
-function readEditorUser(appUsersJson) {
-  if (!appUsersJson) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(appUsersJson);
-    if (!Array.isArray(parsed)) {
-      return null;
-    }
-
-    const editorUser = parsed.find(
-      (user) => user?.role === "editor" && typeof user.password === "string" && typeof user.name === "string",
-    );
-    return editorUser ? { name: editorUser.name, password: editorUser.password } : null;
-  } catch {
-    return null;
-  }
-}
-
-async function readEnvValue(filePath, key) {
-  if (!existsSync(filePath)) {
-    return null;
-  }
-
-  const content = await readFile(filePath, "utf8");
-  const match = content.match(new RegExp(`^${key}=(.*)$`, "m"));
-  return match ? match[1].trim() : null;
 }
 
 function startServer() {

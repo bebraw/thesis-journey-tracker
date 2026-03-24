@@ -1,3 +1,5 @@
+import type { AccessRole } from "./auth";
+
 export type PhaseId = "research_plan" | "researching" | "first_complete_draft" | "editing" | "submission_ready" | "submitted";
 
 export type DegreeId = "bsc" | "msc" | "dsc";
@@ -29,6 +31,13 @@ export interface PhaseAuditEntry {
   changedAt: string;
   fromPhase: PhaseId;
   toPhase: PhaseId;
+}
+
+export interface StoredAuthUser {
+  id: number;
+  name: string;
+  passwordHash: string;
+  role: AccessRole;
 }
 
 type D1Value = string | number | null;
@@ -87,6 +96,13 @@ interface PhaseAuditRow {
   to_phase: PhaseId;
 }
 
+interface AuthUserRow {
+  id: number | string;
+  name: string;
+  password_hash: string;
+  role: AccessRole;
+}
+
 export interface StudentMutationInput {
   name: string;
   email: string | null;
@@ -114,6 +130,12 @@ export interface CreatePhaseAuditInput {
   changedAt: string;
   fromPhase: PhaseId;
   toPhase: PhaseId;
+}
+
+export interface UpsertAuthUserInput {
+  name: string;
+  passwordHash: string;
+  role: AccessRole;
 }
 
 export async function listStudents(db: D1Database): Promise<Student[]> {
@@ -148,6 +170,55 @@ export async function listStudents(db: D1Database): Promise<Student[]> {
     logCount: parseDbNumber(row.log_count),
     lastLogAt: row.last_log_at || null,
   }));
+}
+
+export async function listAuthUsers(db: D1Database): Promise<StoredAuthUser[]> {
+  const rows = await db
+    .prepare(
+      `SELECT id, name, password_hash, role
+       FROM app_users
+       ORDER BY name ASC`,
+    )
+    .all<AuthUserRow>();
+
+  return rows.results.map((row) => ({
+    id: parseDbNumber(row.id),
+    name: row.name,
+    passwordHash: row.password_hash,
+    role: row.role,
+  }));
+}
+
+export async function upsertAuthUser(db: D1Database, input: UpsertAuthUserInput): Promise<number> {
+  const result = await db
+    .prepare(
+      `INSERT INTO app_users (name, password_hash, role)
+       VALUES (?, ?, ?)
+       ON CONFLICT(name) DO UPDATE SET
+         password_hash = excluded.password_hash,
+         role = excluded.role`,
+    )
+    .bind(input.name, input.passwordHash, input.role)
+    .run();
+
+  if (!result.success) {
+    throw new Error("Failed to save auth user.");
+  }
+
+  const row = await db
+    .prepare(
+      `SELECT id, name, password_hash, role
+       FROM app_users
+       WHERE name = ? COLLATE NOCASE`,
+    )
+    .bind(input.name)
+    .first<AuthUserRow>();
+
+  if (!row) {
+    throw new Error("Failed to read saved auth user.");
+  }
+
+  return parseDbNumber(row.id);
 }
 
 export async function getStudentById(db: D1Database, studentId: number): Promise<Student | null> {

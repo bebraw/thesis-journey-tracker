@@ -105,3 +105,17 @@ WHERE s.name = 'Aino Lehtinen'
     WHERE ml.student_id = s.id
       AND ml.happened_at = '2026-03-14T08:30:00.000Z'
   );
+
+INSERT INTO app_users (name, password_hash, role)
+SELECT
+  'Advisor',
+  'pbkdf2_sha256$1000$YWR2aXNvci1lMmUtc2FsdCE=$vWdnZyAp8eIkNeriwkT3dWSV3v2ViWTbWgZKxHL9z6s=',
+  'editor'
+WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE name = 'Advisor');
+
+INSERT INTO app_users (name, password_hash, role)
+SELECT
+  'Professor',
+  'pbkdf2_sha256$1000$cHJvZmVzc29yLWUyZSEhMQ==$x6eLFFCwkECaYWooV/vH2Qd+0h05y7rfdQF0naWv2RE=',
+  'readonly'
+WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE name = 'Professor');

@@ -26,17 +26,8 @@ npx wrangler login
 2. Set production secrets:
 
 ```bash
-npx wrangler secret put APP_USERS_JSON
 npx wrangler secret put SESSION_SECRET
 ```
-
-`APP_USERS_JSON` should contain a JSON array such as:
-
-```json
-[{"name":"Advisor","password":"editor-password","role":"editor"},{"name":"Professor","password":"readonly-password","role":"readonly"}]
-```
-
-If you are keeping an older single-user deployment, `APP_PASSWORD` remains supported as a fallback editor login.
 
 3. Apply remote migrations:
 
@@ -44,7 +35,21 @@ If you are keeping an older single-user deployment, `APP_PASSWORD` remains suppo
 npm run db:migrate:remote
 ```
 
-4. Deploy:
+4. Create at least one remote login account in D1:
+
+```bash
+npm run account:create -- --name "Advisor" --password "change-this-editor-password" --role editor --remote
+```
+
+Optional readonly account:
+
+```bash
+npm run account:create -- --name "Professor" --password "change-this-readonly-password" --role readonly --remote
+```
+
+If you are upgrading an older deployment and still have `APP_USERS_JSON` or `APP_PASSWORD` configured, the Worker can bootstrap those values into the new `app_users` table once the migration has been applied. After the users appear in D1, remove the old auth secrets.
+
+5. Deploy:
 
 ```bash
 npm run deploy

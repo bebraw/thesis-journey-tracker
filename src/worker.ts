@@ -12,10 +12,13 @@ import {
   getStudentById,
   listLogsForStudent,
   listPhaseAuditEntriesForStudent,
+  listAuthUsers,
   listStudents,
   studentExists,
+  upsertAuthUser,
   updateStudent,
 } from "./db";
+import { hashPassword, verifyPassword } from "./password";
 import { parseStudentFormSubmission } from "./student-form";
 import {
   buildExportFilename,
@@ -107,11 +110,13 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return new Response("D1 binding is missing. Configure DB in wrangler.toml.", { status: 500 });
   }
 
-  const authConfig = resolveAuthConfig(env);
-  if (!authConfig || !env.SESSION_SECRET) {
-    return new Response(authConfig?.error || "APP_USERS_JSON (or APP_PASSWORD) and SESSION_SECRET must be configured.", {
-      status: 500,
-    });
+  if (!env.SESSION_SECRET) {
+    return new Response("SESSION_SECRET must be configured.", { status: 500 });
+  }
+
+  const authState = await resolveAuthState(env);
+  if (authState.error) {
+    return new Response(authState.error, { status: 500 });
   }
 
   const sessionUser = await getSessionUser(request, env.SESSION_SECRET, SESSION_COOKIE);
@@ -121,31 +126,25 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       return redirect("/");
     }
     const showError = url.searchParams.get("error") === "1";
-    return htmlResponse(renderLoginPage(showError, authConfig.users.length > 1));
+    return htmlResponse(renderLoginPage(showError, authState.users.length > 1));
   }
 
   if (pathname === "/login" && request.method === "POST") {
     const formData = await request.formData();
     const enteredName = (formData.get("name") || "").toString().trim();
     const password = (formData.get("password") || "").toString();
-    const matchedUser = authConfig.users.find((user) => {
-      if (user.password !== password) {
-        return false;
-      }
+    const candidateUser =
+      authState.users.length === 1 && !enteredName
+        ? authState.users[0] || null
+        : authState.users.find((user) => user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase()) || null;
 
-      if (authConfig.users.length === 1 && !enteredName) {
-        return true;
-      }
-
-      return user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase();
-    });
-    if (!matchedUser) {
+    if (!candidateUser || !(await verifyPassword(password, candidateUser.passwordHash))) {
       return redirect("/login?error=1");
     }
 
     const token = await createSessionToken(env.SESSION_SECRET, SESSION_TTL_SECONDS, {
-      name: matchedUser.name,
-      role: matchedUser.role,
+      name: candidateUser.name,
+      role: candidateUser.role,
     });
     return redirect("/", {
       "Set-Cookie": buildSessionCookie(token, request.url, {
@@ -540,7 +539,54 @@ async function handleDeleteStudent(env: Env, studentId: number): Promise<Respons
   return redirect("/");
 }
 
-function resolveAuthConfig(env: Env): { users: AuthUser[]; error?: string } | null {
+async function resolveAuthState(env: Env): Promise<{ users: Awaited<ReturnType<typeof listAuthUsers>>; error?: string }> {
+  try {
+    let users = await listAuthUsers(env.DB);
+    if (users.length > 0) {
+      return { users };
+    }
+
+    const bootstrapUsers = resolveLegacyAuthConfig(env);
+    if (!bootstrapUsers) {
+      return {
+        users: [],
+        error: "No auth users found in the database. Create at least one account and run the latest D1 migrations.",
+      };
+    }
+
+    if (bootstrapUsers.error) {
+      return {
+        users: [],
+        error: bootstrapUsers.error,
+      };
+    }
+
+    for (const user of bootstrapUsers.users) {
+      await upsertAuthUser(env.DB, {
+        name: user.name,
+        passwordHash: await hashPassword(user.password),
+        role: user.role,
+      });
+    }
+
+    users = await listAuthUsers(env.DB);
+    if (users.length === 0) {
+      return {
+        users: [],
+        error: "No auth users found in the database. Create at least one account and run the latest D1 migrations.",
+      };
+    }
+
+    return { users };
+  } catch {
+    return {
+      users: [],
+      error: "Auth user storage is unavailable. Run the latest D1 migrations before starting the app.",
+    };
+  }
+}
+
+function resolveLegacyAuthConfig(env: Env): { users: AuthUser[]; error?: string } | null {
   if (env.APP_USERS_JSON) {
     try {
       const parsed = JSON.parse(env.APP_USERS_JSON) as unknown;

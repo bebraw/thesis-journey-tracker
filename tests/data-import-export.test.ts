@@ -1,27 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { loginWithPassword, seedTestUsers } from "./helpers/auth";
 import { MockD1Database } from "./helpers/mock-d1";
 
 vi.mock("../.generated/styles.css", () => ({ default: "" }));
 vi.mock("../src/favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 
-async function login(fetchHandler: (request: Request, env: unknown) => Promise<Response>, env: Record<string, unknown>): Promise<string> {
-  const response = await fetchHandler(
-    new Request("http://localhost/login", {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ name: "Advisor", password: String(env.APP_PASSWORD) }),
-    }),
-    env,
-  );
-
-  const setCookie = response.headers.get("set-cookie") || "";
-  const cookie = setCookie.split(";")[0];
-  expect(cookie.startsWith("thesis_session=")).toBe(true);
-  return cookie;
-}
-
 describe("data import and export", () => {
-  let env: { DB: MockD1Database; APP_PASSWORD: string; SESSION_SECRET: string };
+  let env: { DB: MockD1Database; SESSION_SECRET: string };
   let fetchHandler: (request: Request, env: unknown) => Promise<Response>;
 
   beforeEach(async () => {
@@ -30,9 +15,9 @@ describe("data import and export", () => {
     fetchHandler = workerModule.default.fetch;
     env = {
       DB: new MockD1Database(),
-      APP_PASSWORD: "test-password",
       SESSION_SECRET: "test-secret",
     };
+    await seedTestUsers(env.DB, [{ name: "Advisor", password: "test-password", role: "editor" }]);
 
     env.DB.meetingLogs.push({
       id: 1,
@@ -52,7 +37,8 @@ describe("data import and export", () => {
   });
 
   it("exports the current dataset as a JSON attachment", async () => {
-    const cookie = await login(fetchHandler, env);
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     const response = await fetchHandler(
       new Request("http://localhost/actions/export-json", {
@@ -85,7 +71,8 @@ describe("data import and export", () => {
   });
 
   it("exports a professor-friendly markdown status report", async () => {
-    const cookie = await login(fetchHandler, env);
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     const response = await fetchHandler(
       new Request("http://localhost/actions/export-professor-report", {
@@ -107,7 +94,8 @@ describe("data import and export", () => {
   });
 
   it("records a phase audit entry when a student's phase changes", async () => {
-    const cookie = await login(fetchHandler, env);
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     const response = await fetchHandler(
       new Request("http://localhost/actions/update-student/1", {
@@ -137,7 +125,8 @@ describe("data import and export", () => {
   });
 
   it("appends imported students and logs by default", async () => {
-    const cookie = await login(fetchHandler, env);
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
     const formData = new FormData();
     formData.set(
       "importFile",
@@ -201,7 +190,8 @@ describe("data import and export", () => {
   });
 
   it("requires confirmation before replacement import", async () => {
-    const cookie = await login(fetchHandler, env);
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
     const formData = new FormData();
     formData.set(
       "importFile",
@@ -237,7 +227,8 @@ describe("data import and export", () => {
   });
 
   it("replaces the current dataset when replacement is confirmed", async () => {
-    const cookie = await login(fetchHandler, env);
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
     const formData = new FormData();
     formData.set(
       "importFile",
@@ -294,7 +285,8 @@ describe("data import and export", () => {
   });
 
   it("rejects invalid JSON imports without changing stored data", async () => {
-    const cookie = await login(fetchHandler, env);
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
     const formData = new FormData();
     formData.set("importFile", new File(["not-json"], "broken.json", { type: "application/json" }));
 

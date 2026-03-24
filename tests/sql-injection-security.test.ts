@@ -1,27 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { loginWithPassword, seedTestUsers } from "./helpers/auth";
 import { MockD1Database } from "./helpers/mock-d1";
 
 vi.mock("../.generated/styles.css", () => ({ default: "" }));
 vi.mock("../src/favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 
-async function login(fetchHandler: (request: Request, env: unknown) => Promise<Response>, env: Record<string, unknown>): Promise<string> {
-  const response = await fetchHandler(
-    new Request("http://localhost/login", {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ name: "Advisor", password: String(env.APP_PASSWORD) }),
-    }),
-    env,
-  );
-
-  const setCookie = response.headers.get("set-cookie") || "";
-  const cookie = setCookie.split(";")[0];
-  expect(cookie.startsWith("thesis_session=")).toBe(true);
-  return cookie;
-}
-
 describe("SQL injection safety", () => {
-  let env: { DB: MockD1Database; APP_PASSWORD: string; SESSION_SECRET: string };
+  let env: { DB: MockD1Database; SESSION_SECRET: string };
   let fetchHandler: (request: Request, env: unknown) => Promise<Response>;
 
   beforeEach(async () => {
@@ -30,15 +15,16 @@ describe("SQL injection safety", () => {
     fetchHandler = workerModule.default.fetch;
     env = {
       DB: new MockD1Database(),
-      APP_PASSWORD: "test-password",
       SESSION_SECRET: "test-secret",
     };
+    await seedTestUsers(env.DB, [{ name: "Advisor", password: "test-password", role: "editor" }]);
   });
 
   it.each(["Robert'); DROP TABLE students;--", "'; DELETE FROM meeting_logs; --", "\"; UPDATE students SET name='pwned' WHERE id=1; --"])(
     "treats add-student payload as data (%s)",
     async (payload) => {
-      const cookie = await login(fetchHandler, env);
+      const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+      expect(cookie.startsWith("thesis_session=")).toBe(true);
 
       const response = await fetchHandler(
         new Request("http://localhost/actions/add-student", {
@@ -69,7 +55,8 @@ describe("SQL injection safety", () => {
   );
 
   it("treats update-student payload as data and keeps schema intact", async () => {
-    const cookie = await login(fetchHandler, env);
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
     const payload = "'; DROP TABLE students; --";
 
     const response = await fetchHandler(
@@ -104,7 +91,8 @@ describe("SQL injection safety", () => {
   it.each(["'); DROP TABLE meeting_logs;--", "'; UPDATE students SET name='pwned' WHERE id=1;--"])(
     "treats add-log payload as data (%s)",
     async (payload) => {
-      const cookie = await login(fetchHandler, env);
+      const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+      expect(cookie.startsWith("thesis_session=")).toBe(true);
 
       const response = await fetchHandler(
         new Request("http://localhost/actions/add-log/1", {
@@ -131,7 +119,8 @@ describe("SQL injection safety", () => {
   );
 
   it("deletes a student and cascades meeting logs", async () => {
-    const cookie = await login(fetchHandler, env);
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     env.DB.meetingLogs.push({
       id: 1,
