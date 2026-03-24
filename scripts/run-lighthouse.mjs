@@ -11,7 +11,7 @@ import desktopConfig from "lighthouse/core/config/desktop-config.js";
 const REPORT_DIR = resolve(process.cwd(), "reports/lighthouse");
 const BASE_URL = "http://127.0.0.1:8788";
 const DASHBOARD_URL = `${BASE_URL}/`;
-const SERVER_READY_TEXT = "Ready on http://localhost:8788";
+const SERVER_READY_PATTERN = /Ready on http:\/\/(?:localhost|127\.0\.0\.1):8788/;
 const SERVER_START_TIMEOUT_MS = 120_000;
 const MIN_PERFORMANCE_SCORE = 90;
 
@@ -25,11 +25,11 @@ await main();
 async function main() {
   await mkdir(REPORT_DIR, { recursive: true });
 
-  const password = await resolvePassword();
+  const credentials = await resolveLoginCredentials();
   const server = await startServer();
 
   try {
-    const cookieHeader = await loginAndGetCookie(password);
+    const cookieHeader = await loginAndGetCookie(credentials);
     const chromePath = chromium.executablePath();
     const results = [];
 
@@ -57,12 +57,40 @@ async function main() {
   }
 }
 
-async function resolvePassword() {
-  return (
-    (await readEnvValue(resolve(process.cwd(), "tests/e2e/.env.e2e"), "APP_PASSWORD")) ??
-    (await readEnvValue(resolve(process.cwd(), ".dev.vars"), "APP_PASSWORD")) ??
-    "e2e-password"
-  );
+async function resolveLoginCredentials() {
+  const appUsersJson =
+    (await readEnvValue(resolve(process.cwd(), "tests/e2e/.env.e2e"), "APP_USERS_JSON")) ??
+    (await readEnvValue(resolve(process.cwd(), ".dev.vars"), "APP_USERS_JSON"));
+  const editorUser = readEditorUser(appUsersJson);
+
+  return {
+    name: editorUser?.name ?? "Advisor",
+    password:
+      editorUser?.password ??
+      (await readEnvValue(resolve(process.cwd(), "tests/e2e/.env.e2e"), "APP_PASSWORD")) ??
+      (await readEnvValue(resolve(process.cwd(), ".dev.vars"), "APP_PASSWORD")) ??
+      "e2e-password",
+  };
+}
+
+function readEditorUser(appUsersJson) {
+  if (!appUsersJson) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(appUsersJson);
+    if (!Array.isArray(parsed)) {
+      return null;
+    }
+
+    const editorUser = parsed.find(
+      (user) => user?.role === "editor" && typeof user.password === "string" && typeof user.name === "string",
+    );
+    return editorUser ? { name: editorUser.name, password: editorUser.password } : null;
+  } catch {
+    return null;
+  }
 }
 
 async function readEnvValue(filePath, key) {
@@ -97,7 +125,7 @@ function startServer() {
     const handleChunk = (chunk, writer) => {
       const text = chunk.toString();
       writer(`[lighthouse-server] ${text}`);
-      if (!settled && text.includes(SERVER_READY_TEXT)) {
+      if (!settled && SERVER_READY_PATTERN.test(text)) {
         settled = true;
         clearTimeout(timeout);
         resolvePromise(server);
@@ -160,14 +188,18 @@ function terminateServer(server, signal) {
   server.kill(signal);
 }
 
-async function loginAndGetCookie(password) {
+async function loginAndGetCookie(credentials) {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
 
   try {
     await page.goto(DASHBOARD_URL);
-    await page.getByLabel("Password").fill(password);
+    const nameField = page.getByLabel("Name");
+    if ((await nameField.count()) > 0) {
+      await nameField.fill(credentials.name);
+    }
+    await page.getByLabel("Password").fill(credentials.password);
     await page.getByRole("button", { name: "Sign in" }).click();
     await page.waitForURL(DASHBOARD_URL, { timeout: 15_000 });
 
