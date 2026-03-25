@@ -3,13 +3,11 @@ import {
   EMPTY_DASHED_CARD,
   MUTED_TEXT_XS,
   SURFACE_CARD_SM,
-  STATUS_BADGE,
   TOPIC_TEXT_SM,
-  getMeetingStatusBadgeClass,
   renderBadge,
 } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
-import { escapeHtml, formatDateTime, getDegreeLabel, meetingStatusId, meetingStatusText } from "../../utils";
+import { escapeHtml, getDegreeLabel } from "../../utils";
 import { renderView } from "../shared.htmlisp";
 import { DEGREE_TYPES, PHASES } from "../../reference-data";
 
@@ -20,10 +18,8 @@ interface PreparedLaneStudent {
   href: string;
   name: string;
   badgesHtml: string;
-  metaText: string;
   topicVisible: boolean;
   topic: string;
-  statusBadgeHtml: string;
 }
 
 interface PreparedPhaseLane {
@@ -68,16 +64,8 @@ function preparePhaseLanes(students: Student[], selectedStudent: Student | null)
           href: escapeHtml(`/?selected=${student.id}`),
           name: escapeHtml(student.name),
           badgesHtml,
-          metaText: escapeHtml(
-            student.nextMeetingAt
-              ? `Target ${student.targetSubmissionDate} · Meeting ${formatDateTime(student.nextMeetingAt)}`
-              : `Target ${student.targetSubmissionDate} · No meeting booked`,
-          ),
           topicVisible: Boolean(student.thesisTopic),
           topic: escapeHtml(student.thesisTopic || ""),
-          statusBadgeHtml: `<span class="${escapeHtml(
-            `${STATUS_BADGE} ${getMeetingStatusBadgeClass(meetingStatusId(student))}`,
-          )}">${escapeHtml(meetingStatusText(student))}</span>`,
         };
       }),
     };
@@ -100,10 +88,8 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
           &href="(get props href)"
           &name="(get props name)"
           &badgesHtml="(get props badgesHtml)"
-          &metaText="(get props metaText)"
           &topicVisible="(get props topicVisible)"
           &topic="(get props topic)"
-          &statusBadgeHtml="(get props statusBadgeHtml)"
         />
       </noop>
     </ul>
@@ -125,15 +111,9 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
         class="min-w-0 flex-1 text-sm font-medium text-app-text dark:text-app-text-dark underline-offset-2 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark"
         &children="(get props name)"
       ></a>
-      <div class="shrink-0">
-        <noop &children="(get props statusBadgeHtml)"></noop>
-      </div>
-    </div>
-    <div class="mt-badge-y flex flex-wrap items-center justify-between gap-badge-y">
       <div class="flex max-w-full flex-wrap gap-badge-y">
         <noop &children="(get props badgesHtml)"></noop>
       </div>
-      <p class="min-w-0 text-right text-[11px] text-app-text-muted dark:text-app-text-muted-dark" &children="(get props metaText)"></p>
     </div>
     <p
       &visibleIf="(get props topicVisible)"
