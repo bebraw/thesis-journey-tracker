@@ -11,7 +11,6 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
     values: getDefaultStudentFormValues(),
     controlSize: "compact",
     emailLabel: "Email (optional)",
-    targetSubmissionLabel: "Target submission (optional)",
     topicWrapperClassName: "block text-sm sm:col-span-2 lg:col-span-3",
   });
 
@@ -23,7 +22,6 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
       <noop &children="(get props topicField)"></noop>
       <noop &children="(get props phaseField)"></noop>
       <noop &children="(get props startDateField)"></noop>
-      <noop &children="(get props targetDateField)"></noop>
       <noop &children="(get props nextMeetingField)"></noop>
       <noop &children="(get props submitButton)"></noop>
     </form>`,
@@ -74,7 +72,7 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
           {
             subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
             description: escapeHtml(
-              "Start date is optional. If you leave target submission empty, it will default to six months from the start date, or six months from today when start date is blank.",
+              "Target submission is calculated automatically as six months from the start date. If start date is blank, the app falls back to six months from today.",
             ),
             formHtml,
           },

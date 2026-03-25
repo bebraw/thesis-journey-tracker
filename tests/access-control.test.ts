@@ -137,7 +137,7 @@ describe("multi-user access control", () => {
           degreeType: "msc",
           thesisTopic: "Allowed change",
           startDate: "2026-03-01",
-          targetSubmissionDate: "2026-09-01",
+          targetSubmissionDate: "2027-01-01",
           currentPhase: "research_plan",
           nextMeetingAt: "",
         }),
@@ -148,6 +148,7 @@ describe("multi-user access control", () => {
     expect(response.status).toBe(302);
     expect(env.DB.students).toHaveLength(2);
     expect(env.DB.students[1]?.name).toBe("Second Student");
+    expect(env.DB.students[1]?.target_submission_date).toBe("2026-09-01");
   });
 
   it("allows creating a student with only the required name field", async () => {

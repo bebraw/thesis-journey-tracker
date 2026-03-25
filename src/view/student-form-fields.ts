@@ -9,7 +9,6 @@ export interface StudentFormFieldMap {
   topicField: string;
   phaseField: string;
   startDateField: string;
-  targetDateField: string;
   nextMeetingField: string;
 }
 
@@ -17,7 +16,6 @@ interface RenderStudentFormFieldsOptions {
   values: StudentFormValues;
   controlSize?: "default" | "compact";
   emailLabel?: string;
-  targetSubmissionLabel?: string;
   topicWrapperClassName?: string;
 }
 
@@ -26,7 +24,6 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
     values,
     controlSize = "default",
     emailLabel = "Email",
-    targetSubmissionLabel = "Target submission date",
     topicWrapperClassName,
   } = options;
 
@@ -84,15 +81,6 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
       type: "date",
       value: values.startDate,
       className: controlClass,
-    }),
-    targetDateField: renderInputField({
-      label: targetSubmissionLabel,
-      name: STUDENT_FORM_FIELDS.targetSubmissionDate,
-      type: "date",
-      value: values.targetSubmissionDate,
-      className: controlClass,
-      attributes: controlSize === "compact" ? undefined : "required",
-      required: controlSize !== "compact",
     }),
     nextMeetingField: renderInputField({
       label: controlSize === "compact" ? "Next meeting (optional)" : "Next meeting",

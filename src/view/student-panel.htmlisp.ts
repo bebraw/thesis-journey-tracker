@@ -171,8 +171,10 @@ export function renderSelectedStudentPanel(
             <noop &children="(get props emailField)"></noop>
             <noop &children="(get props degreeField)"></noop>
             <noop &children="(get props startDateField)"></noop>
-            <noop &children="(get props targetDateField)"></noop>
             <noop &children="(get props nextMeetingField)"></noop>
+            <p class="text-xs text-app-text-muted dark:text-app-text-muted-dark">
+              Target submission is calculated automatically as six months from the start date.
+            </p>
           </div>
         </div>
       </details>

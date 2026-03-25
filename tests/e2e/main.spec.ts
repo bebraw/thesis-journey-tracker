@@ -34,7 +34,7 @@ async function addStudent(
   email: string,
   degreeType: "BSc" | "MSc" | "DSc" = "MSc",
   thesisTopic = "Test thesis topic",
-  options?: { startDate?: string; targetSubmissionDate?: string },
+  options?: { startDate?: string },
 ) {
   await page.getByRole("link", { name: "Add student" }).click();
   await expect(page).toHaveURL(/\/students\/new$/);
@@ -47,9 +47,6 @@ async function addStudent(
     await page.getByLabel("Start date (optional)").fill(options.startDate);
   } else {
     await page.getByLabel("Start date (optional)").fill("2026-03-01");
-  }
-  if (options?.targetSubmissionDate !== undefined) {
-    await page.getByLabel("Target submission (optional)").fill(options.targetSubmissionDate);
   }
   await page.getByRole("button", { name: "Add student" }).click();
 
@@ -165,20 +162,22 @@ test.describe("dashboard e2e", () => {
     await expect(page).toHaveURL(/\/\?selected=/);
   });
 
-  test("can add a student without a start date when target submission is provided", async ({ page }) => {
+  test("derives target submission automatically when adding a student without a start date", async ({ page }) => {
     await login(page);
 
     const suffix = Date.now().toString();
     const noStartDateStudentName = `No Start Date ${suffix}`;
+    const expectedTargetDate = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z");
+    expectedTargetDate.setUTCMonth(expectedTargetDate.getUTCMonth() + 6);
+    const expectedTargetText = expectedTargetDate.toISOString().slice(0, 10);
 
     await addStudent(page, noStartDateStudentName, `nostart-${suffix}@example.edu`, "MSc", `Topic ${suffix}`, {
       startDate: "",
-      targetSubmissionDate: "2026-10-01",
     });
 
     await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${noStartDateStudentName}`);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Start date (optional)")).toHaveValue("");
-    await expect(page.locator("[data-student-row]", { hasText: noStartDateStudentName })).toContainText("2026-10-01");
+    await expect(page.locator("[data-student-row]", { hasText: noStartDateStudentName })).toContainText(expectedTargetText);
   });
 
   test("can update a student and add a meeting log", async ({ page }) => {

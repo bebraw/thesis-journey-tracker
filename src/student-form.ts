@@ -24,7 +24,6 @@ export interface StudentFormValues {
   degreeType: DegreeId;
   thesisTopic: string;
   startDate: string;
-  targetSubmissionDate: string;
   currentPhase: PhaseId;
   nextMeetingAt: string;
 }
@@ -41,7 +40,6 @@ export function getDefaultStudentFormValues(): StudentFormValues {
     degreeType: "msc",
     thesisTopic: "",
     startDate: "",
-    targetSubmissionDate: "",
     currentPhase: "research_plan",
     nextMeetingAt: "",
   };
@@ -54,7 +52,6 @@ export function getStudentFormValues(student: Student): StudentFormValues {
     degreeType: student.degreeType,
     thesisTopic: student.thesisTopic || "",
     startDate: student.startDate || "",
-    targetSubmissionDate: student.targetSubmissionDate,
     currentPhase: student.currentPhase,
     nextMeetingAt: toDateTimeLocalInput(student.nextMeetingAt),
   };
@@ -70,9 +67,7 @@ export function parseStudentFormSubmission(formData: FormData, options: ParseStu
   const thesisTopic = normalizeString(readOptionalField(formData, STUDENT_FORM_FIELDS.thesisTopic, existingStudent?.thesisTopic ?? null));
 
   const startDate = normalizeDate(readOptionalField(formData, STUDENT_FORM_FIELDS.startDate, existingStudent?.startDate ?? null), true);
-
-  const targetSubmissionSource = readTargetSubmissionField(formData, options);
-  const targetSubmissionDate = normalizeTargetSubmissionDate(targetSubmissionSource, startDate, mode);
+  const targetSubmissionDate = normalizeTargetSubmissionDate(startDate, options);
 
   const degreeType = normalizeDegreeId(
     readRequiredField(formData, STUDENT_FORM_FIELDS.degreeType, existingStudent?.degreeType ?? (mode === "create" ? "msc" : null)),
@@ -121,22 +116,20 @@ function normalizePhaseId(value: FormDataEntryValue | string | null | undefined)
   return PHASE_IDS.includes(text as PhaseId) ? (text as PhaseId) : null;
 }
 
-function normalizeTargetSubmissionDate(
-  value: FormDataEntryValue | string | null | undefined,
-  startDate: string | null | undefined,
-  mode: StudentFormMode,
-): string | null {
-  const normalized = normalizeDate(value, true);
-  if (normalized === undefined) {
-    return null;
+function normalizeTargetSubmissionDate(startDate: string | null | undefined, options: ParseStudentFormOptions): string | null {
+  if (typeof startDate === "string" && startDate) {
+    return addSixMonths(startDate);
   }
-  if (normalized) {
-    return normalized;
-  }
-  if (mode === "create") {
+
+  if (options.mode === "create") {
     const fallbackStartDate = typeof startDate === "string" && startDate ? startDate : new Date().toISOString().slice(0, 10);
     return addSixMonths(fallbackStartDate);
   }
+
+  if (options.mode === "update") {
+    return options.existingStudent?.targetSubmissionDate ?? null;
+  }
+
   return null;
 }
 
@@ -164,16 +157,4 @@ function readOptionalField(
     return formData.get(legacyName);
   }
   return fallbackValue;
-}
-
-function readTargetSubmissionField(formData: FormData, options: ParseStudentFormOptions): FormDataEntryValue | string | null | undefined {
-  if (formData.has(STUDENT_FORM_FIELDS.targetSubmissionDate)) {
-    return formData.get(STUDENT_FORM_FIELDS.targetSubmissionDate);
-  }
-
-  if (options.mode === "update") {
-    return options.existingStudent?.targetSubmissionDate;
-  }
-
-  return null;
 }
