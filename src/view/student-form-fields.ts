@@ -100,6 +100,7 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
       type: "datetime-local",
       value: values.nextMeetingAt,
       className: controlClass,
+      attributes: 'step="3600"',
     }),
   };
 }

@@ -210,6 +210,7 @@ export function renderSelectedStudentPanel(
         name: "happenedAt",
         type: "datetime-local",
         className: FIELD_CONTROL,
+        attributes: 'step="3600"',
       }),
       discussedField: renderTextareaField({
         label: "What was discussed",
