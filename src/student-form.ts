@@ -134,7 +134,8 @@ function normalizeTargetSubmissionDate(
     return normalized;
   }
   if (mode === "create") {
-    return addSixMonths(typeof startDate === "string" ? startDate : null);
+    const fallbackStartDate = typeof startDate === "string" && startDate ? startDate : new Date().toISOString().slice(0, 10);
+    return addSixMonths(fallbackStartDate);
   }
   return null;
 }

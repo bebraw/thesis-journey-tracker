@@ -74,7 +74,7 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
           {
             subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
             description: escapeHtml(
-              "Start date is optional. If you leave target submission empty, it will default to six months from start date when a start date is provided.",
+              "Start date is optional. If you leave target submission empty, it will default to six months from the start date, or six months from today when start date is blank.",
             ),
             formHtml,
           },

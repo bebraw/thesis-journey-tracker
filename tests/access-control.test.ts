@@ -150,6 +150,39 @@ describe("multi-user access control", () => {
     expect(env.DB.students[1]?.name).toBe("Second Student");
   });
 
+  it("allows creating a student with only the required name field", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+
+    const response = await fetchHandler(
+      new Request("http://localhost/actions/add-student", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams({
+          name: "Minimal Student",
+          studentEmail: "",
+          degreeType: "msc",
+          thesisTopic: "",
+          startDate: "",
+          targetSubmissionDate: "",
+          currentPhase: "research_plan",
+          nextMeetingAt: "",
+        }),
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toContain("/?selected=");
+    expect(env.DB.students).toHaveLength(2);
+    expect(env.DB.students[1]?.name).toBe("Minimal Student");
+    expect(env.DB.students[1]?.start_date).toBeNull();
+    expect(env.DB.students[1]?.target_submission_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
   it("rate limits repeated failed logins from the same client IP", async () => {
     const loginHeaders = {
       "cf-connecting-ip": "203.0.113.10",
