@@ -105,7 +105,7 @@ function renderReadonlyStudentSummary(student: Student): string {
   return renderView(
     `<section>
       <h2 class="text-lg font-semibold">Student Overview</h2>
-      <p &class="(get props subtleText)" &children="(get props currentlyViewingText)"></p>
+      <p &class="(get props currentStudentLineClass)" &children="(get props currentlyViewingText)"></p>
       <p &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></p>
       <p &class="(get props readonlyNoticeClass)">Read-only access: student details, supervision logs, and phase history.</p>
       <dl class="mt-stack-xs grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
@@ -119,6 +119,7 @@ function renderReadonlyStudentSummary(student: Student): string {
     </section>`,
     {
       subtleText: escapeHtml(SUBTLE_TEXT),
+      currentStudentLineClass: escapeHtml(`mt-1 truncate ${SUBTLE_TEXT}`),
       topicTextClass: escapeHtml(TOPIC_TEXT),
       readonlyNoticeClass: escapeHtml(`mt-3 ${SUBTLE_TEXT}`),
       currentlyViewingText: escapeHtml(`Currently viewing: ${student.name}`),
@@ -157,26 +158,37 @@ export function renderSelectedStudentPanel(
 
   const editFormHtml = renderView(
     `<form &action="(get props action)" method="post" &class="(get props formStack)">
-      <noop &children="(get props topicField)"></noop>
-      <noop &children="(get props phaseField)"></noop>
+      <section class="rounded-card border border-app-line bg-app-surface-soft/70 px-panel-sm py-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/40">
+        <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 class="text-base font-semibold">Quick update</h3>
+            <p class="text-xs text-app-text-muted dark:text-app-text-muted-dark">Update the fields you are most likely to change during day-to-day supervision.</p>
+          </div>
+          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Topic, phase, meeting</span>
+        </div>
+        <div class="mt-stack-xs grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
+          <noop &children="(get props topicField)"></noop>
+          <noop &children="(get props phaseField)"></noop>
+          <noop &children="(get props nextMeetingField)"></noop>
+        </div>
+      </section>
       <details &class="(get props disclosureClass)">
         <summary &class="(get props disclosureSummaryClass)">
-          <span>Additional student details</span>
+          <span>Profile details</span>
           <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">
             Name, email, degree, dates
           </span>
         </summary>
         <div &class="(get props disclosureContentClass)">
-          <div &class="(get props disclosureFieldsClass)">
+          <div class="grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
             <noop &children="(get props nameField)"></noop>
             <noop &children="(get props emailField)"></noop>
             <noop &children="(get props degreeField)"></noop>
             <noop &children="(get props startDateField)"></noop>
-            <noop &children="(get props nextMeetingField)"></noop>
-            <p class="text-xs text-app-text-muted dark:text-app-text-muted-dark">
-              Target submission is calculated automatically when a start date is set.
-            </p>
           </div>
+          <p class="mt-stack-xs text-xs text-app-text-muted dark:text-app-text-muted-dark">
+              Target submission is calculated automatically when a start date is set.
+          </p>
         </div>
       </details>
       <noop &children="(get props submitButton)"></noop>
@@ -316,11 +328,22 @@ export function renderSelectedStudentPanel(
   return renderView(
     `<article &class="(get props cardClass)">
       <section>
-        <h2 class="text-lg font-semibold">Edit Student</h2>
-        <p &class="(get props subtleText)" &children="(get props currentlyViewingText)"></p>
+        <div>
+          <h2 class="text-lg font-semibold">Student Workspace</h2>
+          <p &class="(get props currentStudentLineClass)" &children="(get props currentlyViewingText)"></p>
+        </div>
         <p &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></p>
-        <noop &children="(get props editFormHtml)"></noop>
       </section>
+
+      <details &class="(get props disclosureClass)">
+        <summary &class="(get props disclosureSummaryClass)">
+          <span>Edit Student</span>
+          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Expand when needed</span>
+        </summary>
+        <div &class="(get props disclosureContentClass)">
+          <noop &children="(get props editFormHtml)"></noop>
+        </div>
+      </details>
 
       <details &class="(get props disclosureClass)">
         <summary &class="(get props disclosureSummaryClass)">
@@ -412,6 +435,7 @@ export function renderSelectedStudentPanel(
       ),
       logEntryClass: escapeHtml(SOFT_SURFACE_CARD),
       subtleText: escapeHtml(SUBTLE_TEXT),
+      currentStudentLineClass: escapeHtml(`mt-1 truncate ${SUBTLE_TEXT}`),
       topicTextClass: escapeHtml(TOPIC_TEXT),
       currentlyViewingText: escapeHtml(`Currently viewing: ${student.name}`),
       topicVisible: Boolean(student.thesisTopic),

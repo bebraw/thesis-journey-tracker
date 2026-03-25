@@ -25,7 +25,17 @@ async function selectStudentFromTable(page: Page, studentName: string) {
   const partialResponse = page.waitForResponse((response) => response.url().includes("/partials/student/"));
   await page.locator("[data-student-row]", { hasText: studentName }).first().click();
   await partialResponse;
-  await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${studentName}`);
+  await expect(page).toHaveURL(/\/\?selected=/);
+}
+
+async function showStudentPanel(page: Page) {
+  const panelShell = page.locator("#selectedStudentPanelShell");
+  if (await panelShell.isVisible()) {
+    return;
+  }
+
+  await page.getByRole("button", { name: "Show editing panel" }).click();
+  await expect(panelShell).toBeVisible();
 }
 
 async function addStudent(
@@ -51,7 +61,6 @@ async function addStudent(
   await page.getByRole("button", { name: "Add student" }).click();
 
   await expect(page).toHaveURL(/\/\?selected=/);
-  await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${studentName}`);
 }
 
 test.describe("dashboard e2e", () => {
@@ -66,6 +75,7 @@ test.describe("dashboard e2e", () => {
     await page.getByRole("link", { name: "Dashboard" }).first().click();
     await expect(page).toHaveURL(/\/$/);
 
+    await expect(page.locator("#selectedStudentPanelShell")).toBeHidden();
     await expect(page.locator("[data-student-row]", { hasText: "Mia Koskinen" })).toBeVisible();
     await expect(page.locator("[data-lane-student-card]", { hasText: "Noah Virtanen" })).toBeVisible();
 
@@ -163,6 +173,7 @@ test.describe("dashboard e2e", () => {
     await page.locator("[data-lane-student-card]", { hasText: secondaryStudentName }).first().click();
     await lanePartialResponse;
 
+    await showStudentPanel(page);
     await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${secondaryStudentName}`);
     await expect(page).toHaveURL(/\/\?selected=/);
   });
@@ -177,6 +188,7 @@ test.describe("dashboard e2e", () => {
       startDate: "",
     });
 
+    await showStudentPanel(page);
     await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${noStartDateStudentName}`);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Start date (optional)")).toHaveValue("");
     await expect(page.locator("[data-student-row]", { hasText: noStartDateStudentName })).toContainText("Not set");
@@ -186,6 +198,7 @@ test.describe("dashboard e2e", () => {
     await login(page);
 
     await selectStudentFromTable(page, createdStudentName);
+    await showStudentPanel(page);
 
     const suffix = Date.now().toString();
     updatedStudentName = `${createdStudentName} Updated`;
@@ -194,7 +207,8 @@ test.describe("dashboard e2e", () => {
     const discussedText = `Discussed milestone ${suffix}`;
     const agreedPlanText = `Agreed action plan ${suffix}`;
 
-    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Additional student details" }).click();
+    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Edit Student" }).click();
+    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Profile details" }).click();
     await page.locator("#selectedStudentPanel").getByLabel("Name").fill(updatedStudentName);
     await page.locator("#selectedStudentPanel").getByLabel("Email").fill(updatedEmail);
     await page.locator("#selectedStudentPanel").getByLabel("Degree type").selectOption({ label: "MSc" });
@@ -203,6 +217,7 @@ test.describe("dashboard e2e", () => {
     await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save student updates" }).click();
 
     await expect(page).toHaveURL(/notice=Student\+updated/);
+    await showStudentPanel(page);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Name")).toHaveValue(updatedStudentName);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Email")).toHaveValue(updatedEmail);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Degree type")).toHaveValue("msc");
@@ -215,6 +230,7 @@ test.describe("dashboard e2e", () => {
     await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save log entry" }).click();
 
     await expect(page).toHaveURL(/notice=Log\+saved/);
+    await showStudentPanel(page);
     await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Meeting Log History" }).click();
     await expect(page.locator("#selectedStudentPanel")).toContainText(discussedText);
     await expect(page.locator("#selectedStudentPanel")).toContainText(agreedPlanText);
@@ -227,6 +243,7 @@ test.describe("dashboard e2e", () => {
     await login(page);
 
     await selectStudentFromTable(page, secondaryStudentName);
+    await showStudentPanel(page);
 
     await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Delete Student" }).click();
 

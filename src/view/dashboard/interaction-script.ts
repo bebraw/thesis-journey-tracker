@@ -12,8 +12,10 @@ var phaseFilter = document.getElementById("phaseFilter");
 var statusFilter = document.getElementById("statusFilter");
 var sortButtons = Array.prototype.slice.call(document.querySelectorAll("[data-student-sort='1']"));
 var studentResultsMeta = document.getElementById("studentResultsMeta");
+var selectedStudentPanelShell = document.getElementById("selectedStudentPanelShell");
 var selectedStudentPanel = document.getElementById("selectedStudentPanel");
 var emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");
+var toggleStudentPanelButton = document.getElementById("toggleStudentPanelButton");
 var currentSortKey = "nextMeeting";
 var currentSortDirection = "asc";`;
 
@@ -130,6 +132,13 @@ function updateSortHeaders() {
       parentHeader.setAttribute("aria-sort", isActive ? (currentSortDirection === "asc" ? "ascending" : "descending") : "none");
     }
   });
+}
+
+function setPanelVisibility(visible) {
+  if (!selectedStudentPanelShell || !toggleStudentPanelButton) return;
+  selectedStudentPanelShell.classList.toggle("hidden", !visible);
+  toggleStudentPanelButton.textContent = visible ? "Hide editing panel" : "Show editing panel";
+  toggleStudentPanelButton.setAttribute("aria-expanded", visible ? "true" : "false");
 }`;
 
 const DASHBOARD_FILTER_SECTION = `
@@ -328,10 +337,19 @@ function bindStudentSort() {
       refreshStudentTable();
     });
   });
+}
+
+function bindPanelToggle() {
+  if (!toggleStudentPanelButton || !selectedStudentPanelShell) return;
+  toggleStudentPanelButton.addEventListener("click", function () {
+    var isVisible = !selectedStudentPanelShell.classList.contains("hidden");
+    setPanelVisibility(!isVisible);
+  });
 }`;
 
 const DASHBOARD_BOOTSTRAP_SECTION = `
 refreshStudentTable();
+setPanelVisibility(false);
 applySelectedRowState(getSelectedStudentIdFromLocation());
 applySelectedLaneState(getSelectedStudentIdFromLocation());
 bindInlineSelectionLinks();
@@ -339,7 +357,8 @@ bindStudentRowSelection();
 bindLaneSelection();
 bindHistorySelection();
 bindDashboardFilters();
-bindStudentSort();`;
+bindStudentSort();
+bindPanelToggle();`;
 
 export const DASHBOARD_INTERACTION_SCRIPT = joinScriptSections([
   DASHBOARD_DOM_SECTION,

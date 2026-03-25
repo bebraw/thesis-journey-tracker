@@ -8,6 +8,7 @@ import {
   TABLE_HEADER_ROW,
   TEXT_LINK,
   TOPIC_TEXT_SM,
+  renderButton,
 } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
 import { addSixMonths, escapeHtml, formatDateTime, getDegreeLabel, getPhaseLabel, meetingStatusId } from "../../utils";
@@ -188,11 +189,14 @@ export function renderStudentsTable(
   ];
 
   return renderView(
-    `<section class="grid grid-cols-1 gap-stack xl:grid-cols-3">
+    `<section id="dashboardWorkspace" class="flex flex-col gap-stack xl:flex-row xl:items-start">
       <article &class="(get props studentsCardClass)">
-        <div class="mb-panel-sm">
-          <h2 class="text-lg font-semibold">Students</h2>
-          <p &class="(get props mutedTextXs)">Use filters to quickly find students that need attention.</p>
+        <div class="mb-panel-sm flex flex-col gap-stack-xs sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold">Students</h2>
+            <p &class="(get props mutedTextXs)">Use filters to quickly find students that need attention.</p>
+          </div>
+          <noop &children="(get props panelToggleButtonHtml)"></noop>
         </div>
         <div class="mb-panel-sm grid grid-cols-1 gap-stack-xs sm:grid-cols-2 xl:grid-cols-4">
           <label &class="(get props filterLabelClass)">
@@ -228,7 +232,7 @@ export function renderStudentsTable(
         </div>
         <p id="studentResultsMeta" class="mb-badge-pill-y text-xs text-app-text-muted dark:text-app-text-muted-dark"></p>
         <p class="mb-badge-pill-y text-xs text-app-text-muted dark:text-app-text-muted-dark">
-          Tip: click a row to open student details, or click a column header to sort ascending or descending.
+          Tip: click a row to select a student, use Show panel when you want details, and click a column header to sort.
         </p>
         <div class="overflow-x-auto">
           <table class="w-full min-w-table divide-y divide-app-line text-sm dark:divide-app-line-dark">
@@ -274,11 +278,13 @@ export function renderStudentsTable(
           </table>
         </div>
       </article>
-      <div id="selectedStudentPanel"><noop &children="(get props selectedPanel)"></noop></div>
+      <div id="selectedStudentPanelShell" &class="(get props selectedPanelShellClass)">
+        <div id="selectedStudentPanel"><noop &children="(get props selectedPanel)"></noop></div>
+      </div>
       <template id="emptySelectedStudentPanelTemplate"><noop &children="(get props emptySelectedPanel)"></noop></template>
     </section>`,
     {
-      studentsCardClass: escapeHtml(`overflow-hidden xl:col-span-2 ${SURFACE_CARD}`),
+      studentsCardClass: escapeHtml(`min-w-0 flex-1 overflow-hidden ${SURFACE_CARD}`),
       cellClass: escapeHtml(TABLE_CELL),
       studentCellClass: escapeHtml(`${TABLE_CELL} w-[24%] max-w-[16rem] align-top`),
       mutedTextXs: escapeHtml(MUTED_TEXT_XS),
@@ -289,6 +295,13 @@ export function renderStudentsTable(
       phaseFilterOptions,
       sortHeaders,
       hasStudentRows: studentRows.length > 0,
+      panelToggleButtonHtml: renderButton({
+        label: "Show editing panel",
+        type: "button",
+        variant: "neutral",
+        attributes: 'id="toggleStudentPanelButton" aria-expanded="false"',
+      }),
+      selectedPanelShellClass: escapeHtml("hidden min-w-0 xl:w-[32rem] xl:shrink-0"),
       showEmptyRow: studentRows.length === 0,
       studentRows,
       selectedPanel,
