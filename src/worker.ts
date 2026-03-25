@@ -95,6 +95,7 @@ export default {
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const { pathname } = url;
+  const showStyleGuide = isLocalDevelopmentRequest(request);
 
   if (pathname === "/styles.css") {
     return cssResponse(styles);
@@ -114,6 +115,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   if (!env.SESSION_SECRET) {
     return new Response("SESSION_SECRET must be configured.", { status: 500 });
+  }
+
+  if (pathname === "/style-guide" && !showStyleGuide) {
+    return new Response("Not found", { status: 404 });
   }
 
   const authState = await resolveAuthState(env);
@@ -170,14 +175,14 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   if (pathname === "/" && request.method === "GET") {
-    return await renderDashboard(env, url, sessionUser);
+    return await renderDashboard(env, url, sessionUser, showStyleGuide);
   }
 
   if (pathname === "/students/new" && request.method === "GET") {
     if (isReadonlyUser(sessionUser)) {
       return readonlyRedirect("/");
     }
-    return renderAddStudent(url, sessionUser);
+    return renderAddStudent(url, sessionUser, showStyleGuide);
   }
 
   if (pathname === "/style-guide" && request.method === "GET") {
@@ -259,7 +264,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   return new Response("Not found", { status: 404 });
 }
 
-async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser): Promise<Response> {
+async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser, showStyleGuide: boolean): Promise<Response> {
   const students = await listStudents(env.DB);
 
   const selectedIdParam = url.searchParams.get("selected");
@@ -293,11 +298,12 @@ async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser): Pr
       notice,
       error,
       metrics,
+      showStyleGuide,
     }),
   );
 }
 
-function renderAddStudent(url: URL, sessionUser: SessionUser): Response {
+function renderAddStudent(url: URL, sessionUser: SessionUser, showStyleGuide: boolean): Response {
   const notice = url.searchParams.get("notice");
   const error = url.searchParams.get("error");
 
@@ -309,6 +315,7 @@ function renderAddStudent(url: URL, sessionUser: SessionUser): Response {
       },
       notice,
       error,
+      showStyleGuide,
     }),
   );
 }
@@ -658,6 +665,18 @@ function readonlyRedirect(pathname: string): Response {
 function isReplaceImportEnabled(env: Env): boolean {
   const rawValue = (env.REPLACE_IMPORT_ENABLED || "").trim().toLocaleLowerCase();
   return rawValue === "1" || rawValue === "true" || rawValue === "yes";
+}
+
+function isLocalDevelopmentRequest(request: Request): boolean {
+  const hostname = new URL(request.url).hostname.toLocaleLowerCase();
+  return (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname === "127.0.0.1" ||
+    hostname === "0.0.0.0" ||
+    hostname === "::1" ||
+    hostname === "[::1]"
+  );
 }
 
 async function buildImportStatements(

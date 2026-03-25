@@ -53,6 +53,7 @@ For current findings and follow-up work, see [performance-plan.md](./performance
 - Tailwind input lives in [`src/tailwind-input.css`](../src/tailwind-input.css).
 - Generated CSS is written to `.generated/styles.css`.
 - Wrangler runs the Tailwind build automatically before `dev` and `deploy`, so generated CSS does not need to be committed manually.
+- The UI style guide at `/style-guide` is intentionally available only on local development hosts such as `localhost` or `127.0.0.1`.
 
 ## Editor Support
 

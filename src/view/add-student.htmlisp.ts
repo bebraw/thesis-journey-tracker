@@ -6,7 +6,7 @@ import { renderStudentFormFields } from "./student-form-fields";
 import { type AddStudentPageData } from "./types";
 
 export function renderAddStudentPage(data: AddStudentPageData): string {
-  const { viewer, notice, error } = data;
+  const { viewer, notice, error, showStyleGuide } = data;
   const fields = renderStudentFormFields({
     values: getDefaultStudentFormValues(),
     controlSize: "compact",
@@ -58,11 +58,11 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
           label: "Data tools",
           href: "/data-tools",
           variant: "neutral",
-        })}${renderButton({
+        })}${showStyleGuide ? renderButton({
           label: "Style guide",
           href: "/style-guide",
           variant: "neutral",
-        })}`,
+        }) : ""}`,
         viewer,
       ),
       flashHtml: renderFlashMessages(notice, error),

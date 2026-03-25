@@ -9,7 +9,7 @@ import { renderPhaseLanes } from "./phase-lanes.htmlisp";
 import { renderStudentsTable } from "./students-table.htmlisp";
 
 export function renderDashboardPage(data: DashboardPageData): string {
-  const { viewer, students, selectedStudent, logs, phaseAudit, notice, error, metrics } = data;
+  const { viewer, students, selectedStudent, logs, phaseAudit, notice, error, metrics, showStyleGuide } = data;
   const canEdit = viewer.role === "editor";
   const selectedPanel = selectedStudent
     ? renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, { canEdit })
@@ -41,11 +41,11 @@ export function renderDashboardPage(data: DashboardPageData): string {
               label: "Data tools",
               href: "/data-tools",
               variant: "neutral",
-            })}${renderButton({
+            })}${showStyleGuide ? renderButton({
               label: "Style guide",
               href: "/style-guide",
               variant: "neutral",
-            })}${renderButton({
+            }) : ""}${renderButton({
               label: "Add student",
               href: "/students/new",
               variant: "primary",

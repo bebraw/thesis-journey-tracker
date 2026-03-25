@@ -148,6 +148,42 @@ describe("multi-user access control", () => {
     expect(env.DB.students[1]?.name).toBe("Second Student");
   });
 
+  it("shows the style guide only on local development hosts", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+
+    const localDashboardResponse = await fetchHandler(
+      new Request("http://localhost/", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    const localDashboardBody = await localDashboardResponse.text();
+    expect(localDashboardResponse.status).toBe(200);
+    expect(localDashboardBody).toContain("Style guide");
+
+    const remoteDashboardResponse = await fetchHandler(
+      new Request("https://tracker.example.com/", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    const remoteDashboardBody = await remoteDashboardResponse.text();
+    expect(remoteDashboardResponse.status).toBe(200);
+    expect(remoteDashboardBody).not.toContain("Style guide");
+
+    const remoteStyleGuideResponse = await fetchHandler(
+      new Request("https://tracker.example.com/style-guide", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    expect(remoteStyleGuideResponse.status).toBe(404);
+  });
+
   it("bootstraps auth users from legacy APP_USERS_JSON when the auth table is empty", async () => {
     env = {
       DB: new MockD1Database(),

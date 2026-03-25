@@ -19,12 +19,14 @@ export interface DashboardPageData {
   notice: string | null;
   error: string | null;
   metrics: Metrics;
+  showStyleGuide: boolean;
 }
 
 export interface AddStudentPageData {
   viewer: ViewerContext;
   notice: string | null;
   error: string | null;
+  showStyleGuide: boolean;
 }
 
 export interface DataToolsPageData {
