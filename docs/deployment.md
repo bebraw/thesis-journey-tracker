@@ -4,7 +4,7 @@ This guide covers CI, production deployment, automated backups, and the current 
 
 ## Continuous Integration
 
-GitHub Actions runs the workflow in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on every push and pull request.
+GitHub Actions runs the workflow in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on pushes and pull requests, except for docs-only changes that match the workflow's `paths-ignore` rules.
 
 The workflow runs:
 

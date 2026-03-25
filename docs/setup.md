@@ -32,6 +32,8 @@ database_id = "YOUR_DATABASE_ID"
 migrations_dir = "migrations"
 ```
 
+This command creates the Cloudflare D1 database for the project configuration. Local development and `npm run db:migrate` then use Wrangler's local D1 state while pointing at that configured database binding.
+
 ## 3. Configure Local Secrets
 
 Create your local environment file:
@@ -56,7 +58,7 @@ SESSION_SECRET=change-this-to-a-long-random-secret
 npm run db:migrate
 ```
 
-This applies the SQL files in [`migrations/`](../migrations) to your local D1 database.
+This applies the SQL files in [`migrations/`](../migrations) to Wrangler's local D1 state for the configured `thesis_tracker_db` binding.
 
 ## 5. Create At Least One Login Account
 

@@ -2,12 +2,12 @@
 
 ## Baseline
 
-Measured on March 22, 2026 with `npm run lighthouse` against the authenticated dashboard on the local Wrangler setup.
+Measured on March 24, 2026 with `npm run lighthouse` against the authenticated dashboard on the local Wrangler setup.
 
 | Mode    | Performance | FCP    | LCP    | Speed Index | TBT  | CLS | Transfer |
 | ------- | ----------- | ------ | ------ | ----------- | ---- | --- | -------- |
-| Mobile  | 94          | 752 ms | 902 ms | 6550 ms     | 0 ms | 0   | 14.6 KB  |
-| Desktop | 93          | 202 ms | 242 ms | 2731 ms     | 0 ms | 0   | 14.6 KB  |
+| Mobile  | 94          | 753 ms | 903 ms | 6568 ms     | 0 ms | 0   | 16.6 KB  |
+| Desktop | 93          | 249 ms | 249 ms | 2758 ms     | 0 ms | 0   | 16.6 KB  |
 
 ## Reading The Results
 
@@ -33,17 +33,17 @@ Actions:
 - Consider truncating or progressively revealing long thesis topics in the initial dashboard views.
 - Add a small HTML-size budget check to future performance reviews.
 
-### 2. Shrink the inline dashboard script footprint
+### 2. Keep the dashboard script payload small
 
 Why:
 
-- There is no blocking-time issue today, but the dashboard interaction logic is still shipped inside the HTML payload.
-- As filtering and inline interactions grow, this can quietly inflate both document size and startup work.
+- There is no blocking-time issue today, and the dashboard interaction logic already ships as a separate deferred asset at `/dashboard.js`.
+- As filtering and inline interactions grow, that asset can still quietly inflate startup work and total transferred bytes.
 
 Actions:
 
-- Move the dashboard interaction script to its own static asset.
-- Defer non-essential event wiring until after first paint.
+- Keep `/dashboard.js` modular and avoid adding behavior that runs before the current selection and filter wiring are needed.
+- Defer any future non-essential event wiring until after first paint.
 - Keep selection/filter logic modular so it does not accumulate unused startup work.
 
 ### 3. Guard the current good baseline in CI
