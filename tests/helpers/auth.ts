@@ -17,9 +17,9 @@ export async function seedTestUsers(
   }
 }
 
-export async function loginWithPassword(
-  fetchHandler: (request: Request, env: unknown) => Promise<Response>,
-  env: Record<string, unknown>,
+export async function loginWithPassword<Env>(
+  fetchHandler: (request: Request, env: Env) => Promise<Response>,
+  env: Env,
   name: string,
   password: string,
 ): Promise<string> {

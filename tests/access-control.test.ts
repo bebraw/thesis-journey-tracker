@@ -5,9 +5,11 @@ import { MockD1Database } from "./helpers/mock-d1";
 vi.mock("../.generated/styles.css", () => ({ default: "" }));
 vi.mock("../src/favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 
+type WorkerFetch = (typeof import("../src/worker"))["default"]["fetch"];
+
 describe("multi-user access control", () => {
   let env: { DB: MockD1Database; SESSION_SECRET: string; APP_USERS_JSON?: string };
-  let fetchHandler: (request: Request, env: unknown) => Promise<Response>;
+  let fetchHandler: WorkerFetch;
 
   beforeEach(async () => {
     vi.resetModules();
