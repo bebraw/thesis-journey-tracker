@@ -25,6 +25,7 @@ interface PreparedLaneStudent {
 interface PreparedPhaseLane {
   label: string;
   countBadgeHtml: string;
+  cardClass: string;
   hasStudents: boolean;
   isEmpty: boolean;
   students: PreparedLaneStudent[];
@@ -47,6 +48,9 @@ function preparePhaseLanes(students: Student[], selectedStudent: Student | null)
         label: String(laneStudents.length),
         variant: "count",
       }),
+      cardClass: escapeHtml(
+        `snap-start h-full w-full ${laneStudents.length > 0 ? "sm:min-h-lane sm:min-w-[12rem] sm:flex-1" : "sm:min-h-lane sm:w-[10rem] sm:flex-none"} ${SURFACE_CARD_SM}`,
+      ),
       hasStudents: laneStudents.length > 0,
       isEmpty: laneStudents.length === 0,
       students: laneStudents.map((student) => {
@@ -134,7 +138,7 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
         <h2 class="text-lg font-semibold">Phase Lanes</h2>
         <p &class="(get props mutedTextXs)">Overview of where students currently are in the thesis process.</p>
       </div>
-      <div class="grid grid-cols-1 gap-panel-sm sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div class="flex flex-col gap-panel-sm sm:flex-row sm:flex-wrap sm:items-stretch">
         <noop &foreach="(get props lanes)">
           <PhaseLane
             &cardClass="(get props cardClass)"
@@ -149,7 +153,6 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
     </section>`,
     {
       mutedTextXs: escapeHtml(MUTED_TEXT_XS),
-      cardClass: escapeHtml(`snap-start min-h-lane ${SURFACE_CARD_SM}`),
       emptyStateClass: escapeHtml(EMPTY_DASHED_CARD),
       topicTextClass: escapeHtml(`mt-badge-y ${TOPIC_TEXT_SM}`),
       lanes: preparePhaseLanes(students, selectedStudent),
