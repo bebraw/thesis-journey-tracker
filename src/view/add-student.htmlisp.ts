@@ -72,7 +72,7 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
           {
             subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
             description: escapeHtml(
-              "Target submission is calculated automatically as six months from the start date. If start date is blank, the app falls back to six months from today.",
+              "Target submission is calculated automatically as six months from the start date. If start date is blank, no target date is shown until one is set.",
             ),
             formHtml,
           },

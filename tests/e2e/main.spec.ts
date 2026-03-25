@@ -100,7 +100,6 @@ test.describe("dashboard e2e", () => {
           degreeType: "msc",
           thesisTopic: `Imported topic ${suffix}`,
           startDate: "2026-03-10",
-          targetSubmissionDate: "2026-09-10",
           currentPhase: "research_plan",
           nextMeetingAt: null,
           logs: [
@@ -162,14 +161,11 @@ test.describe("dashboard e2e", () => {
     await expect(page).toHaveURL(/\/\?selected=/);
   });
 
-  test("derives target submission automatically when adding a student without a start date", async ({ page }) => {
+  test("shows no derived target date when adding a student without a start date", async ({ page }) => {
     await login(page);
 
     const suffix = Date.now().toString();
     const noStartDateStudentName = `No Start Date ${suffix}`;
-    const expectedTargetDate = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z");
-    expectedTargetDate.setUTCMonth(expectedTargetDate.getUTCMonth() + 6);
-    const expectedTargetText = expectedTargetDate.toISOString().slice(0, 10);
 
     await addStudent(page, noStartDateStudentName, `nostart-${suffix}@example.edu`, "MSc", `Topic ${suffix}`, {
       startDate: "",
@@ -177,7 +173,7 @@ test.describe("dashboard e2e", () => {
 
     await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${noStartDateStudentName}`);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Start date (optional)")).toHaveValue("");
-    await expect(page.locator("[data-student-row]", { hasText: noStartDateStudentName })).toContainText(expectedTargetText);
+    await expect(page.locator("[data-student-row]", { hasText: noStartDateStudentName })).toContainText("Not set");
   });
 
   test("can update a student and add a meeting log", async ({ page }) => {

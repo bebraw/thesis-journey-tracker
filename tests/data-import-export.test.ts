@@ -112,7 +112,6 @@ describe("data import and export", () => {
           degreeType: "msc",
           thesisTopic: "Baseline supervision topic",
           startDate: "",
-          targetSubmissionDate: "2026-07-01",
           currentPhase: "editing",
           nextMeetingAt: "",
         }),
@@ -145,7 +144,6 @@ describe("data import and export", () => {
                 degreeType: "dsc",
                 thesisTopic: "Imported thesis",
                 startDate: "2026-02-01",
-                targetSubmissionDate: "2026-08-01",
                 currentPhase: "editing",
                 nextMeetingAt: "2026-04-01T09:00:00.000Z",
                 logs: [
@@ -249,7 +247,6 @@ describe("data import and export", () => {
                 degreeType: "bsc",
                 thesisTopic: null,
                 startDate: null,
-                targetSubmissionDate: "2026-06-15",
                 currentPhase: "research_plan",
                 nextMeetingAt: null,
                 logs: [],
@@ -348,7 +345,6 @@ describe("data import and export", () => {
                 degreeType: "bsc",
                 thesisTopic: null,
                 startDate: null,
-                targetSubmissionDate: "2026-06-15",
                 currentPhase: "research_plan",
                 nextMeetingAt: null,
                 logs: [

@@ -1,6 +1,7 @@
 import type { CreateStudentInput, DegreeId, MeetingLog, PhaseAuditEntry, PhaseId, Student } from "./db";
 import { DEGREE_TYPES, PHASES } from "./reference-data";
 import {
+  addSixMonths,
   formatDateTime,
   getDegreeLabel,
   getPhaseLabel,
@@ -33,7 +34,6 @@ export interface ExportedStudent {
   degreeType: DegreeId;
   thesisTopic: string | null;
   startDate: string | null;
-  targetSubmissionDate: string;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
   logs: ExportedMeetingLog[];
@@ -76,7 +76,6 @@ export function createDataExport(
       degreeType: student.degreeType,
       thesisTopic: student.thesisTopic,
       startDate: student.startDate,
-      targetSubmissionDate: student.targetSubmissionDate,
       currentPhase: student.currentPhase,
       nextMeetingAt: student.nextMeetingAt,
       logs: logs.map((log) => ({
@@ -183,7 +182,10 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
     return diff >= 0 && diff <= 14 * 24 * 60 * 60 * 1000;
   });
   const noMeetingBooked = studentBundles.filter(({ student }) => !student.nextMeetingAt);
-  const pastTarget = studentBundles.filter(({ student }) => student.targetSubmissionDate < today && student.currentPhase !== "submitted");
+  const pastTarget = studentBundles.filter(({ student }) => {
+    const targetSubmissionDate = addSixMonths(student.startDate);
+    return Boolean(targetSubmissionDate && targetSubmissionDate < today && student.currentPhase !== "submitted");
+  });
 
   const phaseLines = PHASES.map((phase) => {
     const count = studentBundles.filter(({ student }) => student.currentPhase === phase.id).length;
@@ -193,13 +195,15 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
   const needsAttention = studentBundles
     .filter(({ student }) => {
       const meetingStatus = meetingStatusText(student);
-      return meetingStatus === "Overdue" || meetingStatus === "Not booked" || student.targetSubmissionDate < today;
+      const targetSubmissionDate = addSixMonths(student.startDate);
+      return meetingStatus === "Overdue" || meetingStatus === "Not booked" || Boolean(targetSubmissionDate && targetSubmissionDate < today);
     })
     .map(({ student, latestLog }) => {
+      const targetSubmissionDate = addSixMonths(student.startDate);
       const parts = [
         `${student.name} (${getDegreeLabel(student.degreeType, DEGREE_TYPES)})`,
         `phase ${getPhaseLabel(student.currentPhase, PHASES)}`,
-        `target ${student.targetSubmissionDate}`,
+        targetSubmissionDate ? `target ${targetSubmissionDate}` : "target not set",
         `meeting ${meetingStatusText(student).toLowerCase()}`,
       ];
 
@@ -211,10 +215,11 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
     });
 
   const studentLines = studentBundles.map(({ student, latestLog }) => {
+    const targetSubmissionDate = addSixMonths(student.startDate);
     const parts = [
       `${student.name} (${getDegreeLabel(student.degreeType, DEGREE_TYPES)})`,
       `phase ${getPhaseLabel(student.currentPhase, PHASES)}`,
-      `target ${student.targetSubmissionDate}`,
+      targetSubmissionDate ? `target ${targetSubmissionDate}` : "target not set",
       `meeting ${meetingStatusText(student).toLowerCase()}`,
     ];
 
@@ -268,11 +273,10 @@ function parseImportedStudent(value: unknown): ImportedStudentBundle | null {
   const degreeType = normalizeDegree(value.degreeType as string | null | undefined, DEGREE_TYPES);
   const thesisTopic = normalizeString(value.thesisTopic as string | null | undefined);
   const startDate = normalizeDate(value.startDate as string | null | undefined, true);
-  const targetSubmissionDate = normalizeDate(value.targetSubmissionDate as string | null | undefined);
   const currentPhase = normalizePhase(value.currentPhase as string | null | undefined, PHASES);
   const nextMeetingAt = normalizeDateTime(value.nextMeetingAt as string | null | undefined, true);
 
-  if (startDate === undefined || !name || !degreeType || !targetSubmissionDate || !currentPhase || nextMeetingAt === undefined) {
+  if (startDate === undefined || !name || !degreeType || !currentPhase || nextMeetingAt === undefined) {
     return null;
   }
 
@@ -311,7 +315,6 @@ function parseImportedStudent(value: unknown): ImportedStudentBundle | null {
       degreeType,
       thesisTopic,
       startDate,
-      targetSubmissionDate,
       currentPhase,
       nextMeetingAt,
     },

@@ -11,7 +11,6 @@ export interface Student {
   degreeType: DegreeId;
   thesisTopic: string | null;
   startDate: string | null;
-  targetSubmissionDate: string;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
   logCount: number;
@@ -83,7 +82,6 @@ interface StudentRow {
   degree_type: DegreeId;
   thesis_topic: string | null;
   start_date: string | null;
-  target_submission_date: string;
   current_phase: PhaseId;
   next_meeting_at: string | null;
   log_count: number | string | null;
@@ -126,7 +124,6 @@ export interface StudentMutationInput {
   degreeType: DegreeId;
   thesisTopic: string | null;
   startDate: string | null;
-  targetSubmissionDate: string;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
 }
@@ -169,7 +166,8 @@ export async function listStudents(db: D1Database): Promise<Student[]> {
        ORDER BY
          CASE WHEN s.next_meeting_at IS NULL THEN 1 ELSE 0 END,
          s.next_meeting_at ASC,
-         s.target_submission_date ASC,
+         CASE WHEN s.start_date IS NULL THEN 1 ELSE 0 END,
+         DATE(s.start_date, '+6 months') ASC,
          s.name ASC`,
     )
     .all<StudentRow>();
@@ -181,7 +179,6 @@ export async function listStudents(db: D1Database): Promise<Student[]> {
     degreeType: row.degree_type as DegreeId,
     thesisTopic: row.thesis_topic,
     startDate: row.start_date,
-    targetSubmissionDate: row.target_submission_date,
     currentPhase: row.current_phase as PhaseId,
     nextMeetingAt: row.next_meeting_at,
     logCount: parseDbNumber(row.log_count),
@@ -307,7 +304,6 @@ export async function getStudentById(db: D1Database, studentId: number): Promise
     degreeType: row.degree_type as DegreeId,
     thesisTopic: row.thesis_topic,
     startDate: row.start_date,
-    targetSubmissionDate: row.target_submission_date,
     currentPhase: row.current_phase as PhaseId,
     nextMeetingAt: row.next_meeting_at,
     logCount: parseDbNumber(row.log_count),
@@ -357,8 +353,8 @@ export async function listPhaseAuditEntriesForStudent(db: D1Database, studentId:
 export async function createStudent(db: D1Database, input: CreateStudentInput): Promise<number> {
   const result = await db
     .prepare(
-      `INSERT INTO students (name, email, degree_type, thesis_topic, start_date, target_submission_date, current_phase, next_meeting_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO students (name, email, degree_type, thesis_topic, start_date, current_phase, next_meeting_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       input.name,
@@ -366,7 +362,6 @@ export async function createStudent(db: D1Database, input: CreateStudentInput): 
       input.degreeType,
       input.thesisTopic,
       input.startDate,
-      input.targetSubmissionDate,
       input.currentPhase,
       input.nextMeetingAt,
     )
@@ -384,7 +379,7 @@ export async function updateStudent(db: D1Database, studentId: number, input: Up
   await db
     .prepare(
       `UPDATE students
-       SET name = ?, email = ?, degree_type = ?, thesis_topic = ?, start_date = ?, target_submission_date = ?, current_phase = ?, next_meeting_at = ?
+       SET name = ?, email = ?, degree_type = ?, thesis_topic = ?, start_date = ?, current_phase = ?, next_meeting_at = ?
        WHERE id = ?`,
     )
     .bind(
@@ -393,7 +388,6 @@ export async function updateStudent(db: D1Database, studentId: number, input: Up
       input.degreeType,
       input.thesisTopic,
       input.startDate,
-      input.targetSubmissionDate,
       input.currentPhase,
       input.nextMeetingAt,
       studentId,

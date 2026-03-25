@@ -4,7 +4,6 @@ INSERT INTO students (
   degree_type,
   thesis_topic,
   start_date,
-  target_submission_date,
   current_phase,
   next_meeting_at
 )
@@ -14,7 +13,6 @@ SELECT
   'msc',
   'Machine learning support for thesis supervision planning',
   '2026-01-10',
-  '2026-07-10',
   'researching',
   '2026-03-29T10:00:00.000Z'
 WHERE NOT EXISTS (SELECT 1 FROM students WHERE name = 'Mia Koskinen');
@@ -25,7 +23,6 @@ INSERT INTO students (
   degree_type,
   thesis_topic,
   start_date,
-  target_submission_date,
   current_phase,
   next_meeting_at
 )
@@ -35,7 +32,6 @@ SELECT
   'msc',
   'Collaborative drafting workflows for academic writing',
   '2025-12-01',
-  '2026-06-01',
   'first_complete_draft',
   NULL
 WHERE NOT EXISTS (SELECT 1 FROM students WHERE name = 'Noah Virtanen');
@@ -46,7 +42,6 @@ INSERT INTO students (
   degree_type,
   thesis_topic,
   start_date,
-  target_submission_date,
   current_phase,
   next_meeting_at
 )
@@ -56,7 +51,6 @@ SELECT
   'dsc',
   'Automated quality checks for dissertation manuscripts',
   '2025-11-15',
-  '2026-05-15',
   'editing',
   '2026-03-24T12:30:00.000Z'
 WHERE NOT EXISTS (SELECT 1 FROM students WHERE name = 'Aino Lehtinen');

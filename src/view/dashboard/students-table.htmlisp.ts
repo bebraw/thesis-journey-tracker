@@ -12,7 +12,7 @@ import {
   renderButton,
 } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
-import { escapeHtml, formatDateTime, getDegreeLabel, getPhaseLabel, meetingStatusId } from "../../utils";
+import { addSixMonths, escapeHtml, formatDateTime, getDegreeLabel, getPhaseLabel, meetingStatusId } from "../../utils";
 import { renderView } from "../shared.htmlisp";
 import { DEGREE_TYPES, PHASES } from "../../reference-data";
 
@@ -53,6 +53,7 @@ function prepareFilterOptions(options: Array<{ value: string; label: string }>):
 function prepareStudentRows(students: Student[], selectedStudent: Student | null, canEdit: boolean): PreparedStudentRow[] {
   return students.map((student) => {
     const statusId = meetingStatusId(student);
+    const targetSubmissionDate = addSixMonths(student.startDate);
     const isSelected = selectedStudent ? selectedStudent.id === student.id : false;
     const summaryHtml = renderView(
       `<div class="font-medium">
@@ -83,12 +84,12 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
       dataDegree: escapeHtml(student.degreeType),
       dataPhase: escapeHtml(student.currentPhase),
       dataStatusId: escapeHtml(statusId),
-      dataTargetDate: escapeHtml(student.targetSubmissionDate),
+      dataTargetDate: escapeHtml(targetSubmissionDate || ""),
       dataNextMeetingDate: escapeHtml(student.nextMeetingAt || ""),
       summaryHtml,
       degreeLabel: escapeHtml(getDegreeLabel(student.degreeType, DEGREE_TYPES)),
       phaseLabel: escapeHtml(getPhaseLabel(student.currentPhase, PHASES)),
-      targetDate: escapeHtml(student.targetSubmissionDate),
+      targetDate: escapeHtml(targetSubmissionDate || "Not set"),
       nextMeetingText: escapeHtml(student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked"),
       logCountText: String(student.logCount),
       actionButtonHtml: renderButton({

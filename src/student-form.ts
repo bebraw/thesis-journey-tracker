@@ -1,5 +1,5 @@
 import type { DegreeId, PhaseId, Student, StudentMutationInput } from "./db";
-import { addSixMonths, normalizeDate, normalizeDateTime, normalizeString, toDateTimeLocalInput } from "./utils";
+import { normalizeDate, normalizeDateTime, normalizeString, toDateTimeLocalInput } from "./utils";
 
 const DEGREE_IDS: DegreeId[] = ["bsc", "msc", "dsc"];
 const PHASE_IDS: PhaseId[] = ["research_plan", "researching", "first_complete_draft", "editing", "submission_ready", "submitted"];
@@ -10,7 +10,6 @@ export const STUDENT_FORM_FIELDS = {
   degreeType: "degreeType",
   thesisTopic: "thesisTopic",
   startDate: "startDate",
-  targetSubmissionDate: "targetSubmissionDate",
   currentPhase: "currentPhase",
   nextMeetingAt: "nextMeetingAt",
 } as const;
@@ -67,7 +66,6 @@ export function parseStudentFormSubmission(formData: FormData, options: ParseStu
   const thesisTopic = normalizeString(readOptionalField(formData, STUDENT_FORM_FIELDS.thesisTopic, existingStudent?.thesisTopic ?? null));
 
   const startDate = normalizeDate(readOptionalField(formData, STUDENT_FORM_FIELDS.startDate, existingStudent?.startDate ?? null), true);
-  const targetSubmissionDate = normalizeTargetSubmissionDate(startDate, options);
 
   const degreeType = normalizeDegreeId(
     readRequiredField(formData, STUDENT_FORM_FIELDS.degreeType, existingStudent?.degreeType ?? (mode === "create" ? "msc" : null)),
@@ -84,7 +82,7 @@ export function parseStudentFormSubmission(formData: FormData, options: ParseStu
     true,
   );
 
-  if (!name || startDate === undefined || !targetSubmissionDate || !degreeType || !currentPhase || nextMeetingAt === undefined) {
+  if (!name || startDate === undefined || !degreeType || !currentPhase || nextMeetingAt === undefined) {
     return null;
   }
 
@@ -94,7 +92,6 @@ export function parseStudentFormSubmission(formData: FormData, options: ParseStu
     degreeType,
     thesisTopic,
     startDate,
-    targetSubmissionDate,
     currentPhase,
     nextMeetingAt,
   };
@@ -114,23 +111,6 @@ function normalizePhaseId(value: FormDataEntryValue | string | null | undefined)
     return null;
   }
   return PHASE_IDS.includes(text as PhaseId) ? (text as PhaseId) : null;
-}
-
-function normalizeTargetSubmissionDate(startDate: string | null | undefined, options: ParseStudentFormOptions): string | null {
-  if (typeof startDate === "string" && startDate) {
-    return addSixMonths(startDate);
-  }
-
-  if (options.mode === "create") {
-    const fallbackStartDate = typeof startDate === "string" && startDate ? startDate : new Date().toISOString().slice(0, 10);
-    return addSixMonths(fallbackStartDate);
-  }
-
-  if (options.mode === "update") {
-    return options.existingStudent?.targetSubmissionDate ?? null;
-  }
-
-  return null;
 }
 
 function readRequiredField(

@@ -106,7 +106,6 @@ describe("multi-user access control", () => {
           degreeType: "msc",
           thesisTopic: "Should not save",
           startDate: "",
-          targetSubmissionDate: "2026-07-01",
           currentPhase: "editing",
           nextMeetingAt: "",
         }),
@@ -137,7 +136,6 @@ describe("multi-user access control", () => {
           degreeType: "msc",
           thesisTopic: "Allowed change",
           startDate: "2026-03-01",
-          targetSubmissionDate: "2027-01-01",
           currentPhase: "research_plan",
           nextMeetingAt: "",
         }),
@@ -148,7 +146,7 @@ describe("multi-user access control", () => {
     expect(response.status).toBe(302);
     expect(env.DB.students).toHaveLength(2);
     expect(env.DB.students[1]?.name).toBe("Second Student");
-    expect(env.DB.students[1]?.target_submission_date).toBe("2026-09-01");
+    expect(env.DB.students[1]?.start_date).toBe("2026-03-01");
   });
 
   it("allows creating a student with only the required name field", async () => {
@@ -168,7 +166,6 @@ describe("multi-user access control", () => {
           degreeType: "msc",
           thesisTopic: "",
           startDate: "",
-          targetSubmissionDate: "",
           currentPhase: "research_plan",
           nextMeetingAt: "",
         }),
@@ -181,7 +178,6 @@ describe("multi-user access control", () => {
     expect(env.DB.students).toHaveLength(2);
     expect(env.DB.students[1]?.name).toBe("Minimal Student");
     expect(env.DB.students[1]?.start_date).toBeNull();
-    expect(env.DB.students[1]?.target_submission_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
   it("rate limits repeated failed logins from the same client IP", async () => {

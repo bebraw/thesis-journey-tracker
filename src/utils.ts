@@ -114,6 +114,11 @@ export function addSixMonths(dateText: string | null): string | null {
   return date.toISOString().slice(0, 10);
 }
 
+export function isPastTargetSubmissionDate(student: Pick<Student, "startDate" | "currentPhase">, today: string): boolean {
+  const targetSubmissionDate = addSixMonths(student.startDate);
+  return Boolean(targetSubmissionDate && targetSubmissionDate < today && student.currentPhase !== "submitted");
+}
+
 export function formatDateTime(isoValue: string): string {
   const date = new Date(isoValue);
   if (Number.isNaN(date.getTime())) {

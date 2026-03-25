@@ -44,6 +44,7 @@ import {
   htmlFragmentResponse,
   htmlResponse,
   iconResponse,
+  isPastTargetSubmissionDate,
   normalizeDate,
   normalizeDateTime,
   normalizeString,
@@ -318,7 +319,7 @@ async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser, sho
   const metrics = {
     total: students.length,
     noMeeting: students.filter((student) => !student.nextMeetingAt).length,
-    pastTarget: students.filter((student) => student.targetSubmissionDate < today && student.currentPhase !== "submitted").length,
+    pastTarget: students.filter((student) => isPastTargetSubmissionDate(student, today)).length,
     submitted: students.filter((student) => student.currentPhase === "submitted").length,
   };
 
@@ -797,8 +798,8 @@ async function buildImportStatements(
     statements.push(
       db
         .prepare(
-          `INSERT INTO students (id, name, email, degree_type, thesis_topic, start_date, target_submission_date, current_phase, next_meeting_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO students (id, name, email, degree_type, thesis_topic, start_date, current_phase, next_meeting_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           studentId,
@@ -807,7 +808,6 @@ async function buildImportStatements(
           bundle.student.degreeType,
           bundle.student.thesisTopic,
           bundle.student.startDate,
-          bundle.student.targetSubmissionDate,
           bundle.student.currentPhase,
           bundle.student.nextMeetingAt,
         ),

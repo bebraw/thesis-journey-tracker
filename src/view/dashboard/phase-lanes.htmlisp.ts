@@ -7,7 +7,7 @@ import {
   renderBadge,
 } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
-import { escapeHtml, getDegreeLabel } from "../../utils";
+import { addSixMonths, escapeHtml, getDegreeLabel } from "../../utils";
 import { renderView } from "../shared.htmlisp";
 import { DEGREE_TYPES, PHASES } from "../../reference-data";
 
@@ -35,7 +35,11 @@ function preparePhaseLanes(students: Student[], selectedStudent: Student | null)
     const laneStudents = students
       .filter((student) => student.currentPhase === phase.id)
       .slice()
-      .sort((a, b) => a.targetSubmissionDate.localeCompare(b.targetSubmissionDate) || a.name.localeCompare(b.name));
+      .sort((a, b) => {
+        const targetA = addSixMonths(a.startDate) || "9999-12-31";
+        const targetB = addSixMonths(b.startDate) || "9999-12-31";
+        return targetA.localeCompare(targetB) || a.name.localeCompare(b.name);
+      });
 
     return {
       label: escapeHtml(phase.label),

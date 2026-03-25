@@ -22,7 +22,7 @@ import {
 import { type HtmlispComponents } from "../htmlisp";
 import { DEGREE_TYPES, PHASES } from "../reference-data";
 import { getStudentFormValues } from "../student-form";
-import { escapeHtml, escapeJsString, formatDateTime, getDegreeLabel, getPhaseLabel } from "../utils";
+import { addSixMonths, escapeHtml, escapeJsString, formatDateTime, getDegreeLabel, getPhaseLabel } from "../utils";
 import { renderView } from "./shared.htmlisp";
 import { renderStudentFormFields } from "./student-form-fields";
 
@@ -82,6 +82,7 @@ function preparePhaseAuditEntries(entries: PhaseAuditEntry[]): PreparedPhaseAudi
 }
 
 function prepareReadonlyFields(student: Student): PreparedReadonlyField[] {
+  const targetSubmissionDate = addSixMonths(student.startDate);
   return [
     { label: "Name", value: student.name },
     { label: "Email", value: student.email || "Not set" },
@@ -89,7 +90,7 @@ function prepareReadonlyFields(student: Student): PreparedReadonlyField[] {
     { label: "Phase", value: getPhaseLabel(student.currentPhase, PHASES) },
     { label: "Thesis topic", value: student.thesisTopic || "Not set" },
     { label: "Start date", value: student.startDate || "Not set" },
-    { label: "Target submission", value: student.targetSubmissionDate },
+    { label: "Target submission", value: targetSubmissionDate || "Not set" },
     { label: "Next meeting", value: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked" },
     { label: "Saved meeting logs", value: String(student.logCount) },
   ].map((field) => ({
@@ -173,7 +174,7 @@ export function renderSelectedStudentPanel(
             <noop &children="(get props startDateField)"></noop>
             <noop &children="(get props nextMeetingField)"></noop>
             <p class="text-xs text-app-text-muted dark:text-app-text-muted-dark">
-              Target submission is calculated automatically as six months from the start date.
+              Target submission is calculated automatically when a start date is set.
             </p>
           </div>
         </div>
