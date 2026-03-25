@@ -7,6 +7,7 @@ This guide collects the commands and workflows you are likely to need while work
 - `npm run dev`: start the app locally with Wrangler
 - `npm run build:css`: rebuild the generated Tailwind stylesheet manually
 - `npm run typecheck`: run TypeScript without emitting files
+- `npm run db:seed:sample`: populate the local D1 database with reusable sample students, logs, and phase history
 - `npm test`: run the Vitest suite
 - `npm run e2e`: run Playwright end-to-end tests
 - `npm run lighthouse`: run the authenticated Lighthouse performance check

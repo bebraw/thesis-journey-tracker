@@ -80,7 +80,17 @@ If you are updating an existing deployment or local database that used the older
 
 If you are upgrading an older local setup and still have `APP_USERS_JSON` or `APP_PASSWORD` in `.dev.vars`, the app can bootstrap those values into D1 on first request after the new migration is applied. After that, remove the old auth env vars.
 
-## 6. Start The App
+## 6. Optionally Load Sample Data
+
+If you want a ready-made local dataset for trying the dashboard, import/export, and reports:
+
+```bash
+npm run db:seed:sample
+```
+
+This command only targets Wrangler's local D1 state and is safe to re-run because the sample inserts are idempotent.
+
+## 7. Start The App
 
 ```bash
 npm run dev

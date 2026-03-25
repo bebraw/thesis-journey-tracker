@@ -57,6 +57,12 @@ npm run db:migrate
 npm run account:create -- --name "Advisor" --password "change-this-password" --role editor
 ```
 
+Optional: load a small sample dataset into your local D1 database:
+
+```bash
+npm run db:seed:sample
+```
+
 5. Start the app:
 
 ```bash
@@ -74,6 +80,8 @@ npm run account:create -- --name "Professor" --password "change-this-password" -
 By default this writes to the local D1 database. Add `--remote` if you want to create an account in the deployed database instead.
 
 If you created accounts earlier with the older `210000` PBKDF2 default, run the same `account:create` command again for each affected account to rewrite the stored hash with the Cloudflare-compatible `100000` iteration default.
+
+The sample-data seed is local-only and idempotent: running `npm run db:seed:sample` again will skip entries that already exist.
 
 For the full setup flow, see [docs/setup.md](./docs/setup.md).
 
