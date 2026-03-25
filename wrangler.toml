@@ -34,5 +34,8 @@ BACKUP_PREFIX = "automated-backups"
 
 [observability]
 [observability.logs]
-enabled = false
+enabled = true
 invocation_logs = true
+
+[observability.traces]
+enabled = true
