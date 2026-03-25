@@ -68,6 +68,12 @@ test.describe("dashboard e2e", () => {
 
     await expect(page.locator("[data-student-row]", { hasText: "Mia Koskinen" })).toBeVisible();
     await expect(page.locator("[data-lane-student-card]", { hasText: "Noah Virtanen" })).toBeVisible();
+
+    const studentSortHeader = page.getByRole("button", { name: "Student" });
+    await studentSortHeader.click();
+    await expect(page.locator("[data-student-row]").first()).toContainText("Aino Lehtinen");
+    await studentSortHeader.click();
+    await expect(page.locator("[data-student-row]").first()).toContainText("Noah Virtanen");
   });
 
   test("can export and import JSON backups from data tools", async ({ page }) => {

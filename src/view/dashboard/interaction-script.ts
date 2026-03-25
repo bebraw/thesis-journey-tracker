@@ -10,10 +10,12 @@ var searchInput = document.getElementById("studentSearch");
 var degreeFilter = document.getElementById("degreeFilter");
 var phaseFilter = document.getElementById("phaseFilter");
 var statusFilter = document.getElementById("statusFilter");
-var sortBy = document.getElementById("sortBy");
+var sortButtons = Array.prototype.slice.call(document.querySelectorAll("[data-student-sort='1']"));
 var studentResultsMeta = document.getElementById("studentResultsMeta");
 var selectedStudentPanel = document.getElementById("selectedStudentPanel");
-var emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");`;
+var emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");
+var currentSortKey = "nextMeeting";
+var currentSortDirection = "asc";`;
 
 const DASHBOARD_HELPERS_SECTION = `
 function parseStudentId(value) {
@@ -22,9 +24,9 @@ function parseStudentId(value) {
 }
 
 function toTimestamp(value) {
-  if (!value) return Number.POSITIVE_INFINITY;
+  if (!value) return Number.NaN;
   var ts = Date.parse(value);
-  return Number.isNaN(ts) ? Number.POSITIVE_INFINITY : ts;
+  return Number.isNaN(ts) ? Number.NaN : ts;
 }
 
 function statusPriority(statusId) {
@@ -53,29 +55,100 @@ function isInlineSelectionTarget(target) {
 
 function isInteractiveChild(target) {
   return Boolean(target && target.closest && target.closest("button,input,select,textarea,label"));
+}
+
+function compareNullable(leftMissing, rightMissing) {
+  if (leftMissing && rightMissing) return 0;
+  if (leftMissing) return 1;
+  if (rightMissing) return -1;
+  return 0;
+}
+
+function compareText(left, right) {
+  return (left || "").localeCompare(right || "");
+}
+
+function compareNumber(left, right) {
+  return left - right;
+}
+
+function compareRowsByKey(a, b, key, direction) {
+  if (key === "student") {
+    var nameComparison = compareText(a.getAttribute("data-name"), b.getAttribute("data-name"));
+    return direction === "asc" ? nameComparison : nameComparison * -1;
+  }
+
+  if (key === "degree") {
+    var degreeComparison = compareText(a.getAttribute("data-degree-label"), b.getAttribute("data-degree-label"));
+    return direction === "asc" ? degreeComparison : degreeComparison * -1;
+  }
+
+  if (key === "phase") {
+    var phaseComparison = compareText(a.getAttribute("data-phase-label"), b.getAttribute("data-phase-label"));
+    return direction === "asc" ? phaseComparison : phaseComparison * -1;
+  }
+
+  if (key === "target") {
+    var aTarget = a.getAttribute("data-target-date") || "";
+    var bTarget = b.getAttribute("data-target-date") || "";
+    var missingTargetComparison = compareNullable(!aTarget, !bTarget);
+    if (missingTargetComparison !== 0) return missingTargetComparison;
+    var targetComparison = toTimestamp(aTarget) - toTimestamp(bTarget);
+    return direction === "asc" ? targetComparison : targetComparison * -1;
+  }
+
+  if (key === "logs") {
+    var logComparison = compareNumber(
+      Number.parseInt(a.getAttribute("data-log-count") || "0", 10),
+      Number.parseInt(b.getAttribute("data-log-count") || "0", 10),
+    );
+    return direction === "asc" ? logComparison : logComparison * -1;
+  }
+
+  var aMeeting = a.getAttribute("data-next-meeting-date") || "";
+  var bMeeting = b.getAttribute("data-next-meeting-date") || "";
+  var missingMeetingComparison = compareNullable(!aMeeting, !bMeeting);
+  if (missingMeetingComparison !== 0) return missingMeetingComparison;
+  var meetingComparison = toTimestamp(aMeeting) - toTimestamp(bMeeting);
+  return direction === "asc" ? meetingComparison : meetingComparison * -1;
+}
+
+function updateSortHeaders() {
+  sortButtons.forEach(function (button) {
+    var key = button.getAttribute("data-sort-key") || "";
+    var isActive = key === currentSortKey;
+    var indicator = button.querySelector("[data-sort-indicator='1']");
+    var parentHeader = button.closest("th");
+
+    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+
+    if (indicator) {
+      indicator.textContent = isActive ? (currentSortDirection === "asc" ? "↑" : "↓") : "↕";
+    }
+
+    if (parentHeader) {
+      parentHeader.setAttribute("aria-sort", isActive ? (currentSortDirection === "asc" ? "ascending" : "descending") : "none");
+    }
+  });
 }`;
 
 const DASHBOARD_FILTER_SECTION = `
 function applyStudentSort() {
-  if (!tableBody || !sortBy || studentRows.length === 0) return;
+  if (!tableBody || studentRows.length === 0) return;
 
-  var mode = sortBy.value;
   studentRows.sort(function (a, b) {
-    if (mode === "nameAsc") {
-      return (a.getAttribute("data-name") || "").localeCompare(b.getAttribute("data-name") || "");
+    var comparison = compareRowsByKey(a, b, currentSortKey, currentSortDirection);
+    if (comparison === 0) {
+      comparison = compareText(a.getAttribute("data-name"), b.getAttribute("data-name"));
     }
-    if (mode === "targetAsc") {
-      return toTimestamp(a.getAttribute("data-target-date")) - toTimestamp(b.getAttribute("data-target-date"));
-    }
-    if (mode === "statusPriority") {
-      return statusPriority(a.getAttribute("data-status-id") || "") - statusPriority(b.getAttribute("data-status-id") || "");
-    }
-    return toTimestamp(a.getAttribute("data-next-meeting-date")) - toTimestamp(b.getAttribute("data-next-meeting-date"));
+    return comparison;
   });
 
   studentRows.forEach(function (row) {
     tableBody.appendChild(row);
   });
+
+  updateSortHeaders();
 }
 
 function applyStudentFilters() {
@@ -237,7 +310,24 @@ function bindDashboardFilters() {
   if (degreeFilter) degreeFilter.addEventListener("change", applyStudentFilters);
   if (phaseFilter) phaseFilter.addEventListener("change", applyStudentFilters);
   if (statusFilter) statusFilter.addEventListener("change", applyStudentFilters);
-  if (sortBy) sortBy.addEventListener("change", refreshStudentTable);
+}
+
+function bindStudentSort() {
+  sortButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      var key = button.getAttribute("data-sort-key") || "";
+      if (!key) return;
+
+      if (currentSortKey === key) {
+        currentSortDirection = currentSortDirection === "asc" ? "desc" : "asc";
+      } else {
+        currentSortKey = key;
+        currentSortDirection = "asc";
+      }
+
+      refreshStudentTable();
+    });
+  });
 }`;
 
 const DASHBOARD_BOOTSTRAP_SECTION = `
@@ -248,7 +338,8 @@ bindInlineSelectionLinks();
 bindStudentRowSelection();
 bindLaneSelection();
 bindHistorySelection();
-bindDashboardFilters();`;
+bindDashboardFilters();
+bindStudentSort();`;
 
 export const DASHBOARD_INTERACTION_SCRIPT = joinScriptSections([
   DASHBOARD_DOM_SECTION,

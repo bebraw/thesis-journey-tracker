@@ -65,7 +65,6 @@ export function renderDashboardPage(data: DashboardPageData): string {
             ? "Select a student from the table to edit details and view/add supervision logs."
             : "Select a student from the table to view details, supervision logs, and phase history.",
         ),
-        canEdit,
       ),
       dashboardScript: renderDashboardScriptTag(),
       themeToggleScript: THEME_TOGGLE_SCRIPT,
