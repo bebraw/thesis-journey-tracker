@@ -17,10 +17,16 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 - Store supervision logs with discussion notes, action items, and optional deadlines.
 - Follow upcoming meetings from the dashboard.
 - Filter the student list by phase, degree type, and meeting status.
-- Export or restore the dataset as JSON backups.
+- Export or restore the dataset as JSON backups, and download an email-ready Markdown status report.
 - Store automated Cloudflare backups in R2 when deployed with the scheduled backup setup.
 
 ## Quick Start
+
+Prerequisites:
+
+- Node.js 20 or newer
+- npm
+- A Cloudflare account with Wrangler access
 
 1. Install dependencies:
 
@@ -28,28 +34,30 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 npm install
 ```
 
-2. Create a local D1 database:
+2. Create the D1 database:
 
 ```bash
 npx wrangler d1 create thesis_tracker_db
 ```
 
-3. Put the returned `database_id` into [`wrangler.toml`](./wrangler.toml).
+This command returns a `database_id` for the Cloudflare D1 database. Put that value into [`wrangler.toml`](./wrangler.toml). Local development will then use Wrangler's local D1 state while pointing at the same database configuration.
 
-4. Create local secrets:
+3. Create local secrets:
 
 ```bash
 cp .dev.vars.example .dev.vars
 ```
 
-5. Apply migrations and create your first account:
+Set `SESSION_SECRET` in `.dev.vars` to a long random string before starting the app.
+
+4. Apply migrations and create your first account:
 
 ```bash
 npm run db:migrate
 npm run account:create -- --name "Advisor" --password "change-this-password" --role editor
 ```
 
-6. Start the app:
+5. Start the app:
 
 ```bash
 npm run dev
@@ -80,6 +88,7 @@ For the full setup flow, see [docs/setup.md](./docs/setup.md).
 
 - Cloudflare Workers for runtime and hosting
 - Cloudflare D1 for persistence
+- Cloudflare R2 for optional scheduled backups
 - TypeScript throughout the app
 - HTMLisp for server-rendered views
 - Tailwind CSS for styling
