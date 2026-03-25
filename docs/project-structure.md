@@ -8,7 +8,7 @@ This document gives a technical overview of how the project is put together.
 - Cloudflare D1 as the SQLite-backed database
 - TypeScript for application code
 - HTMLisp for server-rendered HTML views
-- Tailwind CSS for styling
+- Tailwind CSS v4 for styling
 - Playwright and Vitest for testing
 
 ## Architecture At A Glance
@@ -72,7 +72,7 @@ Authentication remains intentionally lightweight: accounts are stored in the `ap
 - [`scripts/run-lighthouse.mjs`](../scripts/run-lighthouse.mjs): Lighthouse automation
 - [`playwright.config.ts`](../playwright.config.ts): end-to-end test configuration
 - [`vitest.config.ts`](../vitest.config.ts): unit and integration test configuration
-- [`tailwind.config.cjs`](../tailwind.config.cjs): Tailwind scanning and theme setup
+- [`src/tailwind-input.css`](../src/tailwind-input.css): Tailwind v4 entrypoint, theme tokens, and custom variant definitions
 
 ## Data And Environment Notes
 

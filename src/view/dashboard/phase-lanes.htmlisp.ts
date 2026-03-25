@@ -123,7 +123,7 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
         data-inline-select="1"
         data-lane-select="1"
         &data-student-id="(get props idAttr)"
-        class="min-w-0 flex-1 break-words font-medium text-app-text dark:text-app-text-dark underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark"
+        class="min-w-0 flex-1 wrap-break-word font-medium text-app-text dark:text-app-text-dark underline-offset-2 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark"
         &children="(get props name)"
       ></a>
       <div class="flex max-w-full flex-wrap justify-end gap-badge-y">

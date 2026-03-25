@@ -83,7 +83,7 @@ export function renderDataToolsPage(data: DataToolsPageData): string {
         replaceOptionHtml: replaceImportEnabled ? '<option value="replace">Replace all current students and logs</option>' : "",
         replacementControlsHtml: replaceImportEnabled
           ? `<label class="flex items-start gap-badge-x rounded-control border border-app-line p-control-y text-sm dark:border-app-line-dark">
-              <input type="checkbox" name="confirmReplace" value="yes" class="mt-1 h-4 w-4 rounded border-app-field text-app-brand focus:ring-app-brand dark:border-app-field-dark" />
+              <input type="checkbox" name="confirmReplace" value="yes" class="mt-1 h-4 w-4 rounded-sm border-app-field text-app-brand focus:ring-app-brand dark:border-app-field-dark" />
               <span>Allow replacement mode to delete the current dataset before importing.</span>
             </label>
             <div class="${escapeHtml(DANGER_PANEL)}">

@@ -29,7 +29,7 @@ export const FIELD_CONTROL =
 export const FIELD_CONTROL_SM = `${FIELD_CONTROL} text-sm`;
 export const FIELD_CONTROL_WITH_MARGIN = `mt-1 ${FIELD_CONTROL_SM}`;
 export const FOCUS_RING =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark";
+  "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark";
 export const TEXT_LINK = `underline-offset-2 hover:underline ${FOCUS_RING}`;
 export const STATUS_BADGE = "rounded-control px-badge-pill-x py-badge-pill-y text-xs";
 export const THEME_TOGGLE_BUTTON = `inline-flex items-center justify-center rounded-control border border-app-field p-control-y text-sm font-medium text-app-text hover:bg-app-surface-soft dark:border-app-field-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark ${FOCUS_RING}`;
@@ -77,9 +77,9 @@ export const BUTTON_CLASS_MAP: Record<ButtonVariant, string> = {
   primary: `rounded-control bg-app-brand px-control-x py-control-y text-sm font-medium text-white hover:bg-app-brand-strong ${FOCUS_RING}`,
   primaryBlock: `w-full rounded-control bg-app-brand px-panel-sm py-control-y text-sm font-semibold text-white hover:bg-app-brand-strong ${FOCUS_RING}`,
   successBlock:
-    "w-full rounded-control bg-app-success px-panel-sm py-control-y text-sm font-semibold text-white hover:bg-app-success-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-success focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark",
+    "w-full rounded-control bg-app-success px-panel-sm py-control-y text-sm font-semibold text-white hover:bg-app-success-strong focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-success focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark",
   dangerBlock:
-    "w-full rounded-control bg-app-danger px-panel-sm py-control-y text-sm font-semibold text-white hover:bg-app-danger-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-danger focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark",
+    "w-full rounded-control bg-app-danger px-panel-sm py-control-y text-sm font-semibold text-white hover:bg-app-danger-strong focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-danger focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark",
   inline: `rounded-control border border-app-field px-badge-x py-badge-pill-y text-xs text-app-text hover:bg-app-surface-soft dark:border-app-field-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark/70 ${FOCUS_RING}`,
 };
 

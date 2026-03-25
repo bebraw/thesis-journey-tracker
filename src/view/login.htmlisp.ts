@@ -41,7 +41,7 @@ export function renderLoginPage(showError: boolean, supportsMultipleAccounts = f
     {
       cardClass: escapeHtml(LOGIN_CARD),
       errorClass: escapeHtml(ALERT_CLASS_MAP.error),
-      passwordFieldClass: escapeHtml(`${FIELD_CONTROL_SM} outline-none ring-app-brand focus:ring-2`),
+      passwordFieldClass: escapeHtml(`${FIELD_CONTROL_SM} outline-hidden ring-app-brand focus:ring-2`),
       subtleText: escapeHtml(`mt-2 ${SUBTLE_TEXT}`),
       showNameField: supportsMultipleAccounts,
       showError,
