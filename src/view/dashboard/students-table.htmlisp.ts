@@ -193,7 +193,7 @@ export function renderStudentsTable(
               <option value="">All statuses</option>
               <option value="not_booked">Not booked</option>
               <option value="overdue">Overdue</option>
-              <option value="within_2_weeks">Within 2 weeks</option>
+              <option value="within_2_weeks">Meeting soon</option>
               <option value="scheduled">Scheduled</option>
             </select>
           </label>

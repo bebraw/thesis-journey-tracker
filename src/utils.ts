@@ -162,7 +162,7 @@ export function meetingStatusText(student: Student): string {
     return "Overdue";
   }
   if (nextMeeting.getTime() - now.getTime() <= 14 * 24 * 60 * 60 * 1000) {
-    return "Within 2 weeks";
+    return "Meeting soon";
   }
   return "Scheduled";
 }
