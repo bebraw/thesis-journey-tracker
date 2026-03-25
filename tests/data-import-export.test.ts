@@ -6,7 +6,7 @@ vi.mock("../.generated/styles.css", () => ({ default: "" }));
 vi.mock("../src/favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 
 describe("data import and export", () => {
-  let env: { DB: MockD1Database; SESSION_SECRET: string };
+  let env: { DB: MockD1Database; SESSION_SECRET: string; REPLACE_IMPORT_ENABLED?: string };
   let fetchHandler: (request: Request, env: unknown) => Promise<Response>;
 
   beforeEach(async () => {
@@ -190,6 +190,7 @@ describe("data import and export", () => {
   });
 
   it("requires confirmation before replacement import", async () => {
+    env.REPLACE_IMPORT_ENABLED = "1";
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
     const formData = new FormData();
@@ -227,6 +228,7 @@ describe("data import and export", () => {
   });
 
   it("replaces the current dataset when replacement is confirmed", async () => {
+    env.REPLACE_IMPORT_ENABLED = "1";
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
     const formData = new FormData();
@@ -280,6 +282,108 @@ describe("data import and export", () => {
     expect(env.DB.students).toHaveLength(1);
     expect(env.DB.students[0]?.name).toBe("Replacement Student");
     expect(env.DB.meetingLogs).toHaveLength(0);
+    expect(env.DB.phaseAuditEntries).toHaveLength(1);
+    expect(env.DB.phaseAuditEntries[0]?.to_phase).toBe("researching");
+  });
+
+  it("blocks replacement imports unless they are explicitly enabled", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+    const formData = new FormData();
+    formData.set(
+      "importFile",
+      new File(
+        [
+          JSON.stringify({
+            app: "thesis-journey-tracker",
+            schemaVersion: 1,
+            exportedAt: "2026-03-23T08:00:00.000Z",
+            students: [],
+          }),
+        ],
+        "backup.json",
+        { type: "application/json" },
+      ),
+    );
+    formData.set("mode", "replace");
+    formData.set("confirmReplace", "yes");
+
+    const response = await fetchHandler(
+      new Request("http://localhost/actions/import-json", {
+        method: "POST",
+        headers: { cookie },
+        body: formData,
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toContain("Replacement+imports+are+disabled+in+this+environment");
+    expect(env.DB.students).toHaveLength(1);
+    expect(env.DB.meetingLogs).toHaveLength(1);
+    expect(env.DB.phaseAuditEntries).toHaveLength(1);
+  });
+
+  it("keeps existing data untouched if a replacement batch fails", async () => {
+    env.REPLACE_IMPORT_ENABLED = "1";
+    env.DB.failQueries.push(/^INSERT INTO meeting_logs/);
+
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+    const formData = new FormData();
+    formData.set(
+      "importFile",
+      new File(
+        [
+          JSON.stringify({
+            app: "thesis-journey-tracker",
+            schemaVersion: 1,
+            exportedAt: "2026-03-23T08:00:00.000Z",
+            students: [
+              {
+                name: "Replacement Student",
+                email: null,
+                degreeType: "bsc",
+                thesisTopic: null,
+                startDate: null,
+                targetSubmissionDate: "2026-06-15",
+                currentPhase: "research_plan",
+                nextMeetingAt: null,
+                logs: [
+                  {
+                    happenedAt: "2026-03-20T10:00:00.000Z",
+                    discussed: "Imported log",
+                    agreedPlan: "Imported next step",
+                    nextStepDeadline: "2026-03-30",
+                  },
+                ],
+                phaseAudit: [],
+              },
+            ],
+          }),
+        ],
+        "backup.json",
+        { type: "application/json" },
+      ),
+    );
+    formData.set("mode", "replace");
+    formData.set("confirmReplace", "yes");
+
+    const response = await fetchHandler(
+      new Request("http://localhost/actions/import-json", {
+        method: "POST",
+        headers: { cookie },
+        body: formData,
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toContain("Existing%20data%20was%20left%20unchanged");
+    expect(env.DB.students).toHaveLength(1);
+    expect(env.DB.students[0]?.name).toBe("Base Student");
+    expect(env.DB.meetingLogs).toHaveLength(1);
+    expect(env.DB.meetingLogs[0]?.discussed).toBe("Initial review");
     expect(env.DB.phaseAuditEntries).toHaveLength(1);
     expect(env.DB.phaseAuditEntries[0]?.to_phase).toBe("researching");
   });

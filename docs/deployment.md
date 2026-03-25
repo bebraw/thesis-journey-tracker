@@ -29,6 +29,16 @@ npx wrangler login
 npx wrangler secret put SESSION_SECRET
 ```
 
+Only if you intentionally want to allow full replacement restores from the Data Tools page, add a plain environment variable as well:
+
+```toml
+[vars]
+BACKUP_PREFIX = "automated-backups"
+REPLACE_IMPORT_ENABLED = "1"
+```
+
+Leave `REPLACE_IMPORT_ENABLED` unset for the safer default where append imports remain available but full replacement restores are disabled.
+
 3. Apply remote migrations:
 
 ```bash

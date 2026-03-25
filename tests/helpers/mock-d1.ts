@@ -48,6 +48,7 @@ export class MockD1Database {
   public phaseAuditEntries: PhaseAuditEntryStore[] = [];
   public appUsers: AppUserStore[] = [];
   public calls: QueryCall[] = [];
+  public failQueries: Array<string | RegExp> = [];
 
   private nextStudentId = 1;
   private nextLogId = 1;
@@ -72,6 +73,37 @@ export class MockD1Database {
     return new MockPreparedStatement(this, query);
   }
 
+  async batch(statements: MockPreparedStatement[]) {
+    const snapshot = {
+      students: this.students.map((row) => ({ ...row })),
+      meetingLogs: this.meetingLogs.map((row) => ({ ...row })),
+      phaseAuditEntries: this.phaseAuditEntries.map((row) => ({ ...row })),
+      appUsers: this.appUsers.map((row) => ({ ...row })),
+      nextStudentId: this.nextStudentId,
+      nextLogId: this.nextLogId,
+      nextPhaseAuditId: this.nextPhaseAuditId,
+      nextAppUserId: this.nextAppUserId,
+    };
+
+    try {
+      const results = [];
+      for (const statement of statements) {
+        results.push(await statement.run());
+      }
+      return results;
+    } catch (error) {
+      this.students = snapshot.students;
+      this.meetingLogs = snapshot.meetingLogs;
+      this.phaseAuditEntries = snapshot.phaseAuditEntries;
+      this.appUsers = snapshot.appUsers;
+      this.nextStudentId = snapshot.nextStudentId;
+      this.nextLogId = snapshot.nextLogId;
+      this.nextPhaseAuditId = snapshot.nextPhaseAuditId;
+      this.nextAppUserId = snapshot.nextAppUserId;
+      throw error;
+    }
+  }
+
   seedAuthUser(user: Omit<AppUserStore, "id">) {
     const row: AppUserStore = {
       id: this.nextAppUserId++,
@@ -84,10 +116,18 @@ export class MockD1Database {
   runQuery(query: string, values: D1Value[]) {
     const q = normalizeQuery(query);
 
+    if (this.failQueries.some((pattern) => (typeof pattern === "string" ? q === pattern : pattern.test(q)))) {
+      throw new Error(`Mock query failure for ${q}`);
+    }
+
     if (q.startsWith("INSERT INTO students")) {
-      const [name, email, degreeType, thesisTopic, startDate, targetDate, phase, nextMeetingAt] = values;
+      const hasExplicitId = values.length === 9;
+      const [idValue, name, email, degreeType, thesisTopic, startDate, targetDate, phase, nextMeetingAt] = hasExplicitId
+        ? values
+        : [this.nextStudentId++, ...values];
+      const id = Number(idValue);
       const row: StudentRowStore = {
-        id: this.nextStudentId++,
+        id,
         name: String(name),
         email: email === null ? null : String(email),
         degree_type: String(degreeType),
@@ -98,6 +138,7 @@ export class MockD1Database {
         next_meeting_at: nextMeetingAt === null ? null : String(nextMeetingAt),
       };
       this.students.push(row);
+      this.nextStudentId = Math.max(this.nextStudentId, id + 1);
       return { success: true, meta: { last_row_id: row.id, changes: 1 } };
     }
 
@@ -135,9 +176,13 @@ export class MockD1Database {
     }
 
     if (q.startsWith("INSERT INTO meeting_logs")) {
-      const [studentId, happenedAt, discussed, agreedPlan, nextStepDeadline] = values;
+      const hasExplicitId = values.length === 6;
+      const [idValue, studentId, happenedAt, discussed, agreedPlan, nextStepDeadline] = hasExplicitId
+        ? values
+        : [this.nextLogId++, ...values];
+      const id = Number(idValue);
       const row: MeetingLogStore = {
-        id: this.nextLogId++,
+        id,
         student_id: Number(studentId),
         happened_at: String(happenedAt),
         discussed: String(discussed),
@@ -145,19 +190,23 @@ export class MockD1Database {
         next_step_deadline: nextStepDeadline === null ? null : String(nextStepDeadline),
       };
       this.meetingLogs.push(row);
+      this.nextLogId = Math.max(this.nextLogId, id + 1);
       return { success: true, meta: { last_row_id: row.id, changes: 1 } };
     }
 
     if (q.startsWith("INSERT INTO student_phase_audit")) {
-      const [studentId, changedAt, fromPhase, toPhase] = values;
+      const hasExplicitId = values.length === 5;
+      const [idValue, studentId, changedAt, fromPhase, toPhase] = hasExplicitId ? values : [this.nextPhaseAuditId++, ...values];
+      const id = Number(idValue);
       const row: PhaseAuditEntryStore = {
-        id: this.nextPhaseAuditId++,
+        id,
         student_id: Number(studentId),
         changed_at: String(changedAt),
         from_phase: String(fromPhase),
         to_phase: String(toPhase),
       };
       this.phaseAuditEntries.push(row);
+      this.nextPhaseAuditId = Math.max(this.nextPhaseAuditId, id + 1);
       return { success: true, meta: { last_row_id: row.id, changes: 1 } };
     }
 
@@ -217,6 +266,24 @@ export class MockD1Database {
       const lookupName = String(values[0] || "");
       const row = this.appUsers.find((user) => user.name.toLocaleLowerCase() === lookupName.toLocaleLowerCase());
       return row || null;
+    }
+
+    if (q === "SELECT COALESCE(MAX(id), 0) AS max_id FROM students") {
+      return {
+        max_id: this.students.reduce((max, student) => Math.max(max, student.id), 0),
+      };
+    }
+
+    if (q === "SELECT COALESCE(MAX(id), 0) AS max_id FROM meeting_logs") {
+      return {
+        max_id: this.meetingLogs.reduce((max, log) => Math.max(max, log.id), 0),
+      };
+    }
+
+    if (q === "SELECT COALESCE(MAX(id), 0) AS max_id FROM student_phase_audit") {
+      return {
+        max_id: this.phaseAuditEntries.reduce((max, entry) => Math.max(max, entry.id), 0),
+      };
     }
 
     throw new Error(`Unsupported first query: ${query}`);

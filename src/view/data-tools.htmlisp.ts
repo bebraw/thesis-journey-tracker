@@ -15,7 +15,7 @@ import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderFlas
 import type { DataToolsPageData } from "./types";
 
 export function renderDataToolsPage(data: DataToolsPageData): string {
-  const { viewer, notice, error, studentCount, logCount } = data;
+  const { viewer, notice, error, studentCount, logCount, replaceImportEnabled } = data;
 
   const exportCard = renderCard(
     renderView(
@@ -64,31 +64,40 @@ export function renderDataToolsPage(data: DataToolsPageData): string {
           <span>Import mode</span>
           <select name="mode" &class="(get props fieldClass)">
             <option value="append">Append imported students and logs</option>
-            <option value="replace">Replace all current students and logs</option>
+            <noop &children="(get props replaceOptionHtml)"></noop>
           </select>
         </label>
-        <label class="flex items-start gap-badge-x rounded-control border border-app-line p-control-y text-sm dark:border-app-line-dark">
-          <input type="checkbox" name="confirmReplace" value="yes" class="mt-1 h-4 w-4 rounded border-app-field text-app-brand focus:ring-app-brand dark:border-app-field-dark" />
-          <span>Allow replacement mode to delete the current dataset before importing.</span>
-        </label>
-        <div &class="(get props warningClass)">
-          <h3 &class="(get props warningTitleClass)">Replacement warning</h3>
-          <p &class="(get props warningTextClass)">
-            Replacement mode removes every current student and meeting log before restoring the uploaded file. Use it for full backup restores.
-          </p>
-        </div>
+        <noop &children="(get props replacementControlsHtml)"></noop>
+        <noop &children="(get props replacementStateHtml)"></noop>
         <noop &children="(get props submitButton)"></noop>
       </form>`,
       {
         subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
         description: escapeHtml(
-          "Import a JSON file previously exported from Thesis Journey Tracker. Append mode is the safe default for bringing records into an existing dataset.",
+          replaceImportEnabled
+            ? "Import a JSON file previously exported from Thesis Journey Tracker. Append mode is the safe default, while replacement mode is meant for deliberate full restores."
+            : "Import a JSON file previously exported from Thesis Journey Tracker. Append mode is the safe default for bringing records into an existing dataset.",
         ),
         formLabelClass: escapeHtml(FORM_LABEL),
         fieldClass: escapeHtml(`mt-1 ${FIELD_CONTROL_SM}`),
-        warningClass: escapeHtml(DANGER_PANEL),
-        warningTitleClass: escapeHtml(DANGER_TITLE),
-        warningTextClass: escapeHtml(DANGER_TEXT),
+        replaceOptionHtml: replaceImportEnabled ? '<option value="replace">Replace all current students and logs</option>' : "",
+        replacementControlsHtml: replaceImportEnabled
+          ? `<label class="flex items-start gap-badge-x rounded-control border border-app-line p-control-y text-sm dark:border-app-line-dark">
+              <input type="checkbox" name="confirmReplace" value="yes" class="mt-1 h-4 w-4 rounded border-app-field text-app-brand focus:ring-app-brand dark:border-app-field-dark" />
+              <span>Allow replacement mode to delete the current dataset before importing.</span>
+            </label>
+            <div class="${escapeHtml(DANGER_PANEL)}">
+              <h3 class="${escapeHtml(DANGER_TITLE)}">Replacement warning</h3>
+              <p class="${escapeHtml(DANGER_TEXT)}">
+                Replacement mode is intended for deliberate recovery work. The import now runs as a single batch so a failed restore leaves existing data untouched.
+              </p>
+            </div>`
+          : "",
+        replacementStateHtml: replaceImportEnabled
+          ? ""
+          : `<div class="${escapeHtml(`rounded-control border border-app-line p-control-y px-control-x text-sm ${MUTED_TEXT} dark:border-app-line-dark`)}">
+              Full replacement restore is disabled in this environment. Re-enable it only when you are intentionally performing a recovery restore.
+            </div>`,
         submitButton: renderButton({
           label: "Import JSON file",
           type: "submit",

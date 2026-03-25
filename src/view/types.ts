@@ -33,4 +33,5 @@ export interface DataToolsPageData {
   error: string | null;
   studentCount: number;
   logCount: number;
+  replaceImportEnabled: boolean;
 }

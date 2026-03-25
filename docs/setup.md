@@ -45,11 +45,13 @@ cp .dev.vars.example .dev.vars
 Set these values in `.dev.vars`:
 
 - `SESSION_SECRET`: a long random string used to sign auth cookies
+- `REPLACE_IMPORT_ENABLED`: optional, set to `1` only when you intentionally want to allow full replacement imports for recovery work
 
 Example:
 
 ```env
 SESSION_SECRET=change-this-to-a-long-random-secret
+# REPLACE_IMPORT_ENABLED=1
 ```
 
 ## 4. Apply Migrations

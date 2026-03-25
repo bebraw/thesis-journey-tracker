@@ -56,7 +56,7 @@ interface D1AllResult<T> {
   results: T[];
 }
 
-interface D1PreparedStatement {
+export interface D1PreparedStatement {
   bind(...values: D1Value[]): D1PreparedStatement;
   first<T = Record<string, unknown>>(): Promise<T | null>;
   all<T = Record<string, unknown>>(): Promise<D1AllResult<T>>;
@@ -65,6 +65,7 @@ interface D1PreparedStatement {
 
 export interface D1Database {
   prepare(query: string): D1PreparedStatement;
+  batch(statements: D1PreparedStatement[]): Promise<unknown[]>;
 }
 
 interface StudentRow {
