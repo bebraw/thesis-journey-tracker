@@ -63,14 +63,14 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
     const phaseLabel = getPhaseLabel(student.currentPhase, PHASES);
     const isSelected = selectedStudent ? selectedStudent.id === student.id : false;
     const summaryHtml = renderView(
-      `<div class="min-w-0 max-w-[24rem]">
+      `<div class="min-w-0 max-w-[16rem]">
         <div class="font-medium">
           <a &class="(get props linkClass)" &href="(get props href)" data-inline-select="1" &data-student-id="(get props studentIdAttr)" &children="(get props name)"></a>
         </div>
         <div
           &visibleIf="(get props topicVisible)"
           &class="(get props topicTextClass)"
-          style="-webkit-line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;"
+          style="-webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;"
           &children="(get props topic)"
         ></div>
       </div>`,
@@ -280,7 +280,7 @@ export function renderStudentsTable(
     {
       studentsCardClass: escapeHtml(`overflow-hidden xl:col-span-2 ${SURFACE_CARD}`),
       cellClass: escapeHtml(TABLE_CELL),
-      studentCellClass: escapeHtml(`${TABLE_CELL} w-[32%] max-w-[24rem] align-top`),
+      studentCellClass: escapeHtml(`${TABLE_CELL} w-[24%] max-w-[16rem] align-top`),
       mutedTextXs: escapeHtml(MUTED_TEXT_XS),
       filterLabelClass: escapeHtml(FILTER_LABEL),
       filterControlClass: escapeHtml(FIELD_CONTROL_WITH_MARGIN),
