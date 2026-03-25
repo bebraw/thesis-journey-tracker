@@ -93,6 +93,7 @@ For the full setup flow, see [docs/setup.md](./docs/setup.md).
 - [docs/project-structure.md](./docs/project-structure.md): tech stack, architecture, and directory map
 - [docs/backups.md](./docs/backups.md): automated R2 backups, restore flow, and retention notes
 - [docs/performance-plan.md](./docs/performance-plan.md): Lighthouse baseline and performance follow-up plan
+- [docs/roadmap.md](./docs/roadmap.md): future feature ideas and likely next steps
 
 ## Tech Snapshot
 

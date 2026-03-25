@@ -10,3 +10,4 @@ This folder contains the more technical project documentation that has been move
 - [backups.md](./backups.md): automated backup configuration, testing, and restore notes
 - [project-structure.md](./project-structure.md): architecture, stack, and repo layout
 - [performance-plan.md](./performance-plan.md): Lighthouse baseline and follow-up work
+- [roadmap.md](./roadmap.md): future feature ideas and potential next steps
