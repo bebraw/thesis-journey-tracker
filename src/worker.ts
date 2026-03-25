@@ -3,17 +3,21 @@ import favicon from "./favicon.ico";
 import { type AuthUser, isAccessRole, type SessionUser } from "./auth";
 import { runAutomatedBackup, type R2BucketLike } from "./backup";
 import {
+  clearLoginAttempt,
   createMeetingLog,
   createPhaseAuditEntry,
   createStudent,
   deleteStudent,
   type D1Database,
   type D1PreparedStatement,
+  getLoginAttempt,
   getStudentById,
   listLogsForStudent,
   listPhaseAuditEntriesForStudent,
   listAuthUsers,
+  type LoginAttempt,
   listStudents,
+  saveLoginAttempt,
   studentExists,
   upsertAuthUser,
   updateStudent,
@@ -72,6 +76,9 @@ interface ScheduledControllerLike {
 
 const SESSION_COOKIE = "thesis_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
+const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_FAILURES = 5;
+const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -132,23 +139,34 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     if (sessionUser) {
       return redirect("/");
     }
-    const showError = url.searchParams.get("error") === "1";
-    return htmlResponse(renderLoginPage(showError, authState.users.length > 1));
+    const errorState = url.searchParams.get("error") === "rate_limit" ? "rate_limit" : url.searchParams.get("error") ? "invalid" : null;
+    return htmlResponse(renderLoginPage(errorState, authState.users.length > 1));
   }
 
   if (pathname === "/login" && request.method === "POST") {
     const formData = await request.formData();
     const enteredName = (formData.get("name") || "").toString().trim();
     const password = (formData.get("password") || "").toString();
+    const now = new Date();
+    const loginAttemptKey = buildLoginAttemptKey(request);
+    const currentAttempt = await getLoginAttempt(env.DB, loginAttemptKey);
+
+    if (isLoginAttemptLocked(currentAttempt, now)) {
+      return redirect("/login?error=rate_limit");
+    }
+
     const candidateUser =
       authState.users.length === 1 && !enteredName
         ? authState.users[0] || null
         : authState.users.find((user) => user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase()) || null;
 
     if (!candidateUser || !(await verifyPassword(password, candidateUser.passwordHash))) {
-      return redirect("/login?error=1");
+      const nextAttempt = buildFailedLoginAttempt(currentAttempt, loginAttemptKey, now);
+      await saveLoginAttempt(env.DB, nextAttempt);
+      return redirect(nextAttempt.lockedUntil ? "/login?error=rate_limit" : "/login?error=1");
     }
 
+    await clearLoginAttempt(env.DB, loginAttemptKey);
     const token = await createSessionToken(env.SESSION_SECRET, SESSION_TTL_SECONDS, {
       name: candidateUser.name,
       role: candidateUser.role,
@@ -677,6 +695,64 @@ function isLocalDevelopmentRequest(request: Request): boolean {
     hostname === "::1" ||
     hostname === "[::1]"
   );
+}
+
+function buildLoginAttemptKey(request: Request): string {
+  return `ip:${readClientIpAddress(request)}`;
+}
+
+function readClientIpAddress(request: Request): string {
+  const directIp = normalizeIpAddress(request.headers.get("cf-connecting-ip"));
+  if (directIp) {
+    return directIp;
+  }
+
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const forwardedIp = normalizeIpAddress(forwardedFor.split(",")[0] || "");
+    if (forwardedIp) {
+      return forwardedIp;
+    }
+  }
+
+  return "local-development";
+}
+
+function normalizeIpAddress(value: string | null | undefined): string | null {
+  const normalized = (value || "").trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function isLoginAttemptLocked(attempt: LoginAttempt | null, now: Date): boolean {
+  if (!attempt?.lockedUntil) {
+    return false;
+  }
+
+  const lockedUntilTime = Date.parse(attempt.lockedUntil);
+  return Number.isFinite(lockedUntilTime) && lockedUntilTime > now.getTime();
+}
+
+function buildFailedLoginAttempt(previousAttempt: LoginAttempt | null, attemptKey: string, now: Date): LoginAttempt {
+  const nowIso = now.toISOString();
+  const nowTime = now.getTime();
+  const previousLastFailedAt = previousAttempt ? Date.parse(previousAttempt.lastFailedAt) : NaN;
+  const previousLockExpired =
+    previousAttempt?.lockedUntil && Number.isFinite(Date.parse(previousAttempt.lockedUntil))
+      ? Date.parse(previousAttempt.lockedUntil) <= nowTime
+      : false;
+  const isWithinFailureWindow =
+    previousAttempt && !previousLockExpired && Number.isFinite(previousLastFailedAt) && nowTime - previousLastFailedAt <= LOGIN_FAILURE_WINDOW_MS;
+
+  const failureCount = isWithinFailureWindow ? previousAttempt.failureCount + 1 : 1;
+  const firstFailedAt = isWithinFailureWindow ? previousAttempt.firstFailedAt : nowIso;
+
+  return {
+    attemptKey,
+    failureCount,
+    firstFailedAt,
+    lastFailedAt: nowIso,
+    lockedUntil: failureCount >= LOGIN_MAX_FAILURES ? new Date(nowTime + LOGIN_LOCKOUT_MS).toISOString() : null,
+  };
 }
 
 async function buildImportStatements(

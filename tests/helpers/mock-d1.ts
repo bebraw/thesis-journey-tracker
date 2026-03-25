@@ -36,6 +36,14 @@ interface AppUserStore {
   role: string;
 }
 
+interface LoginAttemptStore {
+  attempt_key: string;
+  failure_count: number;
+  first_failed_at: string;
+  last_failed_at: string;
+  locked_until: string | null;
+}
+
 interface QueryCall {
   query: string;
   values: D1Value[];
@@ -47,6 +55,7 @@ export class MockD1Database {
   public meetingLogs: MeetingLogStore[] = [];
   public phaseAuditEntries: PhaseAuditEntryStore[] = [];
   public appUsers: AppUserStore[] = [];
+  public loginAttempts: LoginAttemptStore[] = [];
   public calls: QueryCall[] = [];
   public failQueries: Array<string | RegExp> = [];
 
@@ -79,6 +88,7 @@ export class MockD1Database {
       meetingLogs: this.meetingLogs.map((row) => ({ ...row })),
       phaseAuditEntries: this.phaseAuditEntries.map((row) => ({ ...row })),
       appUsers: this.appUsers.map((row) => ({ ...row })),
+      loginAttempts: this.loginAttempts.map((row) => ({ ...row })),
       nextStudentId: this.nextStudentId,
       nextLogId: this.nextLogId,
       nextPhaseAuditId: this.nextPhaseAuditId,
@@ -96,6 +106,7 @@ export class MockD1Database {
       this.meetingLogs = snapshot.meetingLogs;
       this.phaseAuditEntries = snapshot.phaseAuditEntries;
       this.appUsers = snapshot.appUsers;
+      this.loginAttempts = snapshot.loginAttempts;
       this.nextStudentId = snapshot.nextStudentId;
       this.nextLogId = snapshot.nextLogId;
       this.nextPhaseAuditId = snapshot.nextPhaseAuditId;
@@ -232,6 +243,35 @@ export class MockD1Database {
       return { success: true, meta: { last_row_id: row.id, changes: 1 } };
     }
 
+    if (q.startsWith("INSERT INTO login_attempts")) {
+      const [attemptKey, failureCount, firstFailedAt, lastFailedAt, lockedUntil] = values;
+      const normalizedKey = String(attemptKey);
+      const existingAttempt = this.loginAttempts.find((attempt) => attempt.attempt_key === normalizedKey);
+
+      if (existingAttempt) {
+        existingAttempt.failure_count = Number(failureCount);
+        existingAttempt.first_failed_at = String(firstFailedAt);
+        existingAttempt.last_failed_at = String(lastFailedAt);
+        existingAttempt.locked_until = lockedUntil === null ? null : String(lockedUntil);
+        return { success: true, meta: { changes: 1 } };
+      }
+
+      this.loginAttempts.push({
+        attempt_key: normalizedKey,
+        failure_count: Number(failureCount),
+        first_failed_at: String(firstFailedAt),
+        last_failed_at: String(lastFailedAt),
+        locked_until: lockedUntil === null ? null : String(lockedUntil),
+      });
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (q === "DELETE FROM login_attempts WHERE attempt_key = ?") {
+      const attemptKey = String(values[0] || "");
+      this.loginAttempts = this.loginAttempts.filter((attempt) => attempt.attempt_key !== attemptKey);
+      return { success: true, meta: { changes: 1 } };
+    }
+
     throw new Error(`Unsupported run query: ${query}`);
   }
 
@@ -284,6 +324,11 @@ export class MockD1Database {
       return {
         max_id: this.phaseAuditEntries.reduce((max, entry) => Math.max(max, entry.id), 0),
       };
+    }
+
+    if (q === "SELECT attempt_key, failure_count, first_failed_at, last_failed_at, locked_until FROM login_attempts WHERE attempt_key = ?") {
+      const attemptKey = String(values[0] || "");
+      return this.loginAttempts.find((attempt) => attempt.attempt_key === attemptKey) || null;
     }
 
     throw new Error(`Unsupported first query: ${query}`);

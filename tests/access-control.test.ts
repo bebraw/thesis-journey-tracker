@@ -150,6 +150,82 @@ describe("multi-user access control", () => {
     expect(env.DB.students[1]?.name).toBe("Second Student");
   });
 
+  it("rate limits repeated failed logins from the same client IP", async () => {
+    const loginHeaders = {
+      "cf-connecting-ip": "203.0.113.10",
+      "content-type": "application/x-www-form-urlencoded",
+    };
+
+    for (let attemptIndex = 0; attemptIndex < 4; attemptIndex += 1) {
+      const failedResponse = await fetchHandler(
+        new Request("http://localhost/login", {
+          method: "POST",
+          headers: loginHeaders,
+          body: new URLSearchParams({
+            name: "Advisor",
+            password: "wrong-password",
+          }),
+        }),
+        env,
+      );
+
+      expect(failedResponse.status).toBe(302);
+      expect(failedResponse.headers.get("location")).toBe("/login?error=1");
+    }
+
+    const lockoutResponse = await fetchHandler(
+      new Request("http://localhost/login", {
+        method: "POST",
+        headers: loginHeaders,
+        body: new URLSearchParams({
+          name: "Advisor",
+          password: "wrong-password",
+        }),
+      }),
+      env,
+    );
+
+    expect(lockoutResponse.status).toBe(302);
+    expect(lockoutResponse.headers.get("location")).toBe("/login?error=rate_limit");
+    expect(env.DB.loginAttempts[0]?.failure_count).toBe(5);
+    expect(env.DB.loginAttempts[0]?.locked_until).toBeTruthy();
+
+    const blockedValidLoginResponse = await fetchHandler(
+      new Request("http://localhost/login", {
+        method: "POST",
+        headers: loginHeaders,
+        body: new URLSearchParams({
+          name: "Advisor",
+          password: "editor-password",
+        }),
+      }),
+      env,
+    );
+
+    expect(blockedValidLoginResponse.status).toBe(302);
+    expect(blockedValidLoginResponse.headers.get("location")).toBe("/login?error=rate_limit");
+    expect(blockedValidLoginResponse.headers.get("set-cookie")).toBeNull();
+
+    env.DB.loginAttempts[0]!.locked_until = "2000-01-01T00:00:00.000Z";
+
+    const recoveredResponse = await fetchHandler(
+      new Request("http://localhost/login", {
+        method: "POST",
+        headers: loginHeaders,
+        body: new URLSearchParams({
+          name: "Advisor",
+          password: "editor-password",
+        }),
+      }),
+      env,
+    );
+
+    expect(recoveredResponse.status).toBe(302);
+    expect(recoveredResponse.headers.get("location")).toBe("/");
+    expect(recoveredResponse.headers.get("set-cookie")).toContain("thesis_session=");
+    expect(env.DB.loginAttempts).toHaveLength(0);
+  });
+
   it("shows the style guide only on local development hosts", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);

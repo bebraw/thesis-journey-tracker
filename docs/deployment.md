@@ -106,6 +106,7 @@ For more detailed backup notes, see [backups.md](./backups.md).
 ## Security Model
 
 - App access is protected by signed session cookies and lightweight account roles.
+- Repeated failed login attempts from the same client IP are temporarily locked out for 15 minutes after 5 failures.
 - `editor` accounts can add, edit, import, export, and delete data.
 - `readonly` accounts can view the dashboard, student details, meeting logs, and phase history.
 - Sessions are stored in an `HttpOnly`, `Secure`, signed cookie.

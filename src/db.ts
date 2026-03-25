@@ -40,6 +40,14 @@ export interface StoredAuthUser {
   role: AccessRole;
 }
 
+export interface LoginAttempt {
+  attemptKey: string;
+  failureCount: number;
+  firstFailedAt: string;
+  lastFailedAt: string;
+  lockedUntil: string | null;
+}
+
 type D1Value = string | number | null;
 
 interface D1ExecMeta {
@@ -102,6 +110,14 @@ interface AuthUserRow {
   name: string;
   password_hash: string;
   role: AccessRole;
+}
+
+interface LoginAttemptRow {
+  attempt_key: string;
+  failure_count: number | string;
+  first_failed_at: string;
+  last_failed_at: string;
+  locked_until: string | null;
 }
 
 export interface StudentMutationInput {
@@ -220,6 +236,48 @@ export async function upsertAuthUser(db: D1Database, input: UpsertAuthUserInput)
   }
 
   return parseDbNumber(row.id);
+}
+
+export async function getLoginAttempt(db: D1Database, attemptKey: string): Promise<LoginAttempt | null> {
+  const row = await db
+    .prepare(
+      `SELECT attempt_key, failure_count, first_failed_at, last_failed_at, locked_until
+       FROM login_attempts
+       WHERE attempt_key = ?`,
+    )
+    .bind(attemptKey)
+    .first<LoginAttemptRow>();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    attemptKey: row.attempt_key,
+    failureCount: parseDbNumber(row.failure_count),
+    firstFailedAt: row.first_failed_at,
+    lastFailedAt: row.last_failed_at,
+    lockedUntil: row.locked_until,
+  };
+}
+
+export async function saveLoginAttempt(db: D1Database, attempt: LoginAttempt): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO login_attempts (attempt_key, failure_count, first_failed_at, last_failed_at, locked_until)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(attempt_key) DO UPDATE SET
+         failure_count = excluded.failure_count,
+         first_failed_at = excluded.first_failed_at,
+         last_failed_at = excluded.last_failed_at,
+         locked_until = excluded.locked_until`,
+    )
+    .bind(attempt.attemptKey, attempt.failureCount, attempt.firstFailedAt, attempt.lastFailedAt, attempt.lockedUntil)
+    .run();
+}
+
+export async function clearLoginAttempt(db: D1Database, attemptKey: string): Promise<void> {
+  await db.prepare("DELETE FROM login_attempts WHERE attempt_key = ?").bind(attemptKey).run();
 }
 
 export async function getStudentById(db: D1Database, studentId: number): Promise<Student | null> {

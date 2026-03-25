@@ -3,7 +3,14 @@ import { type HtmlispComponents } from "../htmlisp";
 import { escapeHtml } from "../utils";
 import { renderDocument, renderView } from "./shared.htmlisp";
 
-export function renderLoginPage(showError: boolean, supportsMultipleAccounts = false): string {
+export function renderLoginPage(errorState: "invalid" | "rate_limit" | null, supportsMultipleAccounts = false): string {
+  const errorMessage =
+    errorState === "rate_limit"
+      ? "Too many failed sign-in attempts. Please wait 15 minutes and try again."
+      : supportsMultipleAccounts
+        ? "Invalid name or password. Please try again."
+        : "Invalid password. Please try again.";
+
   const components: HtmlispComponents = {
     ErrorFlash: `<p
       &visibleIf="(get props visible)"
@@ -44,8 +51,8 @@ export function renderLoginPage(showError: boolean, supportsMultipleAccounts = f
       passwordFieldClass: escapeHtml(`${FIELD_CONTROL_SM} outline-hidden ring-app-brand focus:ring-2`),
       subtleText: escapeHtml(`mt-2 ${SUBTLE_TEXT}`),
       showNameField: supportsMultipleAccounts,
-      showError,
-      errorMessage: escapeHtml(supportsMultipleAccounts ? "Invalid name or password. Please try again." : "Invalid password. Please try again."),
+      showError: Boolean(errorState),
+      errorMessage: escapeHtml(errorMessage),
       signInButtonHtml: renderButton({
         label: "Sign in",
         type: "submit",

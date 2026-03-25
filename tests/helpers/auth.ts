@@ -22,11 +22,12 @@ export async function loginWithPassword<Env>(
   env: Env,
   name: string,
   password: string,
+  requestHeaders: HeadersInit = {},
 ): Promise<string> {
   const response = await fetchHandler(
     new Request("http://localhost/login", {
       method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
+      headers: { "content-type": "application/x-www-form-urlencoded", ...requestHeaders },
       body: new URLSearchParams({ name, password }),
     }),
     env,

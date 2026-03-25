@@ -97,6 +97,7 @@ For the full setup flow, see [docs/setup.md](./docs/setup.md).
 
 - This is a private, password-protected app with lightweight role-based access rather than a multi-tenant SaaS product.
 - Auth accounts now live in the D1 database, with a tiny CLI helper for creating editor and readonly users.
+- Repeated failed login attempts are temporarily rate-limited per client IP.
 - The UI is server-rendered and deliberately simple.
 - Seeded mock students are only used in the isolated end-to-end test environment.
 
