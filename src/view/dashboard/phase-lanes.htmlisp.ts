@@ -20,10 +20,9 @@ interface PreparedLaneStudent {
   href: string;
   name: string;
   badgesHtml: string;
+  metaText: string;
   topicVisible: boolean;
   topic: string;
-  targetText: string;
-  nextMeetingText: string;
   statusBadgeHtml: string;
 }
 
@@ -62,19 +61,20 @@ function preparePhaseLanes(students: Student[], selectedStudent: Student | null)
           idAttr: String(student.id),
           selectedAttr: isSelected ? "true" : "false",
           cardClass: escapeHtml(
-            `rounded-card border border-app-line bg-app-surface-soft p-stack-xs transition-colors cursor-pointer dark:border-app-line-dark dark:bg-app-surface-soft-dark/70 hover:border-app-line-strong dark:hover:border-app-line-dark-strong${
+            `rounded-card border border-app-line bg-app-surface-soft px-control-x py-badge-pill-y transition-colors cursor-pointer dark:border-app-line-dark dark:bg-app-surface-soft-dark/70 hover:border-app-line-strong dark:hover:border-app-line-dark-strong${
               isSelected ? " ring-2 ring-app-brand-ring/60 dark:ring-app-brand-ring/40" : ""
             }`,
           ),
           href: escapeHtml(`/?selected=${student.id}`),
           name: escapeHtml(student.name),
           badgesHtml,
+          metaText: escapeHtml(
+            student.nextMeetingAt
+              ? `Target ${student.targetSubmissionDate} · Meeting ${formatDateTime(student.nextMeetingAt)}`
+              : `Target ${student.targetSubmissionDate} · No meeting booked`,
+          ),
           topicVisible: Boolean(student.thesisTopic),
           topic: escapeHtml(student.thesisTopic || ""),
-          targetText: escapeHtml(`Target: ${student.targetSubmissionDate}`),
-          nextMeetingText: escapeHtml(
-            student.nextMeetingAt ? `Next meeting: ${formatDateTime(student.nextMeetingAt)}` : "Next meeting: Not booked",
-          ),
           statusBadgeHtml: `<span class="${escapeHtml(
             `${STATUS_BADGE} ${getMeetingStatusBadgeClass(meetingStatusId(student))}`,
           )}">${escapeHtml(meetingStatusText(student))}</span>`,
@@ -91,7 +91,7 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
       <h3 class="min-h-10 flex-1 text-sm font-semibold leading-5" &children="(get props label)"></h3>
       <noop &children="(get props countBadgeHtml)"></noop>
     </div>
-    <ul class="mt-stack-xs space-y-badge-pill-y" &visibleIf="(get props hasStudents)">
+    <ul class="mt-stack-xs max-h-[28rem] space-y-badge-y overflow-y-auto pr-badge-y" &visibleIf="(get props hasStudents)">
       <noop &foreach="(get props students)">
         <LaneStudentCard
           &idAttr="(get props idAttr)"
@@ -100,10 +100,9 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
           &href="(get props href)"
           &name="(get props name)"
           &badgesHtml="(get props badgesHtml)"
+          &metaText="(get props metaText)"
           &topicVisible="(get props topicVisible)"
           &topic="(get props topic)"
-          &targetText="(get props targetText)"
-          &nextMeetingText="(get props nextMeetingText)"
           &statusBadgeHtml="(get props statusBadgeHtml)"
         />
       </noop>
@@ -117,23 +116,31 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
     &aria-selected="(get props selectedAttr)"
     tabindex="0"
   >
-    <div class="flex flex-wrap items-start justify-between gap-badge-pill-y">
+    <div class="flex items-start justify-between gap-badge-pill-y">
       <a
         &href="(get props href)"
         data-inline-select="1"
         data-lane-select="1"
         &data-student-id="(get props idAttr)"
-        class="min-w-0 flex-1 wrap-break-word font-medium text-app-text dark:text-app-text-dark underline-offset-2 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark"
+        class="min-w-0 flex-1 text-sm font-medium text-app-text dark:text-app-text-dark underline-offset-2 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark"
         &children="(get props name)"
       ></a>
-      <div class="flex max-w-full flex-wrap justify-end gap-badge-y">
-        <noop &children="(get props badgesHtml)"></noop>
+      <div class="shrink-0">
+        <noop &children="(get props statusBadgeHtml)"></noop>
       </div>
     </div>
-    <p &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></p>
-    <p class="mt-1 text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="(get props targetText)"></p>
-    <p class="mt-1 text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="(get props nextMeetingText)"></p>
-    <p class="mt-2"><noop &children="(get props statusBadgeHtml)"></noop></p>
+    <div class="mt-badge-y flex flex-wrap items-center justify-between gap-badge-y">
+      <div class="flex max-w-full flex-wrap gap-badge-y">
+        <noop &children="(get props badgesHtml)"></noop>
+      </div>
+      <p class="min-w-0 text-right text-[11px] text-app-text-muted dark:text-app-text-muted-dark" &children="(get props metaText)"></p>
+    </div>
+    <p
+      &visibleIf="(get props topicVisible)"
+      &class="(get props topicTextClass)"
+      style="-webkit-line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;"
+      &children="(get props topic)"
+    ></p>
   </li>`,
   };
 
@@ -160,7 +167,7 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
       mutedTextXs: escapeHtml(MUTED_TEXT_XS),
       cardClass: escapeHtml(`snap-start min-h-lane ${SURFACE_CARD_SM}`),
       emptyStateClass: escapeHtml(EMPTY_DASHED_CARD),
-      topicTextClass: escapeHtml(TOPIC_TEXT_SM),
+      topicTextClass: escapeHtml(`mt-badge-y ${TOPIC_TEXT_SM}`),
       lanes: preparePhaseLanes(students, selectedStudent),
     },
     components,
