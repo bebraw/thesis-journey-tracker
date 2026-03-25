@@ -83,7 +83,7 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
       <h3 class="min-h-10 flex-1 text-sm font-semibold leading-5" &children="(get props label)"></h3>
       <noop &children="(get props countBadgeHtml)"></noop>
     </div>
-    <ul class="mt-stack-xs max-h-[28rem] space-y-badge-y overflow-y-auto pr-badge-y" &visibleIf="(get props hasStudents)">
+    <ul class="mt-stack-xs max-h-[28rem] space-y-stack-xs overflow-y-auto pr-badge-y" &visibleIf="(get props hasStudents)">
       <noop &foreach="(get props students)">
         <LaneStudentCard
           &idAttr="(get props idAttr)"
