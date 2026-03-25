@@ -73,6 +73,8 @@ npm run account:create -- --name "Professor" --password "change-this-password" -
 
 By default this writes to the local D1 database. Add `--remote` if you want to create an account in the deployed database instead.
 
+If you created accounts earlier with the older `210000` PBKDF2 default, run the same `account:create` command again for each affected account to rewrite the stored hash with the Cloudflare-compatible `100000` iteration default.
+
 For the full setup flow, see [docs/setup.md](./docs/setup.md).
 
 ## Documentation

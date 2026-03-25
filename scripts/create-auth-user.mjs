@@ -2,7 +2,8 @@ import { pbkdf2Sync, randomBytes } from "node:crypto";
 import { spawnSync } from "node:child_process";
 
 const DEFAULT_DATABASE_NAME = "thesis_tracker_db";
-const DEFAULT_ITERATIONS = 210_000;
+const DEFAULT_ITERATIONS = 100_000;
+const MAX_SUPPORTED_ITERATIONS = 100_000;
 
 main();
 
@@ -24,7 +25,19 @@ function main() {
     process.exit(1);
   }
 
-  const passwordHash = createPasswordHash(args.password, args.iterations ?? DEFAULT_ITERATIONS);
+  const iterations = args.iterations ?? DEFAULT_ITERATIONS;
+  if (!Number.isFinite(iterations) || iterations <= 0) {
+    console.error("Iterations must be a positive integer.");
+    process.exit(1);
+  }
+  if (iterations > MAX_SUPPORTED_ITERATIONS) {
+    console.error(
+      `Iterations above ${MAX_SUPPORTED_ITERATIONS} are not supported by the Cloudflare Workers runtime used for password verification.`,
+    );
+    process.exit(1);
+  }
+
+  const passwordHash = createPasswordHash(args.password, iterations);
   const sql = buildUpsertSql({
     name: args.name.trim(),
     passwordHash,
@@ -154,6 +167,7 @@ Options:
   --password    Plain-text password to hash before storing
   --role        editor or readonly
   --remote      Write to the remote D1 database instead of local
-  --print-sql   Print the generated SQL in addition to executing it`);
+  --print-sql   Print the generated SQL in addition to executing it
+  --iterations  PBKDF2 iteration count (default 100000, max 100000 on Cloudflare Workers)`);
   process.exit(exitCode);
 }

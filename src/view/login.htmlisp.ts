@@ -3,10 +3,12 @@ import { type HtmlispComponents } from "../htmlisp";
 import { escapeHtml } from "../utils";
 import { renderDocument, renderView } from "./shared.htmlisp";
 
-export function renderLoginPage(errorState: "invalid" | "rate_limit" | null, supportsMultipleAccounts = false): string {
+export function renderLoginPage(errorState: "invalid" | "rate_limit" | "password_reset" | null, supportsMultipleAccounts = false): string {
   const errorMessage =
     errorState === "rate_limit"
       ? "Too many failed sign-in attempts. Please wait 15 minutes and try again."
+      : errorState === "password_reset"
+        ? "This account needs a password reset before it can be used on Cloudflare. Re-create the account with the latest account:create command."
       : supportsMultipleAccounts
         ? "Invalid name or password. Please try again."
         : "Invalid password. Please try again.";

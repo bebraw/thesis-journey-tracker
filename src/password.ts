@@ -1,5 +1,6 @@
 const HASH_SCHEME = "pbkdf2_sha256";
-const DEFAULT_ITERATIONS = 210_000;
+const DEFAULT_ITERATIONS = 100_000;
+const MAX_SUPPORTED_ITERATIONS = 100_000;
 const SALT_LENGTH = 16;
 const DERIVED_KEY_LENGTH = 32;
 
@@ -18,6 +19,11 @@ interface ParsedPasswordHash {
 
 export async function hashPassword(password: string, options: HashPasswordOptions = {}): Promise<string> {
   const iterations = options.iterations ?? DEFAULT_ITERATIONS;
+  if (iterations > MAX_SUPPORTED_ITERATIONS) {
+    throw new Error(
+      `PBKDF2 iteration count ${iterations} exceeds the Cloudflare-supported maximum of ${MAX_SUPPORTED_ITERATIONS}.`,
+    );
+  }
   const salt = options.salt ?? crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
   const derivedKey = await derivePasswordKey(password, salt, iterations);
   return `${HASH_SCHEME}$${iterations}$${encodeBase64(salt)}$${encodeBase64(derivedKey)}`;
@@ -27,6 +33,12 @@ export async function verifyPassword(password: string, storedHash: string): Prom
   const parsedHash = parsePasswordHash(storedHash);
   if (!parsedHash) {
     return false;
+  }
+
+  if (parsedHash.iterations > MAX_SUPPORTED_ITERATIONS) {
+    throw new Error(
+      `Stored password hash uses ${parsedHash.iterations} PBKDF2 iterations, but this Cloudflare deployment supports at most ${MAX_SUPPORTED_ITERATIONS}. Reset the account password with the latest account:create script.`,
+    );
   }
 
   const actualDerivedKey = await derivePasswordKey(password, parsedHash.salt, parsedHash.iterations);

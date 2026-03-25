@@ -139,7 +139,14 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     if (sessionUser) {
       return redirect("/");
     }
-    const errorState = url.searchParams.get("error") === "rate_limit" ? "rate_limit" : url.searchParams.get("error") ? "invalid" : null;
+    const errorState =
+      url.searchParams.get("error") === "rate_limit"
+        ? "rate_limit"
+        : url.searchParams.get("error") === "password_reset"
+          ? "password_reset"
+          : url.searchParams.get("error")
+            ? "invalid"
+            : null;
     return htmlResponse(renderLoginPage(errorState, authState.users.length > 1));
   }
 
@@ -160,7 +167,19 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         ? authState.users[0] || null
         : authState.users.find((user) => user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase()) || null;
 
-    if (!candidateUser || !(await verifyPassword(password, candidateUser.passwordHash))) {
+    let passwordVerified = false;
+    try {
+      passwordVerified = candidateUser ? await verifyPassword(password, candidateUser.passwordHash) : false;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes("Stored password hash uses")) {
+        console.error("Password hash requires reset", { user: candidateUser?.name || enteredName, message });
+        return redirect("/login?error=password_reset");
+      }
+      throw error;
+    }
+
+    if (!candidateUser || !passwordVerified) {
       const nextAttempt = buildFailedLoginAttempt(currentAttempt, loginAttemptKey, now);
       await saveLoginAttempt(env.DB, nextAttempt);
       return redirect(nextAttempt.lockedUntil ? "/login?error=rate_limit" : "/login?error=1");

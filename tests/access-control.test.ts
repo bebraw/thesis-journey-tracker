@@ -279,4 +279,33 @@ describe("multi-user access control", () => {
     expect(env.DB.appUsers.some((user) => user.name === "Professor" && user.role === "readonly")).toBe(true);
     expect(env.DB.appUsers.every((user) => !user.password_hash.includes("readonly-password"))).toBe(true);
   });
+
+  it("redirects to password reset guidance for accounts hashed above the Cloudflare PBKDF2 limit", async () => {
+    env = {
+      DB: new MockD1Database(),
+      SESSION_SECRET: "test-secret",
+    };
+    env.DB.seedAuthUser({
+      name: "Advisor",
+      password_hash: `pbkdf2_sha256$210000$${Buffer.alloc(16).toString("base64")}$${Buffer.alloc(32).toString("base64")}`,
+      role: "editor",
+    });
+
+    const response = await fetchHandler(
+      new Request("http://localhost/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          name: "Advisor",
+          password: "any-password",
+        }),
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/login?error=password_reset");
+  });
 });
