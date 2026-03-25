@@ -18,8 +18,8 @@ fallthrough = true
 
 [[d1_databases]]
 binding = "DB"
-database_name = "thesis_tracker_db"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_name = "thesis-journey-tracker"
+database_id = "33243c3d-4b68-47c7-91f8-f3d432dc887b"
 migrations_dir = "migrations"
 
 [triggers]
@@ -27,7 +27,7 @@ crons = ["30 1 * * *"]
 
 [[r2_buckets]]
 binding = "BACKUP_BUCKET"
-bucket_name = "replace-with-your-r2-backup-bucket"
+bucket_name = "thesis-journey-tracker-backup"
 
 [vars]
 BACKUP_PREFIX = "automated-backups"
