@@ -18,8 +18,8 @@ fallthrough = true
 
 [[d1_databases]]
 binding = "DB"
-database_name = "thesis-journey-tracker"
-database_id = "33243c3d-4b68-47c7-91f8-f3d432dc887b"
+database_name = "thesis_tracker_db"
+database_id = "d6813d8a-2b7d-4761-8baa-3e821877fd00"
 migrations_dir = "migrations"
 
 [triggers]
