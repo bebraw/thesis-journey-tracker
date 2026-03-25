@@ -3,18 +3,16 @@ import {
   FIELD_CONTROL_WITH_MARGIN,
   FILTER_LABEL,
   MUTED_TEXT_XS,
-  STATUS_BADGE,
   SURFACE_CARD,
   TABLE_CELL,
   TABLE_HEADER_ROW,
   TEXT_LINK,
   TOPIC_TEXT_SM,
-  getMeetingStatusBadgeClass,
   renderBadge,
   renderButton,
 } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
-import { escapeHtml, formatDateTime, getDegreeLabel, getPhaseLabel, meetingStatusId, meetingStatusText } from "../../utils";
+import { escapeHtml, formatDateTime, getDegreeLabel, getPhaseLabel, meetingStatusId } from "../../utils";
 import { renderView } from "../shared.htmlisp";
 import { DEGREE_TYPES, PHASES } from "../../reference-data";
 
@@ -41,7 +39,6 @@ interface PreparedStudentRow {
   phaseLabel: string;
   targetDate: string;
   nextMeetingText: string;
-  statusBadgeHtml: string;
   logCountText: string;
   actionButtonHtml: string;
 }
@@ -55,7 +52,6 @@ function prepareFilterOptions(options: Array<{ value: string; label: string }>):
 
 function prepareStudentRows(students: Student[], selectedStudent: Student | null, canEdit: boolean): PreparedStudentRow[] {
   return students.map((student) => {
-    const statusText = meetingStatusText(student);
     const statusId = meetingStatusId(student);
     const isSelected = selectedStudent ? selectedStudent.id === student.id : false;
     const summaryHtml = renderView(
@@ -94,9 +90,6 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
       phaseLabel: escapeHtml(getPhaseLabel(student.currentPhase, PHASES)),
       targetDate: escapeHtml(student.targetSubmissionDate),
       nextMeetingText: escapeHtml(student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked"),
-      statusBadgeHtml: `<span class="${escapeHtml(
-        `${STATUS_BADGE} ${getMeetingStatusBadgeClass(statusId)}`,
-      )}">${escapeHtml(statusText)}</span>`,
       logCountText: String(student.logCount),
       actionButtonHtml: renderButton({
         label: canEdit ? "View & Edit" : "View",
@@ -137,7 +130,6 @@ export function renderStudentsTable(
     <td &class="(get props cellClass)" &children="(get props phaseLabel)"></td>
     <td &class="(get props cellClass)" &children="(get props targetDate)"></td>
     <td &class="(get props cellClass)" &children="(get props nextMeetingText)"></td>
-    <td &class="(get props cellClass)"><noop &children="(get props statusBadgeHtml)"></noop></td>
     <td &class="(get props cellClass)" &children="(get props logCountText)"></td>
     <td &class="(get props cellClass)"><noop &children="(get props actionButtonHtml)"></noop></td>
   </tr>`,
@@ -220,7 +212,6 @@ export function renderStudentsTable(
                 <th class="px-cell-x py-cell-y">Phase</th>
                 <th class="px-cell-x py-cell-y">Target</th>
                 <th class="px-cell-x py-cell-y">Next meeting (local)</th>
-                <th class="px-cell-x py-cell-y">Status</th>
                 <th class="px-cell-x py-cell-y">Logs</th>
                 <th class="px-cell-x py-cell-y">Action</th>
               </tr>
@@ -246,14 +237,13 @@ export function renderStudentsTable(
                     &phaseLabel="(get props phaseLabel)"
                     &targetDate="(get props targetDate)"
                     &nextMeetingText="(get props nextMeetingText)"
-                    &statusBadgeHtml="(get props statusBadgeHtml)"
                     &logCountText="(get props logCountText)"
                     &actionButtonHtml="(get props actionButtonHtml)"
                   ></StudentTableRow>
                 </noop>
               </noop>
               <tr &visibleIf="(get props showEmptyRow)">
-                <td colspan="8" class="px-cell-x py-stack-xs text-sm text-app-text-muted dark:text-app-text-muted-dark">No students yet.</td>
+                <td colspan="7" class="px-cell-x py-stack-xs text-sm text-app-text-muted dark:text-app-text-muted-dark">No students yet.</td>
               </tr>
             </tbody>
           </table>
