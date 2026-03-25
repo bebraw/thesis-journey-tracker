@@ -31,3 +31,8 @@ bucket_name = "thesis-journey-tracker-backup"
 
 [vars]
 BACKUP_PREFIX = "automated-backups"
+
+[observability]
+[observability.logs]
+enabled = false
+invocation_logs = true
