@@ -5,7 +5,7 @@ export const BODY_CLASS_LOGIN = "h-full bg-app-canvas text-app-text antialiased 
 export const PAGE_WRAP = "mx-auto max-w-layout space-y-stack px-page-x py-page-y sm:px-page-x-sm lg:px-page-x-lg";
 export const PAGE_WRAP_NARROW = "mx-auto max-w-layout-narrow space-y-stack px-page-x py-page-y sm:px-page-x-sm lg:px-page-x-lg";
 export const HEADER_CARD =
-  "relative flex flex-col gap-panel-sm overflow-hidden rounded-panel border border-app-line bg-app-surface px-panel py-panel-sm shadow-panel dark:border-app-line-dark dark:bg-app-surface-dark sm:flex-row sm:items-center sm:justify-between sm:px-panel-lg sm:py-panel";
+  "sticky top-2 z-40 flex flex-col gap-badge-y overflow-hidden rounded-panel border border-app-line bg-app-surface/92 px-panel-sm py-badge-pill-y shadow-panel backdrop-blur supports-[backdrop-filter]:bg-app-surface/88 dark:border-app-line-dark dark:bg-app-surface-dark/92 dark:supports-[backdrop-filter]:bg-app-surface-dark/84 sm:top-3 sm:flex-row sm:items-center sm:justify-between sm:gap-stack-xs sm:px-panel sm:py-badge-pill-y";
 export const SURFACE_CARD =
   "rounded-panel border border-app-line bg-app-surface p-panel shadow-panel dark:border-app-line-dark dark:bg-app-surface-dark";
 export const SURFACE_CARD_SM =
@@ -33,7 +33,7 @@ export const FOCUS_RING =
   "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark";
 export const TEXT_LINK = `underline-offset-2 hover:underline ${FOCUS_RING}`;
 export const STATUS_BADGE = "rounded-control px-badge-pill-x py-badge-pill-y text-xs";
-export const THEME_TOGGLE_BUTTON = `inline-flex h-10 w-10 items-center justify-center rounded-full border border-app-field bg-app-surface text-sm font-medium text-app-text shadow-sm hover:bg-app-surface-soft dark:border-app-field-dark dark:bg-app-surface-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark ${FOCUS_RING}`;
+export const THEME_TOGGLE_BUTTON = `inline-flex h-8 w-8 items-center justify-center rounded-full border border-app-field bg-app-surface text-sm font-medium text-app-text shadow-sm hover:bg-app-surface-soft dark:border-app-field-dark dark:bg-app-surface-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark sm:h-9 sm:w-9 ${FOCUS_RING}`;
 export const DANGER_PANEL =
   "rounded-panel border border-app-danger-line bg-app-danger-soft/70 p-panel-sm dark:border-app-danger-soft-dark/60 dark:bg-app-danger-soft-dark/35";
 export const DANGER_TITLE = "text-lg font-semibold text-app-danger-text dark:text-app-danger-text-dark";

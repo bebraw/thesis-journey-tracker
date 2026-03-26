@@ -131,22 +131,24 @@ export function renderAuthedPageHeader(title: string, description: string, actio
   </button>`,
     AuthHeader: `<header &class="(get props headerClass)">
     <div class="min-w-0">
-      <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-muted dark:text-app-text-muted-dark">Advisor Workspace</p>
-      <h1 class="mt-2 text-2xl font-semibold sm:text-[2rem]" &children="(get props title)"></h1>
+      <p class="sr-only">Advisor Workspace</p>
+      <h1 class="text-lg font-semibold leading-tight sm:text-xl" &children="(get props title)"></h1>
       <p &class="(get props descriptionClass)" &children="(get props description)"></p>
     </div>
-    <div class="flex flex-wrap items-center gap-badge-pill-y sm:justify-end sm:gap-stack-xs">
+    <div class="flex items-center justify-between gap-badge-y sm:flex-nowrap sm:justify-end sm:gap-badge-pill-y">
       <div &class="(get props viewerSummaryClass)">
         <span &children="(get props viewerNameText)"></span>
         <span class="font-semibold" &children="(get props viewerRoleText)"></span>
       </div>
-      <div class="flex flex-wrap items-center gap-badge-pill-y sm:gap-stack-xs">
+      <div &class="(get props actionsRowClass)">
         <noop &children="(get props actionsHtml)"></noop>
       </div>
-      <ThemeToggleButton &className="(get props themeToggleClass)" />
-      <form action="/logout" method="post">
-        <noop &children="(get props logoutButtonHtml)"></noop>
-      </form>
+      <div class="flex shrink-0 items-center gap-badge-y sm:gap-badge-pill-y">
+        <ThemeToggleButton &className="(get props themeToggleClass)" />
+        <form action="/logout" method="post">
+          <noop &children="(get props logoutButtonHtml)"></noop>
+        </form>
+      </div>
     </div>
   </header>`,
   };
@@ -160,6 +162,7 @@ export function renderAuthedPageHeader(title: string, description: string, actio
       &viewerSummaryClass="(get props viewerSummaryClass)"
       &viewerNameText="(get props viewerNameText)"
       &viewerRoleText="(get props viewerRoleText)"
+      &actionsRowClass="(get props actionsRowClass)"
       &actionsHtml="(get props actionsHtml)"
       &themeToggleClass="(get props themeToggleClass)"
       &logoutButtonHtml="(get props logoutButtonHtml)"
@@ -168,12 +171,15 @@ export function renderAuthedPageHeader(title: string, description: string, actio
       headerClass: escapeHtml(HEADER_CARD),
       title: escapeHtml(title),
       description: escapeHtml(description),
-      descriptionClass: escapeHtml(`mt-2 max-w-2xl ${SUBTLE_TEXT}`),
+      descriptionClass: escapeHtml("sr-only"),
       viewerSummaryClass: escapeHtml(
-        "inline-flex items-center gap-badge-x rounded-full border border-app-field bg-app-surface-soft px-control-x py-badge-pill-y text-xs text-app-text-soft shadow-sm dark:border-app-field-dark dark:bg-app-surface-soft-dark/70 dark:text-app-text-soft-dark",
+        "sr-only",
       ),
       viewerNameText: escapeHtml(`Signed in as ${viewer.name}`),
       viewerRoleText: escapeHtml(viewer.role === "readonly" ? "Read-only" : "Editor"),
+      actionsRowClass: escapeHtml(
+        "flex min-w-0 flex-1 items-center gap-badge-y overflow-x-auto pb-0.5 pr-badge-y sm:flex-nowrap sm:justify-end sm:overflow-visible sm:pb-0 sm:pr-0 [&>*]:shrink-0",
+      ),
       actionsHtml,
       themeToggleClass: escapeHtml(THEME_TOGGLE_BUTTON),
       logoutButtonHtml: renderButton({
