@@ -1,8 +1,8 @@
 import type { DegreeId, PhaseId, Student, StudentMutationInput } from "./db";
-import { normalizeDate, normalizeDateTime, normalizeString, toDateTimeLocalInput } from "./utils";
+import { mapLegacyPhaseId, normalizeDate, normalizeDateTime, normalizeString, toDateTimeLocalInput } from "./utils";
 
 const DEGREE_IDS: DegreeId[] = ["bsc", "msc", "dsc"];
-const PHASE_IDS: PhaseId[] = ["research_plan", "researching", "first_complete_draft", "editing", "submission_ready", "submitted"];
+const PHASE_IDS: PhaseId[] = ["research_plan", "researching", "editing", "submitted"];
 
 export const STUDENT_FORM_FIELDS = {
   name: "name",
@@ -118,7 +118,8 @@ function normalizePhaseId(value: FormDataEntryValue | string | null | undefined)
   if (!text) {
     return null;
   }
-  return PHASE_IDS.includes(text as PhaseId) ? (text as PhaseId) : null;
+  const normalized = mapLegacyPhaseId(text);
+  return PHASE_IDS.includes(normalized as PhaseId) ? (normalized as PhaseId) : null;
 }
 
 function readRequiredField(

@@ -13,9 +13,7 @@ export interface DegreeDefinition {
 export const PHASES: PhaseDefinition[] = [
   { id: "research_plan", label: "Planning research" },
   { id: "researching", label: "Researching" },
-  { id: "first_complete_draft", label: "First complete draft" },
   { id: "editing", label: "Editing" },
-  { id: "submission_ready", label: "Draft ready to submit" },
   { id: "submitted", label: "Submitted" },
 ];
 

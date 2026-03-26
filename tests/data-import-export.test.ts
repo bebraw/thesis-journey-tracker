@@ -182,7 +182,7 @@ describe("data import and export", () => {
                 thesisTopic: "Imported thesis",
                 studentNotes: "Imported student note",
                 startDate: "2026-02-01",
-                currentPhase: "editing",
+                currentPhase: "submission_ready",
                 nextMeetingAt: "2026-04-01T09:00:00.000Z",
                 logs: [
                   {
@@ -196,7 +196,7 @@ describe("data import and export", () => {
                   {
                     changedAt: "2026-03-15T08:00:00.000Z",
                     fromPhase: "research_plan",
-                    toPhase: "editing",
+                    toPhase: "first_complete_draft",
                   },
                 ],
               },
@@ -222,6 +222,7 @@ describe("data import and export", () => {
     expect(env.DB.students).toHaveLength(2);
     expect(env.DB.students[1]?.name).toBe("Imported Student");
     expect(env.DB.students[1]?.student_notes).toBe("Imported student note");
+    expect(env.DB.students[1]?.current_phase).toBe("editing");
     expect(env.DB.meetingLogs).toHaveLength(2);
     expect(env.DB.meetingLogs[1]?.discussed).toBe("Imported log");
     expect(env.DB.phaseAuditEntries).toHaveLength(2);

@@ -32,7 +32,7 @@ SELECT
   'bsc',
   'Evaluating lightweight note-taking workflows in supervision meetings',
   strftime('%Y-%m-%d', 'now', '-5 months'),
-  'first_complete_draft',
+  'editing',
   NULL
 WHERE NOT EXISTS (SELECT 1 FROM students WHERE name = 'Leo Mikkola');
 
@@ -70,7 +70,7 @@ SELECT
   'msc',
   'Practical dashboard design for supervision triage',
   strftime('%Y-%m-%d', 'now', '-9 months'),
-  'submission_ready',
+  'editing',
   strftime('%Y-%m-%dT%H:%M:%fZ', 'now', 'start of day', '+10 days', '+11 hours')
 WHERE NOT EXISTS (SELECT 1 FROM students WHERE name = 'Otso Heikkinen');
 
@@ -172,7 +172,7 @@ SELECT
   s.id,
   strftime('%Y-%m-%dT%H:%M:%fZ', 'now', 'start of day', '-25 days', '+15 hours'),
   'researching',
-  'first_complete_draft'
+  'editing'
 FROM students s
 WHERE s.name = 'Leo Mikkola'
   AND NOT EXISTS (
@@ -185,7 +185,7 @@ INSERT INTO student_phase_audit (student_id, changed_at, from_phase, to_phase)
 SELECT
   s.id,
   strftime('%Y-%m-%dT%H:%M:%fZ', 'now', 'start of day', '-30 days', '+10 hours'),
-  'first_complete_draft',
+  'researching',
   'editing'
 FROM students s
 WHERE s.name = 'Sofia Laakso'
@@ -199,8 +199,8 @@ INSERT INTO student_phase_audit (student_id, changed_at, from_phase, to_phase)
 SELECT
   s.id,
   strftime('%Y-%m-%dT%H:%M:%fZ', 'now', 'start of day', '-20 days', '+12 hours'),
-  'editing',
-  'submission_ready'
+  'researching',
+  'editing'
 FROM students s
 WHERE s.name = 'Otso Heikkinen'
   AND NOT EXISTS (
@@ -213,7 +213,7 @@ INSERT INTO student_phase_audit (student_id, changed_at, from_phase, to_phase)
 SELECT
   s.id,
   strftime('%Y-%m-%dT%H:%M:%fZ', 'now', 'start of day', '-60 days', '+13 hours'),
-  'submission_ready',
+  'editing',
   'submitted'
 FROM students s
 WHERE s.name = 'Aada Salonen'

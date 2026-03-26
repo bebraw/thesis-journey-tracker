@@ -1,6 +1,6 @@
 import type { AccessRole } from "./auth";
 
-export type PhaseId = "research_plan" | "researching" | "first_complete_draft" | "editing" | "submission_ready" | "submitted";
+export type PhaseId = "research_plan" | "researching" | "editing" | "submitted";
 
 export type DegreeId = "bsc" | "msc" | "dsc";
 

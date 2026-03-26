@@ -32,7 +32,7 @@ SELECT
   'msc',
   'Collaborative drafting workflows for academic writing',
   '2025-12-01',
-  'first_complete_draft',
+  'editing',
   NULL
 WHERE NOT EXISTS (SELECT 1 FROM students WHERE name = 'Noah Virtanen');
 

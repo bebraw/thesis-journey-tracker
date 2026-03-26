@@ -247,7 +247,7 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
     "## Summary",
     `- Total students: ${studentBundles.length}`,
     `- Submitted: ${studentBundles.filter(({ student }) => student.currentPhase === "submitted").length}`,
-    `- Draft ready to submit: ${studentBundles.filter(({ student }) => student.currentPhase === "submission_ready").length}`,
+    `- Editing: ${studentBundles.filter(({ student }) => student.currentPhase === "editing").length}`,
     `- Overdue meetings: ${overdueMeetings.length}`,
     `- Meetings coming up within 2 weeks: ${upcomingSoon.length}`,
     `- No meeting booked: ${noMeetingBooked.length}`,

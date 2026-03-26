@@ -2,6 +2,11 @@ import type { SessionUser } from "./auth";
 import type { DegreeId, PhaseId, Student } from "./db";
 import type { DegreeDefinition, PhaseDefinition } from "./reference-data";
 
+const LEGACY_PHASE_ID_MAP: Record<string, PhaseId> = {
+  first_complete_draft: "editing",
+  submission_ready: "editing",
+};
+
 export interface SessionConfig {
   cookieName: string;
   ttlSeconds: number;
@@ -88,7 +93,12 @@ export function normalizePhase(value: FormDataEntryValue | string | null | undef
   if (!text) {
     return null;
   }
-  return phases.some((phase) => phase.id === text) ? (text as PhaseId) : null;
+  const normalized = mapLegacyPhaseId(text);
+  return phases.some((phase) => phase.id === normalized) ? (normalized as PhaseId) : null;
+}
+
+export function mapLegacyPhaseId(value: string): string {
+  return LEGACY_PHASE_ID_MAP[value] || value;
 }
 
 export function normalizeDegree(
@@ -154,9 +164,10 @@ export function toDateTimeLocalInput(isoValue: string | null): string {
   return localDate.toISOString().slice(0, 16);
 }
 
-export function getPhaseLabel(phaseId: PhaseId, phases: readonly PhaseDefinition[]): string {
-  const phase = phases.find((item) => item.id === phaseId);
-  return phase ? phase.label : phaseId;
+export function getPhaseLabel(phaseId: string, phases: readonly PhaseDefinition[]): string {
+  const normalized = mapLegacyPhaseId(phaseId);
+  const phase = phases.find((item) => item.id === normalized);
+  return phase ? phase.label : normalized;
 }
 
 export function getDegreeLabel(degreeId: DegreeId, degrees: readonly DegreeDefinition[]): string {
