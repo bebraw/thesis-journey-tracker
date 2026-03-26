@@ -22,7 +22,7 @@ import {
 import { type HtmlispComponents } from "../htmlisp";
 import { DEGREE_TYPES, PHASES } from "../reference-data";
 import { getStudentFormValues } from "../student-form";
-import { addSixMonths, escapeHtml, escapeJsString, formatDateTime, getDegreeLabel, getPhaseLabel } from "../utils";
+import { escapeHtml, escapeJsString, formatDateTime, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate } from "../utils";
 import { renderView } from "./shared.htmlisp";
 import { renderStudentFormFields } from "./student-form-fields";
 
@@ -82,7 +82,7 @@ function preparePhaseAuditEntries(entries: PhaseAuditEntry[]): PreparedPhaseAudi
 }
 
 function prepareReadonlyFields(student: Student): PreparedReadonlyField[] {
-  const targetSubmissionDate = addSixMonths(student.startDate);
+  const targetSubmissionDate = getTargetSubmissionDate(student);
   return [
     { label: "Name", value: student.name },
     { label: "Email", value: student.email || "Not set" },
@@ -187,7 +187,7 @@ export function renderSelectedStudentPanel(
             <noop &children="(get props startDateField)"></noop>
           </div>
           <p class="mt-stack-xs text-xs text-app-text-muted dark:text-app-text-muted-dark">
-              Target submission is calculated automatically when a start date is set.
+              MSc target submission is calculated automatically as six months from the start date.
           </p>
         </div>
       </details>

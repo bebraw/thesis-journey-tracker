@@ -1,10 +1,10 @@
 import type { CreateStudentInput, DegreeId, MeetingLog, PhaseAuditEntry, PhaseId, Student } from "./db";
 import { DEGREE_TYPES, PHASES } from "./reference-data";
 import {
-  addSixMonths,
   formatDateTime,
   getDegreeLabel,
   getPhaseLabel,
+  getTargetSubmissionDate,
   meetingStatusText,
   normalizeDate,
   normalizeDateTime,
@@ -183,7 +183,7 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
   });
   const noMeetingBooked = studentBundles.filter(({ student }) => !student.nextMeetingAt);
   const pastTarget = studentBundles.filter(({ student }) => {
-    const targetSubmissionDate = addSixMonths(student.startDate);
+    const targetSubmissionDate = getTargetSubmissionDate(student);
     return Boolean(targetSubmissionDate && targetSubmissionDate < today && student.currentPhase !== "submitted");
   });
 
@@ -195,11 +195,11 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
   const needsAttention = studentBundles
     .filter(({ student }) => {
       const meetingStatus = meetingStatusText(student);
-      const targetSubmissionDate = addSixMonths(student.startDate);
+      const targetSubmissionDate = getTargetSubmissionDate(student);
       return meetingStatus === "Overdue" || meetingStatus === "Not booked" || Boolean(targetSubmissionDate && targetSubmissionDate < today);
     })
     .map(({ student, latestLog }) => {
-      const targetSubmissionDate = addSixMonths(student.startDate);
+      const targetSubmissionDate = getTargetSubmissionDate(student);
       const parts = [
         `${student.name} (${getDegreeLabel(student.degreeType, DEGREE_TYPES)})`,
         `phase ${getPhaseLabel(student.currentPhase, PHASES)}`,
@@ -215,7 +215,7 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
     });
 
   const studentLines = studentBundles.map(({ student, latestLog }) => {
-    const targetSubmissionDate = addSixMonths(student.startDate);
+    const targetSubmissionDate = getTargetSubmissionDate(student);
     const parts = [
       `${student.name} (${getDegreeLabel(student.degreeType, DEGREE_TYPES)})`,
       `phase ${getPhaseLabel(student.currentPhase, PHASES)}`,

@@ -11,7 +11,7 @@ import {
   renderButton,
 } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
-import { addSixMonths, escapeHtml, formatDateTime, getDegreeLabel, getPhaseLabel, meetingStatusId } from "../../utils";
+import { escapeHtml, formatDateTime, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusId } from "../../utils";
 import { renderView } from "../shared.htmlisp";
 import { DEGREE_TYPES, PHASES } from "../../reference-data";
 
@@ -59,7 +59,7 @@ function prepareFilterOptions(options: Array<{ value: string; label: string }>):
 function prepareStudentRows(students: Student[], selectedStudent: Student | null): PreparedStudentRow[] {
   return students.map((student) => {
     const statusId = meetingStatusId(student);
-    const targetSubmissionDate = addSixMonths(student.startDate);
+    const targetSubmissionDate = getTargetSubmissionDate(student);
     const degreeLabel = getDegreeLabel(student.degreeType, DEGREE_TYPES);
     const phaseLabel = getPhaseLabel(student.currentPhase, PHASES);
     const isSelected = selectedStudent ? selectedStudent.id === student.id : false;

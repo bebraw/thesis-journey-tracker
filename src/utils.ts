@@ -114,8 +114,15 @@ export function addSixMonths(dateText: string | null): string | null {
   return date.toISOString().slice(0, 10);
 }
 
-export function isPastTargetSubmissionDate(student: Pick<Student, "startDate" | "currentPhase">, today: string): boolean {
-  const targetSubmissionDate = addSixMonths(student.startDate);
+export function getTargetSubmissionDate(student: Pick<Student, "degreeType" | "startDate">): string | null {
+  if (student.degreeType !== "msc") {
+    return null;
+  }
+  return addSixMonths(student.startDate);
+}
+
+export function isPastTargetSubmissionDate(student: Pick<Student, "degreeType" | "startDate" | "currentPhase">, today: string): boolean {
+  const targetSubmissionDate = getTargetSubmissionDate(student);
   return Boolean(targetSubmissionDate && targetSubmissionDate < today && student.currentPhase !== "submitted");
 }
 

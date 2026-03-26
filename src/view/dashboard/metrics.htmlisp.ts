@@ -13,7 +13,7 @@ export function renderMetricCards(metrics: Metrics): string {
   const preparedMetrics: PreparedMetric[] = [
     { label: "Students tracked", metricValue: String(metrics.total) },
     { label: "Meetings not booked", metricValue: String(metrics.noMeeting) },
-    { label: "Past six-month target", metricValue: String(metrics.pastTarget) },
+    { label: "Past MSc target", metricValue: String(metrics.pastTarget) },
     { label: "Submitted", metricValue: String(metrics.submitted) },
   ];
   const components: HtmlispComponents = {
