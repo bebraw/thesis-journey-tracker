@@ -310,7 +310,6 @@ test.describe("dashboard e2e", () => {
     const agreedPlanText = `Agreed action plan ${suffix}`;
 
     await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Edit Student" }).click();
-    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Profile details" }).click();
     await page.locator("#selectedStudentPanel").getByLabel("Name").fill(updatedStudentName);
     await page.locator("#selectedStudentPanel").getByLabel("Email").fill(updatedEmail);
     await page.locator("#selectedStudentPanel").getByLabel("Degree type").selectOption({ label: "MSc" });

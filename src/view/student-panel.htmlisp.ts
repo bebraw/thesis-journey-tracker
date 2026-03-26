@@ -10,7 +10,6 @@ import {
   FIELD_CONTROL,
   FORM_STACK,
   PANEL_STACK,
-  SECTION_STACK_SM,
   SOFT_SURFACE_CARD,
   SURFACE_CARD,
   SUBTLE_TEXT,
@@ -181,50 +180,28 @@ export function renderSelectedStudentPanel(
   const editFormHtml = renderView(
     `<form &action="(get props action)" method="post" &class="(get props formStack)">
       <input type="hidden" name="returnTo" &value="(get props returnTo)" />
-      <section class="rounded-card border border-app-line bg-app-surface-soft/70 px-panel-sm py-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/40">
-        <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h3 class="text-base font-semibold">Quick update</h3>
-            <p class="text-xs text-app-text-muted dark:text-app-text-muted-dark">Update the fields you are most likely to change during day-to-day supervision.</p>
-          </div>
-          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Topic, phase, meeting</span>
-        </div>
-        <div class="mt-stack-xs grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
-          <noop &children="(get props topicField)"></noop>
-          <noop &children="(get props phaseField)"></noop>
-          <noop &children="(get props nextMeetingField)"></noop>
-        </div>
-      </section>
-      <details &class="(get props disclosureClass)">
-        <summary &class="(get props disclosureSummaryClass)">
-          <span>Profile details</span>
-          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">
-            Name, email, degree, dates
-          </span>
-        </summary>
-        <div &class="(get props disclosureContentClass)">
-          <div class="grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
-            <noop &children="(get props nameField)"></noop>
-            <noop &children="(get props emailField)"></noop>
-            <noop &children="(get props degreeField)"></noop>
-            <noop &children="(get props startDateField)"></noop>
-          </div>
-          <div class="mt-stack-xs">
-            <noop &children="(get props notesField)"></noop>
-          </div>
-          <p class="mt-stack-xs text-xs text-app-text-muted dark:text-app-text-muted-dark">
-              MSc target submission is calculated automatically as six months from the start date.
-          </p>
-        </div>
-      </details>
+      <p class="text-xs text-app-text-muted dark:text-app-text-muted-dark">
+        Update student details directly here without opening extra sections.
+      </p>
+      <div class="grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
+        <noop &children="(get props nameField)"></noop>
+        <noop &children="(get props emailField)"></noop>
+        <noop &children="(get props degreeField)"></noop>
+        <noop &children="(get props phaseField)"></noop>
+        <noop &children="(get props topicField)"></noop>
+        <noop &children="(get props startDateField)"></noop>
+        <noop &children="(get props nextMeetingField)"></noop>
+      </div>
+      <div>
+        <noop &children="(get props notesField)"></noop>
+      </div>
+      <p class="text-xs text-app-text-muted dark:text-app-text-muted-dark">
+          MSc target submission is calculated automatically as six months from the start date.
+      </p>
       <noop &children="(get props submitButton)"></noop>
     </form>`,
     {
       action: escapeHtml(`/actions/update-student/${student.id}`),
-      disclosureClass: escapeHtml(DISCLOSURE),
-      disclosureContentClass: escapeHtml(DISCLOSURE_CONTENT),
-      disclosureFieldsClass: escapeHtml(SECTION_STACK_SM),
-      disclosureSummaryClass: escapeHtml(DISCLOSURE_SUMMARY),
       formStack: escapeHtml(FORM_STACK),
       returnTo: escapeHtml(returnTo),
       ...fields,
