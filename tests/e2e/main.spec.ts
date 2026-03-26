@@ -17,7 +17,7 @@ async function login(page: Page) {
   await page.getByLabel("Password").fill(LOGIN_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("heading", { name: "MSc Thesis Journey Tracker" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Thesis Journey Tracker" })).toBeVisible();
 }
 
 async function selectStudentFromTable(page: Page, studentName: string) {
@@ -408,7 +408,7 @@ test.describe("dashboard e2e", () => {
     expect(dialog.message()).toContain(`Delete ${secondaryStudentName}?`);
     await dialog.accept();
 
-    await expect(page).toHaveURL(/\/$/);
+    await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe(secondaryStudentName);
     await page.locator("#studentSearch").fill(secondaryStudentName);
     await expect(page.locator("[data-student-row]", { hasText: secondaryStudentName })).toHaveCount(0);
     await expect(page.locator("#selectedStudentPanel")).toContainText(
@@ -420,7 +420,7 @@ test.describe("dashboard e2e", () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await login(page);
 
-    await selectStudentFromTable(page, secondaryStudentName);
+    await selectStudentFromTable(page, updatedStudentName);
     await showStudentPanel(page);
 
     await page.setViewportSize({ width: 390, height: 844 });
