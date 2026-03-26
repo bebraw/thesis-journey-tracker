@@ -5,7 +5,6 @@ import { runAutomatedBackup, type R2BucketLike } from "./backup";
 import {
   clearLoginAttempt,
   createMeetingLog,
-  createPhaseAuditEntry,
   createStudent,
   deleteStudent,
   type D1Database,
@@ -21,6 +20,7 @@ import {
   studentExists,
   upsertAuthUser,
   updateStudent,
+  updateStudentWithPhaseAudit,
 } from "./db";
 import { hashPassword, verifyPassword } from "./password";
 import { parseStudentFormSubmission } from "./student-form";
@@ -494,15 +494,20 @@ async function handleUpdateStudent(request: Request, env: Env, studentId: number
     return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Invalid update input" }));
   }
 
-  await updateStudent(env.DB, studentId, studentInput);
-
-  if (existingStudent.currentPhase !== studentInput.currentPhase) {
-    await createPhaseAuditEntry(env.DB, {
-      studentId,
-      changedAt: new Date().toISOString(),
-      fromPhase: existingStudent.currentPhase,
-      toPhase: studentInput.currentPhase,
-    });
+  try {
+    if (existingStudent.currentPhase !== studentInput.currentPhase) {
+      await updateStudentWithPhaseAudit(env.DB, studentId, studentInput, {
+        studentId,
+        changedAt: new Date().toISOString(),
+        fromPhase: existingStudent.currentPhase,
+        toPhase: studentInput.currentPhase,
+      });
+    } else {
+      await updateStudent(env.DB, studentId, studentInput);
+    }
+  } catch (error) {
+    console.error("Failed to save student update", error);
+    return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Failed to save student update" }));
   }
 
   return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, notice: "Student updated" }));

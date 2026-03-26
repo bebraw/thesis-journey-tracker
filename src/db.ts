@@ -357,20 +357,8 @@ export async function listPhaseAuditEntriesForStudent(db: D1Database, studentId:
 
 export async function createStudent(db: D1Database, input: CreateStudentInput): Promise<number> {
   const result = await db
-    .prepare(
-      `INSERT INTO students (name, email, degree_type, thesis_topic, student_notes, start_date, current_phase, next_meeting_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(
-      input.name,
-      input.email,
-      input.degreeType,
-      input.thesisTopic,
-      input.studentNotes,
-      input.startDate,
-      input.currentPhase,
-      input.nextMeetingAt,
-    )
+    .prepare(buildInsertStudentQuery())
+    .bind(...studentMutationValues(input))
     .run();
 
   return parseDbNumber(result.meta.last_row_id ?? 0);
@@ -382,24 +370,16 @@ export async function studentExists(db: D1Database, studentId: number): Promise<
 }
 
 export async function updateStudent(db: D1Database, studentId: number, input: UpdateStudentInput): Promise<void> {
-  await db
-    .prepare(
-      `UPDATE students
-       SET name = ?, email = ?, degree_type = ?, thesis_topic = ?, student_notes = ?, start_date = ?, current_phase = ?, next_meeting_at = ?
-       WHERE id = ?`,
-    )
-    .bind(
-      input.name,
-      input.email,
-      input.degreeType,
-      input.thesisTopic,
-      input.studentNotes,
-      input.startDate,
-      input.currentPhase,
-      input.nextMeetingAt,
-      studentId,
-    )
-    .run();
+  await buildUpdateStudentStatement(db, studentId, input).run();
+}
+
+export async function updateStudentWithPhaseAudit(
+  db: D1Database,
+  studentId: number,
+  input: UpdateStudentInput,
+  auditEntry: CreatePhaseAuditInput,
+): Promise<void> {
+  await db.batch([buildUpdateStudentStatement(db, studentId, input), buildCreatePhaseAuditStatement(db, auditEntry)]);
 }
 
 export async function deleteStudent(db: D1Database, studentId: number): Promise<void> {
@@ -421,13 +401,7 @@ export async function createMeetingLog(db: D1Database, input: CreateLogInput): P
 }
 
 export async function createPhaseAuditEntry(db: D1Database, input: CreatePhaseAuditInput): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO student_phase_audit (student_id, changed_at, from_phase, to_phase)
-       VALUES (?, ?, ?, ?)`,
-    )
-    .bind(input.studentId, input.changedAt, input.fromPhase, input.toPhase)
-    .run();
+  await buildCreatePhaseAuditStatement(db, input).run();
 }
 
 function parseDbNumber(value: number | string | null | undefined): number {
@@ -439,4 +413,41 @@ function parseDbNumber(value: number | string | null | undefined): number {
     return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;
+}
+
+function buildInsertStudentQuery(): string {
+  return `INSERT INTO students (name, email, degree_type, thesis_topic, student_notes, start_date, current_phase, next_meeting_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+}
+
+function buildUpdateStudentStatement(db: D1Database, studentId: number, input: UpdateStudentInput): D1PreparedStatement {
+  return db
+    .prepare(
+      `UPDATE students
+       SET name = ?, email = ?, degree_type = ?, thesis_topic = ?, student_notes = ?, start_date = ?, current_phase = ?, next_meeting_at = ?
+       WHERE id = ?`,
+    )
+    .bind(...studentMutationValues(input), studentId);
+}
+
+function buildCreatePhaseAuditStatement(db: D1Database, input: CreatePhaseAuditInput): D1PreparedStatement {
+  return db
+    .prepare(
+      `INSERT INTO student_phase_audit (student_id, changed_at, from_phase, to_phase)
+       VALUES (?, ?, ?, ?)`,
+    )
+    .bind(input.studentId, input.changedAt, input.fromPhase, input.toPhase);
+}
+
+function studentMutationValues(input: StudentMutationInput): D1Value[] {
+  return [
+    input.name,
+    input.email,
+    input.degreeType,
+    input.thesisTopic,
+    input.studentNotes,
+    input.startDate,
+    input.currentPhase,
+    input.nextMeetingAt,
+  ];
 }

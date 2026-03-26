@@ -16,12 +16,6 @@ Add a calendar view that can:
 
 This will require Google Calendar integration, calendar event sync, and a UI flow for picking a meeting slot.
 
-### Phase Change Audit Reliability
-
-Investigate the phase change audit feature. The database contents appear correct, so the issue may be in the rendering or retrieval path rather than the write path.
-
-At minimum this needs better test coverage. Ideally it should also be verified end to end in the UI.
-
 ## Highest-Value Next Steps
 
 ### Advisor Weekly Digest

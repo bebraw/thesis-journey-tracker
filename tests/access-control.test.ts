@@ -58,6 +58,13 @@ describe("multi-user access control", () => {
       agreed_plan: "Write chapter 1",
       next_step_deadline: "2026-03-29",
     });
+    env.DB.phaseAuditEntries.push({
+      id: 1,
+      student_id: 1,
+      changed_at: "2026-03-21T12:00:00.000Z",
+      from_phase: "research_plan",
+      to_phase: "researching",
+    });
 
     const response = await fetchHandler(
       new Request("http://localhost/partials/student/1", {
@@ -76,6 +83,7 @@ describe("multi-user access control", () => {
     expect(body).toContain("Baseline student note");
     expect(body).toContain("2026-07-01");
     expect(body).toContain("Initial review");
+    expect(body).toContain("Planning research -&gt; Researching");
     expect(body).not.toContain("Save student updates");
     expect(body).not.toContain("Delete Student");
   });

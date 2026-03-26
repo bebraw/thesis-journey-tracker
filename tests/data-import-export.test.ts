@@ -128,6 +128,40 @@ describe("data import and export", () => {
     expect(env.DB.phaseAuditEntries[1]?.to_phase).toBe("editing");
   });
 
+  it("rolls back a phase change if writing the audit entry fails", async () => {
+    env.DB.failQueries.push(/^INSERT INTO student_phase_audit/);
+
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+
+    const response = await fetchHandler(
+      new Request("http://localhost/actions/update-student/1", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams({
+          name: "Base Student",
+          email: "base@example.edu",
+          degreeType: "msc",
+          thesisTopic: "Baseline supervision topic",
+          studentNotes: "Baseline student note",
+          startDate: "",
+          currentPhase: "editing",
+          nextMeetingAt: "",
+        }),
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toContain("Failed+to+save+student+update");
+    expect(env.DB.students[0]?.current_phase).toBe("researching");
+    expect(env.DB.phaseAuditEntries).toHaveLength(1);
+    expect(env.DB.phaseAuditEntries[0]?.to_phase).toBe("researching");
+  });
+
   it("appends imported students and logs by default", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);

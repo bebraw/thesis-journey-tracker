@@ -306,6 +306,7 @@ test.describe("dashboard e2e", () => {
     const updatedEmail = `updated-${suffix}@example.edu`;
     const updatedTopic = `Updated thesis topic ${suffix}`;
     const updatedNotes = `Updated student note ${suffix}`;
+    const finalPhaseTransitionText = "Editing -> Submitted";
     const discussedText = `Discussed milestone ${suffix}`;
     const agreedPlanText = `Agreed action plan ${suffix}`;
 
@@ -360,6 +361,29 @@ test.describe("dashboard e2e", () => {
 
     await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Phase Change Audit" }).click();
     await expect(page.locator("#selectedStudentPanel")).toContainText("Planning research -> Editing");
+
+    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Edit Student" }).click();
+    await page.locator("#selectedStudentPanel").getByLabel("Phase").selectOption({ label: "Submitted" });
+    await page.evaluate(() => {
+      (window as Window & { __studentEditNoReloadMarker?: number }).__studentEditNoReloadMarker = 2;
+    });
+    await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save student updates" }).click();
+
+    await expect(page).toHaveURL(/notice=Student\+updated/);
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as Window & { __studentEditNoReloadMarker?: number }).__studentEditNoReloadMarker ?? 0),
+      )
+      .toBe(2);
+    await showStudentPanel(page);
+    await expect(page.locator("#selectedStudentPanel").getByLabel("Phase")).toHaveValue("submitted");
+    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Phase Change Audit" }).click();
+    await expect(page.locator("#selectedStudentPanel")).toContainText(finalPhaseTransitionText);
+    await expect(page.locator("#selectedStudentPanel")).toContainText("Planning research -> Editing");
+    const phaseAuditText = (await page.locator("#selectedStudentPanel").textContent()) || "";
+    expect(phaseAuditText.indexOf(finalPhaseTransitionText)).toBeGreaterThan(-1);
+    expect(phaseAuditText.indexOf("Planning research -> Editing")).toBeGreaterThan(-1);
+    expect(phaseAuditText.indexOf(finalPhaseTransitionText)).toBeLessThan(phaseAuditText.indexOf("Planning research -> Editing"));
   });
 
   test("can delete a student after confirmation", async ({ page }) => {
