@@ -2,6 +2,50 @@
 
 This note collects feature ideas that feel like a natural next step for the project. It is intentionally lightweight: the items here are prompts for future planning, not firm commitments.
 
+## Current Priority Items
+
+These are the most immediate follow-up items to address next.
+
+### Degree-Specific Submission Timing Rules
+
+The current six-month target submission logic should apply only to MSc students. Other degree types need their own rules or no derived target at all.
+
+### Google Calendar Scheduling View
+
+Add a calendar view that can:
+
+- show existing events from a Google Calendar
+- schedule meetings with students directly from the app
+- send a Google Calendar invitation to the student when an email address is available
+
+This will require Google Calendar integration, calendar event sync, and a UI flow for picking a meeting slot.
+
+### Editing Panel Field Overflow Fixes
+
+Fix the selected-student editing panel so these controls do not overflow their container:
+
+- `Add Log Entry` -> `Meeting date/time`
+- `Add Log Entry` -> `Next-step deadline`
+
+This is primarily a layout and responsive behavior issue.
+
+### Persist Dashboard Filters In The URL
+
+Keep student table filters in the query string so filtered views can be refreshed, bookmarked, and shared more reliably.
+
+### Student Notes Field
+
+Add a free-form note field for each student that:
+
+- can be edited from the app
+- is visible in the students table
+
+### Phase Change Audit Reliability
+
+Investigate the phase change audit feature. The database contents appear correct, so the issue may be in the rendering or retrieval path rather than the write path.
+
+At minimum this needs better test coverage. Ideally it should also be verified end to end in the UI.
+
 ## Highest-Value Next Steps
 
 ### Advisor Weekly Digest
