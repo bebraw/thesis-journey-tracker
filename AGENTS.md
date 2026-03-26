@@ -14,3 +14,8 @@ This file stores durable working rules for automated contributors operating in t
 - Keep `Current Priority Items` focused on the next real follow-up tasks.
 - Avoid leaving recently completed work in the roadmap just because it was implemented in a separate commit.
 - Prefer concise roadmap entries that describe the remaining problem, not implementation history.
+
+## Frontend Design
+
+- Use the project-local [`frontend-design`](./.codex/skills/frontend-design/SKILL.md) skill for substantial UI work such as page redesigns, dashboard polish, new view composition, or shared component styling.
+- Treat the skill as guidance for preserving the app's established visual language unless the user explicitly asks for a broader redesign.
