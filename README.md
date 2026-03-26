@@ -14,7 +14,7 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 
 - Add students with degree type, thesis topic, and timeline information.
 - Track each student through thesis phases from planning to submission.
-- Store supervision logs with discussion notes, action items, and optional deadlines.
+- Store supervision logs with discussion notes and action items.
 - Follow upcoming meetings from the dashboard.
 - Filter the student list by phase, degree type, and meeting status.
 - Open a weekly Google Calendar scheduling view, see existing events, and send meeting invites to students. If you want a lower-friction setup, the app also supports a read-only Google Calendar iCal fallback for availability.

@@ -954,7 +954,9 @@ async function handleAddLog(request: Request, env: Env, studentId: number): Prom
   const happenedAt = normalizeDateTime(formData.get("happenedAt"), true) || new Date().toISOString();
   const discussed = normalizeString(formData.get("discussed"));
   const agreedPlan = normalizeString(formData.get("agreedPlan"));
-  const nextStepDeadline = normalizeDate(formData.get("nextStepDeadline"), true);
+  const nextStepDeadlineValue = formData.get("nextStepDeadline");
+  const nextStepDeadline =
+    nextStepDeadlineValue === null ? null : normalizeDate(nextStepDeadlineValue, true);
 
   if (!discussed || !agreedPlan || nextStepDeadline === undefined) {
     return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Invalid log input" }));

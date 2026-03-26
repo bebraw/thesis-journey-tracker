@@ -219,7 +219,6 @@ export function renderSelectedStudentPanel(
       <noop &children="(get props happenedAtField)"></noop>
       <noop &children="(get props discussedField)"></noop>
       <noop &children="(get props agreedPlanField)"></noop>
-      <noop &children="(get props nextStepDeadlineField)"></noop>
       <noop &children="(get props submitButton)"></noop>
     </form>`,
     {
@@ -243,12 +242,6 @@ export function renderSelectedStudentPanel(
         label: "Agreed plan / next actions",
         name: "agreedPlan",
         required: true,
-        className: FIELD_CONTROL,
-      }),
-      nextStepDeadlineField: renderInputField({
-        label: "Next-step deadline (optional)",
-        name: "nextStepDeadline",
-        type: "date",
         className: FIELD_CONTROL,
       }),
       submitButton: renderButton({

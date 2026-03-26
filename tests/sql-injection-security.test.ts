@@ -108,7 +108,6 @@ describe("SQL injection safety", () => {
             happenedAt: "",
             discussed: payload,
             agreedPlan: "Complete chapter 2",
-            nextStepDeadline: "2026-03-30",
           }),
         }),
         env,

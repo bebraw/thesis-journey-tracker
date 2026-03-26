@@ -427,7 +427,7 @@ test.describe("dashboard e2e", () => {
     await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Add Log Entry" }).click();
 
     const panel = page.locator("#selectedStudentPanel");
-    const fieldLabels = ["Meeting date/time", "Next-step deadline (optional)"];
+    const fieldLabels = ["Meeting date/time"];
 
     for (const label of fieldLabels) {
       const field = panel.getByLabel(label);
