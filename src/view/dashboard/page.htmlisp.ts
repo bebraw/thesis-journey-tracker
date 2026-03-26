@@ -32,7 +32,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
     {
       pageWrap: escapeHtml(PAGE_WRAP),
       headerHtml: renderAuthedPageHeader(
-        "MSc Thesis Journey Tracker",
+        "Thesis Journey Tracker",
         canEdit
           ? "Track phases, next meetings, and supervision logs in one place."
           : "Read-only access for checking student progress, meetings, and supervision history.",
@@ -45,11 +45,15 @@ export function renderDashboardPage(data: DashboardPageData): string {
               label: "Data tools",
               href: "/data-tools",
               variant: "neutral",
-            })}${showStyleGuide ? renderButton({
-              label: "Style guide",
-              href: "/style-guide",
-              variant: "neutral",
-            }) : ""}${renderButton({
+            })}${
+              showStyleGuide
+                ? renderButton({
+                    label: "Style guide",
+                    href: "/style-guide",
+                    variant: "neutral",
+                  })
+                : ""
+            }${renderButton({
               label: "Add student",
               href: "/students/new",
               variant: "primary",
