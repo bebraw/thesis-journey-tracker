@@ -3,29 +3,29 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-app-canvas: #f1f5f9;
-  --color-app-canvas-dark: #020617;
+  --color-app-canvas: #f6f7f4;
+  --color-app-canvas-dark: #0b1220;
   --color-app-surface: #fff;
-  --color-app-surface-dark: #0f172a;
-  --color-app-surface-soft: #f8fafc;
-  --color-app-surface-soft-dark: #1e293b;
-  --color-app-line: #e2e8f0;
-  --color-app-line-strong: #cbd5e1;
-  --color-app-line-dark: #334155;
-  --color-app-line-dark-strong: #475569;
-  --color-app-field: #cbd5e1;
-  --color-app-field-dark: #475569;
-  --color-app-text: #0f172a;
-  --color-app-text-dark: #f1f5f9;
-  --color-app-text-soft: #475569;
-  --color-app-text-soft-dark: #cbd5e1;
-  --color-app-text-muted: #64748b;
-  --color-app-text-muted-dark: #cbd5e1;
-  --color-app-brand: #2563eb;
-  --color-app-brand-strong: #1d4ed8;
-  --color-app-brand-soft: #eff6ff;
-  --color-app-brand-soft-dark: #1e3a8a;
-  --color-app-brand-ring: #60a5fa;
+  --color-app-surface-dark: #101826;
+  --color-app-surface-soft: #f1f3f0;
+  --color-app-surface-soft-dark: #172132;
+  --color-app-line: #d9dfe7;
+  --color-app-line-strong: #c3ccd8;
+  --color-app-line-dark: #2d3a4d;
+  --color-app-line-dark-strong: #41516a;
+  --color-app-field: #c6d0db;
+  --color-app-field-dark: #4b5d76;
+  --color-app-text: #16202b;
+  --color-app-text-dark: #edf2f7;
+  --color-app-text-soft: #526072;
+  --color-app-text-soft-dark: #c4d0dc;
+  --color-app-text-muted: #6f7d8d;
+  --color-app-text-muted-dark: #b9c6d4;
+  --color-app-brand: #2d5b87;
+  --color-app-brand-strong: #234a70;
+  --color-app-brand-soft: #ebf3fa;
+  --color-app-brand-soft-dark: #1d3651;
+  --color-app-brand-ring: #86abc9;
   --color-app-success: #059669;
   --color-app-success-strong: #047857;
   --color-app-success-soft: #ecfdf5;
@@ -54,11 +54,11 @@
   --spacing-page-x: 1rem;
   --spacing-page-x-sm: 1.5rem;
   --spacing-page-x-lg: 2rem;
-  --spacing-page-y: 1.5rem;
+  --spacing-page-y: 1.75rem;
   --spacing-stack: 1.5rem;
   --spacing-stack-sm: 1rem;
   --spacing-stack-xs: 0.75rem;
-  --spacing-panel: 1.25rem;
+  --spacing-panel: 1.5rem;
   --spacing-panel-sm: 1rem;
   --spacing-panel-lg: 2rem;
   --spacing-control-x: 0.75rem;
@@ -70,12 +70,12 @@
   --spacing-cell-x: 0.5rem;
   --spacing-cell-y: 0.5rem;
 
-  --radius-panel: 1rem;
-  --radius-card: 0.75rem;
-  --radius-control: 0.375rem;
+  --radius-panel: 1.25rem;
+  --radius-card: 0.95rem;
+  --radius-control: 0.65rem;
 
-  --shadow-panel: 0 1px 2px 0 rgb(15 23 42 / 0.08);
-  --shadow-elevated: 0 10px 24px -12px rgb(15 23 42 / 0.35);
+  --shadow-panel: 0 16px 38px -30px rgb(15 23 42 / 0.42);
+  --shadow-elevated: 0 26px 64px -34px rgb(15 23 42 / 0.5);
 
   --container-layout: 80rem;
   --container-layout-narrow: 64rem;
@@ -95,6 +95,45 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+  html {
+    background: var(--color-app-canvas);
+  }
+
+  html.dark {
+    background: var(--color-app-canvas-dark);
+    color-scheme: dark;
+  }
+
+  body {
+    font-family:
+      "Avenir Next",
+      "Segoe UI",
+      "Helvetica Neue",
+      Arial,
+      sans-serif;
+    text-rendering: optimizeLegibility;
+    background-image:
+      radial-gradient(circle at top left, rgb(255 255 255 / 0.92), transparent 34rem),
+      linear-gradient(180deg, rgb(255 255 255 / 0.42), transparent 18rem);
+    background-attachment: fixed;
+  }
+
+  html.dark body {
+    background-image:
+      radial-gradient(circle at top left, rgb(134 171 201 / 0.14), transparent 28rem),
+      linear-gradient(180deg, rgb(255 255 255 / 0.02), transparent 18rem);
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background: rgb(134 171 201 / 0.3);
+  }
+
   *,
   ::after,
   ::before,

@@ -109,7 +109,7 @@ function renderReadonlyStudentSummary(student: Student): string {
       <h2 class="text-lg font-semibold">Student Overview</h2>
       <p &class="(get props currentStudentLineClass)" &children="(get props currentlyViewingText)"></p>
       <p &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></p>
-      <p &class="(get props readonlyNoticeClass)">Read-only access: student details, supervision logs, and phase history.</p>
+      <p &class="(get props readonlyNoticeClass)">Read-only access to details, supervision logs, and the phase timeline.</p>
       <dl class="mt-stack-xs grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
         <noop &foreach="(get props readonlyFields)">
           <div class="rounded-card border border-app-line bg-app-surface-soft/70 px-panel-sm py-stack-xs text-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/40">
@@ -332,12 +332,15 @@ export function renderSelectedStudentPanel(
           <p &class="(get props currentStudentLineClass)" &children="(get props currentlyViewingText)"></p>
         </div>
         <p &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></p>
+        <p class="mt-3 text-sm leading-6 text-app-text-soft dark:text-app-text-soft-dark">
+          Keep the workspace open while moving through edits, supervision logs, and phase history for this student.
+        </p>
       </section>
 
       <details &class="(get props disclosureClass)">
         <summary &class="(get props disclosureSummaryClass)">
           <span>Edit Student</span>
-          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Expand when needed</span>
+          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Core details</span>
         </summary>
         <div &class="(get props disclosureContentClass)">
           <noop &children="(get props editFormHtml)"></noop>
@@ -347,7 +350,7 @@ export function renderSelectedStudentPanel(
       <details &class="(get props disclosureClass)">
         <summary &class="(get props disclosureSummaryClass)">
           <span>Add Log Entry</span>
-          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Expand</span>
+          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Meeting notes</span>
         </summary>
         <div &class="(get props disclosureContentClass)">
           <noop &children="(get props addLogFormHtml)"></noop>

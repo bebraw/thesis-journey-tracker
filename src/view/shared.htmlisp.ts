@@ -130,8 +130,9 @@ export function renderAuthedPageHeader(title: string, description: string, actio
     </svg>
   </button>`,
     AuthHeader: `<header &class="(get props headerClass)">
-    <div>
-      <h1 class="text-xl font-semibold" &children="(get props title)"></h1>
+    <div class="min-w-0">
+      <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-muted dark:text-app-text-muted-dark">Advisor Workspace</p>
+      <h1 class="mt-2 text-2xl font-semibold sm:text-[2rem]" &children="(get props title)"></h1>
       <p &class="(get props descriptionClass)" &children="(get props description)"></p>
     </div>
     <div class="flex flex-wrap items-center gap-badge-pill-y sm:justify-end sm:gap-stack-xs">
@@ -139,7 +140,9 @@ export function renderAuthedPageHeader(title: string, description: string, actio
         <span &children="(get props viewerNameText)"></span>
         <span class="font-semibold" &children="(get props viewerRoleText)"></span>
       </div>
-      <noop &children="(get props actionsHtml)"></noop>
+      <div class="flex flex-wrap items-center gap-badge-pill-y sm:gap-stack-xs">
+        <noop &children="(get props actionsHtml)"></noop>
+      </div>
       <ThemeToggleButton &className="(get props themeToggleClass)" />
       <form action="/logout" method="post">
         <noop &children="(get props logoutButtonHtml)"></noop>
@@ -165,9 +168,9 @@ export function renderAuthedPageHeader(title: string, description: string, actio
       headerClass: escapeHtml(HEADER_CARD),
       title: escapeHtml(title),
       description: escapeHtml(description),
-      descriptionClass: escapeHtml(SUBTLE_TEXT),
+      descriptionClass: escapeHtml(`mt-2 max-w-2xl ${SUBTLE_TEXT}`),
       viewerSummaryClass: escapeHtml(
-        "inline-flex items-center gap-badge-x rounded-control border border-app-field px-control-x py-badge-pill-y text-xs text-app-text-soft dark:border-app-field-dark dark:text-app-text-soft-dark",
+        "inline-flex items-center gap-badge-x rounded-full border border-app-field bg-app-surface-soft px-control-x py-badge-pill-y text-xs text-app-text-soft shadow-sm dark:border-app-field-dark dark:bg-app-surface-soft-dark/70 dark:text-app-text-soft-dark",
       ),
       viewerNameText: escapeHtml(`Signed in as ${viewer.name}`),
       viewerRoleText: escapeHtml(viewer.role === "readonly" ? "Read-only" : "Editor"),

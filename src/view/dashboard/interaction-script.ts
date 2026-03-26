@@ -235,7 +235,7 @@ function updateSortHeaders() {
 function setPanelVisibility(visible) {
   if (!selectedStudentPanelShell || !toggleStudentPanelButton) return;
   selectedStudentPanelShell.classList.toggle("hidden", !visible);
-  toggleStudentPanelButton.textContent = visible ? "Hide editing panel" : "Show editing panel";
+  toggleStudentPanelButton.textContent = visible ? "Hide details panel" : "Show details panel";
   toggleStudentPanelButton.setAttribute("aria-expanded", visible ? "true" : "false");
 }
 

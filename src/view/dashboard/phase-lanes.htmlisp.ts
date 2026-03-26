@@ -76,9 +76,7 @@ function preparePhaseLanes(students: Student[], selectedStudent: Student | null,
         label: String(laneStudents.length),
         variant: "count",
       }),
-      cardClass: escapeHtml(
-        `snap-start h-full w-full ${laneStudents.length > 0 ? "sm:min-h-lane sm:min-w-[12rem] sm:flex-1" : "sm:min-h-lane sm:w-[10rem] sm:flex-none"} ${SURFACE_CARD_SM}`,
-      ),
+      cardClass: escapeHtml(`h-full min-h-lane w-full ${SURFACE_CARD_SM}`),
       hasStudents: laneStudents.length > 0,
       isEmpty: laneStudents.length === 0,
       students: laneStudents.map((student) => {
@@ -93,8 +91,10 @@ function preparePhaseLanes(students: Student[], selectedStudent: Student | null,
           idAttr: String(student.id),
           selectedAttr: isSelected ? "true" : "false",
           cardClass: escapeHtml(
-            `rounded-card border border-app-line bg-app-surface-soft px-control-x py-badge-pill-y transition-colors cursor-pointer dark:border-app-line-dark dark:bg-app-surface-soft-dark/70 hover:border-app-line-strong dark:hover:border-app-line-dark-strong${
-              isSelected ? " ring-2 ring-app-brand-ring/60 dark:ring-app-brand-ring/40" : ""
+            `rounded-card border px-control-x py-badge-pill-y transition cursor-pointer ${
+              isSelected
+                ? "border-app-brand bg-app-brand-soft shadow-sm dark:border-app-brand-ring dark:bg-app-brand-soft-dark/30"
+                : "border-app-line bg-app-surface-soft hover:border-app-line-strong hover:bg-app-surface dark:border-app-line-dark dark:bg-app-surface-soft-dark/70 dark:hover:border-app-line-dark-strong dark:hover:bg-app-surface-dark"
             }`,
           ),
           href: escapeHtml(buildDashboardHref(filters, student.id)),
@@ -166,7 +166,7 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
         <h2 class="text-lg font-semibold">Phase Lanes</h2>
         <p &class="(get props mutedTextXs)">Overview of where students currently are in the thesis process.</p>
       </div>
-      <div class="flex flex-col gap-panel-sm sm:flex-row sm:flex-wrap sm:items-stretch">
+      <div class="grid grid-cols-1 gap-panel-sm lg:grid-cols-3 2xl:grid-cols-5">
         <noop &foreach="(get props lanes)">
           <PhaseLane
             &cardClass="(get props cardClass)"

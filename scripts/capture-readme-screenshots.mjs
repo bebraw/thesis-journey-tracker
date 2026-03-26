@@ -24,7 +24,7 @@ async function showStudentPanel(page, studentName) {
   await page.locator("#studentSearch").fill(studentName);
   await page.locator("[data-student-row]", { hasText: studentName }).first().click();
   if (!(await panelShell.isVisible())) {
-    await page.getByRole("button", { name: "Show editing panel" }).click();
+    await page.locator("#toggleStudentPanelButton").click();
   }
   await page.locator("#studentSearch").fill("");
   await page.waitForLoadState("networkidle");
@@ -34,7 +34,7 @@ async function addScreenshotPadding(page, options = {}) {
   const { limitStudentRows = false } = options;
   await page.addStyleTag({
     content: `
-      body { background: #f3efe6 !important; }
+      body { background: #f6f7f4 !important; }
       #selectedStudentPanelShell { display: block !important; }
       ${limitStudentRows ? "[data-student-row]:nth-of-type(n+7) { display: none !important; }" : ""}
     `,

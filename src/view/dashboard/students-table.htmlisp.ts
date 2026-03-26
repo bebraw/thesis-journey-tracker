@@ -127,7 +127,7 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
 
     return {
       rowClass: escapeHtml(
-        `${isSelected ? "bg-app-brand-soft dark:bg-app-brand-soft-dark/20" : "hover:bg-app-surface-soft dark:hover:bg-app-surface-soft-dark/35"} cursor-pointer`,
+        `${isSelected ? "bg-app-brand-soft/90 dark:bg-app-brand-soft-dark/25" : "hover:bg-app-surface-soft/85 dark:hover:bg-app-surface-soft-dark/35"} cursor-pointer transition-colors`,
       ),
       selectedAttr: isSelected ? "true" : "false",
       selectHref: escapeHtml(buildDashboardHref(filters, student.id)),
@@ -252,52 +252,54 @@ export function renderStudentsTable(
         <div class="mb-panel-sm flex flex-col gap-stack-xs sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 class="text-lg font-semibold">Students</h2>
-            <p &class="(get props mutedTextXs)">Use filters to quickly find students that need attention.</p>
+            <p &class="(get props mutedTextXs)">Find students quickly, then keep the detail panel open while you work through updates.</p>
           </div>
           <noop &children="(get props panelToggleButtonHtml)"></noop>
         </div>
-        <div class="mb-panel-sm grid grid-cols-1 gap-stack-xs sm:grid-cols-2 xl:grid-cols-4">
-          <label &class="(get props filterLabelClass)">
-            Search
-            <input
-              id="studentSearch"
-              type="search"
-              placeholder="Name, email, topic, or notes"
-              aria-describedby="studentResultsMeta"
-              &class="(get props filterControlClass)"
-              &value="(get props searchValue)"
-            />
-          </label>
-          <label &class="(get props filterLabelClass)">
-            Degree type
-            <select id="degreeFilter" &class="(get props filterControlClass)">
-              <noop &foreach="(get props degreeFilterOptions)">
-                <option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option>
-              </noop>
-            </select>
-          </label>
-          <label &class="(get props filterLabelClass)">
-            Phase
-            <select id="phaseFilter" &class="(get props filterControlClass)">
-              <noop &foreach="(get props phaseFilterOptions)">
-                <option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option>
-              </noop>
-            </select>
-          </label>
-          <label &class="(get props filterLabelClass)">
-            Meeting status
-            <select id="statusFilter" &class="(get props filterControlClass)">
-              <noop &foreach="(get props statusFilterOptions)">
-                <option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option>
-              </noop>
-            </select>
-          </label>
+        <div class="mb-panel-sm rounded-card border border-app-line bg-app-surface-soft/75 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/35">
+          <div class="grid grid-cols-1 gap-stack-xs sm:grid-cols-2 xl:grid-cols-4">
+            <label &class="(get props filterLabelClass)">
+              Search
+              <input
+                id="studentSearch"
+                type="search"
+                placeholder="Name, email, topic, or notes"
+                aria-describedby="studentResultsMeta"
+                &class="(get props filterControlClass)"
+                &value="(get props searchValue)"
+              />
+            </label>
+            <label &class="(get props filterLabelClass)">
+              Degree type
+              <select id="degreeFilter" &class="(get props filterControlClass)">
+                <noop &foreach="(get props degreeFilterOptions)">
+                  <option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option>
+                </noop>
+              </select>
+            </label>
+            <label &class="(get props filterLabelClass)">
+              Phase
+              <select id="phaseFilter" &class="(get props filterControlClass)">
+                <noop &foreach="(get props phaseFilterOptions)">
+                  <option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option>
+                </noop>
+              </select>
+            </label>
+            <label &class="(get props filterLabelClass)">
+              Meeting status
+              <select id="statusFilter" &class="(get props filterControlClass)">
+                <noop &foreach="(get props statusFilterOptions)">
+                  <option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option>
+                </noop>
+              </select>
+            </label>
+          </div>
         </div>
-        <p id="studentResultsMeta" class="mb-badge-pill-y text-xs text-app-text-muted dark:text-app-text-muted-dark"></p>
-        <p class="mb-badge-pill-y text-xs text-app-text-muted dark:text-app-text-muted-dark">
-          Tip: click a row to select a student, use Show panel when you want details, and click a column header to sort.
-        </p>
-        <div class="overflow-x-auto">
+        <div class="mb-badge-pill-y flex flex-col gap-badge-y text-xs text-app-text-muted dark:text-app-text-muted-dark sm:flex-row sm:items-center sm:justify-between">
+          <p id="studentResultsMeta"></p>
+          <p>Tip: rows open the workspace, filters stay in the URL, and headers sort instantly.</p>
+        </div>
+        <div class="overflow-x-auto rounded-card border border-app-line bg-app-surface-soft/35 dark:border-app-line-dark dark:bg-app-surface-soft-dark/20">
           <table class="w-full min-w-table divide-y divide-app-line text-sm dark:divide-app-line-dark">
             <thead>
               <tr &class="(get props tableHeaderClass)">
@@ -317,6 +319,7 @@ export function renderStudentsTable(
                     &dataName="(get props dataName)"
                     &dataEmail="(get props dataEmail)"
                     &dataTopic="(get props dataTopic)"
+                    &dataNotes="(get props dataNotes)"
                     &dataDegree="(get props dataDegree)"
                     &dataDegreeLabel="(get props dataDegreeLabel)"
                     &dataPhase="(get props dataPhase)"
@@ -361,12 +364,12 @@ export function renderStudentsTable(
       sortHeaders,
       hasStudentRows: studentRows.length > 0,
       panelToggleButtonHtml: renderButton({
-        label: "Show editing panel",
+        label: "Show details panel",
         type: "button",
         variant: "neutral",
         attributes: 'id="toggleStudentPanelButton" aria-expanded="false"',
       }),
-      selectedPanelShellClass: escapeHtml("hidden min-w-0 xl:w-[32rem] xl:shrink-0"),
+      selectedPanelShellClass: escapeHtml("hidden min-w-0 xl:sticky xl:top-6 xl:w-[32rem] xl:shrink-0"),
       showEmptyRow: studentRows.length === 0,
       studentRows,
       selectedPanel,

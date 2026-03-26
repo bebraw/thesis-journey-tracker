@@ -26,7 +26,8 @@ export function renderLoginPage(errorState: "invalid" | "rate_limit" | "password
   const bodyContent = renderView(
     `<main class="mx-auto flex h-full max-w-auth items-center px-page-x-sm">
       <section &class="(get props cardClass)">
-        <h1 class="text-2xl font-semibold">Thesis Journey Tracker</h1>
+        <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-muted dark:text-app-text-muted-dark">Private Thesis Supervision</p>
+        <h1 class="mt-3 text-3xl font-semibold">Thesis Journey Tracker</h1>
         <p &class="(get props subtleText)" &children="(get props subtitle)"></p>
         <ErrorFlash &visible="(get props showError)" &message="(get props errorMessage)"></ErrorFlash>
         <form action="/login" method="post" class="mt-stack space-y-panel-sm">
@@ -51,7 +52,7 @@ export function renderLoginPage(errorState: "invalid" | "rate_limit" | "password
       cardClass: escapeHtml(LOGIN_CARD),
       errorClass: escapeHtml(ALERT_CLASS_MAP.error),
       passwordFieldClass: escapeHtml(`${FIELD_CONTROL_SM} outline-hidden ring-app-brand focus:ring-2`),
-      subtleText: escapeHtml(`mt-2 ${SUBTLE_TEXT}`),
+      subtleText: escapeHtml(`mt-2 max-w-sm ${SUBTLE_TEXT}`),
       showNameField: supportsMultipleAccounts,
       showError: Boolean(errorState),
       errorMessage: escapeHtml(errorMessage),
@@ -61,7 +62,11 @@ export function renderLoginPage(errorState: "invalid" | "rate_limit" | "password
         variant: "primaryBlock",
         className: "transition",
       }),
-      subtitle: escapeHtml(supportsMultipleAccounts ? "Private supervision dashboard login for assigned accounts" : "Private advisor dashboard login"),
+      subtitle: escapeHtml(
+        supportsMultipleAccounts
+          ? "Sign in with your assigned account to review students, meetings, and supervision history."
+          : "Sign in to open the supervision dashboard for your current thesis cohort.",
+      ),
     },
     components,
   );

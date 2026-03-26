@@ -23,8 +23,8 @@ export function renderDashboardPage(data: DashboardPageData): string {
     `<div &class="(get props pageWrap)">
       <noop &children="(get props headerHtml)"></noop>
       <div id="dashboardFlashMessages"><noop &children="(get props flashHtml)"></noop></div>
-      <div id="dashboardMetrics"><noop &children="(get props metricsHtml)"></noop></div>
-      <div id="dashboardPhaseLanes"><noop &children="(get props phaseLanesHtml)"></noop></div>
+      <div id="dashboardMetrics" class="space-y-stack-xs"><noop &children="(get props metricsHtml)"></noop></div>
+      <div id="dashboardPhaseLanes" class="space-y-stack-xs"><noop &children="(get props phaseLanesHtml)"></noop></div>
       <noop &children="(get props studentsTableHtml)"></noop>
     </div>
     <noop &children="(get props dashboardScript)"></noop>
@@ -34,8 +34,8 @@ export function renderDashboardPage(data: DashboardPageData): string {
       headerHtml: renderAuthedPageHeader(
         "Thesis Journey Tracker",
         canEdit
-          ? "Track phases, next meetings, and supervision logs in one place."
-          : "Read-only access for checking student progress, meetings, and supervision history.",
+          ? "A clean overview for tracking thesis progress, supervision follow-ups, and the students who need attention next."
+          : "Read-only access for reviewing student progress, meetings, and supervision history without changing records.",
         canEdit
           ? `${renderButton({
               label: "Schedule",
