@@ -39,6 +39,8 @@ describe("data import and export", () => {
   });
 
   it("exports the current dataset as a JSON attachment", async () => {
+    env.DB.students[0]!.archived_at = "2026-03-24T10:00:00.000Z";
+
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
@@ -58,6 +60,7 @@ describe("data import and export", () => {
       schemaVersion: number;
       students: Array<{
         name: string;
+        archivedAt?: string | null;
         studentNotes?: string | null;
         logs: Array<{ discussed: string }>;
         phaseAudit: Array<{ fromPhase: string; toPhase: string }>;
@@ -68,6 +71,7 @@ describe("data import and export", () => {
     expect(body.schemaVersion).toBe(1);
     expect(body.students).toHaveLength(1);
     expect(body.students[0]?.name).toBe("Base Student");
+    expect(body.students[0]?.archivedAt).toBe("2026-03-24T10:00:00.000Z");
     expect(body.students[0]?.studentNotes).toBe("Baseline student note");
     expect(body.students[0]?.logs[0]?.discussed).toBe("Initial review");
     expect(body.students[0]?.phaseAudit[0]?.fromPhase).toBe("research_plan");

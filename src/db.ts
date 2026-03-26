@@ -14,6 +14,7 @@ export interface Student {
   startDate: string | null;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
+  archivedAt: string | null;
   logCount: number;
   lastLogAt: string | null;
 }
@@ -92,6 +93,7 @@ interface StudentRow {
   start_date: string | null;
   current_phase: PhaseId;
   next_meeting_at: string | null;
+  archived_at: string | null;
   log_count: number | string | null;
   last_log_at: string | null;
 }
@@ -167,7 +169,13 @@ export interface UpsertAuthUserInput {
   role: AccessRole;
 }
 
-export async function listStudents(db: D1Database): Promise<Student[]> {
+interface StudentQueryOptions {
+  includeArchived?: boolean;
+  onlyArchived?: boolean;
+}
+
+export async function listStudents(db: D1Database, options: StudentQueryOptions = {}): Promise<Student[]> {
+  const whereClause = buildStudentVisibilityWhereClause("s", options);
   const rows = await db
     .prepare(
       `SELECT
@@ -177,8 +185,10 @@ export async function listStudents(db: D1Database): Promise<Student[]> {
        FROM students s
        LEFT JOIN meeting_logs ml
          ON ml.student_id = s.id
+       ${whereClause}
        GROUP BY s.id
        ORDER BY
+         CASE WHEN s.archived_at IS NULL THEN 0 ELSE 1 END,
          CASE WHEN s.next_meeting_at IS NULL THEN 1 ELSE 0 END,
          s.next_meeting_at ASC,
          CASE WHEN s.start_date IS NULL THEN 1 ELSE 0 END,
@@ -197,6 +207,7 @@ export async function listStudents(db: D1Database): Promise<Student[]> {
     startDate: row.start_date,
     currentPhase: row.current_phase as PhaseId,
     nextMeetingAt: row.next_meeting_at,
+    archivedAt: row.archived_at || null,
     logCount: parseDbNumber(row.log_count),
     lastLogAt: row.last_log_at || null,
   }));
@@ -331,7 +342,8 @@ export async function deleteAppSecret(db: D1Database, secretKey: string): Promis
   await db.prepare("DELETE FROM app_secrets WHERE secret_key = ?").bind(secretKey).run();
 }
 
-export async function getStudentById(db: D1Database, studentId: number): Promise<Student | null> {
+export async function getStudentById(db: D1Database, studentId: number, options: StudentQueryOptions = {}): Promise<Student | null> {
+  const whereClause = buildStudentVisibilityWhereClause("s", options, "s.id = ?");
   const row = await db
     .prepare(
       `SELECT
@@ -341,7 +353,7 @@ export async function getStudentById(db: D1Database, studentId: number): Promise
        FROM students s
        LEFT JOIN meeting_logs ml
          ON ml.student_id = s.id
-       WHERE s.id = ?
+       ${whereClause}
        GROUP BY s.id`,
     )
     .bind(studentId)
@@ -361,6 +373,7 @@ export async function getStudentById(db: D1Database, studentId: number): Promise
     startDate: row.start_date,
     currentPhase: row.current_phase as PhaseId,
     nextMeetingAt: row.next_meeting_at,
+    archivedAt: row.archived_at || null,
     logCount: parseDbNumber(row.log_count),
     lastLogAt: row.last_log_at || null,
   };
@@ -414,8 +427,9 @@ export async function createStudent(db: D1Database, input: CreateStudentInput): 
   return parseDbNumber(result.meta.last_row_id ?? 0);
 }
 
-export async function studentExists(db: D1Database, studentId: number): Promise<boolean> {
-  const row = await db.prepare("SELECT id FROM students WHERE id = ?").bind(studentId).first();
+export async function studentExists(db: D1Database, studentId: number, options: StudentQueryOptions = {}): Promise<boolean> {
+  const whereClause = buildStudentVisibilityWhereClause("", options, "id = ?");
+  const row = await db.prepare(`SELECT id FROM students ${whereClause}`).bind(studentId).first();
   return Boolean(row);
 }
 
@@ -432,8 +446,8 @@ export async function updateStudentWithPhaseAudit(
   await db.batch([buildUpdateStudentStatement(db, studentId, input), buildCreatePhaseAuditStatement(db, auditEntry)]);
 }
 
-export async function deleteStudent(db: D1Database, studentId: number): Promise<void> {
-  await db.prepare("DELETE FROM students WHERE id = ?").bind(studentId).run();
+export async function archiveStudent(db: D1Database, studentId: number, archivedAt: string): Promise<void> {
+  await db.prepare("UPDATE students SET archived_at = ? WHERE id = ? AND archived_at IS NULL").bind(archivedAt, studentId).run();
 }
 
 export async function deleteAllStudents(db: D1Database): Promise<void> {
@@ -500,4 +514,25 @@ function studentMutationValues(input: StudentMutationInput): D1Value[] {
     input.currentPhase,
     input.nextMeetingAt,
   ];
+}
+
+function buildStudentVisibilityWhereClause(alias: string, options: StudentQueryOptions, baseCondition?: string): string {
+  const qualifier = alias ? `${alias}.` : "";
+  const conditions: string[] = [];
+
+  if (baseCondition) {
+    conditions.push(baseCondition);
+  }
+
+  if (options.onlyArchived) {
+    conditions.push(`${qualifier}archived_at IS NOT NULL`);
+  } else if (!options.includeArchived) {
+    conditions.push(`${qualifier}archived_at IS NULL`);
+  }
+
+  if (conditions.length === 0) {
+    return "";
+  }
+
+  return `WHERE ${conditions.join(" AND ")}`;
 }

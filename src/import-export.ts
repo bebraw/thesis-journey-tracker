@@ -37,6 +37,7 @@ export interface ExportedStudent {
   startDate: string | null;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
+  archivedAt?: string | null;
   logs: ExportedMeetingLog[];
   phaseAudit: ExportedPhaseAuditEntry[];
 }
@@ -50,6 +51,7 @@ export interface DataExportFile {
 
 export interface ImportedStudentBundle {
   student: CreateStudentInput;
+  archivedAt: string | null;
   logs: ExportedMeetingLog[];
   phaseAudit: ExportedPhaseAuditEntry[];
 }
@@ -80,6 +82,7 @@ export function createDataExport(
       startDate: student.startDate,
       currentPhase: student.currentPhase,
       nextMeetingAt: student.nextMeetingAt,
+      archivedAt: student.archivedAt,
       logs: logs.map((log) => ({
         happenedAt: log.happenedAt,
         discussed: log.discussed,
@@ -278,8 +281,9 @@ function parseImportedStudent(value: unknown): ImportedStudentBundle | null {
   const startDate = normalizeDate(value.startDate as string | null | undefined, true);
   const currentPhase = normalizePhase(value.currentPhase as string | null | undefined, PHASES);
   const nextMeetingAt = normalizeDateTime(value.nextMeetingAt as string | null | undefined, true);
+  const archivedAt = normalizeDateTime(value.archivedAt as string | null | undefined, true);
 
-  if (startDate === undefined || !name || !degreeType || !currentPhase || nextMeetingAt === undefined) {
+  if (startDate === undefined || !name || !degreeType || !currentPhase || nextMeetingAt === undefined || archivedAt === undefined) {
     return null;
   }
 
@@ -322,6 +326,7 @@ function parseImportedStudent(value: unknown): ImportedStudentBundle | null {
       currentPhase,
       nextMeetingAt,
     },
+    archivedAt,
     logs,
     phaseAudit,
   };

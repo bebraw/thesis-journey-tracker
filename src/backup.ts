@@ -153,7 +153,7 @@ function buildAutomatedBackupPrefix(timestamp: Date, rawPrefix: string | null | 
 }
 
 async function collectStudentBackupBundles(db: D1Database): Promise<StudentBackupBundle[]> {
-  const students = await listStudents(db);
+  const students = await listStudents(db, { includeArchived: true });
   return Promise.all(
     students.map(async (student) => ({
       student,

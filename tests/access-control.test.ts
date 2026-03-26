@@ -76,7 +76,7 @@ describe("multi-user access control", () => {
     const body = await response.text();
     expect(response.status).toBe(200);
     expect(body).toContain("Student Overview");
-    expect(body).toContain("Read-only access: student details, supervision logs, and phase history.");
+    expect(body).toContain("Read-only access to details, supervision logs, and the phase timeline.");
     expect(body).toContain("Base Student");
     expect(body).toContain("base@example.edu");
     expect(body).toContain("Baseline supervision topic");
@@ -86,6 +86,7 @@ describe("multi-user access control", () => {
     expect(body).toContain("Planning research -&gt; Researching");
     expect(body).not.toContain("Save student updates");
     expect(body).not.toContain("Delete Student");
+    expect(body).not.toContain("Archive Student");
   });
 
   it("blocks readonly accounts from editor-only pages and mutations", async () => {

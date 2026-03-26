@@ -120,7 +120,7 @@ describe("SQL injection safety", () => {
     },
   );
 
-  it("deletes a student and cascades meeting logs", async () => {
+  it("archives a student and preserves meeting logs", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
@@ -134,7 +134,7 @@ describe("SQL injection safety", () => {
     });
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/delete-student/1", {
+      new Request("http://localhost/actions/archive-student/1", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -146,7 +146,8 @@ describe("SQL injection safety", () => {
     );
 
     expect(response.status).toBe(302);
-    expect(env.DB.students).toHaveLength(0);
-    expect(env.DB.meetingLogs).toHaveLength(0);
+    expect(env.DB.students).toHaveLength(1);
+    expect(env.DB.students[0]?.archived_at).toMatch(/^202\d-/);
+    expect(env.DB.meetingLogs).toHaveLength(1);
   });
 });

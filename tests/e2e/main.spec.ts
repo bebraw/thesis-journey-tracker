@@ -411,18 +411,18 @@ test.describe("dashboard e2e", () => {
     expect(phaseAuditText.indexOf(finalPhaseTransitionText)).toBeLessThan(phaseAuditText.indexOf("Planning research -> Editing"));
   });
 
-  test("can delete a student after confirmation", async ({ page }) => {
+  test("can archive a student after confirmation", async ({ page }) => {
     await login(page);
 
     await selectStudentFromTable(page, secondaryStudentName);
     await showStudentPanel(page);
 
-    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Delete Student" }).click();
+    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Archive Student" }).click();
 
     const dialogPromise = page.waitForEvent("dialog");
     await page
       .locator("#selectedStudentPanel")
-      .locator("form[action^='/actions/delete-student/']")
+      .locator("form[action^='/actions/archive-student/']")
       .evaluate((form: HTMLFormElement) => {
         window.setTimeout(() => {
           form.requestSubmit();
@@ -430,10 +430,10 @@ test.describe("dashboard e2e", () => {
       });
 
     const dialog = await dialogPromise;
-    expect(dialog.message()).toContain(`Delete ${secondaryStudentName}?`);
+    expect(dialog.message()).toContain(`Archive ${secondaryStudentName}?`);
     await dialog.accept();
 
-    await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe(secondaryStudentName);
+    await expect(page).toHaveURL(/notice=Student\+archived/);
     await page.locator("#studentSearch").fill(secondaryStudentName);
     await expect(page.locator("[data-student-row]", { hasText: secondaryStudentName })).toHaveCount(0);
     await expect(page.locator("#selectedStudentPanel")).toContainText(

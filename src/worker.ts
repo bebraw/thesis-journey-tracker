@@ -3,11 +3,11 @@ import favicon from "./favicon.ico";
 import { type AuthUser, isAccessRole, type SessionUser } from "./auth";
 import { runAutomatedBackup, type R2BucketLike } from "./backup";
 import {
+  archiveStudent,
   clearLoginAttempt,
   createMeetingLog,
   createStudent,
   deleteAppSecret,
-  deleteStudent,
   type D1Database,
   type D1PreparedStatement,
   getAppSecret,
@@ -368,19 +368,27 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return await handleAddLog(request, env, Number(addLogMatch[1]));
   }
 
-  const deleteMatch = pathname.match(/^\/actions\/delete-student\/(\d+)$/);
-  if (deleteMatch && request.method === "POST") {
+  const archiveMatch = pathname.match(/^\/actions\/archive-student\/(\d+)$/);
+  if (archiveMatch && request.method === "POST") {
     if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect(await getDashboardReturnPath(request, { selectedId: Number(deleteMatch[1]) }));
+      return readonlyRedirect(await getDashboardReturnPath(request, { selectedId: Number(archiveMatch[1]) }));
     }
-    return await handleDeleteStudent(request, env, Number(deleteMatch[1]));
+    return await handleArchiveStudent(request, env, Number(archiveMatch[1]));
+  }
+
+  const legacyDeleteMatch = pathname.match(/^\/actions\/delete-student\/(\d+)$/);
+  if (legacyDeleteMatch && request.method === "POST") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect(await getDashboardReturnPath(request, { selectedId: Number(legacyDeleteMatch[1]) }));
+    }
+    return await handleArchiveStudent(request, env, Number(legacyDeleteMatch[1]));
   }
 
   return new Response("Not found", { status: 404 });
 }
 
 async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser, showStyleGuide: boolean): Promise<Response> {
-  const students = await listStudents(env.DB);
+  const [students, allStudents] = await Promise.all([listStudents(env.DB), listStudents(env.DB, { includeArchived: true })]);
   const filters = getDashboardFilters(url.searchParams);
 
   const selectedIdParam = url.searchParams.get("selected");
@@ -395,7 +403,7 @@ async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser, sho
 
   const today = new Date().toISOString().slice(0, 10);
   const metrics = {
-    total: students.length,
+    total: allStudents.length,
     noMeeting: students.filter((student) => !student.nextMeetingAt).length,
     pastTarget: students.filter((student) => isPastTargetSubmissionDate(student, today)).length,
     submitted: students.filter((student) => student.currentPhase === "submitted").length,
@@ -440,7 +448,7 @@ function renderAddStudent(url: URL, sessionUser: SessionUser, showStyleGuide: bo
 async function renderDataTools(url: URL, env: Env, sessionUser: SessionUser): Promise<Response> {
   const notice = url.searchParams.get("notice");
   const error = url.searchParams.get("error");
-  const students = await listStudents(env.DB);
+  const students = await listStudents(env.DB, { includeArchived: true });
   const logCount = students.reduce((total, student) => total + student.logCount, 0);
   const storedCalendarSettings = await getStoredGoogleCalendarSettings(env);
   const calendarSource = await resolveGoogleCalendarSourceForApp(env);
@@ -587,7 +595,7 @@ async function handleAddStudent(request: Request, env: Env): Promise<Response> {
 }
 
 async function handleExportJson(env: Env): Promise<Response> {
-  const students = await listStudents(env.DB);
+  const students = await listStudents(env.DB, { includeArchived: true });
   const studentBundles = await Promise.all(
     students.map(async (student) => ({
       student,
@@ -977,14 +985,14 @@ async function handleAddLog(request: Request, env: Env, studentId: number): Prom
   return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, notice: "Log saved" }));
 }
 
-async function handleDeleteStudent(request: Request, env: Env, studentId: number): Promise<Response> {
+async function handleArchiveStudent(request: Request, env: Env, studentId: number): Promise<Response> {
   const returnPath = await getDashboardReturnPath(request);
   if (!(await studentExists(env.DB, studentId))) {
     return redirect(appendDashboardMessage(returnPath, { error: "Student not found" }));
   }
 
-  await deleteStudent(env.DB, studentId);
-  return redirect(returnPath);
+  await archiveStudent(env.DB, studentId, new Date().toISOString());
+  return redirect(appendDashboardMessage(returnPath, { notice: "Student archived" }));
 }
 
 function getDashboardFilters(searchParams: URLSearchParams): DashboardFilters {
@@ -1452,8 +1460,8 @@ async function buildImportStatements(
     statements.push(
       db
         .prepare(
-          `INSERT INTO students (id, name, email, degree_type, thesis_topic, student_notes, start_date, current_phase, next_meeting_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO students (id, name, email, degree_type, thesis_topic, student_notes, start_date, current_phase, next_meeting_at, archived_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           studentId,
@@ -1465,6 +1473,7 @@ async function buildImportStatements(
           bundle.student.startDate,
           bundle.student.currentPhase,
           bundle.student.nextMeetingAt,
+          bundle.archivedAt,
         ),
     );
 

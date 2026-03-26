@@ -10,6 +10,7 @@ interface StudentRowStore {
   start_date: string | null;
   current_phase: string;
   next_meeting_at: string | null;
+  archived_at?: string | null;
 }
 
 interface MeetingLogStore {
@@ -82,6 +83,7 @@ export class MockD1Database {
       start_date: "2026-01-01",
       current_phase: "researching",
       next_meeting_at: null,
+      archived_at: null,
     });
   }
 
@@ -141,10 +143,10 @@ export class MockD1Database {
     }
 
     if (q.startsWith("INSERT INTO students")) {
-      const hasExplicitId = values.length === 9;
-      const [idValue, name, email, degreeType, thesisTopic, studentNotes, startDate, phase, nextMeetingAt] = hasExplicitId
+      const hasExplicitId = values.length === 10;
+      const [idValue, name, email, degreeType, thesisTopic, studentNotes, startDate, phase, nextMeetingAt, archivedAt] = hasExplicitId
         ? values
-        : [this.nextStudentId++, ...values];
+        : [this.nextStudentId++, ...values, null];
       const id = Number(idValue);
       const row: StudentRowStore = {
         id,
@@ -156,10 +158,22 @@ export class MockD1Database {
         start_date: startDate === null ? null : String(startDate),
         current_phase: String(phase),
         next_meeting_at: nextMeetingAt === null ? null : String(nextMeetingAt),
+        archived_at: archivedAt === null ? null : String(archivedAt),
       };
       this.students.push(row);
       this.nextStudentId = Math.max(this.nextStudentId, id + 1);
       return { success: true, meta: { last_row_id: row.id, changes: 1 } };
+    }
+
+    if (q === "UPDATE students SET archived_at = ? WHERE id = ? AND archived_at IS NULL") {
+      const archivedAt = values[0] === null ? null : String(values[0]);
+      const id = Number(values[1]);
+      const row = this.students.find((student) => student.id === id && !student.archived_at);
+      if (!row) {
+        return { success: true, meta: { changes: 0 } };
+      }
+      row.archived_at = archivedAt;
+      return { success: true, meta: { changes: 1 } };
     }
 
     if (q.startsWith("UPDATE students")) {
@@ -312,15 +326,27 @@ export class MockD1Database {
   firstQuery(query: string, values: D1Value[]) {
     const q = normalizeQuery(query);
 
-    if (q === "SELECT id FROM students WHERE id = ?") {
+    if (q.startsWith("SELECT id FROM students WHERE id = ?")) {
       const id = Number(values[0]);
-      const row = this.students.find((student) => student.id === id);
+      const row = this.students.find(
+        (student) =>
+          student.id === id &&
+          matchesArchivedFilter(q, student.archived_at ?? null, {
+            qualifiedColumn: false,
+          }),
+      );
       return row ? { id: row.id } : null;
     }
 
     if (q.startsWith("SELECT s.*, COUNT(ml.id) AS log_count,")) {
       const studentId = Number(values[0]);
-      const row = this.students.find((student) => student.id === studentId);
+      const row = this.students.find(
+        (student) =>
+          student.id === studentId &&
+          matchesArchivedFilter(q, student.archived_at ?? null, {
+            qualifiedColumn: true,
+          }),
+      );
 
       if (!row) {
         return null;
@@ -377,7 +403,13 @@ export class MockD1Database {
     const q = normalizeQuery(query);
 
     if (q.startsWith("SELECT s.*, COUNT(ml.id) AS log_count,")) {
-      const results = this.students.map((student) => {
+      const results = this.students
+        .filter((student) =>
+          matchesArchivedFilter(q, student.archived_at ?? null, {
+            qualifiedColumn: true,
+          }),
+        )
+        .map((student) => {
         const logs = this.meetingLogs.filter((log) => log.student_id === student.id);
         const lastLog = logs.length ? logs[logs.length - 1] : null;
         return {
@@ -385,7 +417,7 @@ export class MockD1Database {
           log_count: logs.length,
           last_log_at: lastLog ? lastLog.happened_at : null,
         };
-      });
+        });
 
       return { results };
     }
@@ -458,4 +490,29 @@ class MockPreparedStatement {
 
 function normalizeQuery(query: string): string {
   return query.replace(/\s+/g, " ").trim();
+}
+
+function matchesArchivedFilter(
+  query: string,
+  archivedAt: string | null,
+  options: { qualifiedColumn: boolean },
+): boolean {
+  const nullCheck = options.qualifiedColumn ? "s.archived_at IS NULL" : "archived_at IS NULL";
+  const notNullCheck = options.qualifiedColumn ? "s.archived_at IS NOT NULL" : "archived_at IS NOT NULL";
+  const nullFilter = new RegExp(`(?:WHERE|AND) ${escapeRegExp(nullCheck)}`);
+  const notNullFilter = new RegExp(`(?:WHERE|AND) ${escapeRegExp(notNullCheck)}`);
+
+  if (notNullFilter.test(query)) {
+    return Boolean(archivedAt);
+  }
+
+  if (nullFilter.test(query)) {
+    return !archivedAt;
+  }
+
+  return true;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

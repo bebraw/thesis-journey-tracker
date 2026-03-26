@@ -14,6 +14,7 @@ function buildStudent(overrides: Partial<Student> = {}): Student {
     startDate: "2026-01-01",
     currentPhase: "researching",
     nextMeetingAt: null,
+    archivedAt: null,
     logCount: 0,
     lastLogAt: null,
     ...overrides,

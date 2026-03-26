@@ -400,13 +400,13 @@ export function renderSelectedStudentPanel(
 
       <details &class="(get props disclosureClass)">
         <summary &class="(get props disclosureSummaryClass)">
-          <span>Delete Student</span>
-          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Rarely needed</span>
+          <span>Archive Student</span>
+          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Hide from active work</span>
         </summary>
         <div &class="(get props disclosureContentClass)">
           <section &class="(get props dangerPanelClass)">
-            <h2 &class="(get props dangerTitleClass)">Delete Student</h2>
-            <p &class="(get props dangerTextClass)">This removes the student and all related meeting log entries permanently.</p>
+            <h2 &class="(get props dangerTitleClass)">Archive Student</h2>
+            <p &class="(get props dangerTextClass)">This removes the student from the active dashboard while preserving meeting logs and phase history.</p>
             <form
               &action="(get props deleteAction)"
               method="post"
@@ -451,13 +451,13 @@ export function renderSelectedStudentPanel(
       hasPhaseAudit: preparedPhaseAudit.length > 0,
       showNoPhaseAudit: preparedPhaseAudit.length === 0,
       phaseAuditEntries: preparedPhaseAudit,
-      deleteAction: escapeHtml(`/actions/delete-student/${student.id}`),
+      deleteAction: escapeHtml(`/actions/archive-student/${student.id}`),
       returnTo: escapeHtml(returnTo),
       deleteConfirm: escapeHtml(
-        `return window.confirm('Delete ${escapeJsString(student.name)}? This will also remove all supervision logs for this student.');`,
+        `return window.confirm('Archive ${escapeJsString(student.name)}? This will hide the student from the active dashboard but keep the history intact.');`,
       ),
       deleteButtonHtml: renderButton({
-        label: "Delete student",
+        label: "Archive student",
         type: "submit",
         variant: "dangerBlock",
       }),
