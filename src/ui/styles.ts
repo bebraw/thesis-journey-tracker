@@ -22,10 +22,10 @@ export const MUTED_TEXT_XS = "text-xs text-app-text-muted dark:text-app-text-mut
 export const TOPIC_TEXT = "mt-1 text-sm font-medium text-app-text-soft dark:text-app-text-soft-dark";
 export const TOPIC_TEXT_SM = "mt-1 text-xs font-medium text-app-text-soft dark:text-app-text-soft-dark";
 export const FIELD_LABEL = "mb-1 block text-app-text-soft dark:text-app-text-soft-dark";
-export const FORM_LABEL = "block text-sm";
+export const FORM_LABEL = "block min-w-0 text-sm";
 export const FILTER_LABEL = "text-xs font-medium text-app-text-soft dark:text-app-text-soft-dark";
 export const FIELD_CONTROL =
-  "w-full rounded-control border border-app-field bg-app-surface px-control-x py-control-y text-app-text dark:border-app-field-dark dark:bg-app-surface-soft-dark dark:text-app-text-dark";
+  "min-w-0 max-w-full w-full rounded-control border border-app-field bg-app-surface px-control-x py-control-y text-app-text dark:border-app-field-dark dark:bg-app-surface-soft-dark dark:text-app-text-dark";
 export const FIELD_CONTROL_SM = `${FIELD_CONTROL} text-sm`;
 export const FIELD_CONTROL_WITH_MARGIN = `mt-1 ${FIELD_CONTROL_SM}`;
 export const FOCUS_RING =

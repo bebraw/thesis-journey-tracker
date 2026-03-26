@@ -268,4 +268,29 @@ test.describe("dashboard e2e", () => {
       "Select a student from the table to edit details and view/add supervision logs.",
     );
   });
+
+  test("keeps add log entry date fields inside the editing panel on narrow screens", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await login(page);
+
+    await selectStudentFromTable(page, secondaryStudentName);
+    await showStudentPanel(page);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Add Log Entry" }).click();
+
+    const panel = page.locator("#selectedStudentPanel");
+    const fieldLabels = ["Meeting date/time", "Next-step deadline (optional)"];
+
+    for (const label of fieldLabels) {
+      const field = panel.getByLabel(label);
+      await expect(field).toBeVisible();
+      expect(await field.evaluate((input) => input.scrollWidth <= input.clientWidth + 1)).toBe(true);
+
+      const [panelBox, fieldBox] = await Promise.all([panel.boundingBox(), field.boundingBox()]);
+      expect(panelBox).not.toBeNull();
+      expect(fieldBox).not.toBeNull();
+      expect(fieldBox!.x + fieldBox!.width).toBeLessThanOrEqual(panelBox!.x + panelBox!.width + 1);
+    }
+  });
 });

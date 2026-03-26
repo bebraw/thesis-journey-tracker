@@ -16,15 +16,6 @@ Add a calendar view that can:
 
 This will require Google Calendar integration, calendar event sync, and a UI flow for picking a meeting slot.
 
-### Editing Panel Field Overflow Fixes
-
-Fix the selected-student editing panel so these controls do not overflow their container:
-
-- `Add Log Entry` -> `Meeting date/time`
-- `Add Log Entry` -> `Next-step deadline`
-
-This is primarily a layout and responsive behavior issue.
-
 ### Persist Dashboard Filters In The URL
 
 Keep student table filters in the query string so filtered views can be refreshed, bookmarked, and shared more reliably.
