@@ -34,7 +34,7 @@ async function showStudentPanel(page: Page) {
     return;
   }
 
-  await page.getByRole("button", { name: "Show editing panel" }).click();
+  await page.getByRole("button", { name: /Show (details|editing) panel/ }).click();
   await expect(panelShell).toBeVisible();
 }
 
@@ -179,6 +179,20 @@ test.describe("dashboard e2e", () => {
     await showStudentPanel(page);
     await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${secondaryStudentName}`);
     await expect(page).toHaveURL(/\/\?selected=/);
+
+    const laneLogSuffix = Date.now().toString();
+    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Add Log Entry" }).click();
+    await page.locator("#selectedStudentPanel").getByLabel("What was discussed").fill(`Lane discussion ${laneLogSuffix}`);
+    await page.locator("#selectedStudentPanel").getByLabel("Agreed plan / next actions").fill(`Lane plan ${laneLogSuffix}`);
+    await page.evaluate(() => {
+      (window as Window & { __laneLogNoReloadMarker?: number }).__laneLogNoReloadMarker = 1;
+    });
+    await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save log entry" }).click();
+
+    await expect(page).toHaveURL(/notice=Log\+saved/);
+    await expect
+      .poll(() => page.evaluate(() => (window as Window & { __laneLogNoReloadMarker?: number }).__laneLogNoReloadMarker ?? 0))
+      .toBe(1);
   });
 
   test("persists dashboard filters in the URL across reloads and selection", async ({ page }) => {
@@ -348,9 +362,17 @@ test.describe("dashboard e2e", () => {
     await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Add Log Entry" }).click();
     await page.locator("#selectedStudentPanel").getByLabel("What was discussed").fill(discussedText);
     await page.locator("#selectedStudentPanel").getByLabel("Agreed plan / next actions").fill(agreedPlanText);
+    await page.evaluate(() => {
+      (window as Window & { __studentLogNoReloadMarker?: number }).__studentLogNoReloadMarker = 1;
+    });
     await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save log entry" }).click();
 
     await expect(page).toHaveURL(/notice=Log\+saved/);
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as Window & { __studentLogNoReloadMarker?: number }).__studentLogNoReloadMarker ?? 0),
+      )
+      .toBe(1);
     await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBe("not_booked");
     await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
     await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("desc");
@@ -362,8 +384,11 @@ test.describe("dashboard e2e", () => {
     await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Phase Change Audit" }).click();
     await expect(page.locator("#selectedStudentPanel")).toContainText("Planning research -> Editing");
 
-    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Edit Student" }).click();
-    await page.locator("#selectedStudentPanel").getByLabel("Phase").selectOption({ label: "Submitted" });
+    const phaseField = page.locator("#selectedStudentPanel").getByLabel("Phase");
+    if (!(await phaseField.isVisible())) {
+      await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Edit Student" }).click();
+    }
+    await phaseField.selectOption({ label: "Submitted" });
     await page.evaluate(() => {
       (window as Window & { __studentEditNoReloadMarker?: number }).__studentEditNoReloadMarker = 2;
     });

@@ -275,6 +275,7 @@ function rebindDashboardUi() {
   bindStudentSort();
   bindPanelToggle();
   bindInlineStudentUpdateForm();
+  bindInlineLogEntryForm();
 }
 
 function applyDashboardHtml(htmlText, nextUrl, options) {
@@ -437,6 +438,7 @@ async function selectStudentWithoutRefresh(studentId, pushHistory) {
     applySelectedLaneState(studentId);
     syncInteractiveUrls();
     bindInlineStudentUpdateForm();
+    bindInlineLogEntryForm();
 
     if (pushHistory) {
       window.history.pushState({ selectedId: studentId }, "", selectedUrl.pathname + selectedUrl.search);
@@ -553,6 +555,67 @@ function bindInlineStudentUpdateForm() {
 
   updateForm.setAttribute("data-inline-bound", "1");
   updateForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    var form = event.currentTarget;
+    var action = form.getAttribute("action");
+    if (!action) {
+      form.submit();
+      return;
+    }
+
+    var selectedId = getSelectedStudentIdFromLocation();
+    var panelWasVisible = selectedStudentPanelShell ? !selectedStudentPanelShell.classList.contains("hidden") : false;
+    var openSummaries = collectOpenPanelDetails();
+    var submitButton = form.querySelector("button[type='submit']");
+    var originalDisabled = submitButton ? submitButton.disabled : false;
+
+    if (submitButton) {
+      submitButton.disabled = true;
+    }
+
+    fetch(action, {
+      method: "POST",
+      headers: {
+        "X-Requested-With": "fetch"
+      },
+      body: new FormData(form)
+    })
+      .then(function (response) {
+        var responseUrl = new URL(response.url, window.location.origin);
+
+        if (!response.ok || responseUrl.pathname !== "/") {
+          window.location.href = responseUrl.pathname + responseUrl.search;
+          return null;
+        }
+
+        return response.text().then(function (htmlText) {
+          applyDashboardHtml(htmlText, response.url, {
+            selectedId: selectedId,
+            panelWasVisible: panelWasVisible,
+            openSummaries: openSummaries
+          });
+        });
+      })
+      .catch(function () {
+        form.submit();
+      })
+      .finally(function () {
+        if (submitButton) {
+          submitButton.disabled = originalDisabled;
+        }
+      });
+  });
+}
+
+function bindInlineLogEntryForm() {
+  if (!selectedStudentPanel) return;
+
+  var addLogForm = selectedStudentPanel.querySelector("form[action^='/actions/add-log/']");
+  if (!addLogForm || addLogForm.getAttribute("data-inline-bound") === "1") return;
+
+  addLogForm.setAttribute("data-inline-bound", "1");
+  addLogForm.addEventListener("submit", function (event) {
     event.preventDefault();
 
     var form = event.currentTarget;
