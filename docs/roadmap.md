@@ -6,10 +6,6 @@ This note collects feature ideas that feel like a natural next step for the proj
 
 These are the most immediate follow-up items to address next.
 
-### Degree-Specific Submission Timing Rules
-
-The current six-month target submission logic should apply only to MSc students. Other degree types need their own rules or no derived target at all.
-
 ### Google Calendar Scheduling View
 
 Add a calendar view that can:
