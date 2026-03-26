@@ -87,6 +87,7 @@ For the full setup flow, see [docs/setup.md](./docs/setup.md).
 
 ## Documentation
 
+- [AGENTS.md](./AGENTS.md): durable repo-specific rules for automated contributors
 - [docs/setup.md](./docs/setup.md): local setup, environment variables, and first run
 - [docs/development.md](./docs/development.md): scripts, testing, editor support, and day-to-day development notes
 - [docs/deployment.md](./docs/deployment.md): CI, production deployment, and security notes
