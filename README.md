@@ -4,6 +4,29 @@ Thesis Journey Tracker is a private advising dashboard for following students as
 
 The project is intentionally small and server-rendered. It runs on Cloudflare Workers with D1 for storage, so it stays lightweight while still being easy to deploy.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td width="70%">
+      <img src="./docs/screenshots/dashboard-overview.png" alt="Dashboard overview with phase lanes, student filters, and the selected student workspace." />
+    </td>
+    <td width="30%">
+      <img src="./docs/screenshots/student-panel.png" alt="Selected student workspace with editing controls, meeting log history, and phase audit." />
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <strong>Dashboard overview</strong><br />
+      Track students by phase, scan upcoming supervision work, and open a focused workspace without leaving the main dashboard.
+    </td>
+    <td>
+      <strong>Student workspace</strong><br />
+      Update thesis details, add supervision notes, and review recent meeting history in one place.
+    </td>
+  </tr>
+</table>
+
 ## Why This Project Exists
 
 - Keep thesis supervision work organized without relying on spreadsheets or scattered notes.
