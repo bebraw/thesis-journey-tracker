@@ -16,10 +16,6 @@ Add a calendar view that can:
 
 This will require Google Calendar integration, calendar event sync, and a UI flow for picking a meeting slot.
 
-### Persist Dashboard Filters In The URL
-
-Keep student table filters in the query string so filtered views can be refreshed, bookmarked, and shared more reliably.
-
 ### Student Notes Field
 
 Add a free-form note field for each student that:

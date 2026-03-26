@@ -25,6 +25,7 @@ import { getStudentFormValues } from "../student-form";
 import { escapeHtml, escapeJsString, formatDateTime, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate } from "../utils";
 import { renderView } from "./shared.htmlisp";
 import { renderStudentFormFields } from "./student-form-fields";
+import type { DashboardFilters } from "./types";
 
 export function renderEmptySelectedPanel(
   message = "Select a student from the table to edit details and view/add supervision logs.",
@@ -57,6 +58,7 @@ interface PreparedPhaseAuditEntry {
 
 interface StudentPanelOptions {
   canEdit?: boolean;
+  filters?: DashboardFilters;
 }
 
 interface PreparedReadonlyField {
@@ -136,7 +138,26 @@ export function renderSelectedStudentPanel(
   phaseAudit: PhaseAuditEntry[],
   options: StudentPanelOptions = {},
 ): string {
-  const { canEdit = true } = options;
+  const { canEdit = true, filters } = options;
+  const returnSearchParams = new URLSearchParams();
+  returnSearchParams.set("selected", String(student.id));
+  if (filters?.search) {
+    returnSearchParams.set("search", filters.search);
+  }
+  if (filters?.degree) {
+    returnSearchParams.set("degree", filters.degree);
+  }
+  if (filters?.phase) {
+    returnSearchParams.set("phase", filters.phase);
+  }
+  if (filters?.status) {
+    returnSearchParams.set("status", filters.status);
+  }
+  if (filters && (filters.sortKey !== "nextMeeting" || filters.sortDirection !== "asc")) {
+    returnSearchParams.set("sort", filters.sortKey);
+    returnSearchParams.set("dir", filters.sortDirection);
+  }
+  const returnTo = `/?${returnSearchParams.toString()}`;
   const components: HtmlispComponents = {
     MeetingLogEntry: `<article &class="(get props cardClass)">
     <p class="font-medium"><span &children="(get props timestampText)"></span></p>
@@ -158,6 +179,7 @@ export function renderSelectedStudentPanel(
 
   const editFormHtml = renderView(
     `<form &action="(get props action)" method="post" &class="(get props formStack)">
+      <input type="hidden" name="returnTo" &value="(get props returnTo)" />
       <section class="rounded-card border border-app-line bg-app-surface-soft/70 px-panel-sm py-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/40">
         <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -200,6 +222,7 @@ export function renderSelectedStudentPanel(
       disclosureFieldsClass: escapeHtml(SECTION_STACK_SM),
       disclosureSummaryClass: escapeHtml(DISCLOSURE_SUMMARY),
       formStack: escapeHtml(FORM_STACK),
+      returnTo: escapeHtml(returnTo),
       ...fields,
       submitButton: renderButton({
         label: "Save student updates",
@@ -211,6 +234,7 @@ export function renderSelectedStudentPanel(
 
   const addLogFormHtml = renderView(
     `<form &action="(get props action)" method="post" &class="(get props formStack)">
+      <input type="hidden" name="returnTo" &value="(get props returnTo)" />
       <noop &children="(get props happenedAtField)"></noop>
       <noop &children="(get props discussedField)"></noop>
       <noop &children="(get props agreedPlanField)"></noop>
@@ -220,6 +244,7 @@ export function renderSelectedStudentPanel(
     {
       action: escapeHtml(`/actions/add-log/${student.id}`),
       formStack: escapeHtml(FORM_STACK),
+      returnTo: escapeHtml(returnTo),
       happenedAtField: renderInputField({
         label: "Meeting date/time",
         name: "happenedAt",
@@ -411,6 +436,7 @@ export function renderSelectedStudentPanel(
               class="mt-panel-sm"
               &onsubmit="(get props deleteConfirm)"
             >
+              <input type="hidden" name="returnTo" &value="(get props returnTo)" />
               <noop &children="(get props deleteButtonHtml)"></noop>
             </form>
           </section>
@@ -449,6 +475,7 @@ export function renderSelectedStudentPanel(
       showNoPhaseAudit: preparedPhaseAudit.length === 0,
       phaseAuditEntries: preparedPhaseAudit,
       deleteAction: escapeHtml(`/actions/delete-student/${student.id}`),
+      returnTo: escapeHtml(returnTo),
       deleteConfirm: escapeHtml(
         `return window.confirm('Delete ${escapeJsString(student.name)}? This will also remove all supervision logs for this student.');`,
       ),

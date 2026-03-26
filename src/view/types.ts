@@ -10,12 +10,22 @@ export interface Metrics {
   submitted: number;
 }
 
+export interface DashboardFilters {
+  search: string;
+  degree: string;
+  phase: string;
+  status: string;
+  sortKey: string;
+  sortDirection: "asc" | "desc";
+}
+
 export interface DashboardPageData {
   viewer: ViewerContext;
   students: import("../db").Student[];
   selectedStudent: import("../db").Student | null;
   logs: import("../db").MeetingLog[];
   phaseAudit: import("../db").PhaseAuditEntry[];
+  filters: DashboardFilters;
   notice: string | null;
   error: string | null;
   metrics: Metrics;

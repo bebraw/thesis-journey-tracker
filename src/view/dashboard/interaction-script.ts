@@ -16,6 +16,8 @@ var selectedStudentPanelShell = document.getElementById("selectedStudentPanelShe
 var selectedStudentPanel = document.getElementById("selectedStudentPanel");
 var emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");
 var toggleStudentPanelButton = document.getElementById("toggleStudentPanelButton");
+var defaultSortKey = "nextMeeting";
+var defaultSortDirection = "asc";
 var currentSortKey = "nextMeeting";
 var currentSortDirection = "asc";`;
 
@@ -41,6 +43,86 @@ function statusPriority(statusId) {
 
 function getSelectedStudentIdFromLocation() {
   return parseStudentId(new URL(window.location.href).searchParams.get("selected"));
+}
+
+function getDashboardUrl(selectedId) {
+  var url = new URL(window.location.href);
+  var searchValue = searchInput ? searchInput.value.trim() : "";
+  var degreeValue = degreeFilter ? degreeFilter.value : "";
+  var phaseValue = phaseFilter ? phaseFilter.value : "";
+  var statusValue = statusFilter ? statusFilter.value : "";
+
+  if (selectedId) {
+    url.searchParams.set("selected", String(selectedId));
+  } else {
+    url.searchParams.delete("selected");
+  }
+
+  url.searchParams.delete("notice");
+  url.searchParams.delete("error");
+
+  if (searchValue) {
+    url.searchParams.set("search", searchValue);
+  } else {
+    url.searchParams.delete("search");
+  }
+
+  if (degreeValue) {
+    url.searchParams.set("degree", degreeValue);
+  } else {
+    url.searchParams.delete("degree");
+  }
+
+  if (phaseValue) {
+    url.searchParams.set("phase", phaseValue);
+  } else {
+    url.searchParams.delete("phase");
+  }
+
+  if (statusValue) {
+    url.searchParams.set("status", statusValue);
+  } else {
+    url.searchParams.delete("status");
+  }
+
+  if (currentSortKey !== defaultSortKey || currentSortDirection !== defaultSortDirection) {
+    url.searchParams.set("sort", currentSortKey);
+    url.searchParams.set("dir", currentSortDirection);
+  } else {
+    url.searchParams.delete("sort");
+    url.searchParams.delete("dir");
+  }
+
+  return url;
+}
+
+function applyFiltersFromLocation() {
+  var url = new URL(window.location.href);
+  if (searchInput) searchInput.value = url.searchParams.get("search") || "";
+  if (degreeFilter) degreeFilter.value = url.searchParams.get("degree") || "";
+  if (phaseFilter) phaseFilter.value = url.searchParams.get("phase") || "";
+  if (statusFilter) statusFilter.value = url.searchParams.get("status") || "";
+}
+
+function applySortFromLocation() {
+  var url = new URL(window.location.href);
+  var sortKey = url.searchParams.get("sort") || defaultSortKey;
+  var sortDirection = url.searchParams.get("dir") === "desc" ? "desc" : "asc";
+  var isKnownSortKey =
+    sortKey === "student" ||
+    sortKey === "degree" ||
+    sortKey === "phase" ||
+    sortKey === "target" ||
+    sortKey === "nextMeeting" ||
+    sortKey === "logs";
+
+  currentSortKey = isKnownSortKey ? sortKey : defaultSortKey;
+  currentSortDirection = sortDirection;
+}
+
+function syncFiltersToUrl() {
+  var url = getDashboardUrl(getSelectedStudentIdFromLocation());
+  window.history.replaceState(window.history.state, "", url.pathname + url.search);
 }
 
 function getRowStudentId(row) {
@@ -193,6 +275,32 @@ function applyStudentFilters() {
 function refreshStudentTable() {
   applyStudentSort();
   applyStudentFilters();
+}
+
+function syncInteractiveUrls() {
+  document.querySelectorAll("a[data-inline-select='1']").forEach(function (link) {
+    var studentId = parseStudentId(link.getAttribute("data-student-id"));
+    if (!studentId) return;
+    var studentUrl = getDashboardUrl(studentId);
+    link.setAttribute("href", studentUrl.pathname + studentUrl.search);
+  });
+
+  studentRows.forEach(function (row) {
+    var studentId = getRowStudentId(row);
+    var rowUrl = getDashboardUrl(studentId);
+    row.setAttribute("data-select-href", rowUrl.pathname + rowUrl.search);
+  });
+
+  var selectedUrl = getDashboardUrl(getSelectedStudentIdFromLocation());
+  document.querySelectorAll("#selectedStudentPanel input[name='returnTo']").forEach(function (input) {
+    input.value = selectedUrl.pathname + selectedUrl.search;
+  });
+}
+
+function updateDashboardFilters() {
+  applyStudentFilters();
+  syncFiltersToUrl();
+  syncInteractiveUrls();
 }`;
 
 const DASHBOARD_SELECTION_SECTION = `
@@ -228,30 +336,29 @@ async function selectStudentWithoutRefresh(studentId, pushHistory) {
   if (!studentId || !selectedStudentPanel) return;
 
   try {
-    var response = await fetch("/partials/student/" + studentId, {
+    var selectedUrl = getDashboardUrl(studentId);
+    var response = await fetch("/partials/student/" + studentId + selectedUrl.search, {
       headers: {
         "X-Requested-With": "fetch"
       }
     });
 
     if (!response.ok) {
-      window.location.href = "/?selected=" + studentId;
+      window.location.href = selectedUrl.pathname + selectedUrl.search;
       return;
     }
 
     selectedStudentPanel.innerHTML = await response.text();
     applySelectedRowState(studentId);
     applySelectedLaneState(studentId);
+    syncInteractiveUrls();
 
     if (pushHistory) {
-      var url = new URL(window.location.href);
-      url.searchParams.set("selected", String(studentId));
-      url.searchParams.delete("notice");
-      url.searchParams.delete("error");
-      window.history.pushState({ selectedId: studentId }, "", url.pathname + url.search);
+      window.history.pushState({ selectedId: studentId }, "", selectedUrl.pathname + selectedUrl.search);
     }
   } catch (_error) {
-    window.location.href = "/?selected=" + studentId;
+    var fallbackUrl = getDashboardUrl(studentId);
+    window.location.href = fallbackUrl.pathname + fallbackUrl.search;
   }
 }`;
 
@@ -305,6 +412,10 @@ function bindLaneSelection() {
 
 function bindHistorySelection() {
   window.addEventListener("popstate", function () {
+    applyFiltersFromLocation();
+    applySortFromLocation();
+    refreshStudentTable();
+    syncInteractiveUrls();
     var selectedId = getSelectedStudentIdFromLocation();
     if (!selectedId) {
       setEmptySelectedPanel();
@@ -315,10 +426,10 @@ function bindHistorySelection() {
 }
 
 function bindDashboardFilters() {
-  if (searchInput) searchInput.addEventListener("input", applyStudentFilters);
-  if (degreeFilter) degreeFilter.addEventListener("change", applyStudentFilters);
-  if (phaseFilter) phaseFilter.addEventListener("change", applyStudentFilters);
-  if (statusFilter) statusFilter.addEventListener("change", applyStudentFilters);
+  if (searchInput) searchInput.addEventListener("input", updateDashboardFilters);
+  if (degreeFilter) degreeFilter.addEventListener("change", updateDashboardFilters);
+  if (phaseFilter) phaseFilter.addEventListener("change", updateDashboardFilters);
+  if (statusFilter) statusFilter.addEventListener("change", updateDashboardFilters);
 }
 
 function bindStudentSort() {
@@ -335,6 +446,8 @@ function bindStudentSort() {
       }
 
       refreshStudentTable();
+      syncFiltersToUrl();
+      syncInteractiveUrls();
     });
   });
 }
@@ -348,7 +461,10 @@ function bindPanelToggle() {
 }`;
 
 const DASHBOARD_BOOTSTRAP_SECTION = `
+applyFiltersFromLocation();
+applySortFromLocation();
 refreshStudentTable();
+syncInteractiveUrls();
 setPanelVisibility(false);
 applySelectedRowState(getSelectedStudentIdFromLocation());
 applySelectedLaneState(getSelectedStudentIdFromLocation());

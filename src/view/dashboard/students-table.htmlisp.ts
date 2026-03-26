@@ -14,10 +14,12 @@ import { type HtmlispComponents } from "../../htmlisp";
 import { escapeHtml, formatDateTime, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusId } from "../../utils";
 import { renderView } from "../shared.htmlisp";
 import { DEGREE_TYPES, PHASES } from "../../reference-data";
+import type { DashboardFilters } from "../types";
 
 interface PreparedFilterOption {
   label: string;
   optionValue: string;
+  selectedAttr: string | null;
 }
 
 interface PreparedStudentRow {
@@ -49,14 +51,42 @@ interface PreparedSortHeader {
   label: string;
 }
 
-function prepareFilterOptions(options: Array<{ value: string; label: string }>): PreparedFilterOption[] {
+function prepareFilterOptions(options: Array<{ value: string; label: string }>, currentValue: string): PreparedFilterOption[] {
   return options.map((option) => ({
     optionValue: escapeHtml(option.value),
     label: escapeHtml(option.label),
+    selectedAttr: option.value === currentValue ? "selected" : null,
   }));
 }
 
-function prepareStudentRows(students: Student[], selectedStudent: Student | null): PreparedStudentRow[] {
+function buildDashboardHref(filters: DashboardFilters, selectedId?: number): string {
+  const searchParams = new URLSearchParams();
+
+  if (selectedId) {
+    searchParams.set("selected", String(selectedId));
+  }
+  if (filters.search) {
+    searchParams.set("search", filters.search);
+  }
+  if (filters.degree) {
+    searchParams.set("degree", filters.degree);
+  }
+  if (filters.phase) {
+    searchParams.set("phase", filters.phase);
+  }
+  if (filters.status) {
+    searchParams.set("status", filters.status);
+  }
+  if (filters.sortKey !== "nextMeeting" || filters.sortDirection !== "asc") {
+    searchParams.set("sort", filters.sortKey);
+    searchParams.set("dir", filters.sortDirection);
+  }
+
+  const query = searchParams.toString();
+  return query ? `/?${query}` : "/";
+}
+
+function prepareStudentRows(students: Student[], selectedStudent: Student | null, filters: DashboardFilters): PreparedStudentRow[] {
   return students.map((student) => {
     const statusId = meetingStatusId(student);
     const targetSubmissionDate = getTargetSubmissionDate(student);
@@ -77,7 +107,7 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
       </div>`,
       {
         linkClass: escapeHtml(TEXT_LINK),
-        href: escapeHtml(`/?selected=${student.id}`),
+        href: escapeHtml(buildDashboardHref(filters, student.id)),
         studentIdAttr: String(student.id),
         name: escapeHtml(student.name),
         topicVisible: Boolean(student.thesisTopic),
@@ -91,7 +121,7 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
         `${isSelected ? "bg-app-brand-soft dark:bg-app-brand-soft-dark/20" : "hover:bg-app-surface-soft dark:hover:bg-app-surface-soft-dark/35"} cursor-pointer`,
       ),
       selectedAttr: isSelected ? "true" : "false",
-      selectHref: escapeHtml(`/?selected=${student.id}`),
+      selectHref: escapeHtml(buildDashboardHref(filters, student.id)),
       studentIdAttr: String(student.id),
       dataName: escapeHtml(student.name).toLowerCase(),
       dataEmail: escapeHtml(student.email || "").toLowerCase(),
@@ -117,6 +147,7 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
 export function renderStudentsTable(
   students: Student[],
   selectedStudent: Student | null,
+  filters: DashboardFilters,
   selectedPanel: string,
   emptySelectedPanel: string,
 ): string {
@@ -164,21 +195,37 @@ export function renderStudentsTable(
   </tr>`,
   };
 
-  const degreeFilterOptions = prepareFilterOptions([
-    { value: "", label: "All degree types" },
-    ...DEGREE_TYPES.map((degree) => ({
-      value: degree.id,
-      label: degree.label,
-    })),
-  ]);
-  const phaseFilterOptions = prepareFilterOptions([
-    { value: "", label: "All phases" },
-    ...PHASES.map((phase) => ({
-      value: phase.id,
-      label: phase.label,
-    })),
-  ]);
-  const studentRows = prepareStudentRows(students, selectedStudent);
+  const degreeFilterOptions = prepareFilterOptions(
+    [
+      { value: "", label: "All degree types" },
+      ...DEGREE_TYPES.map((degree) => ({
+        value: degree.id,
+        label: degree.label,
+      })),
+    ],
+    filters.degree,
+  );
+  const phaseFilterOptions = prepareFilterOptions(
+    [
+      { value: "", label: "All phases" },
+      ...PHASES.map((phase) => ({
+        value: phase.id,
+        label: phase.label,
+      })),
+    ],
+    filters.phase,
+  );
+  const statusFilterOptions = prepareFilterOptions(
+    [
+      { value: "", label: "All statuses" },
+      { value: "not_booked", label: "Not booked" },
+      { value: "overdue", label: "Overdue" },
+      { value: "within_2_weeks", label: "Meeting soon" },
+      { value: "scheduled", label: "Scheduled" },
+    ],
+    filters.status,
+  );
+  const studentRows = prepareStudentRows(students, selectedStudent, filters);
   const sortHeaders: PreparedSortHeader[] = [
     { key: "student", label: "Student" },
     { key: "degree", label: "Degree" },
@@ -201,13 +248,19 @@ export function renderStudentsTable(
         <div class="mb-panel-sm grid grid-cols-1 gap-stack-xs sm:grid-cols-2 xl:grid-cols-4">
           <label &class="(get props filterLabelClass)">
             Search
-            <input id="studentSearch" type="search" placeholder="Name, email, or topic" &class="(get props filterControlClass)" />
+            <input
+              id="studentSearch"
+              type="search"
+              placeholder="Name, email, or topic"
+              &class="(get props filterControlClass)"
+              &value="(get props searchValue)"
+            />
           </label>
           <label &class="(get props filterLabelClass)">
             Degree type
             <select id="degreeFilter" &class="(get props filterControlClass)">
               <noop &foreach="(get props degreeFilterOptions)">
-                <option &value="(get props optionValue)" &children="(get props label)"></option>
+                <option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option>
               </noop>
             </select>
           </label>
@@ -215,18 +268,16 @@ export function renderStudentsTable(
             Phase
             <select id="phaseFilter" &class="(get props filterControlClass)">
               <noop &foreach="(get props phaseFilterOptions)">
-                <option &value="(get props optionValue)" &children="(get props label)"></option>
+                <option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option>
               </noop>
             </select>
           </label>
           <label &class="(get props filterLabelClass)">
             Meeting status
             <select id="statusFilter" &class="(get props filterControlClass)">
-              <option value="">All statuses</option>
-              <option value="not_booked">Not booked</option>
-              <option value="overdue">Overdue</option>
-              <option value="within_2_weeks">Meeting soon</option>
-              <option value="scheduled">Scheduled</option>
+              <noop &foreach="(get props statusFilterOptions)">
+                <option &value="(get props optionValue)" &selected="(get props selectedAttr)" &children="(get props label)"></option>
+              </noop>
             </select>
           </label>
         </div>
@@ -290,9 +341,11 @@ export function renderStudentsTable(
       mutedTextXs: escapeHtml(MUTED_TEXT_XS),
       filterLabelClass: escapeHtml(FILTER_LABEL),
       filterControlClass: escapeHtml(FIELD_CONTROL_WITH_MARGIN),
+      searchValue: escapeHtml(filters.search),
       tableHeaderClass: escapeHtml(TABLE_HEADER_ROW),
       degreeFilterOptions,
       phaseFilterOptions,
+      statusFilterOptions,
       sortHeaders,
       hasStudentRows: studentRows.length > 0,
       panelToggleButtonHtml: renderButton({

@@ -10,6 +10,7 @@ import { type HtmlispComponents } from "../../htmlisp";
 import { escapeHtml, getDegreeLabel, getTargetSubmissionDate } from "../../utils";
 import { renderView } from "../shared.htmlisp";
 import { DEGREE_TYPES, PHASES } from "../../reference-data";
+import type { DashboardFilters } from "../types";
 
 interface PreparedLaneStudent {
   idAttr: string;
@@ -31,7 +32,34 @@ interface PreparedPhaseLane {
   students: PreparedLaneStudent[];
 }
 
-function preparePhaseLanes(students: Student[], selectedStudent: Student | null): PreparedPhaseLane[] {
+function buildDashboardHref(filters: DashboardFilters, selectedId?: number): string {
+  const searchParams = new URLSearchParams();
+
+  if (selectedId) {
+    searchParams.set("selected", String(selectedId));
+  }
+  if (filters.search) {
+    searchParams.set("search", filters.search);
+  }
+  if (filters.degree) {
+    searchParams.set("degree", filters.degree);
+  }
+  if (filters.phase) {
+    searchParams.set("phase", filters.phase);
+  }
+  if (filters.status) {
+    searchParams.set("status", filters.status);
+  }
+  if (filters.sortKey !== "nextMeeting" || filters.sortDirection !== "asc") {
+    searchParams.set("sort", filters.sortKey);
+    searchParams.set("dir", filters.sortDirection);
+  }
+
+  const query = searchParams.toString();
+  return query ? `/?${query}` : "/";
+}
+
+function preparePhaseLanes(students: Student[], selectedStudent: Student | null, filters: DashboardFilters): PreparedPhaseLane[] {
   return PHASES.map((phase) => {
     const laneStudents = students
       .filter((student) => student.currentPhase === phase.id)
@@ -69,7 +97,7 @@ function preparePhaseLanes(students: Student[], selectedStudent: Student | null)
               isSelected ? " ring-2 ring-app-brand-ring/60 dark:ring-app-brand-ring/40" : ""
             }`,
           ),
-          href: escapeHtml(`/?selected=${student.id}`),
+          href: escapeHtml(buildDashboardHref(filters, student.id)),
           name: escapeHtml(student.name),
           badgesHtml,
           topicVisible: Boolean(student.thesisTopic),
@@ -80,7 +108,7 @@ function preparePhaseLanes(students: Student[], selectedStudent: Student | null)
   });
 }
 
-export function renderPhaseLanes(students: Student[], selectedStudent: Student | null): string {
+export function renderPhaseLanes(students: Student[], selectedStudent: Student | null, filters: DashboardFilters): string {
   const components: HtmlispComponents = {
     PhaseLane: `<article &class="(get props cardClass)">
     <div class="flex items-start justify-between gap-stack-xs">
@@ -155,7 +183,7 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
       mutedTextXs: escapeHtml(MUTED_TEXT_XS),
       emptyStateClass: escapeHtml(EMPTY_DASHED_CARD),
       topicTextClass: escapeHtml(`mt-badge-y ${TOPIC_TEXT_SM}`),
-      lanes: preparePhaseLanes(students, selectedStudent),
+      lanes: preparePhaseLanes(students, selectedStudent, filters),
     },
     components,
   );

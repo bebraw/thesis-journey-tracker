@@ -60,6 +60,11 @@ import {
   renderSelectedStudentPanel,
   renderStyleGuidePage,
 } from "./views";
+import type { DashboardFilters } from "./view/types";
+
+const DEFAULT_DASHBOARD_SORT_KEY = "nextMeeting";
+const DEFAULT_DASHBOARD_SORT_DIRECTION: DashboardFilters["sortDirection"] = "asc";
+const DASHBOARD_SORT_KEYS = new Set(["student", "degree", "phase", "target", "nextMeeting", "logs"]);
 
 interface Env {
   DB: D1Database;
@@ -244,7 +249,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   const partialStudentMatch = pathname.match(/^\/partials\/student\/(\d+)$/);
   if (partialStudentMatch && request.method === "GET") {
-    return await renderStudentPanelPartial(env, Number(partialStudentMatch[1]), sessionUser);
+    return await renderStudentPanelPartial(env, url, Number(partialStudentMatch[1]), sessionUser);
   }
 
   if (pathname === "/actions/export-json" && request.method === "GET") {
@@ -278,7 +283,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   const updateMatch = pathname.match(/^\/actions\/update-student\/(\d+)$/);
   if (updateMatch && request.method === "POST") {
     if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect(`/?selected=${Number(updateMatch[1])}`);
+      return readonlyRedirect(await getDashboardReturnPath(request, { selectedId: Number(updateMatch[1]) }));
     }
     return await handleUpdateStudent(request, env, Number(updateMatch[1]));
   }
@@ -286,7 +291,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   const addLogMatch = pathname.match(/^\/actions\/add-log\/(\d+)$/);
   if (addLogMatch && request.method === "POST") {
     if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect(`/?selected=${Number(addLogMatch[1])}`);
+      return readonlyRedirect(await getDashboardReturnPath(request, { selectedId: Number(addLogMatch[1]) }));
     }
     return await handleAddLog(request, env, Number(addLogMatch[1]));
   }
@@ -294,9 +299,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   const deleteMatch = pathname.match(/^\/actions\/delete-student\/(\d+)$/);
   if (deleteMatch && request.method === "POST") {
     if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect(`/?selected=${Number(deleteMatch[1])}`);
+      return readonlyRedirect(await getDashboardReturnPath(request, { selectedId: Number(deleteMatch[1]) }));
     }
-    return await handleDeleteStudent(env, Number(deleteMatch[1]));
+    return await handleDeleteStudent(request, env, Number(deleteMatch[1]));
   }
 
   return new Response("Not found", { status: 404 });
@@ -304,6 +309,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
 async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser, showStyleGuide: boolean): Promise<Response> {
   const students = await listStudents(env.DB);
+  const filters = getDashboardFilters(url.searchParams);
 
   const selectedIdParam = url.searchParams.get("selected");
   const parsedSelectedId = selectedIdParam ? Number.parseInt(selectedIdParam, 10) : 0;
@@ -333,6 +339,7 @@ async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser, sho
       selectedStudent,
       logs,
       phaseAudit,
+      filters,
       notice,
       error,
       metrics,
@@ -379,7 +386,7 @@ async function renderDataTools(url: URL, env: Env, sessionUser: SessionUser): Pr
   );
 }
 
-async function renderStudentPanelPartial(env: Env, studentId: number, sessionUser: SessionUser): Promise<Response> {
+async function renderStudentPanelPartial(env: Env, url: URL, studentId: number, sessionUser: SessionUser): Promise<Response> {
   const selectedStudent = await getStudentById(env.DB, studentId);
 
   if (!selectedStudent) {
@@ -391,6 +398,7 @@ async function renderStudentPanelPartial(env: Env, studentId: number, sessionUse
   return htmlFragmentResponse(
     renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, {
       canEdit: !isReadonlyUser(sessionUser),
+      filters: getDashboardFilters(url.searchParams),
     }),
   );
 }
@@ -470,9 +478,10 @@ async function handleScheduledBackup(controller: ScheduledControllerLike, env: E
 }
 
 async function handleUpdateStudent(request: Request, env: Env, studentId: number): Promise<Response> {
+  const returnPath = await getDashboardReturnPath(request, { selectedId: studentId });
   const existingStudent = await getStudentById(env.DB, studentId);
   if (!existingStudent) {
-    return redirect("/?error=Student+not+found");
+    return redirect(appendDashboardMessage(returnPath, { error: "Student not found" }));
   }
 
   const formData = await request.formData();
@@ -482,7 +491,7 @@ async function handleUpdateStudent(request: Request, env: Env, studentId: number
   });
 
   if (!studentInput) {
-    return redirect(`/?selected=${studentId}&error=Invalid+update+input`);
+    return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Invalid update input" }));
   }
 
   await updateStudent(env.DB, studentId, studentInput);
@@ -496,7 +505,7 @@ async function handleUpdateStudent(request: Request, env: Env, studentId: number
     });
   }
 
-  return redirect(`/?selected=${studentId}&notice=Student+updated`);
+  return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, notice: "Student updated" }));
 }
 
 async function handleImportJson(request: Request, env: Env): Promise<Response> {
@@ -544,6 +553,7 @@ async function handleImportJson(request: Request, env: Env): Promise<Response> {
 }
 
 async function handleAddLog(request: Request, env: Env, studentId: number): Promise<Response> {
+  const returnPath = await getDashboardReturnPath(request, { selectedId: studentId });
   const formData = await request.formData();
 
   const happenedAt = normalizeDateTime(formData.get("happenedAt"), true) || new Date().toISOString();
@@ -552,11 +562,11 @@ async function handleAddLog(request: Request, env: Env, studentId: number): Prom
   const nextStepDeadline = normalizeDate(formData.get("nextStepDeadline"), true);
 
   if (!discussed || !agreedPlan || nextStepDeadline === undefined) {
-    return redirect(`/?selected=${studentId}&error=Invalid+log+input`);
+    return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Invalid log input" }));
   }
 
   if (!(await studentExists(env.DB, studentId))) {
-    return redirect("/?error=Student+not+found");
+    return redirect(appendDashboardMessage(returnPath, { error: "Student not found" }));
   }
 
   await createMeetingLog(env.DB, {
@@ -567,16 +577,93 @@ async function handleAddLog(request: Request, env: Env, studentId: number): Prom
     nextStepDeadline,
   });
 
-  return redirect(`/?selected=${studentId}&notice=Log+saved`);
+  return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, notice: "Log saved" }));
 }
 
-async function handleDeleteStudent(env: Env, studentId: number): Promise<Response> {
+async function handleDeleteStudent(request: Request, env: Env, studentId: number): Promise<Response> {
+  const returnPath = await getDashboardReturnPath(request);
   if (!(await studentExists(env.DB, studentId))) {
-    return redirect("/?error=Student+not+found");
+    return redirect(appendDashboardMessage(returnPath, { error: "Student not found" }));
   }
 
   await deleteStudent(env.DB, studentId);
-  return redirect("/");
+  return redirect(returnPath);
+}
+
+function getDashboardFilters(searchParams: URLSearchParams): DashboardFilters {
+  const rawSortKey = searchParams.get("sort") || "";
+  const rawSortDirection = searchParams.get("dir") === "desc" ? "desc" : "asc";
+  const sortKey = DASHBOARD_SORT_KEYS.has(rawSortKey) ? rawSortKey : DEFAULT_DASHBOARD_SORT_KEY;
+
+  return {
+    search: (searchParams.get("search") || "").trim(),
+    degree: searchParams.get("degree") || "",
+    phase: searchParams.get("phase") || "",
+    status: searchParams.get("status") || "",
+    sortKey,
+    sortDirection: rawSortDirection,
+  };
+}
+
+function buildDashboardPath(filters: DashboardFilters, options: { selectedId?: number; notice?: string; error?: string } = {}): string {
+  const searchParams = new URLSearchParams();
+
+  if (options.selectedId) {
+    searchParams.set("selected", String(options.selectedId));
+  }
+  if (filters.search) {
+    searchParams.set("search", filters.search);
+  }
+  if (filters.degree) {
+    searchParams.set("degree", filters.degree);
+  }
+  if (filters.phase) {
+    searchParams.set("phase", filters.phase);
+  }
+  if (filters.status) {
+    searchParams.set("status", filters.status);
+  }
+  if (filters.sortKey !== DEFAULT_DASHBOARD_SORT_KEY || filters.sortDirection !== DEFAULT_DASHBOARD_SORT_DIRECTION) {
+    searchParams.set("sort", filters.sortKey);
+    searchParams.set("dir", filters.sortDirection);
+  }
+  if (options.notice) {
+    searchParams.set("notice", options.notice);
+  }
+  if (options.error) {
+    searchParams.set("error", options.error);
+  }
+
+  const query = searchParams.toString();
+  return query ? `/?${query}` : "/";
+}
+
+function appendDashboardMessage(pathname: string, options: { selectedId?: number; notice?: string; error?: string }): string {
+  const url = new URL(pathname, "https://dashboard.local");
+  return buildDashboardPath(getDashboardFilters(url.searchParams), options);
+}
+
+function parseDashboardReturnTo(rawValue: FormDataEntryValue | null): DashboardFilters {
+  if (typeof rawValue !== "string" || !rawValue.trim()) {
+    return getDashboardFilters(new URLSearchParams());
+  }
+
+  try {
+    const url = new URL(rawValue, "https://dashboard.local");
+    if (url.pathname !== "/") {
+      return getDashboardFilters(new URLSearchParams());
+    }
+    return getDashboardFilters(url.searchParams);
+  } catch {
+    return getDashboardFilters(new URLSearchParams());
+  }
+}
+
+async function getDashboardReturnPath(request: Request, options: { selectedId?: number } = {}): Promise<string> {
+  const formData = await request.clone().formData();
+  return buildDashboardPath(parseDashboardReturnTo(formData.get("returnTo")), {
+    selectedId: options.selectedId,
+  });
 }
 
 async function resolveAuthState(env: Env): Promise<{ users: Awaited<ReturnType<typeof listAuthUsers>>; error?: string }> {

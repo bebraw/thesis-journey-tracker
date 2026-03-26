@@ -25,7 +25,7 @@ async function selectStudentFromTable(page: Page, studentName: string) {
   const partialResponse = page.waitForResponse((response) => response.url().includes("/partials/student/"));
   await page.locator("[data-student-row]", { hasText: studentName }).first().click();
   await partialResponse;
-  await expect(page).toHaveURL(/\/\?selected=/);
+  await expect.poll(() => new URL(page.url()).searchParams.get("selected")).not.toBeNull();
 }
 
 async function showStudentPanel(page: Page) {
@@ -178,6 +178,96 @@ test.describe("dashboard e2e", () => {
     await expect(page).toHaveURL(/\/\?selected=/);
   });
 
+  test("persists dashboard filters in the URL across reloads and selection", async ({ page }) => {
+    await login(page);
+
+    await page.locator("#studentSearch").fill(secondaryStudentName);
+    await page.locator("#degreeFilter").selectOption("dsc");
+
+    await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe(secondaryStudentName);
+    await expect.poll(() => new URL(page.url()).searchParams.get("degree")).toBe("dsc");
+    await expect(page.locator("[data-student-row]", { hasText: secondaryStudentName })).toBeVisible();
+    await expect(page.locator("[data-student-row]", { hasText: createdStudentName })).toBeHidden();
+
+    await page.reload();
+
+    await expect(page.locator("#studentSearch")).toHaveValue(secondaryStudentName);
+    await expect(page.locator("#degreeFilter")).toHaveValue("dsc");
+    await expect(page.locator("[data-student-row]", { hasText: secondaryStudentName })).toBeVisible();
+    await expect(page.locator("[data-student-row]", { hasText: createdStudentName })).toBeHidden();
+
+    const partialResponse = page.waitForResponse((response) => response.url().includes("/partials/student/"));
+    await page.locator("[data-student-row]", { hasText: secondaryStudentName }).first().click();
+    await partialResponse;
+
+    await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe(secondaryStudentName);
+    await expect.poll(() => new URL(page.url()).searchParams.get("degree")).toBe("dsc");
+    await expect.poll(() => new URL(page.url()).searchParams.get("selected")).not.toBeNull();
+  });
+
+  test("updates filter query params from click-driven filter interactions", async ({ page }) => {
+    await login(page);
+
+    const degreeFilter = page.locator("#degreeFilter");
+    await degreeFilter.click();
+    await degreeFilter.selectOption("bsc");
+    await expect.poll(() => new URL(page.url()).searchParams.get("degree")).toBe("bsc");
+
+    const phaseFilter = page.locator("#phaseFilter");
+    await phaseFilter.click();
+    await phaseFilter.selectOption("research_plan");
+    await expect.poll(() => new URL(page.url()).searchParams.get("phase")).toBe("research_plan");
+
+    const statusFilter = page.locator("#statusFilter");
+    await statusFilter.click();
+    await statusFilter.selectOption("not_booked");
+    await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBe("not_booked");
+
+    const searchInput = page.locator("#studentSearch");
+    await searchInput.click();
+    await searchInput.fill(secondaryStudentName);
+    await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe(secondaryStudentName);
+
+    await degreeFilter.selectOption("");
+    await phaseFilter.selectOption("");
+    await statusFilter.selectOption("");
+    await searchInput.clear();
+
+    await expect.poll(() => new URL(page.url()).searchParams.get("degree")).toBeNull();
+    await expect.poll(() => new URL(page.url()).searchParams.get("phase")).toBeNull();
+    await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBeNull();
+    await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBeNull();
+  });
+
+  test("persists table sorting in the URL across reloads and selection", async ({ page }) => {
+    await login(page);
+
+    const studentSortHeader = page.getByRole("button", { name: "Student" });
+    await studentSortHeader.click();
+    await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
+    await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("asc");
+
+    await studentSortHeader.click();
+    await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
+    await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("desc");
+
+    const firstRowBeforeReload = (await page.locator("[data-student-row]").first().textContent()) || "";
+
+    await page.reload();
+
+    await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
+    await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("desc");
+    await expect(page.locator("[data-student-row]").first()).toContainText(firstRowBeforeReload.trim());
+
+    const partialResponse = page.waitForResponse((response) => response.url().includes("/partials/student/"));
+    await page.locator("[data-student-row]").first().click();
+    await partialResponse;
+
+    await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
+    await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("desc");
+    await expect.poll(() => new URL(page.url()).searchParams.get("selected")).not.toBeNull();
+  });
+
   test("shows no derived target date when adding a student without a start date", async ({ page }) => {
     await login(page);
 
@@ -197,8 +287,16 @@ test.describe("dashboard e2e", () => {
   test("can update a student and add a meeting log", async ({ page }) => {
     await login(page);
 
+    const studentSortHeader = page.getByRole("button", { name: "Student" });
+    await studentSortHeader.click();
+    await studentSortHeader.click();
+    await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
+    await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("desc");
+
     await selectStudentFromTable(page, createdStudentName);
     await showStudentPanel(page);
+    await page.locator("#statusFilter").selectOption("not_booked");
+    await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBe("not_booked");
 
     const suffix = Date.now().toString();
     updatedStudentName = `${createdStudentName} Updated`;
@@ -217,6 +315,9 @@ test.describe("dashboard e2e", () => {
     await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save student updates" }).click();
 
     await expect(page).toHaveURL(/notice=Student\+updated/);
+    await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBe("not_booked");
+    await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
+    await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("desc");
     await showStudentPanel(page);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Name")).toHaveValue(updatedStudentName);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Email")).toHaveValue(updatedEmail);
@@ -230,6 +331,9 @@ test.describe("dashboard e2e", () => {
     await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save log entry" }).click();
 
     await expect(page).toHaveURL(/notice=Log\+saved/);
+    await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBe("not_booked");
+    await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
+    await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("desc");
     await showStudentPanel(page);
     await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Meeting Log History" }).click();
     await expect(page.locator("#selectedStudentPanel")).toContainText(discussedText);
