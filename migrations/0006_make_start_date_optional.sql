@@ -48,6 +48,36 @@ SELECT
   thesis_topic
 FROM students;
 
+CREATE TABLE meeting_logs_snapshot (
+  id INTEGER PRIMARY KEY,
+  student_id INTEGER NOT NULL,
+  happened_at TEXT NOT NULL,
+  discussed TEXT NOT NULL,
+  agreed_plan TEXT NOT NULL,
+  next_step_deadline TEXT,
+  created_at TEXT NOT NULL
+);
+
+INSERT INTO meeting_logs_snapshot (
+  id,
+  student_id,
+  happened_at,
+  discussed,
+  agreed_plan,
+  next_step_deadline,
+  created_at
+)
+SELECT
+  id,
+  student_id,
+  happened_at,
+  discussed,
+  agreed_plan,
+  next_step_deadline,
+  created_at
+FROM meeting_logs;
+
+DROP TABLE meeting_logs;
 DROP TRIGGER IF EXISTS trg_students_updated_at;
 DROP TABLE students;
 ALTER TABLE students_new RENAME TO students;
@@ -62,5 +92,39 @@ BEGIN
   SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
   WHERE id = OLD.id;
 END;
+
+CREATE TABLE meeting_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  student_id INTEGER NOT NULL,
+  happened_at TEXT NOT NULL,
+  discussed TEXT NOT NULL,
+  agreed_plan TEXT NOT NULL,
+  next_step_deadline TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+INSERT INTO meeting_logs (
+  id,
+  student_id,
+  happened_at,
+  discussed,
+  agreed_plan,
+  next_step_deadline,
+  created_at
+)
+SELECT
+  id,
+  student_id,
+  happened_at,
+  discussed,
+  agreed_plan,
+  next_step_deadline,
+  created_at
+FROM meeting_logs_snapshot;
+
+DROP TABLE meeting_logs_snapshot;
+
+CREATE INDEX IF NOT EXISTS idx_logs_student_id ON meeting_logs (student_id);
 
 PRAGMA foreign_keys = ON;
