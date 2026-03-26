@@ -46,4 +46,66 @@ export interface DataToolsPageData {
   studentCount: number;
   logCount: number;
   replaceImportEnabled: boolean;
+  googleCalendarConfigSource: "stored" | "none";
+  storedGoogleCalendarUpdatedAt: string | null;
+  effectiveGoogleCalendarId: string | null;
+  effectiveGoogleCalendarTimeZone: string | null;
+  googleCalendarClientId: string;
+  googleCalendarClientSecret: string;
+  googleCalendarRefreshToken: string;
+  googleCalendarCalendarId: string;
+  googleCalendarTimeZone: string;
+}
+
+export interface ScheduleSlotViewData {
+  label: string;
+  href: string;
+  selected: boolean;
+}
+
+export interface ScheduleEventViewData {
+  summary: string;
+  timeText: string;
+  description: string | null;
+  htmlLink: string | null;
+}
+
+export interface ScheduleDayViewData {
+  label: string;
+  hasEvents: boolean;
+  hasSlots: boolean;
+  events: ScheduleEventViewData[];
+  slots: ScheduleSlotViewData[];
+}
+
+export interface ScheduleStudentOptionViewData {
+  value: string;
+  label: string;
+  selected: boolean;
+}
+
+export interface SchedulePageData {
+  viewer: ViewerContext;
+  notice: string | null;
+  error: string | null;
+  showStyleGuide: boolean;
+  configured: boolean;
+  syncFailed: boolean;
+  timeZone: string;
+  weekLabel: string;
+  prevWeekHref: string;
+  nextWeekHref: string;
+  currentWeekHref: string;
+  selectedWeek: string;
+  selectedSlotHref: string | null;
+  students: ScheduleStudentOptionViewData[];
+  selectedStudentId: string;
+  selectedStudentName: string | null;
+  selectedStudentEmail: string;
+  selectedSlotLabel: string | null;
+  selectedSlotStart: string | null;
+  selectedSlotEnd: string | null;
+  defaultTitle: string;
+  defaultDescription: string;
+  days: ScheduleDayViewData[];
 }

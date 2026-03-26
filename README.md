@@ -17,6 +17,7 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 - Store supervision logs with discussion notes, action items, and optional deadlines.
 - Follow upcoming meetings from the dashboard.
 - Filter the student list by phase, degree type, and meeting status.
+- Open a weekly Google Calendar scheduling view, see existing events, and send meeting invites to students.
 - Export or restore the dataset as JSON backups, and download an email-ready Markdown status report.
 - Store automated Cloudflare backups in R2 when deployed with the scheduled backup setup.
 
@@ -48,7 +49,7 @@ This command returns a `database_id` for the Cloudflare D1 database. Put that va
 cp .dev.vars.example .dev.vars
 ```
 
-Set `SESSION_SECRET` in `.dev.vars` to a long random string before starting the app.
+Set `SESSION_SECRET` in `.dev.vars` to a long random string before starting the app. If you want the scheduling page to connect to Google Calendar, follow the Google credential walkthrough in [docs/setup.md#optional-get-google-calendar-integration-values](./docs/setup.md#optional-get-google-calendar-integration-values), then save those values from the app's Data Tools page, where they are encrypted before being written to D1.
 
 4. Apply migrations and create your first account:
 

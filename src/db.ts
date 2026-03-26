@@ -48,6 +48,12 @@ export interface LoginAttempt {
   lockedUntil: string | null;
 }
 
+export interface AppSecret {
+  secretKey: string;
+  encryptedValue: string;
+  updatedAt: string;
+}
+
 type D1Value = string | number | null;
 
 interface D1ExecMeta {
@@ -118,6 +124,12 @@ interface LoginAttemptRow {
   first_failed_at: string;
   last_failed_at: string;
   locked_until: string | null;
+}
+
+interface AppSecretRow {
+  secret_key: string;
+  encrypted_value: string;
+  updated_at: string;
 }
 
 export interface StudentMutationInput {
@@ -279,6 +291,44 @@ export async function saveLoginAttempt(db: D1Database, attempt: LoginAttempt): P
 
 export async function clearLoginAttempt(db: D1Database, attemptKey: string): Promise<void> {
   await db.prepare("DELETE FROM login_attempts WHERE attempt_key = ?").bind(attemptKey).run();
+}
+
+export async function getAppSecret(db: D1Database, secretKey: string): Promise<AppSecret | null> {
+  const row = await db
+    .prepare(
+      `SELECT secret_key, encrypted_value, updated_at
+       FROM app_secrets
+       WHERE secret_key = ?`,
+    )
+    .bind(secretKey)
+    .first<AppSecretRow>();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    secretKey: row.secret_key,
+    encryptedValue: row.encrypted_value,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function upsertAppSecret(db: D1Database, secretKey: string, encryptedValue: string, updatedAt: string): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO app_secrets (secret_key, encrypted_value, updated_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT(secret_key) DO UPDATE SET
+         encrypted_value = excluded.encrypted_value,
+         updated_at = excluded.updated_at`,
+    )
+    .bind(secretKey, encryptedValue, updatedAt)
+    .run();
+}
+
+export async function deleteAppSecret(db: D1Database, secretKey: string): Promise<void> {
+  await db.prepare("DELETE FROM app_secrets WHERE secret_key = ?").bind(secretKey).run();
 }
 
 export async function getStudentById(db: D1Database, studentId: number): Promise<Student | null> {

@@ -6,9 +6,11 @@ import {
   clearLoginAttempt,
   createMeetingLog,
   createStudent,
+  deleteAppSecret,
   deleteStudent,
   type D1Database,
   type D1PreparedStatement,
+  getAppSecret,
   getLoginAttempt,
   getStudentById,
   listLogsForStudent,
@@ -18,10 +20,27 @@ import {
   listStudents,
   saveLoginAttempt,
   studentExists,
+  upsertAppSecret,
   upsertAuthUser,
   updateStudent,
   updateStudentWithPhaseAudit,
 } from "./db";
+import { decryptText, encryptText } from "./encryption";
+import {
+  createGoogleCalendarEvent,
+  type GoogleCalendarEvent,
+  listGoogleCalendarEvents,
+  resolveGoogleCalendarConfig,
+} from "./google-calendar";
+import {
+  addHourToLocalDateTime,
+  buildScheduleEventDescription,
+  buildScheduleEventTitle,
+  buildScheduleWeek,
+  localDateTimeToUtcIso,
+  resolveScheduleTimeZone,
+  resolveWeekStart,
+} from "./scheduling";
 import { hashPassword, verifyPassword } from "./password";
 import { parseStudentFormSubmission } from "./student-form";
 import {
@@ -57,6 +76,7 @@ import {
   renderDashboardPage,
   renderEmptySelectedPanel,
   renderLoginPage,
+  renderSchedulePage,
   renderSelectedStudentPanel,
   renderStyleGuidePage,
 } from "./views";
@@ -70,6 +90,7 @@ interface Env {
   DB: D1Database;
   BACKUP_BUCKET?: R2BucketLike;
   BACKUP_PREFIX?: string;
+  APP_ENCRYPTION_SECRET?: string;
   APP_PASSWORD?: string;
   APP_USERS_JSON?: string;
   REPLACE_IMPORT_ENABLED?: string;
@@ -85,6 +106,7 @@ const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_FAILURES = 5;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
+const GOOGLE_CALENDAR_SECRET_KEY = "google_calendar_config";
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -247,6 +269,13 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return await renderDataTools(url, env, sessionUser);
   }
 
+  if (pathname === "/schedule" && request.method === "GET") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect("/");
+    }
+    return await renderSchedule(url, env, sessionUser, showStyleGuide);
+  }
+
   const partialStudentMatch = pathname.match(/^\/partials\/student\/(\d+)$/);
   if (partialStudentMatch && request.method === "GET") {
     return await renderStudentPanelPartial(env, url, Number(partialStudentMatch[1]), sessionUser);
@@ -278,6 +307,27 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       return readonlyRedirect("/");
     }
     return await handleImportJson(request, env);
+  }
+
+  if (pathname === "/actions/save-google-calendar-settings" && request.method === "POST") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect("/");
+    }
+    return await handleSaveGoogleCalendarSettings(request, env);
+  }
+
+  if (pathname === "/actions/clear-google-calendar-settings" && request.method === "POST") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect("/");
+    }
+    return await handleClearGoogleCalendarSettings(env);
+  }
+
+  if (pathname === "/actions/schedule-meeting" && request.method === "POST") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect(await getScheduleReturnPath(request));
+    }
+    return await handleScheduleMeeting(request, env);
   }
 
   const updateMatch = pathname.match(/^\/actions\/update-student\/(\d+)$/);
@@ -370,6 +420,8 @@ async function renderDataTools(url: URL, env: Env, sessionUser: SessionUser): Pr
   const error = url.searchParams.get("error");
   const students = await listStudents(env.DB);
   const logCount = students.reduce((total, student) => total + student.logCount, 0);
+  const effectiveCalendarConfig = await resolveGoogleCalendarConfigForApp(env);
+  const storedCalendarConfig = await getStoredGoogleCalendarConfig(env);
 
   return htmlResponse(
     renderDataToolsPage({
@@ -382,6 +434,94 @@ async function renderDataTools(url: URL, env: Env, sessionUser: SessionUser): Pr
       studentCount: students.length,
       logCount,
       replaceImportEnabled: isReplaceImportEnabled(env),
+      googleCalendarConfigSource: storedCalendarConfig ? "stored" : "none",
+      storedGoogleCalendarUpdatedAt: storedCalendarConfig?.updatedAt || null,
+      effectiveGoogleCalendarId: effectiveCalendarConfig?.calendarId || null,
+      effectiveGoogleCalendarTimeZone: effectiveCalendarConfig?.timeZone || null,
+      googleCalendarClientId: storedCalendarConfig?.config.clientId || "",
+      googleCalendarClientSecret: storedCalendarConfig?.config.clientSecret || "",
+      googleCalendarRefreshToken: storedCalendarConfig?.config.refreshToken || "",
+      googleCalendarCalendarId: storedCalendarConfig?.config.calendarId || "",
+      googleCalendarTimeZone: storedCalendarConfig?.config.timeZone || "",
+    }),
+  );
+}
+
+async function renderSchedule(url: URL, env: Env, sessionUser: SessionUser, showStyleGuide: boolean): Promise<Response> {
+  const students = await listStudents(env.DB);
+  const selectedStudentId = Number.parseInt(url.searchParams.get("student") || "", 10);
+  const selectedStudent = Number.isFinite(selectedStudentId) ? students.find((student) => student.id === selectedStudentId) || null : null;
+  const config = await resolveGoogleCalendarConfigForApp(env);
+  const timeZone = resolveScheduleTimeZone(config?.timeZone);
+  const weekStart = resolveWeekStart(url.searchParams.get("week"), timeZone);
+  const selectedSlotStart = normalizeScheduleSlotValue(url.searchParams.get("slot"));
+  const selectedSlotEnd = selectedSlotStart ? addHourToLocalDateTime(selectedSlotStart, 1) : null;
+  const notice = url.searchParams.get("notice");
+  let error = url.searchParams.get("error");
+  let syncFailed = false;
+  let events: GoogleCalendarEvent[] = [];
+
+  if (config) {
+    try {
+      events = await listGoogleCalendarEventsForWeek(config, weekStart, timeZone);
+    } catch (calendarError) {
+      console.error("Failed to load Google Calendar events", calendarError);
+      syncFailed = true;
+      error = error || formatCalendarSyncError(calendarError);
+    }
+  }
+
+  const week = buildScheduleWeek(weekStart, timeZone, events, selectedSlotStart);
+
+  return htmlResponse(
+    renderSchedulePage({
+      viewer: {
+        name: sessionUser.name,
+        role: sessionUser.role,
+      },
+      notice,
+      error,
+      showStyleGuide,
+      configured: Boolean(config),
+      syncFailed,
+      timeZone,
+      weekLabel: week.label,
+      prevWeekHref: buildSchedulePath({ weekStart: week.prevWeekStart, studentId: selectedStudent?.id, slotStart: selectedSlotStart }),
+      nextWeekHref: buildSchedulePath({ weekStart: week.nextWeekStart, studentId: selectedStudent?.id, slotStart: selectedSlotStart }),
+      currentWeekHref: buildSchedulePath({ studentId: selectedStudent?.id, timeZone }),
+      selectedWeek: week.weekStart,
+      selectedSlotHref: selectedSlotStart
+        ? buildSchedulePath({ weekStart: week.weekStart, studentId: selectedStudent?.id, slotStart: selectedSlotStart })
+        : null,
+      students: students.map((student) => ({
+        value: String(student.id),
+        label: student.name,
+        selected: selectedStudent?.id === student.id,
+      })),
+      selectedStudentId: selectedStudent ? String(selectedStudent.id) : "",
+      selectedStudentName: selectedStudent?.name || null,
+      selectedStudentEmail: selectedStudent?.email || "",
+      selectedSlotLabel: selectedSlotStart && selectedSlotEnd ? `${selectedSlotStart.replace("T", " ")} - ${selectedSlotEnd.slice(11, 16)}` : null,
+      selectedSlotStart,
+      selectedSlotEnd,
+      defaultTitle: selectedStudent ? buildScheduleEventTitle(selectedStudent) : "",
+      defaultDescription: selectedStudent ? buildScheduleEventDescription(selectedStudent) : "",
+      days: week.days.map((day) => ({
+        label: day.label,
+        hasEvents: day.events.length > 0,
+        hasSlots: day.slots.length > 0,
+        events: day.events.map((event) => ({
+          summary: event.summary,
+          timeText: event.timeText,
+          description: event.description,
+          htmlLink: event.htmlLink,
+        })),
+        slots: day.slots.map((slot) => ({
+          label: slot.label,
+          href: buildSchedulePath({ weekStart: week.weekStart, studentId: selectedStudent?.id, slotStart: slot.startLocal }),
+          selected: slot.selected,
+        })),
+      })),
     }),
   );
 }
@@ -557,6 +697,117 @@ async function handleImportJson(request: Request, env: Env): Promise<Response> {
   );
 }
 
+async function handleSaveGoogleCalendarSettings(request: Request, env: Env): Promise<Response> {
+  const formData = await request.formData();
+  const clientId = normalizeString(formData.get("clientId"));
+  const clientSecret = normalizeString(formData.get("clientSecret"));
+  const refreshToken = normalizeString(formData.get("refreshToken"));
+  const calendarId = normalizeString(formData.get("calendarId"));
+  const timeZone = normalizeString(formData.get("timeZone"));
+
+  if (!clientId || !clientSecret || !refreshToken || !calendarId) {
+    return redirect("/data-tools?error=All+Google+Calendar+credential+fields+except+timezone+are+required");
+  }
+
+  const encryptionSecret = resolveAppEncryptionSecret(env);
+  const now = new Date().toISOString();
+
+  try {
+    const encryptedValue = await encryptText(
+      JSON.stringify({
+        clientId,
+        clientSecret,
+        refreshToken,
+        calendarId,
+        timeZone: timeZone || undefined,
+      }),
+      encryptionSecret,
+    );
+
+    await upsertAppSecret(env.DB, GOOGLE_CALENDAR_SECRET_KEY, encryptedValue, now);
+  } catch (error) {
+    console.error("Failed to save Google Calendar settings", error);
+    return redirect("/data-tools?error=Failed+to+save+encrypted+Google+Calendar+settings");
+  }
+
+  return redirect("/data-tools?notice=Encrypted+Google+Calendar+settings+saved");
+}
+
+async function handleClearGoogleCalendarSettings(env: Env): Promise<Response> {
+  try {
+    await deleteAppSecret(env.DB, GOOGLE_CALENDAR_SECRET_KEY);
+  } catch (error) {
+    console.error("Failed to clear Google Calendar settings", error);
+    return redirect("/data-tools?error=Failed+to+clear+stored+Google+Calendar+settings");
+  }
+
+  return redirect("/data-tools?notice=Stored+Google+Calendar+settings+cleared");
+}
+
+async function handleScheduleMeeting(request: Request, env: Env): Promise<Response> {
+  const formData = await request.formData();
+  const returnPath = parseScheduleReturnTo(formData.get("returnTo"));
+  const studentId = Number.parseInt(String(formData.get("studentId") || ""), 10);
+  const config = await resolveGoogleCalendarConfigForApp(env);
+  const weekStart = normalizeScheduleWeekValue(formData.get("week")) || resolveWeekStart(null, resolveScheduleTimeZone(config?.timeZone));
+  const slotStart = normalizeScheduleSlotValue(formData.get("slotStart"));
+  const slotEnd = normalizeScheduleSlotValue(formData.get("slotEnd"));
+
+  if (!config) {
+    return redirect(appendScheduleMessage(returnPath, { weekStart, studentId, slotStart, error: "Google Calendar is not configured" }));
+  }
+
+  if (!Number.isFinite(studentId) || !slotStart || !slotEnd) {
+    return redirect(appendScheduleMessage(returnPath, { weekStart, error: "Invalid scheduling request" }));
+  }
+
+  const student = await getStudentById(env.DB, studentId);
+  if (!student) {
+    return redirect(appendScheduleMessage(returnPath, { weekStart, error: "Student not found" }));
+  }
+
+  const meetingEmail = normalizeString(formData.get("meetingEmail")) || student.email;
+  if (!meetingEmail) {
+    return redirect(
+      appendScheduleMessage(returnPath, {
+        weekStart,
+        studentId,
+        slotStart,
+        error: "Student email is required before sending a Google Calendar invite",
+      }),
+    );
+  }
+
+  const title = normalizeString(formData.get("title")) || buildScheduleEventTitle(student);
+  const description = normalizeString(formData.get("description")) || buildScheduleEventDescription(student);
+
+  try {
+    await createGoogleCalendarEvent(config, {
+      summary: title,
+      description,
+      startLocal: slotStart,
+      endLocal: slotEnd,
+      attendeeEmails: [meetingEmail],
+    });
+
+    await updateStudent(env.DB, studentId, {
+      name: student.name,
+      email: meetingEmail,
+      degreeType: student.degreeType,
+      thesisTopic: student.thesisTopic,
+      studentNotes: student.studentNotes,
+      startDate: student.startDate,
+      currentPhase: student.currentPhase,
+      nextMeetingAt: localDateTimeToUtcIso(slotStart, config.timeZone),
+    });
+  } catch (error) {
+    console.error("Failed to schedule Google Calendar event", error);
+    return redirect(appendScheduleMessage(returnPath, { weekStart, studentId, slotStart, error: "Failed to schedule Google Calendar event" }));
+  }
+
+  return redirect(appendScheduleMessage(returnPath, { weekStart, studentId, notice: "Meeting scheduled" }));
+}
+
 async function handleAddLog(request: Request, env: Env, studentId: number): Promise<Response> {
   const returnPath = await getDashboardReturnPath(request, { selectedId: studentId });
   const formData = await request.formData();
@@ -648,6 +899,49 @@ function appendDashboardMessage(pathname: string, options: { selectedId?: number
   return buildDashboardPath(getDashboardFilters(url.searchParams), options);
 }
 
+function buildSchedulePath(options: {
+  weekStart?: string | null;
+  studentId?: number | null;
+  slotStart?: string | null;
+  notice?: string;
+  error?: string;
+  timeZone?: string;
+}): string {
+  const weekStart = normalizeScheduleWeekValue(options.weekStart) || resolveWeekStart(null, resolveScheduleTimeZone(options.timeZone));
+  const searchParams = new URLSearchParams();
+  searchParams.set("week", weekStart);
+
+  if (options.studentId) {
+    searchParams.set("student", String(options.studentId));
+  }
+  if (options.slotStart && normalizeScheduleSlotValue(options.slotStart)) {
+    searchParams.set("slot", options.slotStart);
+  }
+  if (options.notice) {
+    searchParams.set("notice", options.notice);
+  }
+  if (options.error) {
+    searchParams.set("error", options.error);
+  }
+
+  return `/schedule?${searchParams.toString()}`;
+}
+
+function appendScheduleMessage(
+  pathname: string,
+  options: { weekStart?: string | null; studentId?: number | null; slotStart?: string | null; notice?: string; error?: string },
+): string {
+  const url = new URL(pathname, "https://schedule.local");
+  const currentStudentId = Number.parseInt(url.searchParams.get("student") || "", 10);
+  return buildSchedulePath({
+    weekStart: options.weekStart || url.searchParams.get("week"),
+    studentId: options.studentId ?? (Number.isFinite(currentStudentId) ? currentStudentId : null),
+    slotStart: options.slotStart,
+    notice: options.notice,
+    error: options.error,
+  });
+}
+
 function parseDashboardReturnTo(rawValue: FormDataEntryValue | null): DashboardFilters {
   if (typeof rawValue !== "string" || !rawValue.trim()) {
     return getDashboardFilters(new URLSearchParams());
@@ -669,6 +963,98 @@ async function getDashboardReturnPath(request: Request, options: { selectedId?: 
   return buildDashboardPath(parseDashboardReturnTo(formData.get("returnTo")), {
     selectedId: options.selectedId,
   });
+}
+
+function parseScheduleReturnTo(rawValue: FormDataEntryValue | null): string {
+  if (typeof rawValue !== "string" || !rawValue.trim()) {
+    return buildSchedulePath({});
+  }
+
+  try {
+    const url = new URL(rawValue, "https://schedule.local");
+    return url.pathname === "/schedule" ? `${url.pathname}${url.search}` : buildSchedulePath({});
+  } catch {
+    return buildSchedulePath({});
+  }
+}
+
+async function getScheduleReturnPath(request: Request): Promise<string> {
+  const formData = await request.clone().formData();
+  return parseScheduleReturnTo(formData.get("returnTo"));
+}
+
+function normalizeScheduleWeekValue(value: FormDataEntryValue | string | null | undefined): string | null {
+  const text = typeof value === "string" ? value.trim() : "";
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
+}
+
+function normalizeScheduleSlotValue(value: FormDataEntryValue | string | null | undefined): string | null {
+  const text = typeof value === "string" ? value.trim() : "";
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text) ? text : null;
+}
+
+async function listGoogleCalendarEventsForWeek(
+  config: NonNullable<ReturnType<typeof resolveGoogleCalendarConfig>>,
+  weekStart: string,
+  timeZone: string,
+) {
+  const weekEndExclusive = addHourToLocalDateTime(`${weekStart}T00:00`, 24 * 7);
+  return await listGoogleCalendarEvents(config, {
+    timeMinIso: localDateTimeToUtcIso(`${weekStart}T00:00`, timeZone),
+    timeMaxIso: localDateTimeToUtcIso(weekEndExclusive, timeZone),
+  });
+}
+
+function formatCalendarSyncError(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) {
+    return `Google Calendar sync failed: ${error.message.trim()}`;
+  }
+
+  return "Google Calendar sync failed: unknown error";
+}
+
+interface StoredGoogleCalendarConfigRecord {
+  config: NonNullable<ReturnType<typeof resolveGoogleCalendarConfig>>;
+  updatedAt: string;
+}
+
+async function resolveGoogleCalendarConfigForApp(env: Env): Promise<NonNullable<ReturnType<typeof resolveGoogleCalendarConfig>> | null> {
+  const storedConfig = await getStoredGoogleCalendarConfig(env);
+  return storedConfig?.config || null;
+}
+
+async function getStoredGoogleCalendarConfig(env: Env): Promise<StoredGoogleCalendarConfigRecord | null> {
+  const storedSecret = await getAppSecret(env.DB, GOOGLE_CALENDAR_SECRET_KEY);
+  if (!storedSecret) {
+    return null;
+  }
+
+  try {
+    const decryptedPayload = await decryptText(storedSecret.encryptedValue, resolveAppEncryptionSecret(env));
+    const parsed = JSON.parse(decryptedPayload) as {
+      clientId?: string;
+      clientSecret?: string;
+      refreshToken?: string;
+      calendarId?: string;
+      timeZone?: string;
+    };
+    const config = resolveGoogleCalendarConfig(parsed);
+    if (!config) {
+      return null;
+    }
+
+    return {
+      config,
+      updatedAt: storedSecret.updatedAt,
+    };
+  } catch (error) {
+    console.error("Failed to load stored Google Calendar settings", error);
+    return null;
+  }
+}
+
+function resolveAppEncryptionSecret(env: Env): string {
+  return env.APP_ENCRYPTION_SECRET || env.SESSION_SECRET || "";
 }
 
 async function resolveAuthState(env: Env): Promise<{ users: Awaited<ReturnType<typeof listAuthUsers>>; error?: string }> {

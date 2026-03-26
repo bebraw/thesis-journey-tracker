@@ -102,6 +102,16 @@ describe("multi-user access control", () => {
     expect(dataToolsResponse.status).toBe(302);
     expect(dataToolsResponse.headers.get("location")).toBe("/?error=Read-only+access");
 
+    const scheduleResponse = await fetchHandler(
+      new Request("http://localhost/schedule", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    expect(scheduleResponse.status).toBe(302);
+    expect(scheduleResponse.headers.get("location")).toBe("/?error=Read-only+access");
+
     const updateResponse = await fetchHandler(
       new Request("http://localhost/actions/update-student/1", {
         method: "POST",
@@ -124,6 +134,63 @@ describe("multi-user access control", () => {
 
     expect(updateResponse.status).toBe(302);
     expect(updateResponse.headers.get("location")).toBe("/?selected=1&error=Read-only+access");
+
+    const scheduleMeetingResponse = await fetchHandler(
+      new Request("http://localhost/actions/schedule-meeting", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams({
+          returnTo: "/schedule?week=2026-03-23&student=1&slot=2026-03-24T09:00",
+          studentId: "1",
+          week: "2026-03-23",
+          slotStart: "2026-03-24T09:00",
+          slotEnd: "2026-03-24T10:00",
+          title: "Readonly Attempt",
+          meetingEmail: "readonly@example.edu",
+        }),
+      }),
+      env,
+    );
+
+    expect(scheduleMeetingResponse.status).toBe(302);
+    expect(scheduleMeetingResponse.headers.get("location")).toBe("/schedule?week=2026-03-23&student=1&slot=2026-03-24T09:00&error=Read-only+access");
+
+    const saveCalendarSettingsResponse = await fetchHandler(
+      new Request("http://localhost/actions/save-google-calendar-settings", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams({
+          clientId: "readonly-client-id",
+          clientSecret: "readonly-client-secret",
+          refreshToken: "readonly-refresh-token",
+          calendarId: "primary",
+          timeZone: "Europe/Helsinki",
+        }),
+      }),
+      env,
+    );
+
+    expect(saveCalendarSettingsResponse.status).toBe(302);
+    expect(saveCalendarSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
+
+    const clearCalendarSettingsResponse = await fetchHandler(
+      new Request("http://localhost/actions/clear-google-calendar-settings", {
+        method: "POST",
+        headers: {
+          cookie,
+        },
+      }),
+      env,
+    );
+
+    expect(clearCalendarSettingsResponse.status).toBe(302);
+    expect(clearCalendarSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
     expect(env.DB.students[0]?.name).toBe("Base Student");
     expect(env.DB.phaseAuditEntries).toHaveLength(0);
   });

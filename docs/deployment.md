@@ -27,9 +27,12 @@ npx wrangler login
 
 ```bash
 npx wrangler secret put SESSION_SECRET
+npx wrangler secret put APP_ENCRYPTION_SECRET
 ```
 
-Only if you intentionally want to allow full replacement restores from the Data Tools page, add a plain environment variable as well:
+If you want the Google Calendar scheduling page enabled in production, keep `APP_ENCRYPTION_SECRET` set and then save the Google credentials from the `Data Tools` page after deployment. Those values are encrypted before being stored in D1.
+
+Other plain Worker vars can still go in `wrangler.toml`:
 
 ```toml
 [vars]

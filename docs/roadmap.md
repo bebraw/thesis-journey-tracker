@@ -4,18 +4,7 @@ This note collects feature ideas that feel like a natural next step for the proj
 
 ## Current Priority Items
 
-These are the most immediate follow-up items to address next.
-
-### Google Calendar Scheduling View
-
-Add a calendar view that can:
-
-- show existing events from a Google Calendar
-- schedule meetings with students directly from the app
-- send a Google Calendar invitation to the student to the available email address
-- if student email was not available for the invite, ask for it and store it to the student for later use
-
-This will require Google Calendar integration, calendar event sync, and a UI flow for picking a meeting slot.
+These are the most immediate follow-up items to address next. Nothing is currently pinned here; the next likely areas are listed below.
 
 ## Highest-Value Next Steps
 

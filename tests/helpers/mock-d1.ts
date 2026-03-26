@@ -44,6 +44,12 @@ interface LoginAttemptStore {
   locked_until: string | null;
 }
 
+interface AppSecretStore {
+  secret_key: string;
+  encrypted_value: string;
+  updated_at: string;
+}
+
 interface QueryCall {
   query: string;
   values: D1Value[];
@@ -56,6 +62,7 @@ export class MockD1Database {
   public phaseAuditEntries: PhaseAuditEntryStore[] = [];
   public appUsers: AppUserStore[] = [];
   public loginAttempts: LoginAttemptStore[] = [];
+  public appSecrets: AppSecretStore[] = [];
   public calls: QueryCall[] = [];
   public failQueries: Array<string | RegExp> = [];
 
@@ -89,6 +96,7 @@ export class MockD1Database {
       phaseAuditEntries: this.phaseAuditEntries.map((row) => ({ ...row })),
       appUsers: this.appUsers.map((row) => ({ ...row })),
       loginAttempts: this.loginAttempts.map((row) => ({ ...row })),
+      appSecrets: this.appSecrets.map((row) => ({ ...row })),
       nextStudentId: this.nextStudentId,
       nextLogId: this.nextLogId,
       nextPhaseAuditId: this.nextPhaseAuditId,
@@ -107,6 +115,7 @@ export class MockD1Database {
       this.phaseAuditEntries = snapshot.phaseAuditEntries;
       this.appUsers = snapshot.appUsers;
       this.loginAttempts = snapshot.loginAttempts;
+      this.appSecrets = snapshot.appSecrets;
       this.nextStudentId = snapshot.nextStudentId;
       this.nextLogId = snapshot.nextLogId;
       this.nextPhaseAuditId = snapshot.nextPhaseAuditId;
@@ -272,6 +281,31 @@ export class MockD1Database {
       return { success: true, meta: { changes: 1 } };
     }
 
+    if (q.startsWith("INSERT INTO app_secrets")) {
+      const [secretKey, encryptedValue, updatedAt] = values;
+      const normalizedKey = String(secretKey);
+      const existingSecret = this.appSecrets.find((secret) => secret.secret_key === normalizedKey);
+
+      if (existingSecret) {
+        existingSecret.encrypted_value = String(encryptedValue);
+        existingSecret.updated_at = String(updatedAt);
+        return { success: true, meta: { changes: 1 } };
+      }
+
+      this.appSecrets.push({
+        secret_key: normalizedKey,
+        encrypted_value: String(encryptedValue),
+        updated_at: String(updatedAt),
+      });
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (q === "DELETE FROM app_secrets WHERE secret_key = ?") {
+      const secretKey = String(values[0] || "");
+      this.appSecrets = this.appSecrets.filter((secret) => secret.secret_key !== secretKey);
+      return { success: true, meta: { changes: 1 } };
+    }
+
     throw new Error(`Unsupported run query: ${query}`);
   }
 
@@ -329,6 +363,11 @@ export class MockD1Database {
     if (q === "SELECT attempt_key, failure_count, first_failed_at, last_failed_at, locked_until FROM login_attempts WHERE attempt_key = ?") {
       const attemptKey = String(values[0] || "");
       return this.loginAttempts.find((attempt) => attempt.attempt_key === attemptKey) || null;
+    }
+
+    if (q === "SELECT secret_key, encrypted_value, updated_at FROM app_secrets WHERE secret_key = ?") {
+      const secretKey = String(values[0] || "");
+      return this.appSecrets.find((secret) => secret.secret_key === secretKey) || null;
     }
 
     throw new Error(`Unsupported first query: ${query}`);

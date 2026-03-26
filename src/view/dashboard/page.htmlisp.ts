@@ -38,6 +38,10 @@ export function renderDashboardPage(data: DashboardPageData): string {
           : "Read-only access for checking student progress, meetings, and supervision history.",
         canEdit
           ? `${renderButton({
+              label: "Schedule",
+              href: "/schedule",
+              variant: "neutral",
+            })}${renderButton({
               label: "Data tools",
               href: "/data-tools",
               variant: "neutral",
