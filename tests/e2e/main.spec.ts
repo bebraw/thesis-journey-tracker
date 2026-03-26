@@ -317,9 +317,17 @@ test.describe("dashboard e2e", () => {
     await page.locator("#selectedStudentPanel").getByLabel("Phase").selectOption({ label: "Editing" });
     await page.locator("#selectedStudentPanel").getByLabel("Thesis topic (optional)").fill(updatedTopic);
     await page.locator("#selectedStudentPanel").getByLabel("Student notes (optional)").fill(updatedNotes);
+    await page.evaluate(() => {
+      (window as Window & { __studentEditNoReloadMarker?: number }).__studentEditNoReloadMarker = 1;
+    });
     await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save student updates" }).click();
 
     await expect(page).toHaveURL(/notice=Student\+updated/);
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as Window & { __studentEditNoReloadMarker?: number }).__studentEditNoReloadMarker ?? 0),
+      )
+      .toBe(1);
     await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBe("not_booked");
     await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
     await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("desc");

@@ -22,9 +22,9 @@ export function renderDashboardPage(data: DashboardPageData): string {
   const bodyContent = renderView(
     `<div &class="(get props pageWrap)">
       <noop &children="(get props headerHtml)"></noop>
-      <noop &children="(get props flashHtml)"></noop>
-      <noop &children="(get props metricsHtml)"></noop>
-      <noop &children="(get props phaseLanesHtml)"></noop>
+      <div id="dashboardFlashMessages"><noop &children="(get props flashHtml)"></noop></div>
+      <div id="dashboardMetrics"><noop &children="(get props metricsHtml)"></noop></div>
+      <div id="dashboardPhaseLanes"><noop &children="(get props phaseLanesHtml)"></noop></div>
       <noop &children="(get props studentsTableHtml)"></noop>
     </div>
     <noop &children="(get props dashboardScript)"></noop>

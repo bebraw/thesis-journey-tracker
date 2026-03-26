@@ -3,23 +3,39 @@ function joinScriptSections(sections: string[]): string {
 }
 
 const DASHBOARD_DOM_SECTION = `
-var tableBody = document.getElementById("studentsTableBody");
-var studentRows = Array.prototype.slice.call(document.querySelectorAll("[data-student-row]"));
-var laneStudentCards = Array.prototype.slice.call(document.querySelectorAll("[data-lane-student-card]"));
-var searchInput = document.getElementById("studentSearch");
-var degreeFilter = document.getElementById("degreeFilter");
-var phaseFilter = document.getElementById("phaseFilter");
-var statusFilter = document.getElementById("statusFilter");
-var sortButtons = Array.prototype.slice.call(document.querySelectorAll("[data-student-sort='1']"));
-var studentResultsMeta = document.getElementById("studentResultsMeta");
-var selectedStudentPanelShell = document.getElementById("selectedStudentPanelShell");
-var selectedStudentPanel = document.getElementById("selectedStudentPanel");
-var emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");
-var toggleStudentPanelButton = document.getElementById("toggleStudentPanelButton");
+var tableBody = null;
+var studentRows = [];
+var laneStudentCards = [];
+var searchInput = null;
+var degreeFilter = null;
+var phaseFilter = null;
+var statusFilter = null;
+var sortButtons = [];
+var studentResultsMeta = null;
+var selectedStudentPanelShell = null;
+var selectedStudentPanel = null;
+var emptySelectedStudentPanelTemplate = null;
+var toggleStudentPanelButton = null;
 var defaultSortKey = "nextMeeting";
 var defaultSortDirection = "asc";
 var currentSortKey = "nextMeeting";
-var currentSortDirection = "asc";`;
+var currentSortDirection = "asc";
+
+function syncDashboardDom() {
+  tableBody = document.getElementById("studentsTableBody");
+  studentRows = Array.prototype.slice.call(document.querySelectorAll("[data-student-row]"));
+  laneStudentCards = Array.prototype.slice.call(document.querySelectorAll("[data-lane-student-card]"));
+  searchInput = document.getElementById("studentSearch");
+  degreeFilter = document.getElementById("degreeFilter");
+  phaseFilter = document.getElementById("phaseFilter");
+  statusFilter = document.getElementById("statusFilter");
+  sortButtons = Array.prototype.slice.call(document.querySelectorAll("[data-student-sort='1']"));
+  studentResultsMeta = document.getElementById("studentResultsMeta");
+  selectedStudentPanelShell = document.getElementById("selectedStudentPanelShell");
+  selectedStudentPanel = document.getElementById("selectedStudentPanel");
+  emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");
+  toggleStudentPanelButton = document.getElementById("toggleStudentPanelButton");
+}`;
 
 const DASHBOARD_HELPERS_SECTION = `
 function parseStudentId(value) {
@@ -221,6 +237,73 @@ function setPanelVisibility(visible) {
   selectedStudentPanelShell.classList.toggle("hidden", !visible);
   toggleStudentPanelButton.textContent = visible ? "Hide editing panel" : "Show editing panel";
   toggleStudentPanelButton.setAttribute("aria-expanded", visible ? "true" : "false");
+}
+
+function replaceDashboardSection(nextDocument, id) {
+  var currentSection = document.getElementById(id);
+  var nextSection = nextDocument.getElementById(id);
+  if (!currentSection || !nextSection) return;
+  currentSection.outerHTML = nextSection.outerHTML;
+}
+
+function collectOpenPanelDetails() {
+  if (!selectedStudentPanel) return [];
+
+  return Array.prototype.slice.call(selectedStudentPanel.querySelectorAll("details[open] > summary")).map(function (summary) {
+    return (summary.textContent || "").trim();
+  });
+}
+
+function restoreOpenPanelDetails(openSummaries) {
+  if (!selectedStudentPanel || !openSummaries || openSummaries.length === 0) return;
+
+  Array.prototype.slice.call(selectedStudentPanel.querySelectorAll("details > summary")).forEach(function (summary) {
+    var summaryText = (summary.textContent || "").trim();
+    if (openSummaries.indexOf(summaryText) === -1) return;
+    var details = summary.closest("details");
+    if (details) {
+      details.open = true;
+    }
+  });
+}
+
+function rebindDashboardUi() {
+  bindInlineSelectionLinks();
+  bindStudentRowSelection();
+  bindLaneSelection();
+  bindDashboardFilters();
+  bindStudentSort();
+  bindPanelToggle();
+  bindInlineStudentUpdateForm();
+}
+
+function applyDashboardHtml(htmlText, nextUrl, options) {
+  var parser = new DOMParser();
+  var nextDocument = parser.parseFromString(htmlText, "text/html");
+  var selectedId = options && options.selectedId ? options.selectedId : getSelectedStudentIdFromLocation();
+  var panelWasVisible = options && options.panelWasVisible ? true : false;
+  var openSummaries = (options && options.openSummaries) || [];
+
+  replaceDashboardSection(nextDocument, "dashboardFlashMessages");
+  replaceDashboardSection(nextDocument, "dashboardMetrics");
+  replaceDashboardSection(nextDocument, "dashboardPhaseLanes");
+  replaceDashboardSection(nextDocument, "dashboardWorkspace");
+
+  if (nextUrl) {
+    var url = new URL(nextUrl, window.location.origin);
+    window.history.replaceState(window.history.state, "", url.pathname + url.search);
+  }
+
+  syncDashboardDom();
+  applyFiltersFromLocation();
+  applySortFromLocation();
+  refreshStudentTable();
+  syncInteractiveUrls();
+  setPanelVisibility(panelWasVisible);
+  applySelectedRowState(selectedId);
+  applySelectedLaneState(selectedId);
+  restoreOpenPanelDetails(openSummaries);
+  rebindDashboardUi();
 }`;
 
 const DASHBOARD_FILTER_SECTION = `
@@ -353,6 +436,7 @@ async function selectStudentWithoutRefresh(studentId, pushHistory) {
     applySelectedRowState(studentId);
     applySelectedLaneState(studentId);
     syncInteractiveUrls();
+    bindInlineStudentUpdateForm();
 
     if (pushHistory) {
       window.history.pushState({ selectedId: studentId }, "", selectedUrl.pathname + selectedUrl.search);
@@ -459,9 +543,71 @@ function bindPanelToggle() {
     var isVisible = !selectedStudentPanelShell.classList.contains("hidden");
     setPanelVisibility(!isVisible);
   });
+}
+
+function bindInlineStudentUpdateForm() {
+  if (!selectedStudentPanel) return;
+
+  var updateForm = selectedStudentPanel.querySelector("form[action^='/actions/update-student/']");
+  if (!updateForm || updateForm.getAttribute("data-inline-bound") === "1") return;
+
+  updateForm.setAttribute("data-inline-bound", "1");
+  updateForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    var form = event.currentTarget;
+    var action = form.getAttribute("action");
+    if (!action) {
+      form.submit();
+      return;
+    }
+
+    var selectedId = getSelectedStudentIdFromLocation();
+    var panelWasVisible = selectedStudentPanelShell ? !selectedStudentPanelShell.classList.contains("hidden") : false;
+    var openSummaries = collectOpenPanelDetails();
+    var submitButton = form.querySelector("button[type='submit']");
+    var originalDisabled = submitButton ? submitButton.disabled : false;
+
+    if (submitButton) {
+      submitButton.disabled = true;
+    }
+
+    fetch(action, {
+      method: "POST",
+      headers: {
+        "X-Requested-With": "fetch"
+      },
+      body: new FormData(form)
+    })
+      .then(function (response) {
+        var responseUrl = new URL(response.url, window.location.origin);
+
+        if (!response.ok || responseUrl.pathname !== "/") {
+          window.location.href = responseUrl.pathname + responseUrl.search;
+          return null;
+        }
+
+        return response.text().then(function (htmlText) {
+          applyDashboardHtml(htmlText, response.url, {
+            selectedId: selectedId,
+            panelWasVisible: panelWasVisible,
+            openSummaries: openSummaries
+          });
+        });
+      })
+      .catch(function () {
+        form.submit();
+      })
+      .finally(function () {
+        if (submitButton) {
+          submitButton.disabled = originalDisabled;
+        }
+      });
+  });
 }`;
 
 const DASHBOARD_BOOTSTRAP_SECTION = `
+syncDashboardDom();
 applyFiltersFromLocation();
 applySortFromLocation();
 refreshStudentTable();
@@ -469,13 +615,8 @@ syncInteractiveUrls();
 setPanelVisibility(false);
 applySelectedRowState(getSelectedStudentIdFromLocation());
 applySelectedLaneState(getSelectedStudentIdFromLocation());
-bindInlineSelectionLinks();
-bindStudentRowSelection();
-bindLaneSelection();
 bindHistorySelection();
-bindDashboardFilters();
-bindStudentSort();
-bindPanelToggle();`;
+rebindDashboardUi();`;
 
 export const DASHBOARD_INTERACTION_SCRIPT = joinScriptSections([
   DASHBOARD_DOM_SECTION,
