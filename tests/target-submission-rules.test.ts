@@ -10,6 +10,7 @@ function buildStudent(overrides: Partial<Student> = {}): Student {
     email: "test@example.edu",
     degreeType: "msc",
     thesisTopic: "Test topic",
+    studentNotes: null,
     startDate: "2026-01-01",
     currentPhase: "researching",
     nextMeetingAt: null,

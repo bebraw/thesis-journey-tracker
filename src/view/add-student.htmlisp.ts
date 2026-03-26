@@ -12,6 +12,7 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
     controlSize: "compact",
     emailLabel: "Email (optional)",
     topicWrapperClassName: "block text-sm sm:col-span-2 lg:col-span-3",
+    notesWrapperClassName: "block text-sm sm:col-span-2 lg:col-span-3",
   });
 
   const formHtml = renderView(
@@ -20,6 +21,7 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
       <noop &children="(get props emailField)"></noop>
       <noop &children="(get props degreeField)"></noop>
       <noop &children="(get props topicField)"></noop>
+      <noop &children="(get props notesField)"></noop>
       <noop &children="(get props phaseField)"></noop>
       <noop &children="(get props startDateField)"></noop>
       <noop &children="(get props nextMeetingField)"></noop>

@@ -253,11 +253,12 @@ function applyStudentFilters() {
     var name = row.getAttribute("data-name") || "";
     var email = row.getAttribute("data-email") || "";
     var topic = row.getAttribute("data-topic") || "";
+    var notes = row.getAttribute("data-notes") || "";
     var rowDegree = row.getAttribute("data-degree") || "";
     var rowPhase = row.getAttribute("data-phase") || "";
     var rowStatus = row.getAttribute("data-status-id") || "";
 
-    var matchesQuery = !query || name.indexOf(query) !== -1 || email.indexOf(query) !== -1 || topic.indexOf(query) !== -1;
+    var matchesQuery = !query || name.indexOf(query) !== -1 || email.indexOf(query) !== -1 || topic.indexOf(query) !== -1 || notes.indexOf(query) !== -1;
     var matchesDegree = !degree || rowDegree === degree;
     var matchesPhase = !phase || rowPhase === phase;
     var matchesStatus = !status || rowStatus === status;

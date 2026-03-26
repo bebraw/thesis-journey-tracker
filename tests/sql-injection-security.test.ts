@@ -40,6 +40,7 @@ describe("SQL injection safety", () => {
             email: "safe@example.edu",
             degreeType: "msc",
             thesisTopic: "Secure advising workflows",
+            studentNotes: "Safe notes payload",
             startDate: "2026-02-01",
             currentPhase: "research_plan",
             nextMeetingAt: "",
@@ -72,6 +73,7 @@ describe("SQL injection safety", () => {
           email: "updated@example.edu",
           degreeType: "dsc",
           thesisTopic: "Updated topic",
+          studentNotes: "Updated secure note",
           startDate: "2026-01-01",
           currentPhase: "editing",
           nextMeetingAt: "",
@@ -84,6 +86,7 @@ describe("SQL injection safety", () => {
     expect(env.DB.students[0]?.name).toBe(payload);
     expect(env.DB.students[0]?.degree_type).toBe("dsc");
     expect(env.DB.students[0]?.thesis_topic).toBe("Updated topic");
+    expect(env.DB.students[0]?.student_notes).toBe("Updated secure note");
     expect(env.DB.students.length).toBe(1);
     expect(env.DB.calls.some((call) => call.query.includes(payload))).toBe(false);
   });
@@ -135,8 +138,10 @@ describe("SQL injection safety", () => {
       new Request("http://localhost/actions/delete-student/1", {
         method: "POST",
         headers: {
+          "content-type": "application/x-www-form-urlencoded",
           cookie,
         },
+        body: new URLSearchParams(),
       }),
       env,
     );

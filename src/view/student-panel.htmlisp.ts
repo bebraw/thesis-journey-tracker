@@ -91,6 +91,7 @@ function prepareReadonlyFields(student: Student): PreparedReadonlyField[] {
     { label: "Degree type", value: getDegreeLabel(student.degreeType, DEGREE_TYPES) },
     { label: "Phase", value: getPhaseLabel(student.currentPhase, PHASES) },
     { label: "Thesis topic", value: student.thesisTopic || "Not set" },
+    { label: "Student notes", value: student.studentNotes || "Not set" },
     { label: "Start date", value: student.startDate || "Not set" },
     { label: "Target submission", value: targetSubmissionDate || "Not set" },
     { label: "Next meeting", value: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked" },
@@ -207,6 +208,9 @@ export function renderSelectedStudentPanel(
             <noop &children="(get props emailField)"></noop>
             <noop &children="(get props degreeField)"></noop>
             <noop &children="(get props startDateField)"></noop>
+          </div>
+          <div class="mt-stack-xs">
+            <noop &children="(get props notesField)"></noop>
           </div>
           <p class="mt-stack-xs text-xs text-app-text-muted dark:text-app-text-muted-dark">
               MSc target submission is calculated automatically as six months from the start date.

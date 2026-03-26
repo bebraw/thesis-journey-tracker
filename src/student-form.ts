@@ -9,6 +9,7 @@ export const STUDENT_FORM_FIELDS = {
   email: "studentEmail",
   degreeType: "degreeType",
   thesisTopic: "thesisTopic",
+  studentNotes: "studentNotes",
   startDate: "startDate",
   currentPhase: "currentPhase",
   nextMeetingAt: "nextMeetingAt",
@@ -22,6 +23,7 @@ export interface StudentFormValues {
   email: string;
   degreeType: DegreeId;
   thesisTopic: string;
+  studentNotes: string;
   startDate: string;
   currentPhase: PhaseId;
   nextMeetingAt: string;
@@ -38,6 +40,7 @@ export function getDefaultStudentFormValues(): StudentFormValues {
     email: "",
     degreeType: "msc",
     thesisTopic: "",
+    studentNotes: "",
     startDate: "",
     currentPhase: "research_plan",
     nextMeetingAt: "",
@@ -50,6 +53,7 @@ export function getStudentFormValues(student: Student): StudentFormValues {
     email: student.email || "",
     degreeType: student.degreeType,
     thesisTopic: student.thesisTopic || "",
+    studentNotes: student.studentNotes || "",
     startDate: student.startDate || "",
     currentPhase: student.currentPhase,
     nextMeetingAt: toDateTimeLocalInput(student.nextMeetingAt),
@@ -64,6 +68,9 @@ export function parseStudentFormSubmission(formData: FormData, options: ParseStu
     readOptionalField(formData, STUDENT_FORM_FIELDS.email, existingStudent?.email ?? null, LEGACY_STUDENT_EMAIL_FIELD),
   );
   const thesisTopic = normalizeString(readOptionalField(formData, STUDENT_FORM_FIELDS.thesisTopic, existingStudent?.thesisTopic ?? null));
+  const studentNotes = normalizeString(
+    readOptionalField(formData, STUDENT_FORM_FIELDS.studentNotes, existingStudent?.studentNotes ?? null),
+  );
 
   const startDate = normalizeDate(readOptionalField(formData, STUDENT_FORM_FIELDS.startDate, existingStudent?.startDate ?? null), true);
 
@@ -91,6 +98,7 @@ export function parseStudentFormSubmission(formData: FormData, options: ParseStu
     email,
     degreeType,
     thesisTopic,
+    studentNotes,
     startDate,
     currentPhase,
     nextMeetingAt,

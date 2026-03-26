@@ -885,8 +885,8 @@ async function buildImportStatements(
     statements.push(
       db
         .prepare(
-          `INSERT INTO students (id, name, email, degree_type, thesis_topic, start_date, current_phase, next_meeting_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO students (id, name, email, degree_type, thesis_topic, student_notes, start_date, current_phase, next_meeting_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           studentId,
@@ -894,6 +894,7 @@ async function buildImportStatements(
           bundle.student.email,
           bundle.student.degreeType,
           bundle.student.thesisTopic,
+          bundle.student.studentNotes,
           bundle.student.startDate,
           bundle.student.currentPhase,
           bundle.student.nextMeetingAt,

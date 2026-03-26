@@ -73,6 +73,7 @@ describe("multi-user access control", () => {
     expect(body).toContain("Base Student");
     expect(body).toContain("base@example.edu");
     expect(body).toContain("Baseline supervision topic");
+    expect(body).toContain("Baseline student note");
     expect(body).toContain("2026-07-01");
     expect(body).toContain("Initial review");
     expect(body).not.toContain("Save student updates");
@@ -135,6 +136,7 @@ describe("multi-user access control", () => {
           email: "second@example.edu",
           degreeType: "msc",
           thesisTopic: "Allowed change",
+          studentNotes: "Created from access-control test",
           startDate: "2026-03-01",
           currentPhase: "research_plan",
           nextMeetingAt: "",
@@ -146,6 +148,7 @@ describe("multi-user access control", () => {
     expect(response.status).toBe(302);
     expect(env.DB.students).toHaveLength(2);
     expect(env.DB.students[1]?.name).toBe("Second Student");
+    expect(env.DB.students[1]?.student_notes).toBe("Created from access-control test");
     expect(env.DB.students[1]?.start_date).toBe("2026-03-01");
   });
 

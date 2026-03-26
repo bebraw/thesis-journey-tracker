@@ -58,6 +58,7 @@ describe("data import and export", () => {
       schemaVersion: number;
       students: Array<{
         name: string;
+        studentNotes?: string | null;
         logs: Array<{ discussed: string }>;
         phaseAudit: Array<{ fromPhase: string; toPhase: string }>;
       }>;
@@ -67,6 +68,7 @@ describe("data import and export", () => {
     expect(body.schemaVersion).toBe(1);
     expect(body.students).toHaveLength(1);
     expect(body.students[0]?.name).toBe("Base Student");
+    expect(body.students[0]?.studentNotes).toBe("Baseline student note");
     expect(body.students[0]?.logs[0]?.discussed).toBe("Initial review");
     expect(body.students[0]?.phaseAudit[0]?.fromPhase).toBe("research_plan");
     expect(body.students[0]?.phaseAudit[0]?.toPhase).toBe("researching");
@@ -111,6 +113,7 @@ describe("data import and export", () => {
           email: "base@example.edu",
           degreeType: "msc",
           thesisTopic: "Baseline supervision topic",
+          studentNotes: "Updated student note",
           startDate: "",
           currentPhase: "editing",
           nextMeetingAt: "",
@@ -143,6 +146,7 @@ describe("data import and export", () => {
                 email: "imported@example.edu",
                 degreeType: "dsc",
                 thesisTopic: "Imported thesis",
+                studentNotes: "Imported student note",
                 startDate: "2026-02-01",
                 currentPhase: "editing",
                 nextMeetingAt: "2026-04-01T09:00:00.000Z",
@@ -183,6 +187,7 @@ describe("data import and export", () => {
     expect(response.headers.get("location")).toContain("/data-tools?notice=");
     expect(env.DB.students).toHaveLength(2);
     expect(env.DB.students[1]?.name).toBe("Imported Student");
+    expect(env.DB.students[1]?.student_notes).toBe("Imported student note");
     expect(env.DB.meetingLogs).toHaveLength(2);
     expect(env.DB.meetingLogs[1]?.discussed).toBe("Imported log");
     expect(env.DB.phaseAuditEntries).toHaveLength(2);

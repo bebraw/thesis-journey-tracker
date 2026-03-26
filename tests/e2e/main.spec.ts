@@ -44,7 +44,7 @@ async function addStudent(
   email: string,
   degreeType: "BSc" | "MSc" | "DSc" = "MSc",
   thesisTopic = "Test thesis topic",
-  options?: { startDate?: string },
+  options?: { startDate?: string; studentNotes?: string },
 ) {
   await page.getByRole("link", { name: "Add student" }).click();
   await expect(page).toHaveURL(/\/students\/new$/);
@@ -53,6 +53,9 @@ async function addStudent(
   await page.getByLabel("Email (optional)").fill(email);
   await page.getByLabel("Degree type").selectOption({ label: degreeType });
   await page.getByLabel("Thesis topic (optional)").fill(thesisTopic);
+  if (options?.studentNotes !== undefined) {
+    await page.getByLabel("Student notes (optional)").fill(options.studentNotes);
+  }
   if (options?.startDate !== undefined) {
     await page.getByLabel("Start date (optional)").fill(options.startDate);
   } else {
@@ -302,6 +305,7 @@ test.describe("dashboard e2e", () => {
     updatedStudentName = `${createdStudentName} Updated`;
     const updatedEmail = `updated-${suffix}@example.edu`;
     const updatedTopic = `Updated thesis topic ${suffix}`;
+    const updatedNotes = `Updated student note ${suffix}`;
     const discussedText = `Discussed milestone ${suffix}`;
     const agreedPlanText = `Agreed action plan ${suffix}`;
 
@@ -312,6 +316,7 @@ test.describe("dashboard e2e", () => {
     await page.locator("#selectedStudentPanel").getByLabel("Degree type").selectOption({ label: "MSc" });
     await page.locator("#selectedStudentPanel").getByLabel("Phase").selectOption({ label: "Editing" });
     await page.locator("#selectedStudentPanel").getByLabel("Thesis topic (optional)").fill(updatedTopic);
+    await page.locator("#selectedStudentPanel").getByLabel("Student notes (optional)").fill(updatedNotes);
     await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save student updates" }).click();
 
     await expect(page).toHaveURL(/notice=Student\+updated/);
@@ -324,6 +329,13 @@ test.describe("dashboard e2e", () => {
     await expect(page.locator("#selectedStudentPanel").getByLabel("Degree type")).toHaveValue("msc");
     await expect(page.locator("#selectedStudentPanel").getByLabel("Phase")).toHaveValue("editing");
     await expect(page.locator("#selectedStudentPanel").getByLabel("Thesis topic (optional)")).toHaveValue(updatedTopic);
+    await expect(page.locator("#selectedStudentPanel").getByLabel("Student notes (optional)")).toHaveValue(updatedNotes);
+    await expect(page.locator("[data-student-row]", { hasText: updatedStudentName })).toContainText(updatedNotes);
+
+    await page.locator("#studentSearch").fill(updatedNotes);
+    await expect(page.locator("[data-student-row]", { hasText: updatedStudentName })).toHaveCount(1);
+    await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe(updatedNotes);
+    await page.locator("#studentSearch").fill("");
 
     await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Add Log Entry" }).click();
     await page.locator("#selectedStudentPanel").getByLabel("What was discussed").fill(discussedText);

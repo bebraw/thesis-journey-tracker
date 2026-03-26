@@ -30,6 +30,7 @@ interface PreparedStudentRow {
   dataName: string;
   dataEmail: string;
   dataTopic: string;
+  dataNotes: string;
   dataDegree: string;
   dataDegreeLabel: string;
   dataPhase: string;
@@ -104,6 +105,12 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
           style="-webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;"
           &children="(get props topic)"
         ></div>
+        <div
+          &visibleIf="(get props notesVisible)"
+          class="mt-1 text-xs text-app-text-muted dark:text-app-text-muted-dark"
+          style="-webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;"
+          &children="(get props notes)"
+        ></div>
       </div>`,
       {
         linkClass: escapeHtml(TEXT_LINK),
@@ -112,6 +119,8 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
         name: escapeHtml(student.name),
         topicVisible: Boolean(student.thesisTopic),
         topic: escapeHtml(student.thesisTopic || ""),
+        notesVisible: Boolean(student.studentNotes),
+        notes: escapeHtml(student.studentNotes || ""),
         topicTextClass: escapeHtml(TOPIC_TEXT_SM),
       },
     );
@@ -126,6 +135,7 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
       dataName: escapeHtml(student.name).toLowerCase(),
       dataEmail: escapeHtml(student.email || "").toLowerCase(),
       dataTopic: escapeHtml(student.thesisTopic || "").toLowerCase(),
+      dataNotes: escapeHtml(student.studentNotes || "").toLowerCase(),
       dataDegree: escapeHtml(student.degreeType),
       dataDegreeLabel: escapeHtml(degreeLabel).toLowerCase(),
       dataPhase: escapeHtml(student.currentPhase),
@@ -175,6 +185,7 @@ export function renderStudentsTable(
     &data-name="(get props dataName)"
     &data-email="(get props dataEmail)"
     &data-topic="(get props dataTopic)"
+    &data-notes="(get props dataNotes)"
     &data-degree="(get props dataDegree)"
     &data-degree-label="(get props dataDegreeLabel)"
     &data-phase="(get props dataPhase)"
@@ -251,7 +262,8 @@ export function renderStudentsTable(
             <input
               id="studentSearch"
               type="search"
-              placeholder="Name, email, or topic"
+              placeholder="Name, email, topic, or notes"
+              aria-describedby="studentResultsMeta"
               &class="(get props filterControlClass)"
               &value="(get props searchValue)"
             />

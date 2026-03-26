@@ -10,6 +10,7 @@ export interface Student {
   email: string | null;
   degreeType: DegreeId;
   thesisTopic: string | null;
+  studentNotes: string | null;
   startDate: string | null;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
@@ -81,6 +82,7 @@ interface StudentRow {
   email: string | null;
   degree_type: DegreeId;
   thesis_topic: string | null;
+  student_notes: string | null;
   start_date: string | null;
   current_phase: PhaseId;
   next_meeting_at: string | null;
@@ -123,6 +125,7 @@ export interface StudentMutationInput {
   email: string | null;
   degreeType: DegreeId;
   thesisTopic: string | null;
+  studentNotes: string | null;
   startDate: string | null;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
@@ -178,6 +181,7 @@ export async function listStudents(db: D1Database): Promise<Student[]> {
     email: row.email,
     degreeType: row.degree_type as DegreeId,
     thesisTopic: row.thesis_topic,
+    studentNotes: row.student_notes,
     startDate: row.start_date,
     currentPhase: row.current_phase as PhaseId,
     nextMeetingAt: row.next_meeting_at,
@@ -303,6 +307,7 @@ export async function getStudentById(db: D1Database, studentId: number): Promise
     email: row.email,
     degreeType: row.degree_type as DegreeId,
     thesisTopic: row.thesis_topic,
+    studentNotes: row.student_notes,
     startDate: row.start_date,
     currentPhase: row.current_phase as PhaseId,
     nextMeetingAt: row.next_meeting_at,
@@ -353,14 +358,15 @@ export async function listPhaseAuditEntriesForStudent(db: D1Database, studentId:
 export async function createStudent(db: D1Database, input: CreateStudentInput): Promise<number> {
   const result = await db
     .prepare(
-      `INSERT INTO students (name, email, degree_type, thesis_topic, start_date, current_phase, next_meeting_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO students (name, email, degree_type, thesis_topic, student_notes, start_date, current_phase, next_meeting_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       input.name,
       input.email,
       input.degreeType,
       input.thesisTopic,
+      input.studentNotes,
       input.startDate,
       input.currentPhase,
       input.nextMeetingAt,
@@ -379,7 +385,7 @@ export async function updateStudent(db: D1Database, studentId: number, input: Up
   await db
     .prepare(
       `UPDATE students
-       SET name = ?, email = ?, degree_type = ?, thesis_topic = ?, start_date = ?, current_phase = ?, next_meeting_at = ?
+       SET name = ?, email = ?, degree_type = ?, thesis_topic = ?, student_notes = ?, start_date = ?, current_phase = ?, next_meeting_at = ?
        WHERE id = ?`,
     )
     .bind(
@@ -387,6 +393,7 @@ export async function updateStudent(db: D1Database, studentId: number, input: Up
       input.email,
       input.degreeType,
       input.thesisTopic,
+      input.studentNotes,
       input.startDate,
       input.currentPhase,
       input.nextMeetingAt,

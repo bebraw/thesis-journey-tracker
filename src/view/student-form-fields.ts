@@ -1,4 +1,4 @@
-import { FIELD_CONTROL, FIELD_CONTROL_SM, FORM_LABEL, renderInputField, renderSelectField, type SelectOption } from "../ui";
+import { FIELD_CONTROL, FIELD_CONTROL_SM, FORM_LABEL, renderInputField, renderSelectField, renderTextareaField, type SelectOption } from "../ui";
 import { STUDENT_FORM_FIELDS, type StudentFormValues } from "../student-form";
 import { DEGREE_TYPES, PHASES } from "../reference-data";
 
@@ -7,6 +7,7 @@ export interface StudentFormFieldMap {
   emailField: string;
   degreeField: string;
   topicField: string;
+  notesField: string;
   phaseField: string;
   startDateField: string;
   nextMeetingField: string;
@@ -17,6 +18,7 @@ interface RenderStudentFormFieldsOptions {
   controlSize?: "default" | "compact";
   emailLabel?: string;
   topicWrapperClassName?: string;
+  notesWrapperClassName?: string;
 }
 
 export function renderStudentFormFields(options: RenderStudentFormFieldsOptions): StudentFormFieldMap {
@@ -25,6 +27,7 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
     controlSize = "default",
     emailLabel = "Email",
     topicWrapperClassName,
+    notesWrapperClassName,
   } = options;
 
   const controlClass = controlSize === "compact" ? FIELD_CONTROL_SM : FIELD_CONTROL;
@@ -67,6 +70,14 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
       value: values.thesisTopic,
       className: controlClass,
       wrapperClassName: topicWrapperClassName || FORM_LABEL,
+    }),
+    notesField: renderTextareaField({
+      label: "Student notes (optional)",
+      name: STUDENT_FORM_FIELDS.studentNotes,
+      value: values.studentNotes,
+      rows: controlSize === "compact" ? 4 : 5,
+      className: controlClass,
+      wrapperClassName: notesWrapperClassName || FORM_LABEL,
     }),
     phaseField: renderSelectField({
       label: "Phase",

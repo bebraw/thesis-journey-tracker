@@ -6,6 +6,7 @@ interface StudentRowStore {
   email: string | null;
   degree_type: string;
   thesis_topic: string | null;
+  student_notes: string | null;
   start_date: string | null;
   current_phase: string;
   next_meeting_at: string | null;
@@ -70,6 +71,7 @@ export class MockD1Database {
       email: "base@example.edu",
       degree_type: "msc",
       thesis_topic: "Baseline supervision topic",
+      student_notes: "Baseline student note",
       start_date: "2026-01-01",
       current_phase: "researching",
       next_meeting_at: null,
@@ -130,8 +132,8 @@ export class MockD1Database {
     }
 
     if (q.startsWith("INSERT INTO students")) {
-      const hasExplicitId = values.length === 8;
-      const [idValue, name, email, degreeType, thesisTopic, startDate, phase, nextMeetingAt] = hasExplicitId
+      const hasExplicitId = values.length === 9;
+      const [idValue, name, email, degreeType, thesisTopic, studentNotes, startDate, phase, nextMeetingAt] = hasExplicitId
         ? values
         : [this.nextStudentId++, ...values];
       const id = Number(idValue);
@@ -141,6 +143,7 @@ export class MockD1Database {
         email: email === null ? null : String(email),
         degree_type: String(degreeType),
         thesis_topic: thesisTopic === null ? null : String(thesisTopic),
+        student_notes: studentNotes === null ? null : String(studentNotes),
         start_date: startDate === null ? null : String(startDate),
         current_phase: String(phase),
         next_meeting_at: nextMeetingAt === null ? null : String(nextMeetingAt),
@@ -151,7 +154,7 @@ export class MockD1Database {
     }
 
     if (q.startsWith("UPDATE students")) {
-      const [name, email, degreeType, thesisTopic, startDate, phase, nextMeetingAt, studentId] = values;
+      const [name, email, degreeType, thesisTopic, studentNotes, startDate, phase, nextMeetingAt, studentId] = values;
       const id = Number(studentId);
       const row = this.students.find((student) => student.id === id);
       if (!row) {
@@ -161,6 +164,7 @@ export class MockD1Database {
       row.email = email === null ? null : String(email);
       row.degree_type = String(degreeType);
       row.thesis_topic = thesisTopic === null ? null : String(thesisTopic);
+      row.student_notes = studentNotes === null ? null : String(studentNotes);
       row.start_date = startDate === null ? null : String(startDate);
       row.current_phase = String(phase);
       row.next_meeting_at = nextMeetingAt === null ? null : String(nextMeetingAt);
