@@ -2,6 +2,7 @@ import type { Student } from "../../db";
 import {
   EMPTY_DASHED_CARD,
   MUTED_TEXT_XS,
+  SURFACE_CARD,
   SURFACE_CARD_SM,
   TOPIC_TEXT_SM,
   renderBadge,
@@ -161,12 +162,12 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
   };
 
   return renderView(
-    `<section class="space-y-stack-xs">
+    `<section &class="(get props sectionClass)">
       <div>
         <h2 class="text-lg font-semibold">Phase Lanes</h2>
         <p &class="(get props mutedTextXs)">Overview of where students currently are in the thesis process.</p>
       </div>
-      <div class="grid grid-cols-1 gap-panel-sm lg:grid-cols-3 2xl:grid-cols-5">
+      <div class="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-panel-sm">
         <noop &foreach="(get props lanes)">
           <PhaseLane
             &cardClass="(get props cardClass)"
@@ -180,6 +181,7 @@ export function renderPhaseLanes(students: Student[], selectedStudent: Student |
       </div>
     </section>`,
     {
+      sectionClass: escapeHtml(`${SURFACE_CARD} space-y-stack-xs`),
       mutedTextXs: escapeHtml(MUTED_TEXT_XS),
       emptyStateClass: escapeHtml(EMPTY_DASHED_CARD),
       topicTextClass: escapeHtml(`mt-badge-y ${TOPIC_TEXT_SM}`),
