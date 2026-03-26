@@ -179,6 +179,24 @@ describe("multi-user access control", () => {
     expect(saveCalendarSettingsResponse.status).toBe(302);
     expect(saveCalendarSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
 
+    const saveCalendarIcalSettingsResponse = await fetchHandler(
+      new Request("http://localhost/actions/save-google-calendar-ical-settings", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams({
+          iCalUrl: "https://calendar.google.com/calendar/ical/example/basic.ics",
+          timeZone: "Europe/Helsinki",
+        }),
+      }),
+      env,
+    );
+
+    expect(saveCalendarIcalSettingsResponse.status).toBe(302);
+    expect(saveCalendarIcalSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
+
     const clearCalendarSettingsResponse = await fetchHandler(
       new Request("http://localhost/actions/clear-google-calendar-settings", {
         method: "POST",
@@ -191,6 +209,32 @@ describe("multi-user access control", () => {
 
     expect(clearCalendarSettingsResponse.status).toBe(302);
     expect(clearCalendarSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
+
+    const clearCalendarOAuthResponse = await fetchHandler(
+      new Request("http://localhost/actions/clear-google-calendar-oauth-settings", {
+        method: "POST",
+        headers: {
+          cookie,
+        },
+      }),
+      env,
+    );
+
+    expect(clearCalendarOAuthResponse.status).toBe(302);
+    expect(clearCalendarOAuthResponse.headers.get("location")).toBe("/?error=Read-only+access");
+
+    const clearCalendarIcalResponse = await fetchHandler(
+      new Request("http://localhost/actions/clear-google-calendar-ical-settings", {
+        method: "POST",
+        headers: {
+          cookie,
+        },
+      }),
+      env,
+    );
+
+    expect(clearCalendarIcalResponse.status).toBe(302);
+    expect(clearCalendarIcalResponse.headers.get("location")).toBe("/?error=Read-only+access");
     expect(env.DB.students[0]?.name).toBe("Base Student");
     expect(env.DB.phaseAuditEntries).toHaveLength(0);
   });

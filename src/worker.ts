@@ -32,6 +32,7 @@ import {
   listGoogleCalendarEvents,
   resolveGoogleCalendarConfig,
 } from "./google-calendar";
+import { listIcalCalendarEvents } from "./ical";
 import {
   addHourToLocalDateTime,
   buildScheduleEventDescription,
@@ -316,6 +317,27 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return await handleSaveGoogleCalendarSettings(request, env);
   }
 
+  if (pathname === "/actions/save-google-calendar-ical-settings" && request.method === "POST") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect("/");
+    }
+    return await handleSaveGoogleCalendarIcalSettings(request, env);
+  }
+
+  if (pathname === "/actions/clear-google-calendar-oauth-settings" && request.method === "POST") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect("/");
+    }
+    return await handleClearGoogleCalendarOAuthSettings(env);
+  }
+
+  if (pathname === "/actions/clear-google-calendar-ical-settings" && request.method === "POST") {
+    if (isReadonlyUser(sessionUser)) {
+      return readonlyRedirect("/");
+    }
+    return await handleClearGoogleCalendarIcalSettings(env);
+  }
+
   if (pathname === "/actions/clear-google-calendar-settings" && request.method === "POST") {
     if (isReadonlyUser(sessionUser)) {
       return readonlyRedirect("/");
@@ -420,8 +442,8 @@ async function renderDataTools(url: URL, env: Env, sessionUser: SessionUser): Pr
   const error = url.searchParams.get("error");
   const students = await listStudents(env.DB);
   const logCount = students.reduce((total, student) => total + student.logCount, 0);
-  const effectiveCalendarConfig = await resolveGoogleCalendarConfigForApp(env);
-  const storedCalendarConfig = await getStoredGoogleCalendarConfig(env);
+  const storedCalendarSettings = await getStoredGoogleCalendarSettings(env);
+  const calendarSource = await resolveGoogleCalendarSourceForApp(env);
 
   return htmlResponse(
     renderDataToolsPage({
@@ -434,15 +456,16 @@ async function renderDataTools(url: URL, env: Env, sessionUser: SessionUser): Pr
       studentCount: students.length,
       logCount,
       replaceImportEnabled: isReplaceImportEnabled(env),
-      googleCalendarConfigSource: storedCalendarConfig ? "stored" : "none",
-      storedGoogleCalendarUpdatedAt: storedCalendarConfig?.updatedAt || null,
-      effectiveGoogleCalendarId: effectiveCalendarConfig?.calendarId || null,
-      effectiveGoogleCalendarTimeZone: effectiveCalendarConfig?.timeZone || null,
-      googleCalendarClientId: storedCalendarConfig?.config.clientId || "",
-      googleCalendarClientSecret: storedCalendarConfig?.config.clientSecret || "",
-      googleCalendarRefreshToken: storedCalendarConfig?.config.refreshToken || "",
-      googleCalendarCalendarId: storedCalendarConfig?.config.calendarId || "",
-      googleCalendarTimeZone: storedCalendarConfig?.config.timeZone || "",
+      googleCalendarConfigSource: calendarSource?.mode === "api" ? "stored_api" : calendarSource?.mode === "ical" ? "stored_ical" : "none",
+      storedGoogleCalendarUpdatedAt: storedCalendarSettings?.updatedAt || null,
+      effectiveGoogleCalendarId: calendarSource?.mode === "api" ? calendarSource.config.calendarId : null,
+      effectiveGoogleCalendarTimeZone: calendarSource?.timeZone || null,
+      googleCalendarClientId: storedCalendarSettings?.settings.clientId || "",
+      googleCalendarClientSecret: storedCalendarSettings?.settings.clientSecret || "",
+      googleCalendarRefreshToken: storedCalendarSettings?.settings.refreshToken || "",
+      googleCalendarCalendarId: storedCalendarSettings?.settings.calendarId || "",
+      googleCalendarIcalUrl: storedCalendarSettings?.settings.iCalUrl || "",
+      googleCalendarTimeZone: storedCalendarSettings?.settings.timeZone || "",
     }),
   );
 }
@@ -451,8 +474,8 @@ async function renderSchedule(url: URL, env: Env, sessionUser: SessionUser, show
   const students = await listStudents(env.DB);
   const selectedStudentId = Number.parseInt(url.searchParams.get("student") || "", 10);
   const selectedStudent = Number.isFinite(selectedStudentId) ? students.find((student) => student.id === selectedStudentId) || null : null;
-  const config = await resolveGoogleCalendarConfigForApp(env);
-  const timeZone = resolveScheduleTimeZone(config?.timeZone);
+  const calendarSource = await resolveGoogleCalendarSourceForApp(env);
+  const timeZone = resolveScheduleTimeZone(calendarSource?.timeZone);
   const weekStart = resolveWeekStart(url.searchParams.get("week"), timeZone);
   const selectedSlotStart = normalizeScheduleSlotValue(url.searchParams.get("slot"));
   const selectedSlotEnd = selectedSlotStart ? addHourToLocalDateTime(selectedSlotStart, 1) : null;
@@ -461,13 +484,21 @@ async function renderSchedule(url: URL, env: Env, sessionUser: SessionUser, show
   let syncFailed = false;
   let events: GoogleCalendarEvent[] = [];
 
-  if (config) {
+  if (calendarSource?.mode === "api") {
     try {
-      events = await listGoogleCalendarEventsForWeek(config, weekStart, timeZone);
+      events = await listGoogleCalendarEventsForWeek(calendarSource.config, weekStart, timeZone);
     } catch (calendarError) {
       console.error("Failed to load Google Calendar events", calendarError);
       syncFailed = true;
-      error = error || formatCalendarSyncError(calendarError);
+      error = error || formatCalendarSyncError(calendarSource.label, calendarError);
+    }
+  } else if (calendarSource?.mode === "ical") {
+    try {
+      events = await listIcalCalendarEvents(calendarSource.iCalUrl, timeZone);
+    } catch (calendarError) {
+      console.error("Failed to load Google Calendar iCal events", calendarError);
+      syncFailed = true;
+      error = error || formatCalendarSyncError(calendarSource.label, calendarError);
     }
   }
 
@@ -482,7 +513,8 @@ async function renderSchedule(url: URL, env: Env, sessionUser: SessionUser, show
       notice,
       error,
       showStyleGuide,
-      configured: Boolean(config),
+      configured: Boolean(calendarSource),
+      sourceMode: calendarSource?.mode || null,
       syncFailed,
       timeZone,
       weekLabel: week.label,
@@ -713,24 +745,109 @@ async function handleSaveGoogleCalendarSettings(request: Request, env: Env): Pro
   const now = new Date().toISOString();
 
   try {
-    const encryptedValue = await encryptText(
-      JSON.stringify({
-        clientId,
-        clientSecret,
-        refreshToken,
-        calendarId,
-        timeZone: timeZone || undefined,
-      }),
-      encryptionSecret,
-    );
-
-    await upsertAppSecret(env.DB, GOOGLE_CALENDAR_SECRET_KEY, encryptedValue, now);
+    await saveStoredGoogleCalendarSettings(env, {
+      ...(await getStoredGoogleCalendarSettingsPayload(env)),
+      clientId,
+      clientSecret,
+      refreshToken,
+      calendarId,
+      timeZone: timeZone || undefined,
+    }, now);
   } catch (error) {
     console.error("Failed to save Google Calendar settings", error);
     return redirect("/data-tools?error=Failed+to+save+encrypted+Google+Calendar+settings");
   }
 
   return redirect("/data-tools?notice=Encrypted+Google+Calendar+settings+saved");
+}
+
+async function handleSaveGoogleCalendarIcalSettings(request: Request, env: Env): Promise<Response> {
+  const formData = await request.formData();
+  const iCalUrl = normalizeString(formData.get("iCalUrl"));
+  const timeZone = normalizeString(formData.get("timeZone"));
+
+  if (!iCalUrl) {
+    return redirect("/data-tools?error=Google+Calendar+iCal+URL+is+required");
+  }
+
+  const now = new Date().toISOString();
+  try {
+    await saveStoredGoogleCalendarSettings(env, {
+      ...(await getStoredGoogleCalendarSettingsPayload(env)),
+      iCalUrl,
+      timeZone: timeZone || undefined,
+    }, now);
+  } catch (error) {
+    console.error("Failed to save Google Calendar iCal settings", error);
+    return redirect("/data-tools?error=Failed+to+save+encrypted+Google+Calendar+iCal+settings");
+  }
+
+  return redirect("/data-tools?notice=Encrypted+Google+Calendar+iCal+settings+saved");
+}
+
+async function handleClearGoogleCalendarOAuthSettings(env: Env): Promise<Response> {
+  try {
+    const currentSettings = await getStoredGoogleCalendarSettingsPayload(env);
+    const nextSettings: StoredGoogleCalendarSettings = {
+      ...currentSettings,
+      clientId: undefined,
+      clientSecret: undefined,
+      refreshToken: undefined,
+      calendarId: undefined,
+    };
+    await persistOrClearGoogleCalendarSettings(env, nextSettings, new Date().toISOString());
+  } catch (error) {
+    console.error("Failed to clear Google Calendar OAuth settings", error);
+    return redirect("/data-tools?error=Failed+to+clear+stored+Google+Calendar+credentials");
+  }
+
+  return redirect("/data-tools?notice=Stored+Google+Calendar+credentials+cleared");
+}
+
+async function handleClearGoogleCalendarIcalSettings(env: Env): Promise<Response> {
+  try {
+    const currentSettings = await getStoredGoogleCalendarSettingsPayload(env);
+    const nextSettings: StoredGoogleCalendarSettings = {
+      ...currentSettings,
+      iCalUrl: undefined,
+    };
+    await persistOrClearGoogleCalendarSettings(env, nextSettings, new Date().toISOString());
+  } catch (error) {
+    console.error("Failed to clear Google Calendar iCal settings", error);
+    return redirect("/data-tools?error=Failed+to+clear+stored+Google+Calendar+iCal+settings");
+  }
+
+  return redirect("/data-tools?notice=Stored+Google+Calendar+iCal+settings+cleared");
+}
+
+async function saveStoredGoogleCalendarSettings(env: Env, settings: StoredGoogleCalendarSettings, updatedAt: string): Promise<void> {
+  await persistOrClearGoogleCalendarSettings(env, settings, updatedAt);
+}
+
+async function persistOrClearGoogleCalendarSettings(env: Env, settings: StoredGoogleCalendarSettings, updatedAt: string): Promise<void> {
+  if (!hasAnyStoredGoogleCalendarSettings(settings)) {
+    await deleteAppSecret(env.DB, GOOGLE_CALENDAR_SECRET_KEY);
+    return;
+  }
+
+  const encryptedValue = await encryptText(
+    JSON.stringify({
+      ...settings,
+      clientId: settings.clientId || undefined,
+      clientSecret: settings.clientSecret || undefined,
+      refreshToken: settings.refreshToken || undefined,
+      calendarId: settings.calendarId || undefined,
+      iCalUrl: settings.iCalUrl || undefined,
+      timeZone: settings.timeZone || undefined,
+    }),
+    resolveAppEncryptionSecret(env),
+  );
+
+  await upsertAppSecret(env.DB, GOOGLE_CALENDAR_SECRET_KEY, encryptedValue, updatedAt);
+}
+
+async function getStoredGoogleCalendarSettingsPayload(env: Env): Promise<StoredGoogleCalendarSettings> {
+  return (await getStoredGoogleCalendarSettings(env))?.settings || {};
 }
 
 async function handleClearGoogleCalendarSettings(env: Env): Promise<Response> {
@@ -744,17 +861,39 @@ async function handleClearGoogleCalendarSettings(env: Env): Promise<Response> {
   return redirect("/data-tools?notice=Stored+Google+Calendar+settings+cleared");
 }
 
+function hasAnyStoredGoogleCalendarSettings(settings: StoredGoogleCalendarSettings): boolean {
+  return Boolean(
+    settings.clientId ||
+      settings.clientSecret ||
+      settings.refreshToken ||
+      settings.calendarId ||
+      settings.iCalUrl ||
+      settings.timeZone,
+  );
+}
+
 async function handleScheduleMeeting(request: Request, env: Env): Promise<Response> {
   const formData = await request.formData();
   const returnPath = parseScheduleReturnTo(formData.get("returnTo"));
   const studentId = Number.parseInt(String(formData.get("studentId") || ""), 10);
-  const config = await resolveGoogleCalendarConfigForApp(env);
-  const weekStart = normalizeScheduleWeekValue(formData.get("week")) || resolveWeekStart(null, resolveScheduleTimeZone(config?.timeZone));
+  const calendarSource = await resolveGoogleCalendarSourceForApp(env);
+  const weekStart = normalizeScheduleWeekValue(formData.get("week")) || resolveWeekStart(null, resolveScheduleTimeZone(calendarSource?.timeZone));
   const slotStart = normalizeScheduleSlotValue(formData.get("slotStart"));
   const slotEnd = normalizeScheduleSlotValue(formData.get("slotEnd"));
 
-  if (!config) {
+  if (!calendarSource) {
     return redirect(appendScheduleMessage(returnPath, { weekStart, studentId, slotStart, error: "Google Calendar is not configured" }));
+  }
+
+  if (calendarSource.mode !== "api") {
+    return redirect(
+      appendScheduleMessage(returnPath, {
+        weekStart,
+        studentId,
+        slotStart,
+        error: "Google Calendar iCal fallback mode is read-only. Add full Google OAuth credentials to create invitations from the app.",
+      }),
+    );
   }
 
   if (!Number.isFinite(studentId) || !slotStart || !slotEnd) {
@@ -782,7 +921,7 @@ async function handleScheduleMeeting(request: Request, env: Env): Promise<Respon
   const description = normalizeString(formData.get("description")) || buildScheduleEventDescription(student);
 
   try {
-    await createGoogleCalendarEvent(config, {
+    await createGoogleCalendarEvent(calendarSource.config, {
       summary: title,
       description,
       startLocal: slotStart,
@@ -798,7 +937,7 @@ async function handleScheduleMeeting(request: Request, env: Env): Promise<Respon
       studentNotes: student.studentNotes,
       startDate: student.startDate,
       currentPhase: student.currentPhase,
-      nextMeetingAt: localDateTimeToUtcIso(slotStart, config.timeZone),
+      nextMeetingAt: localDateTimeToUtcIso(slotStart, calendarSource.config.timeZone),
     });
   } catch (error) {
     console.error("Failed to schedule Google Calendar event", error);
@@ -1005,25 +1144,72 @@ async function listGoogleCalendarEventsForWeek(
   });
 }
 
-function formatCalendarSyncError(error: unknown): string {
+function formatCalendarSyncError(sourceLabel: string, error: unknown): string {
   if (error instanceof Error && error.message.trim()) {
-    return `Google Calendar sync failed: ${error.message.trim()}`;
+    return `${sourceLabel} sync failed: ${error.message.trim()}`;
   }
 
-  return "Google Calendar sync failed: unknown error";
+  return `${sourceLabel} sync failed: unknown error`;
 }
 
-interface StoredGoogleCalendarConfigRecord {
-  config: NonNullable<ReturnType<typeof resolveGoogleCalendarConfig>>;
+interface StoredGoogleCalendarSettings {
+  clientId?: string;
+  clientSecret?: string;
+  refreshToken?: string;
+  calendarId?: string;
+  iCalUrl?: string;
+  timeZone?: string;
+}
+
+interface StoredGoogleCalendarSettingsRecord {
+  settings: StoredGoogleCalendarSettings;
   updatedAt: string;
 }
 
-async function resolveGoogleCalendarConfigForApp(env: Env): Promise<NonNullable<ReturnType<typeof resolveGoogleCalendarConfig>> | null> {
-  const storedConfig = await getStoredGoogleCalendarConfig(env);
-  return storedConfig?.config || null;
+type GoogleCalendarSource =
+  | {
+      mode: "api";
+      label: "Google Calendar";
+      config: NonNullable<ReturnType<typeof resolveGoogleCalendarConfig>>;
+      timeZone: string;
+    }
+  | {
+      mode: "ical";
+      label: "Google Calendar iCal";
+      iCalUrl: string;
+      timeZone: string;
+    };
+
+async function resolveGoogleCalendarSourceForApp(env: Env): Promise<GoogleCalendarSource | null> {
+  const storedSettings = await getStoredGoogleCalendarSettings(env);
+  if (!storedSettings) {
+    return null;
+  }
+
+  const apiConfig = resolveGoogleCalendarConfig(storedSettings.settings);
+  if (apiConfig) {
+    return {
+      mode: "api",
+      label: "Google Calendar",
+      config: apiConfig,
+      timeZone: apiConfig.timeZone,
+    };
+  }
+
+  const iCalUrl = normalizeString(storedSettings.settings.iCalUrl);
+  if (!iCalUrl) {
+    return null;
+  }
+
+  return {
+    mode: "ical",
+    label: "Google Calendar iCal",
+    iCalUrl,
+    timeZone: resolveScheduleTimeZone(storedSettings.settings.timeZone),
+  };
 }
 
-async function getStoredGoogleCalendarConfig(env: Env): Promise<StoredGoogleCalendarConfigRecord | null> {
+async function getStoredGoogleCalendarSettings(env: Env): Promise<StoredGoogleCalendarSettingsRecord | null> {
   const storedSecret = await getAppSecret(env.DB, GOOGLE_CALENDAR_SECRET_KEY);
   if (!storedSecret) {
     return null;
@@ -1031,20 +1217,8 @@ async function getStoredGoogleCalendarConfig(env: Env): Promise<StoredGoogleCale
 
   try {
     const decryptedPayload = await decryptText(storedSecret.encryptedValue, resolveAppEncryptionSecret(env));
-    const parsed = JSON.parse(decryptedPayload) as {
-      clientId?: string;
-      clientSecret?: string;
-      refreshToken?: string;
-      calendarId?: string;
-      timeZone?: string;
-    };
-    const config = resolveGoogleCalendarConfig(parsed);
-    if (!config) {
-      return null;
-    }
-
     return {
-      config,
+      settings: JSON.parse(decryptedPayload) as StoredGoogleCalendarSettings,
       updatedAt: storedSecret.updatedAt,
     };
   } catch (error) {

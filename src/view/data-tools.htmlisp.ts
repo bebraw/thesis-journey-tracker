@@ -31,6 +31,7 @@ export function renderDataToolsPage(data: DataToolsPageData): string {
     googleCalendarClientSecret,
     googleCalendarRefreshToken,
     googleCalendarCalendarId,
+    googleCalendarIcalUrl,
     googleCalendarTimeZone,
   } = data;
 
@@ -149,6 +150,14 @@ export function renderDataToolsPage(data: DataToolsPageData): string {
           If you want the longer step-by-step version, see the repository setup guide.
         </p>
       </div>
+      <div class="mt-panel-sm rounded-control border border-app-line bg-app-surface-soft p-panel-sm text-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/60">
+        <h3 class="font-semibold">Simpler iCal fallback</h3>
+        <p class="mt-stack-xs text-app-text-muted dark:text-app-text-muted-dark">
+          If you only need read-only availability, Google Calendar also provides a <code>Secret address in iCal format</code> under
+          <code>Settings and sharing</code> -> <code>Integrate calendar</code>. This app can use that link as an easier fallback mode, but it cannot create invitations from the app while using it.
+        </p>
+      </div>
+      <h3 class="mt-panel-sm text-base font-semibold">Full scheduling mode</h3>
       <form action="/actions/save-google-calendar-settings" method="post" class="mt-panel-sm space-y-stack-xs">
         <label &class="(get props formLabelClass)">
           <span>Google client ID</span>
@@ -192,6 +201,36 @@ export function renderDataToolsPage(data: DataToolsPageData): string {
         </label>
         <noop &children="(get props saveButton)"></noop>
       </form>
+      <form action="/actions/clear-google-calendar-oauth-settings" method="post" class="mt-stack-xs">
+        <noop &children="(get props clearOAuthButton)"></noop>
+      </form>
+      <h3 class="mt-panel-sm text-base font-semibold">iCal fallback mode</h3>
+      <form action="/actions/save-google-calendar-ical-settings" method="post" class="mt-panel-sm space-y-stack-xs">
+        <label &class="(get props formLabelClass)">
+          <span>Google Calendar iCal URL</span>
+          <input
+            name="iCalUrl"
+            required="required"
+            autocomplete="off"
+            &class="(get props fieldClass)"
+            &value="(get props iCalUrlValue)"
+          />
+        </label>
+        <label &class="(get props formLabelClass)">
+          <span>Timezone (optional)</span>
+          <input
+            name="timeZone"
+            placeholder="Europe/Helsinki"
+            autocomplete="off"
+            &class="(get props fieldClass)"
+            &value="(get props timeZoneValue)"
+          />
+        </label>
+        <noop &children="(get props saveIcalButton)"></noop>
+      </form>
+      <form action="/actions/clear-google-calendar-ical-settings" method="post" class="mt-stack-xs">
+        <noop &children="(get props clearIcalButton)"></noop>
+      </form>
       <form action="/actions/clear-google-calendar-settings" method="post" class="mt-stack-xs">
         <noop &children="(get props clearButton)"></noop>
       </form>
@@ -200,11 +239,13 @@ export function renderDataToolsPage(data: DataToolsPageData): string {
         subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
         metaText: escapeHtml(`mt-panel-sm ${MUTED_TEXT}`),
         description: escapeHtml(
-          "Paste your Google Calendar OAuth credentials here. The app encrypts the saved values before storing them in D1.",
+          "Choose either full OAuth scheduling or the easier iCal fallback. The app encrypts the saved values before storing them in D1.",
         ),
         statusText: escapeHtml(
-          googleCalendarConfigSource === "stored"
-              ? "Active source: encrypted database credentials saved from the app."
+          googleCalendarConfigSource === "stored_api"
+            ? "Active source: encrypted full Google Calendar scheduling credentials."
+            : googleCalendarConfigSource === "stored_ical"
+              ? "Active source: encrypted Google Calendar iCal fallback link."
               : "Active source: not configured yet.",
         ),
         calendarIdVisible: Boolean(effectiveGoogleCalendarId),
@@ -219,19 +260,35 @@ export function renderDataToolsPage(data: DataToolsPageData): string {
         clientSecretValue: escapeHtml(googleCalendarClientSecret),
         refreshTokenValue: escapeHtml(googleCalendarRefreshToken),
         calendarIdValue: escapeHtml(googleCalendarCalendarId),
+        iCalUrlValue: escapeHtml(googleCalendarIcalUrl),
         timeZoneValue: escapeHtml(googleCalendarTimeZone),
         saveButton: renderButton({
           label: "Save encrypted credentials",
           type: "submit",
           variant: "primaryBlock",
         }),
+        clearOAuthButton: renderButton({
+          label: "Remove full scheduling credentials",
+          type: "submit",
+          variant: "neutral",
+        }),
+        saveIcalButton: renderButton({
+          label: "Save iCal fallback",
+          type: "submit",
+          variant: "primaryBlock",
+        }),
+        clearIcalButton: renderButton({
+          label: "Remove iCal fallback",
+          type: "submit",
+          variant: "neutral",
+        }),
         clearButton: renderButton({
-          label: "Clear stored credentials",
+          label: "Clear stored calendar settings",
           type: "submit",
           variant: "neutral",
         }),
         encryptionNote: escapeHtml(
-          "Saved credentials are encrypted before they are written to the database. Set APP_ENCRYPTION_SECRET in the Worker environment if you want that encryption key to be separate from SESSION_SECRET.",
+          "Saved calendar settings are encrypted before they are written to the database. Set APP_ENCRYPTION_SECRET in the Worker environment if you want that encryption key to be separate from SESSION_SECRET.",
         ),
       },
     ),

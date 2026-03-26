@@ -30,7 +30,7 @@ npx wrangler secret put SESSION_SECRET
 npx wrangler secret put APP_ENCRYPTION_SECRET
 ```
 
-If you want the Google Calendar scheduling page enabled in production, keep `APP_ENCRYPTION_SECRET` set and then save the Google credentials from the `Data Tools` page after deployment. Those values are encrypted before being stored in D1.
+If you want the Google Calendar scheduling page enabled in production, keep `APP_ENCRYPTION_SECRET` set and then save either full Google OAuth credentials or a read-only Google Calendar iCal fallback link from the `Data Tools` page after deployment. Those values are encrypted before being stored in D1.
 
 Other plain Worker vars can still go in `wrangler.toml`:
 

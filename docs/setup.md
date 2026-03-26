@@ -133,6 +133,26 @@ Store the Google Calendar values from the app like this:
 
 Those values are encrypted before they are written to the `app_secrets` table in D1.
 
+### Simpler Fallback: Google Calendar iCal Link
+
+If you only want read-only calendar availability and do not need the app to create invitations, you can use the easier iCal fallback mode instead of the full OAuth setup.
+
+Google documents this path here:
+- [Sync your calendar with computer programs](https://support.google.com/calendar/answer/37648?hl=en)
+
+What to do:
+1. Open Google Calendar on the web
+2. Go to `Settings and sharing` for the calendar you want to use
+3. Open `Integrate calendar`
+4. Copy the `Secret address in iCal format`
+5. Save that link into the `Google Calendar iCal URL` field in `Data Tools`
+6. Optionally save a timezone such as `Europe/Helsinki`
+
+Important limitations:
+- This mode is read-only. It shows existing calendar events and open slots, but it does not create events or send invitations from the app.
+- Google treats the `Secret address in iCal format` as sensitive. Do not share it. If it is leaked, reset it in Google Calendar.
+- On some work or school Google accounts, the secret iCal address may be unavailable if the admin has disabled it.
+
 ## 4. Apply Migrations
 
 ```bash

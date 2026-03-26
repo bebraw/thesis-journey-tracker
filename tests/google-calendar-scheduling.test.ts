@@ -45,9 +45,8 @@ describe("google calendar scheduling", () => {
     const body = await response.text();
     expect(response.status).toBe(200);
     expect(body).toContain("Google Calendar Setup Needed");
-    expect(body).toContain("Google client ID");
-    expect(body).toContain("Google refresh token");
-    expect(body).toContain("Google Calendar ID");
+    expect(body).toContain("Full scheduling: Google client ID, client secret, refresh token, and Google Calendar ID");
+    expect(body).toContain("Simpler fallback: Google Calendar Secret address in iCal format");
     expect(body).toContain("Data Tools");
   });
 
@@ -110,7 +109,7 @@ describe("google calendar scheduling", () => {
     );
 
     const dataToolsBody = await dataToolsResponse.text();
-    expect(dataToolsBody).toContain("Active source: encrypted database credentials saved from the app.");
+    expect(dataToolsBody).toContain("Active source: encrypted full Google Calendar scheduling credentials.");
     expect(dataToolsBody).toContain("Current calendar ID: stored-calendar@example.com");
     expect(dataToolsBody).toContain("Current timezone: America/New_York");
     expect(dataToolsBody).toContain('name="clientId"');
@@ -123,6 +122,82 @@ describe("google calendar scheduling", () => {
     expect(dataToolsBody).toContain('value="stored-calendar@example.com"');
     expect(dataToolsBody).toContain('name="timeZone"');
     expect(dataToolsBody).toContain('value="America/New_York"');
+  });
+
+  it("can save an iCal fallback and use it for read-only availability", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+
+    const saveResponse = await fetchHandler(
+      new Request("http://localhost/actions/save-google-calendar-ical-settings", {
+        method: "POST",
+        headers: { cookie },
+        body: new URLSearchParams({
+          iCalUrl: "https://calendar.google.com/calendar/ical/example/private-ical/basic.ics",
+          timeZone: "Europe/Helsinki",
+        }),
+      }),
+      env,
+    );
+
+    expect(saveResponse.status).toBe(302);
+    expect(saveResponse.headers.get("location")).toBe("/data-tools?notice=Encrypted+Google+Calendar+iCal+settings+saved");
+
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url === "https://calendar.google.com/calendar/ical/example/private-ical/basic.ics") {
+        return new Response(
+          [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "X-WR-TIMEZONE:Europe/Helsinki",
+            "BEGIN:VEVENT",
+            "UID:event-1",
+            "DTSTART:20260324T110000Z",
+            "DTEND:20260324T120000Z",
+            "SUMMARY:iCal Busy Slot",
+            "DESCRIPTION:Imported from iCal",
+            "END:VEVENT",
+            "END:VCALENDAR",
+          ].join("\r\n"),
+          {
+            status: 200,
+            headers: { "content-type": "text/calendar" },
+          },
+        );
+      }
+
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const scheduleResponse = await fetchHandler(
+      new Request("http://localhost/schedule?student=1&week=2026-03-23&slot=2026-03-24T09:00", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    const scheduleBody = await scheduleResponse.text();
+    expect(scheduleResponse.status).toBe(200);
+    expect(scheduleBody).toContain("Viewing Google Calendar iCal availability for Base Student");
+    expect(scheduleBody).toContain("iCal Busy Slot");
+    expect(scheduleBody).toContain("13:00 - 14:00");
+    expect(scheduleBody).toContain(
+      "Google Calendar iCal fallback mode is read-only. Add full Google OAuth credentials in Data Tools to create invitations from the app.",
+    );
+    expect(scheduleBody).not.toContain("Create Google Calendar event");
+
+    const dataToolsResponse = await fetchHandler(
+      new Request("http://localhost/data-tools", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    const dataToolsBody = await dataToolsResponse.text();
+    expect(dataToolsBody).toContain("Active source: encrypted Google Calendar iCal fallback link.");
+    expect(dataToolsBody).toContain('name="iCalUrl"');
+    expect(dataToolsBody).toContain('value="https://calendar.google.com/calendar/ical/example/private-ical/basic.ics"');
   });
 
   it("can clear stored database credentials", async () => {
@@ -154,6 +229,89 @@ describe("google calendar scheduling", () => {
     expect(clearResponse.status).toBe(302);
     expect(clearResponse.headers.get("location")).toBe("/data-tools?notice=Stored+Google+Calendar+settings+cleared");
     expect(env.DB.appSecrets).toHaveLength(0);
+  });
+
+  it("can remove full scheduling credentials while keeping the iCal fallback", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+
+    await saveGoogleCalendarSettings(fetchHandler, env, cookie, {
+      clientId: "stored-client-id",
+      clientSecret: "stored-client-secret",
+      refreshToken: "stored-refresh-token",
+      calendarId: "primary",
+      timeZone: "Europe/Helsinki",
+    });
+
+    const saveIcalResponse = await fetchHandler(
+      new Request("http://localhost/actions/save-google-calendar-ical-settings", {
+        method: "POST",
+        headers: { cookie },
+        body: new URLSearchParams({
+          iCalUrl: "https://calendar.google.com/calendar/ical/example/private-ical/basic.ics",
+          timeZone: "Europe/Helsinki",
+        }),
+      }),
+      env,
+    );
+    expect(saveIcalResponse.status).toBe(302);
+
+    const clearOAuthResponse = await fetchHandler(
+      new Request("http://localhost/actions/clear-google-calendar-oauth-settings", {
+        method: "POST",
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    expect(clearOAuthResponse.status).toBe(302);
+    expect(clearOAuthResponse.headers.get("location")).toBe("/data-tools?notice=Stored+Google+Calendar+credentials+cleared");
+    expect(env.DB.appSecrets).toHaveLength(1);
+    expect(env.DB.appSecrets[0]?.encrypted_value).not.toContain("stored-client-id");
+
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url === "https://calendar.google.com/calendar/ical/example/private-ical/basic.ics") {
+        return new Response(
+          [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "X-WR-TIMEZONE:Europe/Helsinki",
+            "BEGIN:VEVENT",
+            "UID:event-1",
+            "DTSTART:20260324T110000Z",
+            "DTEND:20260324T120000Z",
+            "SUMMARY:iCal Busy Slot",
+            "END:VEVENT",
+            "END:VCALENDAR",
+          ].join("\r\n"),
+          { status: 200, headers: { "content-type": "text/calendar" } },
+        );
+      }
+
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const scheduleResponse = await fetchHandler(
+      new Request("http://localhost/schedule?week=2026-03-23", {
+        headers: { cookie },
+      }),
+      env,
+    );
+    const scheduleBody = await scheduleResponse.text();
+    expect(scheduleBody).toContain("iCal Busy Slot");
+
+    const dataToolsResponse = await fetchHandler(
+      new Request("http://localhost/data-tools", {
+        headers: { cookie },
+      }),
+      env,
+    );
+    const dataToolsBody = await dataToolsResponse.text();
+    expect(dataToolsBody).toContain("Active source: encrypted Google Calendar iCal fallback link.");
+    expect(dataToolsBody).toContain('value="https://calendar.google.com/calendar/ical/example/private-ical/basic.ics"');
+    expect(dataToolsBody).toContain('name="clientId"');
+    expect(dataToolsBody).not.toContain('value="stored-client-id"');
   });
 
   it("renders a weekly calendar view with existing events and available slot links", async () => {

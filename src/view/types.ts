@@ -46,7 +46,7 @@ export interface DataToolsPageData {
   studentCount: number;
   logCount: number;
   replaceImportEnabled: boolean;
-  googleCalendarConfigSource: "stored" | "none";
+  googleCalendarConfigSource: "stored_api" | "stored_ical" | "none";
   storedGoogleCalendarUpdatedAt: string | null;
   effectiveGoogleCalendarId: string | null;
   effectiveGoogleCalendarTimeZone: string | null;
@@ -54,6 +54,7 @@ export interface DataToolsPageData {
   googleCalendarClientSecret: string;
   googleCalendarRefreshToken: string;
   googleCalendarCalendarId: string;
+  googleCalendarIcalUrl: string;
   googleCalendarTimeZone: string;
 }
 
@@ -90,6 +91,7 @@ export interface SchedulePageData {
   error: string | null;
   showStyleGuide: boolean;
   configured: boolean;
+  sourceMode: "api" | "ical" | null;
   syncFailed: boolean;
   timeZone: string;
   weekLabel: string;

@@ -22,6 +22,7 @@ export function renderSchedulePage(data: SchedulePageData): string {
     error,
     showStyleGuide,
     configured,
+    sourceMode,
     syncFailed,
     timeZone,
     weekLabel,
@@ -97,9 +98,13 @@ export function renderSchedulePage(data: SchedulePageData): string {
         }),
         subtleText: escapeHtml(`mt-stack-xs ${SUBTLE_TEXT}`),
         helperText: escapeHtml(
-          selectedStudentId
-            ? `Scheduling for ${selectedStudentName || "the selected student"} in ${timeZone}. Pick an open slot to prepare a Google Calendar invitation.`
-            : `Viewing Google Calendar availability in ${timeZone}. Choose a student, then pick an open slot.`,
+          sourceMode === "ical"
+            ? selectedStudentId
+              ? `Viewing Google Calendar iCal availability for ${selectedStudentName || "the selected student"} in ${timeZone}. This fallback mode is read-only.`
+              : `Viewing Google Calendar iCal availability in ${timeZone}. Choose a student to compare availability against your supervision list.`
+            : selectedStudentId
+              ? `Scheduling for ${selectedStudentName || "the selected student"} in ${timeZone}. Pick an open slot to prepare a Google Calendar invitation.`
+              : `Viewing Google Calendar availability in ${timeZone}. Choose a student, then pick an open slot.`,
         ),
       },
     ),
@@ -203,20 +208,18 @@ export function renderSchedulePage(data: SchedulePageData): string {
       `<h2 class="text-lg font-semibold">Google Calendar Setup Needed</h2>
       <p &class="(get props subtleText)" &children="(get props description)"></p>
       <ul class="mt-panel-sm list-disc space-y-badge-y pl-panel-sm text-sm">
-        <li>Google client ID</li>
-        <li>Google client secret</li>
-        <li>Google refresh token</li>
-        <li>Google Calendar ID</li>
+        <li>Full scheduling: Google client ID, client secret, refresh token, and Google Calendar ID</li>
+        <li>Simpler fallback: Google Calendar Secret address in iCal format</li>
       </ul>
       <p class="mt-panel-sm text-sm">
-        Save these from the <a href="/data-tools" class="${escapeHtml(TEXT_LINK)}">Data Tools</a> page.
+        Save either setup option from the <a href="/data-tools" class="${escapeHtml(TEXT_LINK)}">Data Tools</a> page.
       </p>
       <p &class="(get props metaText)" &children="(get props timezoneNote)"></p>`,
       {
         subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
         metaText: escapeHtml(`mt-panel-sm ${MUTED_TEXT}`),
         description: escapeHtml(
-          "Add Google OAuth refresh-token credentials in Data Tools before this page can load calendar events or create invitations.",
+          "Add either full Google OAuth refresh-token credentials for scheduling or a read-only Google Calendar iCal link for availability fallback.",
         ),
         timezoneNote: escapeHtml("Optional: save a timezone such as Europe/Helsinki if you want the displayed week and created events to use a specific calendar timezone."),
       },
@@ -240,7 +243,7 @@ export function renderSchedulePage(data: SchedulePageData): string {
   );
 
   const selectedSlotCard =
-    configured && !syncFailed && selectedSlotStart && selectedSlotEnd && selectedStudentId
+    configured && sourceMode === "api" && !syncFailed && selectedSlotStart && selectedSlotEnd && selectedStudentId
       ? renderCard(
           renderView(
             `<h2 class="text-lg font-semibold">Schedule Selected Slot</h2>
@@ -302,6 +305,8 @@ export function renderSchedulePage(data: SchedulePageData): string {
               message: escapeHtml(
                 configured && syncFailed
                   ? "Calendar availability is unavailable until Google Calendar sync starts working again."
+                  : sourceMode === "ical"
+                  ? "Google Calendar iCal fallback mode is read-only. Add full Google OAuth credentials in Data Tools to create invitations from the app."
                   : configured && selectedSlotStart && selectedSlotEnd
                   ? "Choose a student before creating a Google Calendar invitation for this slot."
                   : configured
