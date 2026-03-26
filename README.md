@@ -49,7 +49,7 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 
 Prerequisites:
 
-- Node.js 20 or newer
+- Node.js `25.8.1` via [`.nvmrc`](./.nvmrc) (`nvm install && nvm use`)
 - npm
 - A Cloudflare account with Wrangler access
 

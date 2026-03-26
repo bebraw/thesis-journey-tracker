@@ -6,6 +6,8 @@ This guide covers CI, production deployment, automated backups, and the current 
 
 GitHub Actions runs the workflow in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on pushes and pull requests, except for docs-only changes that match the workflow's `paths-ignore` rules.
 
+The workflow reads the Node.js version from [`.nvmrc`](../.nvmrc), so local `nvm use` and CI stay aligned.
+
 The workflow runs:
 
 - `npm ci`
