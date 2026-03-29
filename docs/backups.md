@@ -4,11 +4,13 @@ This project can create automated backups when it is deployed on Cloudflare with
 
 ## What The Scheduled Backup Stores
 
-Each scheduled run writes three files into the configured R2 bucket:
+Each scheduled run compares the latest stored backup against a stable hash of the current JSON export content. When the exported student data has changed, the Worker writes three files into the configured R2 bucket:
 
 - a full JSON app export that can be restored from the Data Tools page
 - a professor-friendly Markdown status report
 - a small manifest file with counts, the cron expression, and the generated object keys
+
+If the exported data is unchanged, the scheduled run skips creating a new backup snapshot.
 
 By default the files are stored under:
 

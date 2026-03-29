@@ -654,6 +654,12 @@ async function handleScheduledBackup(controller: ScheduledControllerLike, env: E
     cron: controller.cron,
   });
 
+  if (result.skipped) {
+    const matchedManifestMessage = result.matchedManifestKey ? `: ${result.matchedManifestKey}` : "";
+    console.log(`Automated backup skipped because exported data is unchanged${matchedManifestMessage}`);
+    return;
+  }
+
   console.log(`Automated backup completed: ${result.manifestKey}`);
 }
 

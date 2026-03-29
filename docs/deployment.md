@@ -74,7 +74,7 @@ npm run deploy
 
 ## Automated Backups
 
-The Worker includes a scheduled backup job that writes an app JSON export, a professor-ready Markdown report, and a backup manifest into an R2 bucket.
+The Worker includes a scheduled backup job that writes an app JSON export, a professor-ready Markdown report, and a backup manifest into an R2 bucket whenever the exported student data changed since the latest stored backup.
 
 To enable it:
 

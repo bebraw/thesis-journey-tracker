@@ -42,11 +42,15 @@ describe("automated backups", () => {
       timestamp: new Date("2026-03-23T01:30:00.000Z"),
     });
 
+    expect(result.skipped).toBe(false);
+    expect(result.manifest).not.toBeNull();
+    expect(result.manifestKey).not.toBeNull();
     expect(bucket.objects).toHaveLength(3);
-    expect(result.manifest.generatedAt).toBe("2026-03-23T01:30:00.000Z");
-    expect(result.manifest.counts.students).toBe(1);
-    expect(result.manifest.counts.meetingLogs).toBe(1);
-    expect(result.manifest.counts.phaseChanges).toBe(1);
+    expect(result.manifest?.generatedAt).toBe("2026-03-23T01:30:00.000Z");
+    expect(result.manifest?.contentHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.manifest?.counts.students).toBe(1);
+    expect(result.manifest?.counts.meetingLogs).toBe(1);
+    expect(result.manifest?.counts.phaseChanges).toBe(1);
 
     const jsonObject = bucket.objects.find((object) => object.key.endsWith(".json") && !object.key.endsWith("backup-manifest.json"));
     const reportObject = bucket.objects.find((object) => object.key.endsWith(".md"));
@@ -67,11 +71,67 @@ describe("automated backups", () => {
 
     const manifest = JSON.parse(manifestObject?.value || "{}") as {
       cron: string;
+      contentHash: string;
       artifacts: { jsonExportKey: string; professorReportKey: string };
     };
     expect(manifest.cron).toBe("30 1 * * *");
+    expect(manifest.contentHash).toBe(result.contentHash);
     expect(manifest.artifacts.jsonExportKey).toBe(jsonObject?.key);
     expect(manifest.artifacts.professorReportKey).toBe(reportObject?.key);
+  });
+
+  it("skips creating a new backup when the exported data content is unchanged", async () => {
+    const db = new MockD1Database();
+    const bucket = new MockR2Bucket();
+
+    const firstResult = await runAutomatedBackup(db, bucket, {
+      backupPrefix: "prod-backups",
+      cron: "30 1 * * *",
+      timestamp: new Date("2026-03-23T01:30:00.000Z"),
+    });
+
+    const secondResult = await runAutomatedBackup(db, bucket, {
+      backupPrefix: "prod-backups",
+      cron: "30 1 * * *",
+      timestamp: new Date("2026-03-24T01:30:00.000Z"),
+    });
+
+    expect(firstResult.skipped).toBe(false);
+    expect(secondResult.skipped).toBe(true);
+    expect(secondResult.manifest).toBeNull();
+    expect(secondResult.manifestKey).toBeNull();
+    expect(secondResult.matchedManifestKey).toBe(firstResult.manifestKey);
+    expect(secondResult.contentHash).toBe(firstResult.contentHash);
+    expect(bucket.objects).toHaveLength(3);
+  });
+
+  it("creates a new backup when the exported data changes", async () => {
+    const db = new MockD1Database();
+    const bucket = new MockR2Bucket();
+
+    await runAutomatedBackup(db, bucket, {
+      backupPrefix: "prod-backups",
+      cron: "30 1 * * *",
+      timestamp: new Date("2026-03-23T01:30:00.000Z"),
+    });
+
+    db.meetingLogs.push({
+      id: 1,
+      student_id: 1,
+      happened_at: "2026-03-24T08:00:00.000Z",
+      discussed: "New progress update",
+      agreed_plan: "Draft chapter 2",
+      next_step_deadline: "2026-03-31",
+    });
+
+    const secondResult = await runAutomatedBackup(db, bucket, {
+      backupPrefix: "prod-backups",
+      cron: "30 1 * * *",
+      timestamp: new Date("2026-03-24T01:30:00.000Z"),
+    });
+
+    expect(secondResult.skipped).toBe(false);
+    expect(bucket.objects).toHaveLength(6);
   });
 
   it("runs the scheduled worker backup with the configured R2 binding", async () => {
