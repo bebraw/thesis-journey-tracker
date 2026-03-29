@@ -103,16 +103,25 @@ interface ScheduledControllerLike {
 }
 
 const SESSION_COOKIE = "thesis_session";
+const D1_BOOKMARK_COOKIE = "thesis_d1_bookmark";
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_FAILURES = 5;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
 const GOOGLE_CALENDAR_SECRET_KEY = "google_calendar_config";
+const MAX_IMPORT_BATCH_STATEMENTS = 750;
+
+interface D1SessionState {
+  session: globalThis.D1DatabaseSession;
+  database: D1Database;
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
-      return await handleRequest(request, env);
+      const sessionState = createRequestD1Session(request, env.DB);
+      const response = await handleRequest(request, sessionState ? { ...env, DB: sessionState.database } : env);
+      return finalizeD1SessionResponse(response, request.url, sessionState);
     } catch (error) {
       console.error("Unhandled error", error);
       return new Response("Internal server error", { status: 500 });
@@ -127,6 +136,72 @@ export default {
     }
   },
 };
+
+function createRequestD1Session(request: Request, db: D1Database | null | undefined): D1SessionState | null {
+  if (!db || !hasD1SessionApi(db)) {
+    return null;
+  }
+
+  const bookmark = readCookie(request.headers.get("cookie") || "", D1_BOOKMARK_COOKIE);
+  const session = db.withSession(bookmark || "first-primary");
+  return {
+    session,
+    database: session,
+  };
+}
+
+function finalizeD1SessionResponse(response: Response, requestUrl: string, sessionState: D1SessionState | null): Response {
+  if (!sessionState) {
+    return response;
+  }
+
+  const existingSetCookie = response.headers.get("set-cookie") || "";
+  if (existingSetCookie.includes(`${D1_BOOKMARK_COOKIE}=`)) {
+    return response;
+  }
+
+  const bookmark = sessionState.session.getBookmark();
+  if (!bookmark) {
+    return response;
+  }
+
+  const headers = new Headers(response.headers);
+  headers.append("Set-Cookie", buildBookmarkCookie(requestUrl, bookmark));
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function hasD1SessionApi(db: D1Database): db is globalThis.D1Database {
+  return "withSession" in db && typeof db.withSession === "function";
+}
+
+function buildBookmarkCookie(requestUrl: string, bookmark: string): string {
+  const securePart = new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
+  return `${D1_BOOKMARK_COOKIE}=${encodeURIComponent(bookmark)}; HttpOnly;${securePart} Path=/; SameSite=Lax; Max-Age=${SESSION_TTL_SECONDS}`;
+}
+
+function clearBookmarkCookie(requestUrl: string): string {
+  const securePart = new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
+  return `${D1_BOOKMARK_COOKIE}=; HttpOnly;${securePart} Path=/; SameSite=Lax; Max-Age=0`;
+}
+
+function readCookie(cookieHeader: string, name: string): string | null {
+  for (const item of cookieHeader.split(";")) {
+    const [key, ...valueParts] = item.trim().split("=");
+    if (key === name) {
+      const rawValue = valueParts.join("=");
+      try {
+        return decodeURIComponent(rawValue);
+      } catch {
+        return rawValue;
+      }
+    }
+  }
+  return null;
+}
 
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
@@ -228,12 +303,16 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   if (pathname === "/logout" && request.method === "POST") {
-    return redirect("/login", {
-      "Set-Cookie": clearSessionCookie(request.url, {
+    const headers = new Headers();
+    headers.append(
+      "Set-Cookie",
+      clearSessionCookie(request.url, {
         cookieName: SESSION_COOKIE,
         ttlSeconds: SESSION_TTL_SECONDS,
       }),
-    });
+    );
+    headers.append("Set-Cookie", clearBookmarkCookie(request.url));
+    return redirect("/login", headers);
   }
 
   if (!sessionUser) {
@@ -721,6 +800,11 @@ async function handleImportJson(request: Request, env: Env): Promise<Response> {
 
   if (mode === "replace" && !replaceImportEnabled) {
     return redirect("/data-tools?error=Replacement+imports+are+disabled+in+this+environment");
+  }
+
+  const importSizeError = validateImportBatchSize(data, mode);
+  if (importSizeError) {
+    return redirect(`/data-tools?error=${encodeURIComponent(importSizeError)}`);
   }
 
   try {
@@ -1534,4 +1618,16 @@ function parseMaxIdValue(value: number | string | null | undefined): number {
     return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;
+}
+
+function validateImportBatchSize(data: ImportedStudentBundle[], mode: "append" | "replace"): string | null {
+  const logCount = countImportedLogs(data);
+  const phaseAuditCount = countImportedPhaseAuditEntries(data);
+  const statementCount = data.length + logCount + phaseAuditCount + (mode === "replace" ? 1 : 0);
+
+  if (statementCount <= MAX_IMPORT_BATCH_STATEMENTS) {
+    return null;
+  }
+
+  return `Import is too large for a single D1 batch. Split it into smaller files with at most ${MAX_IMPORT_BATCH_STATEMENTS} statements per import.`;
 }

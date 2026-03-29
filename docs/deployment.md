@@ -106,9 +106,11 @@ For more detailed backup notes, see [backups.md](./backups.md).
 ## Production Notes
 
 - The Worker configuration lives in [`wrangler.toml`](../wrangler.toml).
+- Refresh [`worker-configuration.d.ts`](../worker-configuration.d.ts) with `npm run types:generate` whenever the Worker bindings change.
 - The CSS build runs automatically before deploy through Wrangler's build configuration.
 - If you are upgrading an existing instance, make sure the latest migrations have been applied before or during deployment.
 - Automated backups are stored under the `BACKUP_PREFIX` path in the configured R2 bucket.
+- `npm run db:insights` is useful after deployment for checking whether the dashboard queries stay within expected D1 read and latency budgets.
 
 ## Security Model
 

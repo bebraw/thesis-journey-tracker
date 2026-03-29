@@ -57,7 +57,10 @@ Prerequisites:
 
 ```bash
 npm install
+npm run types:generate
 ```
+
+`npm run types:generate` refreshes the checked-in Cloudflare Worker runtime and D1 binding types in [`worker-configuration.d.ts`](./worker-configuration.d.ts). Re-run it whenever [`wrangler.toml`](./wrangler.toml) changes.
 
 2. Create the D1 database:
 

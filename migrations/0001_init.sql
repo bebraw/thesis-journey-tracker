@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS meeting_logs (
 
 CREATE INDEX IF NOT EXISTS idx_students_next_meeting ON students (next_meeting_at);
 CREATE INDEX IF NOT EXISTS idx_students_archived_at ON students (archived_at);
-CREATE INDEX IF NOT EXISTS idx_logs_student_id ON meeting_logs (student_id);
+CREATE INDEX IF NOT EXISTS idx_meeting_logs_student_happened_at ON meeting_logs (student_id, happened_at DESC, id DESC);
 
 CREATE TABLE IF NOT EXISTS student_phase_audit (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

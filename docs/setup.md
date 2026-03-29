@@ -12,7 +12,10 @@ This guide covers the full local setup flow for running Thesis Journey Tracker f
 
 ```bash
 npm install
+npm run types:generate
 ```
+
+The type generation step writes the checked-in Worker runtime declarations to [`worker-configuration.d.ts`](../worker-configuration.d.ts), including the current D1 binding types from [`wrangler.toml`](../wrangler.toml). Re-run it whenever the Worker bindings change.
 
 ## 2. Create A D1 Database
 

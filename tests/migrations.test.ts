@@ -138,7 +138,7 @@ describe("schema migrations", () => {
     expect(indexes.map(({ name }) => name)).toEqual([
       "idx_app_users_role",
       "idx_login_attempts_locked_until",
-      "idx_logs_student_id",
+      "idx_meeting_logs_student_happened_at",
       "idx_student_phase_audit_student_id",
       "idx_students_archived_at",
       "idx_students_next_meeting",

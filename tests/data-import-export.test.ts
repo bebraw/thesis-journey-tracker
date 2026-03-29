@@ -233,6 +233,56 @@ describe("data import and export", () => {
     expect(env.DB.phaseAuditEntries[1]?.to_phase).toBe("editing");
   });
 
+  it("rejects imports that exceed the single-batch D1 safety limit", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+
+    const oversizedStudents = Array.from({ length: 751 }, (_, index) => ({
+      name: `Imported Student ${index + 1}`,
+      email: null,
+      degreeType: "msc",
+      thesisTopic: null,
+      studentNotes: null,
+      startDate: "2026-02-01",
+      currentPhase: "research_plan",
+      nextMeetingAt: null,
+      logs: [],
+      phaseAudit: [],
+    }));
+
+    const formData = new FormData();
+    formData.set(
+      "importFile",
+      new File(
+        [
+          JSON.stringify({
+            app: "thesis-journey-tracker",
+            schemaVersion: 1,
+            exportedAt: "2026-03-23T08:00:00.000Z",
+            students: oversizedStudents,
+          }),
+        ],
+        "backup.json",
+        { type: "application/json" },
+      ),
+    );
+
+    const response = await fetchHandler(
+      new Request("http://localhost/actions/import-json", {
+        method: "POST",
+        headers: { cookie },
+        body: formData,
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toContain("Import%20is%20too%20large%20for%20a%20single%20D1%20batch");
+    expect(env.DB.students).toHaveLength(1);
+    expect(env.DB.meetingLogs).toHaveLength(1);
+    expect(env.DB.phaseAuditEntries).toHaveLength(1);
+  });
+
   it("requires confirmation before replacement import", async () => {
     env.REPLACE_IMPORT_ENABLED = "1";
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");

@@ -466,7 +466,12 @@ class MockPreparedStatement {
       values: this.values,
       method: "run",
     });
-    return this.db.runQuery(this.query, this.values);
+    const result = this.db.runQuery(this.query, this.values);
+    return {
+      results: [],
+      ...result,
+      success: true as const,
+    };
   }
 
   async first<T>() {
@@ -484,7 +489,18 @@ class MockPreparedStatement {
       values: this.values,
       method: "all",
     });
-    return this.db.allQuery(this.query, this.values) as { results: T[] };
+    const result = this.db.allQuery(this.query, this.values) as { results: T[] };
+    return {
+      meta: {
+        changes: 0,
+      },
+      results: result.results,
+      success: true as const,
+    };
+  }
+
+  async raw<T extends unknown[]>(_options?: { columnNames?: boolean }) {
+    throw new Error(`Unsupported raw query: ${this.query}`) as never;
   }
 }
 

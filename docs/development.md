@@ -6,9 +6,13 @@ This guide collects the commands and workflows you are likely to need while work
 
 - `npm run dev`: start the app locally with Wrangler
 - `npm run build:css`: rebuild the generated Tailwind stylesheet manually
+- `npm run types:generate`: regenerate the checked-in Worker runtime and binding types
+- `npm run types:check`: verify that [`worker-configuration.d.ts`](../worker-configuration.d.ts) is up to date
 - `npm run typecheck`: run TypeScript without emitting files
+- `npm run db:insights`: inspect the slowest remote D1 queries over the last day
 - `npm run db:seed:sample`: populate the local D1 database with reusable sample students, logs, and phase history
 - `npm test`: run the Vitest suite
+- `npm run test:d1`: run the D1-backed integration tests against Wrangler's local platform proxy
 - `npm run e2e`: run Playwright end-to-end tests
 - `npm run lighthouse`: run the authenticated Lighthouse performance check
 - `npm run deploy`: deploy the Worker
@@ -22,6 +26,14 @@ npm test
 ```
 
 This includes SQL-injection safety coverage for form actions.
+
+If you want to exercise the database helpers against a real local D1 binding instead of the in-memory SQL mock, run:
+
+```bash
+npm run test:d1
+```
+
+This uses Wrangler's local platform proxy and applies the checked-in migrations into an isolated local D1 state for the test run.
 
 ### End-To-End Tests
 
@@ -48,6 +60,16 @@ npm run lighthouse
 Reports are written to `reports/lighthouse/`. The audit enforces a minimum performance score of `90` for both mobile and desktop runs.
 
 For current findings and follow-up work, see [performance-plan.md](./performance-plan.md).
+
+## D1 Operations
+
+Use Cloudflare's D1 insights command to inspect the highest-cost production queries:
+
+```bash
+npm run db:insights
+```
+
+This is a remote-only command. The current dashboard query to watch most closely is the aggregated student list in [`src/db.ts`](../src/db.ts), because it drives the main page and combines filtering, aggregation, and ordering.
 
 ## CSS And Frontend Notes
 
