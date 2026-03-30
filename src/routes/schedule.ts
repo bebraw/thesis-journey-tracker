@@ -1,4 +1,4 @@
-import { getStudentById, listStudents, updateStudent } from "../db";
+import { getStudentById, listStudents, updateStudent } from "../students/store";
 import {
   addHourToLocalDateTime,
   buildScheduleEventDescription,

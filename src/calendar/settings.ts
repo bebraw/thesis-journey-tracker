@@ -1,4 +1,4 @@
-import { deleteAppSecret, getAppSecret, upsertAppSecret } from "../db";
+import { deleteAppSecret, getAppSecret, upsertAppSecret } from "./store";
 import { decryptText, encryptText } from "../encryption";
 import { resolveGoogleCalendarConfig } from "./google";
 import { resolveScheduleTimeZone } from "./scheduling";

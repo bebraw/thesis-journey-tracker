@@ -1,4 +1,4 @@
-import type { DegreeId, Student } from "../db";
+import type { DegreeId, Student } from "./store";
 import type { DegreeDefinition, PhaseDefinition } from "./reference-data";
 
 export function addSixMonths(dateText: string | null): string | null {

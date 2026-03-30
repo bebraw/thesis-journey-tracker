@@ -19,13 +19,14 @@ This document gives a technical overview of how the project is put together.
 - [`src/calendar/`](../src/calendar): shared calendar feature code for Google API access, encrypted settings, iCal parsing, and schedule-building helpers
 - [`src/data-transfer/`](../src/data-transfer): shared export/import/report generation used by data tools and automated backups
 - [`src/students/`](../src/students): shared student-domain code for forms, degree/phase reference data, and derived progress/status helpers
+- [`src/auth/store.ts`](../src/auth/store.ts), [`src/calendar/store.ts`](../src/calendar/store.ts), and [`src/students/store.ts`](../src/students/store.ts): feature-owned D1 persistence modules
 - [`src/routes/data-tools/`](../src/routes/data-tools): the data-tools slice, including route handlers and co-located tests
 - [`src/backup.ts`](../src/backup.ts): scheduled R2 backup generation and object layout
 - [`src/view/`](../src/view): page and partial rendering helpers
 - [`src/view/dashboard/`](../src/view/dashboard): dashboard-specific sections and interactions
 - [`src/view/data-tools.htmlisp.ts`](../src/view/data-tools.htmlisp.ts): backup import/export page
 - [`src/ui/`](../src/ui): reusable UI components and styling helpers
-- [`src/db.ts`](../src/db.ts): database access helpers
+- [`src/db.ts`](../src/db.ts): compatibility barrel for shared D1 types plus re-exports from feature-owned stores
 - [`migrations/`](../migrations): schema changes for D1
 - [`tests/`](../tests): end-to-end tests plus shared test helpers and broader integration/security coverage
 - [`src/routes/*.test.ts`](../src/routes): co-located Vitest coverage for route modules such as auth, scheduling, and data tools
@@ -41,6 +42,7 @@ graph TD
     Calendar[src/calendar/<br/>Google API, settings, iCal, schedule helpers]
     DataTransfer[src/data-transfer/<br/>Import, export, reports]
     Students[src/students/<br/>Forms, reference data, status helpers]
+    Stores[src/*/store.ts<br/>Feature-owned D1 access]
     Views[src/view/<br/>Page templates]
     Dashboard[src/view/dashboard/<br/>Dashboard sections and interactions]
     UI[src/ui/<br/>Reusable UI components]
@@ -64,6 +66,10 @@ graph TD
     Routes --> Calendar
     Routes --> DataTransfer
     Routes --> Students
+    Auth --> Stores
+    Calendar --> Stores
+    Students --> Stores
+    DB --> Stores
     Worker --> Backup
     Worker --> CSS
     DB --> D1
@@ -76,7 +82,7 @@ graph TD
     Tests --> D1
 ```
 
-The Worker is now intentionally thin: it handles request/session setup, authentication, and route dispatch. Feature-specific page rendering and form-action behavior live under [`src/routes/`](../src/routes), where handlers talk to D1 through the database helpers, render server-side HTML through the shared view/UI layers, and rely on shared feature modules such as [`src/auth/`](../src/auth) for reusable authentication concerns, [`src/calendar/`](../src/calendar) for Google Calendar access and schedule-building logic, [`src/students/`](../src/students) for shared student forms and status rules, and [`src/data-transfer/`](../src/data-transfer) for import/export/report generation shared with automated backups.
+The Worker is now intentionally thin: it handles request/session setup, authentication, and route dispatch. Feature-specific page rendering and form-action behavior live under [`src/routes/`](../src/routes), where handlers talk to D1 through feature-owned store modules, render server-side HTML through the shared view/UI layers, and rely on shared feature modules such as [`src/auth/`](../src/auth) for reusable authentication concerns, [`src/calendar/`](../src/calendar) for Google Calendar access and schedule-building logic, [`src/students/`](../src/students) for shared student forms and status rules, and [`src/data-transfer/`](../src/data-transfer) for import/export/report generation shared with automated backups. [`src/db.ts`](../src/db.ts) now remains as a thin compatibility barrel for shared D1 types and re-exports.
 
 Authentication remains intentionally lightweight: accounts are stored in the `app_users` D1 table with hashed passwords, and the Worker stores the signed session together with the viewer role (`editor` or `readonly`) in an `HttpOnly` cookie. Legacy `APP_USERS_JSON` or `APP_PASSWORD` values are only used as a one-time bootstrap path when the auth table is still empty.
 

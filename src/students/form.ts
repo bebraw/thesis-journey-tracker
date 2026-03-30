@@ -1,4 +1,4 @@
-import type { DegreeId, PhaseId, Student, StudentMutationInput } from "../db";
+import type { DegreeId, PhaseId, Student, StudentMutationInput } from "./store";
 import { normalizeDate, normalizeDateTime, normalizeString, toDateTimeLocalInput } from "../utils";
 
 const DEGREE_IDS: DegreeId[] = ["bsc", "msc", "dsc"];
