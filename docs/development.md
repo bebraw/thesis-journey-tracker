@@ -69,7 +69,7 @@ Use Cloudflare's D1 insights command to inspect the highest-cost production quer
 npm run db:insights
 ```
 
-This is a remote-only command. The current dashboard query to watch most closely is the aggregated student list in [`src/db.ts`](../src/db.ts), because it drives the main page and combines filtering, aggregation, and ordering.
+This is a remote-only command. The current dashboard query to watch most closely is the aggregated student list in [`src/students/store.ts`](../src/students/store.ts), because it drives the main page and combines filtering, aggregation, and ordering.
 
 ## CSS And Frontend Notes
 

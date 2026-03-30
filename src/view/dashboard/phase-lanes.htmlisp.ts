@@ -1,4 +1,4 @@
-import type { Student } from "../../db";
+import type { Student } from "../../students/store";
 import {
   EMPTY_DASHED_CARD,
   MUTED_TEXT_XS,

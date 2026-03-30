@@ -3,7 +3,7 @@ import favicon from "./favicon.ico";
 import { getSessionUser, isReadonlyUser, resolveAuthState, SESSION_COOKIE, SESSION_TTL_SECONDS, type SessionUser } from "./auth";
 import { runAutomatedBackup } from "./backup";
 import type { Env, ScheduledControllerLike } from "./app-env";
-import type { D1Database } from "./db";
+import type { D1Database } from "./db-core";
 import { handleLoginRequest, handleLogout, readonlyRedirect } from "./routes/auth";
 import {
   handleAddLog,

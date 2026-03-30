@@ -1,3 +1,5 @@
+import type { MeetingLog, PhaseAuditEntry, Student } from "../students/store";
+
 export interface ViewerContext {
   name: string;
   role: "editor" | "readonly";
@@ -21,10 +23,10 @@ export interface DashboardFilters {
 
 export interface DashboardPageData {
   viewer: ViewerContext;
-  students: import("../db").Student[];
-  selectedStudent: import("../db").Student | null;
-  logs: import("../db").MeetingLog[];
-  phaseAudit: import("../db").PhaseAuditEntry[];
+  students: Student[];
+  selectedStudent: Student | null;
+  logs: MeetingLog[];
+  phaseAudit: PhaseAuditEntry[];
   filters: DashboardFilters;
   notice: string | null;
   error: string | null;

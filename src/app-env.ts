@@ -1,5 +1,5 @@
 import type { R2BucketLike } from "./backup";
-import type { D1Database } from "./db";
+import type { D1Database } from "./db-core";
 
 export interface Env {
   DB: D1Database;

@@ -1,4 +1,4 @@
-import type { MeetingLog, PhaseAuditEntry, Student } from "../db";
+import type { MeetingLog, PhaseAuditEntry, Student } from "../students/store";
 import {
   DANGER_PANEL,
   DANGER_TEXT,

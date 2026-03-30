@@ -12,7 +12,7 @@ import {
   listPhaseAuditEntriesForStudent,
   listStudents,
   updateStudentWithPhaseAudit,
-} from "../src/db";
+} from "../src/students/store";
 
 describe("D1-backed db helpers", () => {
   let platform: PlatformProxy<Env>;

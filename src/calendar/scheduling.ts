@@ -1,4 +1,4 @@
-import type { Student } from "../db";
+import type { Student } from "../students/store";
 import type { GoogleCalendarEvent } from "./google";
 
 export const DEFAULT_SCHEDULE_TIMEZONE = "Europe/Helsinki";

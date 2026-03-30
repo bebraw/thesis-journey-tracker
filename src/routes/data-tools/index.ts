@@ -1,4 +1,4 @@
-import type { D1Database, D1PreparedStatement } from "../../db";
+import type { D1Database, D1PreparedStatement } from "../../db-core";
 import { listLogsForStudent, listPhaseAuditEntriesForStudent, listStudents } from "../../students/store";
 import {
   buildExportFilename,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createProfessorStatusReport } from "../src/data-transfer";
 import { getTargetSubmissionDate, isPastTargetSubmissionDate } from "../src/students";
-import type { Student } from "../src/db";
+import type { Student } from "../src/students/store";
 
 function buildStudent(overrides: Partial<Student> = {}): Student {
   return {

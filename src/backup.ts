@@ -6,7 +6,7 @@ import {
   type PhaseAuditEntry,
   type Student,
 } from "./students/store";
-import type { D1Database } from "./db";
+import type { D1Database } from "./db-core";
 import {
   buildExportFilename,
   buildProfessorReportFilename,

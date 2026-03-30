@@ -1,4 +1,4 @@
-import type { Student } from "../../db";
+import type { Student } from "../../students/store";
 import {
   FIELD_CONTROL_WITH_MARGIN,
   FILTER_LABEL,

@@ -1,4 +1,4 @@
-import type { DegreeId, PhaseId } from "./db";
+import type { DegreeId, PhaseId } from "./students/store";
 import type { DegreeDefinition, PhaseDefinition } from "./students/reference-data";
 
 const LEGACY_PHASE_ID_MAP: Record<string, PhaseId> = {
