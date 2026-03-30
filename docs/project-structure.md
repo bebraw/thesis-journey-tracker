@@ -32,7 +32,7 @@ This document gives a technical overview of how the project is put together.
 - [`src/view/`](../src/view): page and partial rendering helpers
 - [`src/view/dashboard/`](../src/view/dashboard): dashboard-specific sections and interactions
 - [`src/view/students/`](../src/view/students): shared student add/edit/panel view helpers
-- [`src/view/data-tools.htmlisp.ts`](../src/view/data-tools.htmlisp.ts): backup import/export page
+- [`src/view/data-tools/`](../src/view/data-tools): data-tools page composition for backup import/export and calendar settings
 - [`src/ui/`](../src/ui): reusable UI components and styling helpers
 - [`migrations/`](../migrations): schema changes for D1
 - [`tests/`](../tests): end-to-end tests plus shared test helpers and broader integration/security coverage
