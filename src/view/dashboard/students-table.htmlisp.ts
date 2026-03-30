@@ -127,7 +127,7 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
 
     return {
       rowClass: escapeHtml(
-        `${isSelected ? "bg-app-brand-soft/90 dark:bg-app-brand-soft-dark/25" : "hover:bg-app-surface-soft/85 dark:hover:bg-app-surface-soft-dark/35"} cursor-pointer transition-colors`,
+        `${isSelected ? "bg-app-brand-soft dark:bg-app-brand-soft-dark/20" : "hover:bg-app-surface-soft dark:hover:bg-app-surface-soft-dark/35"} cursor-pointer transition-colors`,
       ),
       selectedAttr: isSelected ? "true" : "false",
       selectHref: escapeHtml(buildDashboardHref(filters, student.id)),
