@@ -348,6 +348,7 @@ export function renderStudentsTable(
                 &aria-pressed="(get props phasesViewPressed)"
               >Phases</button>
             </div>
+            <noop &children="(get props clearSelectionButtonHtml)"></noop>
             <noop &children="(get props addStudentButtonHtml)"></noop>
             <noop &children="(get props panelToggleButtonHtml)"></noop>
           </div>
@@ -506,6 +507,13 @@ export function renderStudentsTable(
       statusFilterOptions,
       sortHeaders,
       hasStudentRows: studentRows.length > 0,
+      clearSelectionButtonHtml: renderButton({
+        label: "Clear selection",
+        type: "button",
+        variant: "neutral",
+        className: `${selectedStudent ? "" : "hidden "}w-full sm:w-auto`,
+        attributes: `id="clearSelectedStudentButton" ${selectedStudent ? "" : 'aria-hidden="true"'}`,
+      }),
       addStudentButtonHtml: canEdit
         ? renderButton({
             label: "Add student",

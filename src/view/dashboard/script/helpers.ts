@@ -275,6 +275,13 @@ function setPanelVisibility(visible) {
   }
 }
 
+function setSelectionActionState(selectedId) {
+  if (!clearSelectedStudentButton) return;
+  var hasSelection = selectedId > 0;
+  clearSelectedStudentButton.classList.toggle("hidden", !hasSelection);
+  clearSelectedStudentButton.setAttribute("aria-hidden", hasSelection ? "false" : "true");
+}
+
 function replaceDashboardSection(nextDocument, id) {
   var currentSection = document.getElementById(id);
   var nextSection = nextDocument.getElementById(id);
@@ -312,6 +319,7 @@ function rebindDashboardUi() {
   bindDashboardFilters();
   bindStudentSort();
   bindPanelToggle();
+  bindClearSelection();
   bindInlineStudentUpdateForm();
   bindInlineLogEntryForm();
   bindDashboardToasts();
@@ -340,6 +348,7 @@ function applyDashboardHtml(htmlText, nextUrl, options) {
   refreshStudentTable();
   syncInteractiveUrls();
   setPanelVisibility(panelWasVisible);
+  setSelectionActionState(selectedId);
   applySelectedRowState(selectedId);
   applySelectedLaneState(selectedId);
   restoreOpenPanelDetails(openSummaries);

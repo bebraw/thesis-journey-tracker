@@ -5,6 +5,10 @@ function bindInlineSelectionLinks() {
       event.preventDefault();
       var studentId = parseStudentId(link.getAttribute("data-student-id"));
       if (!studentId) return;
+      if (studentId === getSelectedStudentIdFromLocation()) {
+        clearSelectedStudentSelection(true);
+        return;
+      }
       void selectStudentWithoutRefresh(studentId, true);
     });
   });
@@ -17,13 +21,23 @@ function bindStudentRowSelection() {
       if (isInlineSelectionTarget(target) || isInteractiveChild(target)) {
         return;
       }
-      void selectStudentWithoutRefresh(getRowStudentId(row), true);
+      var studentId = getRowStudentId(row);
+      if (studentId === getSelectedStudentIdFromLocation()) {
+        clearSelectedStudentSelection(true);
+        return;
+      }
+      void selectStudentWithoutRefresh(studentId, true);
     });
 
     row.addEventListener("keydown", function (event) {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
-      void selectStudentWithoutRefresh(getRowStudentId(row), true);
+      var studentId = getRowStudentId(row);
+      if (studentId === getSelectedStudentIdFromLocation()) {
+        clearSelectedStudentSelection(true);
+        return;
+      }
+      void selectStudentWithoutRefresh(studentId, true);
     });
   });
 }
@@ -35,13 +49,23 @@ function bindMobileStudentCardSelection() {
       if (isInlineSelectionTarget(target) || isInteractiveChild(target)) {
         return;
       }
-      void selectStudentWithoutRefresh(getMobileCardStudentId(card), true);
+      var studentId = getMobileCardStudentId(card);
+      if (studentId === getSelectedStudentIdFromLocation()) {
+        clearSelectedStudentSelection(true);
+        return;
+      }
+      void selectStudentWithoutRefresh(studentId, true);
     });
 
     card.addEventListener("keydown", function (event) {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
-      void selectStudentWithoutRefresh(getMobileCardStudentId(card), true);
+      var studentId = getMobileCardStudentId(card);
+      if (studentId === getSelectedStudentIdFromLocation()) {
+        clearSelectedStudentSelection(true);
+        return;
+      }
+      void selectStudentWithoutRefresh(studentId, true);
     });
   });
 }
@@ -53,13 +77,23 @@ function bindLaneSelection() {
       if (isInlineSelectionTarget(target) || isInteractiveChild(target)) {
         return;
       }
-      void selectStudentWithoutRefresh(getLaneStudentId(card), true);
+      var studentId = getLaneStudentId(card);
+      if (studentId === getSelectedStudentIdFromLocation()) {
+        clearSelectedStudentSelection(true);
+        return;
+      }
+      void selectStudentWithoutRefresh(studentId, true);
     });
 
     card.addEventListener("keydown", function (event) {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
-      void selectStudentWithoutRefresh(getLaneStudentId(card), true);
+      var studentId = getLaneStudentId(card);
+      if (studentId === getSelectedStudentIdFromLocation()) {
+        clearSelectedStudentSelection(true);
+        return;
+      }
+      void selectStudentWithoutRefresh(studentId, true);
     });
   });
 }
@@ -74,6 +108,7 @@ function bindHistorySelection() {
     var selectedId = getSelectedStudentIdFromLocation();
     if (!selectedId) {
       setEmptySelectedPanel();
+      setPanelVisibility(false);
       return;
     }
     void selectStudentWithoutRefresh(selectedId, false);
@@ -131,6 +166,13 @@ function bindPanelToggle() {
   toggleStudentPanelButton.addEventListener("click", function () {
     var isVisible = !selectedStudentPanelShell.classList.contains("hidden");
     setPanelVisibility(!isVisible);
+  });
+}
+
+function bindClearSelection() {
+  if (!clearSelectedStudentButton) return;
+  clearSelectedStudentButton.addEventListener("click", function () {
+    clearSelectedStudentSelection(true);
   });
 }
 

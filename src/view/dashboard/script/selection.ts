@@ -64,10 +64,26 @@ function setEmptySelectedPanel() {
   selectedStudentPanel.innerHTML = emptySelectedStudentPanelTemplate.innerHTML;
   applySelectedRowState(0);
   applySelectedLaneState(0);
+  setSelectionActionState(0);
+}
+
+function clearSelectedStudentSelection(pushHistory) {
+  var clearedUrl = getDashboardUrl(0);
+  setEmptySelectedPanel();
+  setPanelVisibility(false);
+  syncInteractiveUrls();
+
+  if (pushHistory) {
+    window.history.pushState({ selectedId: 0 }, "", clearedUrl.pathname + clearedUrl.search);
+  }
 }
 
 async function selectStudentWithoutRefresh(studentId, pushHistory) {
   if (!studentId || !selectedStudentPanel) return;
+  if (studentId === getSelectedStudentIdFromLocation()) {
+    clearSelectedStudentSelection(pushHistory);
+    return;
+  }
 
   try {
     var selectedUrl = getDashboardUrl(studentId);
@@ -85,6 +101,7 @@ async function selectStudentWithoutRefresh(studentId, pushHistory) {
     selectedStudentPanel.innerHTML = await response.text();
     applySelectedRowState(studentId);
     applySelectedLaneState(studentId);
+    setSelectionActionState(studentId);
     revealSelectedPanel();
     syncInteractiveUrls();
     bindInlineStudentUpdateForm();
