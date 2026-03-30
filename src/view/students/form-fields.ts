@@ -1,5 +1,5 @@
-import { FIELD_CONTROL, FIELD_CONTROL_SM, FORM_LABEL, renderInputField, renderSelectField, renderTextareaField, type SelectOption } from "../ui";
-import { DEGREE_TYPES, PHASES, STUDENT_FORM_FIELDS, type StudentFormValues } from "../students";
+import { FIELD_CONTROL, FIELD_CONTROL_SM, FORM_LABEL, renderInputField, renderSelectField, renderTextareaField, type SelectOption } from "../../ui";
+import { DEGREE_TYPES, PHASES, STUDENT_FORM_FIELDS, type StudentFormValues } from "../../students";
 
 export interface StudentFormFieldMap {
   nameField: string;

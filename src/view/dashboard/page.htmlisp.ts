@@ -1,6 +1,6 @@
 import { PAGE_WRAP, renderButton } from "../../ui";
 import { escapeHtml } from "../../formatting";
-import { renderEmptySelectedPanel, renderSelectedStudentPanel } from "../student-panel.htmlisp";
+import { renderEmptySelectedPanel, renderSelectedStudentPanel } from "../students";
 import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDashboardToastMessages, renderDocument, renderView } from "../shared.htmlisp";
 import type { DashboardPageData } from "../types";
 import { renderDashboardScriptTag } from "./interaction-script";

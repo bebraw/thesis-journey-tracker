@@ -1,4 +1,7 @@
-import type { MeetingLog, PhaseAuditEntry, Student } from "../students/store";
+import { escapeHtml, escapeJsString, formatDateTime } from "../../formatting";
+import { type HtmlispComponents } from "../../htmlisp";
+import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getStudentFormValues, getTargetSubmissionDate, PHASES } from "../../students";
+import type { MeetingLog, PhaseAuditEntry, Student } from "../../students/store";
 import {
   DANGER_PANEL,
   DANGER_TEXT,
@@ -11,19 +14,16 @@ import {
   FORM_STACK,
   PANEL_STACK,
   SOFT_SURFACE_CARD,
-  SURFACE_CARD,
   SUBTLE_TEXT,
+  SURFACE_CARD,
   TOPIC_TEXT,
   renderButton,
   renderInputField,
   renderTextareaField,
-} from "../ui";
-import { type HtmlispComponents } from "../htmlisp";
-import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getStudentFormValues, getTargetSubmissionDate, PHASES } from "../students";
-import { escapeHtml, escapeJsString, formatDateTime } from "../formatting";
-import { renderView } from "./shared.htmlisp";
-import { renderStudentFormFields } from "./student-form-fields";
-import type { DashboardFilters } from "./types";
+} from "../../ui";
+import type { DashboardFilters } from "../types";
+import { renderView } from "../shared.htmlisp";
+import { renderStudentFormFields } from "./form-fields";
 
 export function renderEmptySelectedPanel(
   message = "Select a student from the table to edit details and view/add supervision logs.",

@@ -31,6 +31,7 @@ This document gives a technical overview of how the project is put together.
 - [`src/htmlisp/`](../src/htmlisp): shared HTMLisp rendering, types, and attribute helper utilities
 - [`src/view/`](../src/view): page and partial rendering helpers
 - [`src/view/dashboard/`](../src/view/dashboard): dashboard-specific sections and interactions
+- [`src/view/students/`](../src/view/students): shared student add/edit/panel view helpers
 - [`src/view/data-tools.htmlisp.ts`](../src/view/data-tools.htmlisp.ts): backup import/export page
 - [`src/ui/`](../src/ui): reusable UI components and styling helpers
 - [`migrations/`](../migrations): schema changes for D1
