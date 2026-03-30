@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { runAutomatedBackup } from "../src/backup";
-import { MockD1Database } from "./helpers/mock-d1";
-import { MockR2Bucket } from "./helpers/mock-r2";
+import { runAutomatedBackup } from ".";
+import { MockD1Database } from "../../tests/helpers/mock-d1";
+import { MockR2Bucket } from "../../tests/helpers/mock-r2";
 
-vi.mock("../.generated/styles.css", () => ({ default: "" }));
-vi.mock("../src/favicon.ico", () => ({ default: new ArrayBuffer(0) }));
+vi.mock("../../.generated/styles.css", () => ({ default: "" }));
+vi.mock("../favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 
 describe("automated backups", () => {
   beforeEach(() => {
@@ -136,7 +136,7 @@ describe("automated backups", () => {
 
   it("runs the scheduled worker backup with the configured R2 binding", async () => {
     vi.resetModules();
-    const workerModule = await import("../src/worker");
+    const workerModule = await import("../worker");
 
     const env = {
       DB: new MockD1Database(),

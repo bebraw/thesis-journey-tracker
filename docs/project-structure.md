@@ -27,7 +27,7 @@ This document gives a technical overview of how the project is put together.
 - [`src/routes/dashboard/`](../src/routes/dashboard): the dashboard slice, split into render handlers, actions, and filter/path helpers
 - [`src/routes/schedule/`](../src/routes/schedule): the scheduling slice, split into render handlers, actions, and schedule path helpers
 - [`src/routes/data-tools/`](../src/routes/data-tools): the data-tools slice, including route handlers and co-located tests
-- [`src/backup.ts`](../src/backup.ts): scheduled R2 backup generation and object layout
+- [`src/backup/`](../src/backup): scheduled R2 backup generation, storage helpers, and co-located tests
 - [`src/htmlisp/`](../src/htmlisp): shared HTMLisp rendering, types, and attribute helper utilities
 - [`src/view/`](../src/view): page and partial rendering helpers
 - [`src/view/dashboard/`](../src/view/dashboard): dashboard-specific sections and interactions
@@ -57,7 +57,7 @@ graph TD
     Views[src/view/<br/>Page templates]
     Dashboard[src/view/dashboard/<br/>Dashboard sections and interactions]
     UI[src/ui/<br/>Reusable UI components]
-    Backup[src/backup.ts<br/>Scheduled backup generation]
+    Backup[src/backup/<br/>Scheduled backup generation]
     D1[(Cloudflare D1)]
     R2[(Cloudflare R2 backups)]
     Migrations[migrations/<br/>Schema changes]
