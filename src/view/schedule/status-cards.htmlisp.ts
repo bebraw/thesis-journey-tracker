@@ -1,5 +1,5 @@
 import { escapeHtml } from "../../formatting";
-import { MUTED_TEXT, SUBTLE_TEXT, TEXT_LINK, renderCard } from "../../ui";
+import { MUTED_TEXT, SUBTLE_TEXT, TEXT_LINK, renderButton, renderCard } from "../../ui";
 import { renderView } from "../shared.htmlisp";
 
 export function renderScheduleSetupCard(): string {
@@ -14,6 +14,10 @@ export function renderScheduleSetupCard(): string {
       <p class="mt-panel-sm text-sm">
         Save either setup option from the <a href="/data-tools" class="${escapeHtml(TEXT_LINK)}">Data Tools</a> page.
       </p>
+      <div class="mt-panel-sm flex flex-wrap gap-stack-xs">
+        <noop &children="(get props openDataToolsButton)"></noop>
+        <noop &children="(get props backToDashboardButton)"></noop>
+      </div>
       <p &class="(get props metaText)" &children="(get props timezoneNote)"></p>`,
       {
         subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
@@ -22,6 +26,16 @@ export function renderScheduleSetupCard(): string {
           "Add either full Google OAuth refresh-token credentials for scheduling or a read-only Google Calendar iCal link for availability fallback.",
         ),
         timezoneNote: escapeHtml("Optional: save a timezone such as Europe/Helsinki if you want the displayed week and created events to use a specific calendar timezone."),
+        openDataToolsButton: renderButton({
+          label: "Open Data Tools",
+          href: "/data-tools",
+          variant: "primary",
+        }),
+        backToDashboardButton: renderButton({
+          label: "Back to dashboard",
+          href: "/",
+          variant: "neutral",
+        }),
       },
     ),
   );
@@ -32,6 +46,10 @@ export function renderScheduleSyncFailureCard(): string {
     renderView(
       `<h2 class="text-lg font-semibold">Google Calendar Sync Unavailable</h2>
       <p &class="(get props subtleText)" &children="(get props description)"></p>
+      <div class="mt-panel-sm flex flex-wrap gap-stack-xs">
+        <noop &children="(get props openDataToolsButton)"></noop>
+        <noop &children="(get props backToDashboardButton)"></noop>
+      </div>
       <p &class="(get props metaText)" &children="(get props helpText)"></p>`,
       {
         subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
@@ -39,6 +57,16 @@ export function renderScheduleSyncFailureCard(): string {
         description: escapeHtml(
           "The calendar grid is hidden until Google Calendar sync succeeds again, so you do not accidentally schedule from incomplete availability data.",
         ),
+        openDataToolsButton: renderButton({
+          label: "Update Data Tools settings",
+          href: "/data-tools",
+          variant: "primary",
+        }),
+        backToDashboardButton: renderButton({
+          label: "Back to dashboard",
+          href: "/",
+          variant: "neutral",
+        }),
         helpText: escapeHtml("Check the error message above, then update the saved credentials in Data Tools or try again later."),
       },
     ),

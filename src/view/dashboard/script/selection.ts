@@ -1,4 +1,16 @@
 export const DASHBOARD_SELECTION_SECTION = `
+function revealSelectedPanel() {
+  if (!selectedStudentPanelShell) return;
+  setPanelVisibility(true);
+
+  if (window.matchMedia("(max-width: 1279px)").matches) {
+    selectedStudentPanelShell.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+}
+
 function applySelectedRowState(selectedId) {
   studentRows.forEach(function (row) {
     var isSelected = selectedId > 0 && getRowStudentId(row) === selectedId;
@@ -56,6 +68,7 @@ async function selectStudentWithoutRefresh(studentId, pushHistory) {
     selectedStudentPanel.innerHTML = await response.text();
     applySelectedRowState(studentId);
     applySelectedLaneState(studentId);
+    revealSelectedPanel();
     syncInteractiveUrls();
     bindInlineStudentUpdateForm();
     bindInlineLogEntryForm();

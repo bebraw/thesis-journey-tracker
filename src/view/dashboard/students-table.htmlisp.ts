@@ -251,8 +251,8 @@ export function renderStudentsTable(
       <article &class="(get props studentsCardClass)">
         <div class="mb-panel-sm flex flex-col gap-stack-xs sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 class="text-lg font-semibold">Students</h2>
-            <p &class="(get props mutedTextXs)">Find students quickly, then keep the detail panel open while you work through updates.</p>
+            <h2 class="text-lg font-semibold">Student Workspace</h2>
+            <p &class="(get props mutedTextXs)">Find a student, then work through updates and supervision history without leaving the dashboard.</p>
           </div>
           <noop &children="(get props panelToggleButtonHtml)"></noop>
         </div>
@@ -364,12 +364,13 @@ export function renderStudentsTable(
       sortHeaders,
       hasStudentRows: studentRows.length > 0,
       panelToggleButtonHtml: renderButton({
-        label: "Show details panel",
+        label: selectedStudent ? "Hide student workspace" : "Show student workspace",
         type: "button",
         variant: "neutral",
-        attributes: 'id="toggleStudentPanelButton" aria-expanded="false"',
+        className: "xl:hidden",
+        attributes: `id="toggleStudentPanelButton" aria-expanded="${selectedStudent ? "true" : "false"}"`,
       }),
-      selectedPanelShellClass: escapeHtml("hidden min-w-0 xl:sticky xl:top-6 xl:w-[32rem] xl:shrink-0"),
+      selectedPanelShellClass: escapeHtml(`${selectedStudent ? "" : "hidden "}min-w-0 xl:sticky xl:top-6 xl:w-[32rem] xl:shrink-0`),
       showEmptyRow: studentRows.length === 0,
       studentRows,
       selectedPanel,

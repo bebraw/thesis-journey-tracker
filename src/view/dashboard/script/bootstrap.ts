@@ -4,7 +4,7 @@ applyFiltersFromLocation();
 applySortFromLocation();
 refreshStudentTable();
 syncInteractiveUrls();
-setPanelVisibility(false);
+setPanelVisibility(getSelectedStudentIdFromLocation() > 0);
 applySelectedRowState(getSelectedStudentIdFromLocation());
 applySelectedLaneState(getSelectedStudentIdFromLocation());
 bindHistorySelection();

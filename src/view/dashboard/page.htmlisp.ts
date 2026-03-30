@@ -23,9 +23,11 @@ export function renderDashboardPage(data: DashboardPageData): string {
     `<div &class="(get props pageWrap)">
       <noop &children="(get props headerHtml)"></noop>
       <noop &children="(get props toastHtml)"></noop>
-      <div id="dashboardMetrics" class="space-y-stack-xs"><noop &children="(get props metricsHtml)"></noop></div>
-      <div id="dashboardPhaseLanes" class="space-y-stack-xs"><noop &children="(get props phaseLanesHtml)"></noop></div>
-      <noop &children="(get props studentsTableHtml)"></noop>
+      <div class="flex flex-col gap-stack">
+        <div class="order-2 space-y-stack-xs xl:order-1" id="dashboardMetrics"><noop &children="(get props metricsHtml)"></noop></div>
+        <div class="order-3 space-y-stack-xs xl:order-2" id="dashboardPhaseLanes"><noop &children="(get props phaseLanesHtml)"></noop></div>
+        <div class="order-1 xl:order-3"><noop &children="(get props studentsTableHtml)"></noop></div>
+      </div>
     </div>
     <noop &children="(get props dashboardScript)"></noop>
     <noop &children="(get props themeToggleScript)"></noop>`,

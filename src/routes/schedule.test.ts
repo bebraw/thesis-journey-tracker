@@ -47,7 +47,8 @@ describe("google calendar scheduling", () => {
     expect(body).toContain("Google Calendar Setup Needed");
     expect(body).toContain("Full scheduling: Google client ID, client secret, refresh token, and Google Calendar ID");
     expect(body).toContain("Simpler fallback: Google Calendar Secret address in iCal format");
-    expect(body).toContain("Data Tools");
+    expect(body).toContain("Open Data Tools");
+    expect(body).not.toContain("Schedule Selected Slot");
   });
 
   it("can save encrypted database credentials and use them as the active calendar config", async () => {
@@ -110,8 +111,11 @@ describe("google calendar scheduling", () => {
 
     const dataToolsBody = await dataToolsResponse.text();
     expect(dataToolsBody).toContain("Active source: encrypted full Google Calendar scheduling credentials.");
+    expect(dataToolsBody).toContain("Set up full scheduling");
+    expect(dataToolsBody).toContain("Set up iCal fallback");
     expect(dataToolsBody).toContain("Current calendar ID: stored-calendar@example.com");
     expect(dataToolsBody).toContain("Current timezone: America/New_York");
+    expect(dataToolsBody.indexOf("Full scheduling mode")).toBeLessThan(dataToolsBody.indexOf("Need help finding OAuth values?"));
     expect(dataToolsBody).toContain('name="clientId"');
     expect(dataToolsBody).toContain('value="stored-client-id"');
     expect(dataToolsBody).toContain('name="clientSecret"');
@@ -406,9 +410,11 @@ describe("google calendar scheduling", () => {
     expect(response.status).toBe(200);
     expect(body).toContain("Google Calendar sync failed: Google Calendar event list failed with status 403: Forbidden");
     expect(body).toContain("Google Calendar Sync Unavailable");
+    expect(body).toContain("Update Data Tools settings");
     expect(body).not.toContain("Calendar Week");
     expect(body).not.toContain("Create Google Calendar event");
-    expect(body).toContain("Calendar availability is unavailable until Google Calendar sync starts working again.");
+    expect(body).not.toContain("Schedule Selected Slot");
+    expect(body).toContain("Check the error message above, then update the saved credentials in Data Tools or try again later.");
   });
 
   it("shows OAuth token refresh details like invalid_grant when token refresh fails", async () => {

@@ -214,10 +214,12 @@ function updateSortHeaders() {
 }
 
 function setPanelVisibility(visible) {
-  if (!selectedStudentPanelShell || !toggleStudentPanelButton) return;
+  if (!selectedStudentPanelShell) return;
   selectedStudentPanelShell.classList.toggle("hidden", !visible);
-  toggleStudentPanelButton.textContent = visible ? "Hide details panel" : "Show details panel";
-  toggleStudentPanelButton.setAttribute("aria-expanded", visible ? "true" : "false");
+  if (toggleStudentPanelButton) {
+    toggleStudentPanelButton.textContent = visible ? "Hide student workspace" : "Show student workspace";
+    toggleStudentPanelButton.setAttribute("aria-expanded", visible ? "true" : "false");
+  }
 }
 
 function replaceDashboardSection(nextDocument, id) {

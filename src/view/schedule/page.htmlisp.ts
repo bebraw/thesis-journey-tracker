@@ -46,7 +46,7 @@ export function renderSchedulePage(data: SchedulePageData): string {
       flashHtml: renderFlashMessages(notice, error),
       controlsCard: renderScheduleControlsCard(data),
       mainCard: !configured ? renderScheduleSetupCard() : syncFailed ? renderScheduleSyncFailureCard() : renderScheduleCalendarCard(data),
-      selectedSlotCard: renderSelectedSlotCard(data),
+      selectedSlotCard: configured && !syncFailed ? renderSelectedSlotCard(data) : "",
       themeToggleScript: THEME_TOGGLE_SCRIPT,
     },
   );

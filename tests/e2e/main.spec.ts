@@ -34,7 +34,7 @@ async function showStudentPanel(page: Page) {
     return;
   }
 
-  await page.getByRole("button", { name: /Show (details|editing) panel/ }).click();
+  await page.getByRole("button", { name: /Show (details|editing|student workspace)/ }).click();
   await expect(panelShell).toBeVisible();
 }
 
@@ -176,7 +176,7 @@ test.describe("dashboard e2e", () => {
     await page.locator("[data-lane-student-card]", { hasText: secondaryStudentName }).first().click();
     await lanePartialResponse;
 
-    await showStudentPanel(page);
+    await expect(page.locator("#selectedStudentPanelShell")).toBeVisible();
     await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${secondaryStudentName}`);
     await expect(page).toHaveURL(/\/\?selected=/);
 
