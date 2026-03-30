@@ -94,7 +94,7 @@ function preparePhaseLanes(students: Student[], selectedStudent: Student | null,
           cardClass: escapeHtml(
             `rounded-card border px-control-x py-badge-pill-y transition cursor-pointer ${
               isSelected
-                ? "border-app-brand bg-app-brand-soft shadow-sm dark:border-app-brand-ring dark:bg-app-brand-soft-dark/30"
+                ? "border-app-brand bg-app-surface-soft dark:border-app-brand-ring dark:bg-app-surface-soft-dark/70"
                 : "border-app-line bg-app-surface-soft hover:border-app-line-strong hover:bg-app-surface dark:border-app-line-dark dark:bg-app-surface-soft-dark/70 dark:hover:border-app-line-dark-strong dark:hover:bg-app-surface-dark"
             }`,
           ),

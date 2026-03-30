@@ -13,9 +13,19 @@ function applySelectedRowState(selectedId) {
 function applySelectedLaneState(selectedId) {
   laneStudentCards.forEach(function (card) {
     var isSelected = selectedId > 0 && getLaneStudentId(card) === selectedId;
-    card.classList.toggle("ring-2", isSelected);
-    card.classList.toggle("ring-app-brand-ring/60", isSelected);
-    card.classList.toggle("dark:ring-app-brand-ring/40", isSelected);
+    card.classList.toggle("border-app-brand", isSelected);
+    card.classList.toggle("dark:border-app-brand-ring", isSelected);
+    card.classList.toggle("border-app-line", !isSelected);
+    card.classList.toggle("dark:border-app-line-dark", !isSelected);
+    card.classList.toggle("bg-app-surface-soft", true);
+    card.classList.toggle("dark:bg-app-surface-soft-dark/70", true);
+    card.classList.toggle("hover:border-app-line-strong", !isSelected);
+    card.classList.toggle("hover:bg-app-surface", !isSelected);
+    card.classList.toggle("dark:hover:border-app-line-dark-strong", !isSelected);
+    card.classList.toggle("dark:hover:bg-app-surface-dark", !isSelected);
+    card.classList.toggle("bg-app-brand-soft", false);
+    card.classList.toggle("dark:bg-app-brand-soft-dark/30", false);
+    card.classList.toggle("shadow-sm", false);
     card.setAttribute("aria-selected", isSelected ? "true" : "false");
   });
 }
