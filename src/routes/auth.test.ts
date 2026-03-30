@@ -303,6 +303,76 @@ describe("multi-user access control", () => {
     expect(env.DB.students[1]?.start_date).toBeNull();
   });
 
+  it("returns user-facing errors when dashboard mutations fail", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+
+    env.DB.failQueries.push(/^INSERT INTO students/);
+    const addStudentResponse = await fetchHandler(
+      new Request("http://localhost/actions/add-student", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams({
+          name: "Broken Student",
+          studentEmail: "broken@example.edu",
+          degreeType: "msc",
+          thesisTopic: "Will not save",
+          studentNotes: "Should fail cleanly",
+          startDate: "2026-03-01",
+          currentPhase: "research_plan",
+          nextMeetingAt: "",
+        }),
+      }),
+      env,
+    );
+    expect(addStudentResponse.status).toBe(302);
+    expect(addStudentResponse.headers.get("location")).toBe("/students/new?error=Failed+to+save+student");
+    expect(env.DB.students).toHaveLength(1);
+
+    env.DB.failQueries = [/^INSERT INTO meeting_logs/];
+    const addLogResponse = await fetchHandler(
+      new Request("http://localhost/actions/add-log/1", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams({
+          returnTo: "/?selected=1",
+          happenedAt: "",
+          discussed: "Review progress",
+          agreedPlan: "Finish chapter 2",
+          nextStepDeadline: "",
+        }),
+      }),
+      env,
+    );
+    expect(addLogResponse.status).toBe(302);
+    expect(addLogResponse.headers.get("location")).toBe("/?selected=1&error=Failed+to+save+log");
+    expect(env.DB.meetingLogs).toHaveLength(0);
+
+    env.DB.failQueries = ["UPDATE students SET archived_at = ? WHERE id = ? AND archived_at IS NULL"];
+    const archiveResponse = await fetchHandler(
+      new Request("http://localhost/actions/archive-student/1", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams(),
+      }),
+      env,
+    );
+    expect(archiveResponse.status).toBe(302);
+    expect(archiveResponse.headers.get("location")).toBe("/?error=Failed+to+archive+student");
+    expect(env.DB.students[0]?.archived_at).toBeNull();
+
+    env.DB.failQueries = [];
+  });
+
   it("rate limits repeated failed logins from the same client IP", async () => {
     const loginHeaders = {
       "cf-connecting-ip": "203.0.113.10",

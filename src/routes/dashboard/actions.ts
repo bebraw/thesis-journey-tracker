@@ -20,8 +20,13 @@ export async function handleAddStudent(request: Request, env: Env): Promise<Resp
     return redirect("/students/new?error=Invalid+student+input");
   }
 
-  const selected = await createStudent(env.DB, studentInput);
-  return redirect(`/?selected=${selected}&notice=Student+added`);
+  try {
+    const selected = await createStudent(env.DB, studentInput);
+    return redirect(`/?selected=${selected}&notice=Student+added`);
+  } catch (error) {
+    console.error("Failed to save new student", error);
+    return redirect("/students/new?error=Failed+to+save+student");
+  }
 }
 
 export async function handleUpdateStudent(request: Request, env: Env, studentId: number): Promise<Response> {
@@ -79,13 +84,18 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
     return redirect(appendDashboardMessage(returnPath, { error: "Student not found" }));
   }
 
-  await createMeetingLog(env.DB, {
-    studentId,
-    happenedAt,
-    discussed,
-    agreedPlan,
-    nextStepDeadline,
-  });
+  try {
+    await createMeetingLog(env.DB, {
+      studentId,
+      happenedAt,
+      discussed,
+      agreedPlan,
+      nextStepDeadline,
+    });
+  } catch (error) {
+    console.error("Failed to save meeting log", error);
+    return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Failed to save log" }));
+  }
 
   return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, notice: "Log saved" }));
 }
@@ -96,6 +106,12 @@ export async function handleArchiveStudent(request: Request, env: Env, studentId
     return redirect(appendDashboardMessage(returnPath, { error: "Student not found" }));
   }
 
-  await archiveStudent(env.DB, studentId, new Date().toISOString());
+  try {
+    await archiveStudent(env.DB, studentId, new Date().toISOString());
+  } catch (error) {
+    console.error("Failed to archive student", error);
+    return redirect(appendDashboardMessage(returnPath, { error: "Failed to archive student" }));
+  }
+
   return redirect(appendDashboardMessage(returnPath, { notice: "Student archived" }));
 }
