@@ -1,4 +1,4 @@
-import type { DegreeId, PhaseId } from "./db";
+import type { DegreeId, PhaseId } from "../db";
 
 export interface PhaseDefinition {
   id: PhaseId;

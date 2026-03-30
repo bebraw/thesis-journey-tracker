@@ -1,11 +1,7 @@
 import type { CreateStudentInput, DegreeId, MeetingLog, PhaseAuditEntry, PhaseId, Student } from "../../db";
-import { DEGREE_TYPES, PHASES } from "../../reference-data";
+import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusText, PHASES } from "../../students";
 import {
   formatDateTime,
-  getDegreeLabel,
-  getPhaseLabel,
-  getTargetSubmissionDate,
-  meetingStatusText,
   normalizeDate,
   normalizeDateTime,
   normalizeDegree,

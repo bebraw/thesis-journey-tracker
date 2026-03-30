@@ -17,7 +17,7 @@ import {
 } from "../ui";
 import { escapeHtml } from "../utils";
 import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderView } from "./shared.htmlisp";
-import { DEGREE_TYPES } from "../reference-data";
+import { DEGREE_TYPES } from "../students";
 import type { ViewerContext } from "./types";
 
 export function renderStyleGuidePage(viewer: ViewerContext): string {

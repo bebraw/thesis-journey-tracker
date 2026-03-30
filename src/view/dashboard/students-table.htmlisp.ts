@@ -11,9 +11,9 @@ import {
   renderButton,
 } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
-import { escapeHtml, formatDateTime, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusId } from "../../utils";
+import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusId, PHASES } from "../../students";
+import { escapeHtml, formatDateTime } from "../../utils";
 import { renderView } from "../shared.htmlisp";
-import { DEGREE_TYPES, PHASES } from "../../reference-data";
 import type { DashboardFilters } from "../types";
 
 interface PreparedFilterOption {

@@ -17,9 +17,9 @@ This document gives a technical overview of how the project is put together.
 - [`src/routes/`](../src/routes): page and form-action handlers grouped by feature area
 - [`src/auth/`](../src/auth): reusable authentication primitives for password hashing, session cookies/tokens, auth bootstrap, and login policy
 - [`src/calendar/`](../src/calendar): shared calendar feature code for Google API access, encrypted settings, iCal parsing, and schedule-building helpers
+- [`src/students/`](../src/students): shared student-domain code for forms, degree/phase reference data, and derived progress/status helpers
 - [`src/routes/data-tools/`](../src/routes/data-tools): the data-tools slice, including route handlers, import/export helpers, and co-located tests
 - [`src/backup.ts`](../src/backup.ts): scheduled R2 backup generation and object layout
-- [`src/reference-data.ts`](../src/reference-data.ts): shared thesis phase and degree reference data
 - [`src/view/`](../src/view): page and partial rendering helpers
 - [`src/view/dashboard/`](../src/view/dashboard): dashboard-specific sections and interactions
 - [`src/view/data-tools.htmlisp.ts`](../src/view/data-tools.htmlisp.ts): backup import/export page
@@ -38,10 +38,10 @@ graph TD
     Routes[src/routes/<br/>Page and action handlers]
     Auth[src/auth/<br/>Passwords, sessions, bootstrap, login policy]
     Calendar[src/calendar/<br/>Google API, settings, iCal, schedule helpers]
+    Students[src/students/<br/>Forms, reference data, status helpers]
     Views[src/view/<br/>Page templates]
     Dashboard[src/view/dashboard/<br/>Dashboard sections and interactions]
     UI[src/ui/<br/>Reusable UI components]
-    Reference[src/reference-data.ts<br/>Phases and degree types]
     DB[src/db.ts<br/>Database helpers]
     Backup[src/backup.ts<br/>Scheduled backup generation]
     D1[(Cloudflare D1)]
@@ -57,10 +57,10 @@ graph TD
     Routes --> Views
     Routes --> Dashboard
     Routes --> UI
-    Routes --> Reference
     Routes --> DB
     Routes --> Auth
     Routes --> Calendar
+    Routes --> Students
     Worker --> Backup
     Worker --> CSS
     DB --> D1
@@ -72,7 +72,7 @@ graph TD
     Tests --> D1
 ```
 
-The Worker is now intentionally thin: it handles request/session setup, authentication, and route dispatch. Feature-specific page rendering and form-action behavior live under [`src/routes/`](../src/routes), where handlers talk to D1 through the database helpers, render server-side HTML through the shared view/UI layers, and rely on shared feature modules such as [`src/auth/`](../src/auth) for reusable authentication concerns and [`src/calendar/`](../src/calendar) for Google Calendar access, iCal fallback parsing, encrypted settings, and schedule-building logic.
+The Worker is now intentionally thin: it handles request/session setup, authentication, and route dispatch. Feature-specific page rendering and form-action behavior live under [`src/routes/`](../src/routes), where handlers talk to D1 through the database helpers, render server-side HTML through the shared view/UI layers, and rely on shared feature modules such as [`src/auth/`](../src/auth) for reusable authentication concerns, [`src/calendar/`](../src/calendar) for Google Calendar access and schedule-building logic, and [`src/students/`](../src/students) for shared student forms, reference data, and derived status rules.
 
 Authentication remains intentionally lightweight: accounts are stored in the `app_users` D1 table with hashed passwords, and the Worker stores the signed session together with the viewer role (`editor` or `readonly`) in an `HttpOnly` cookie. Legacy `APP_USERS_JSON` or `APP_PASSWORD` values are only used as a one-time bootstrap path when the auth table is still empty.
 

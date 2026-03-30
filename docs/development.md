@@ -96,4 +96,4 @@ For extension-specific details, see [`editor-support/vscode-htmlisp/README.md`](
 - Use [`src/worker.ts`](../src/worker.ts) as the main entry point when tracing routes or business logic.
 - Shared UI pieces live in [`src/ui/`](../src/ui).
 - Dashboard-specific rendering lives in [`src/view/dashboard/`](../src/view/dashboard).
-- Reference values such as thesis phases and degree types live in [`src/reference-data.ts`](../src/reference-data.ts).
+- Shared student-domain code such as form parsing, thesis phases, and degree types lives in [`src/students/`](../src/students).

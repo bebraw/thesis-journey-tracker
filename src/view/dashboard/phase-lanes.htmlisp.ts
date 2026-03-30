@@ -8,9 +8,9 @@ import {
   renderBadge,
 } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
-import { escapeHtml, getDegreeLabel, getTargetSubmissionDate } from "../../utils";
+import { DEGREE_TYPES, getDegreeLabel, getTargetSubmissionDate, PHASES } from "../../students";
+import { escapeHtml } from "../../utils";
 import { renderView } from "../shared.htmlisp";
-import { DEGREE_TYPES, PHASES } from "../../reference-data";
 import type { DashboardFilters } from "../types";
 
 interface PreparedLaneStudent {

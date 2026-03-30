@@ -1,5 +1,5 @@
-import type { DegreeId, PhaseId, Student, StudentMutationInput } from "./db";
-import { mapLegacyPhaseId, normalizeDate, normalizeDateTime, normalizeString, toDateTimeLocalInput } from "./utils";
+import type { DegreeId, PhaseId, Student, StudentMutationInput } from "../db";
+import { normalizeDate, normalizeDateTime, normalizeString, toDateTimeLocalInput } from "../utils";
 
 const DEGREE_IDS: DegreeId[] = ["bsc", "msc", "dsc"];
 const PHASE_IDS: PhaseId[] = ["research_plan", "researching", "editing", "submitted"];
@@ -121,6 +121,15 @@ function normalizePhaseId(value: FormDataEntryValue | string | null | undefined)
   const normalized = mapLegacyPhaseId(text);
   return PHASE_IDS.includes(normalized as PhaseId) ? (normalized as PhaseId) : null;
 }
+
+function mapLegacyPhaseId(value: string): string {
+  return LEGACY_PHASE_ID_MAP[value] || value;
+}
+
+const LEGACY_PHASE_ID_MAP: Record<string, string> = {
+  first_complete_draft: "editing",
+  submission_ready: "editing",
+};
 
 function readRequiredField(
   formData: FormData,
