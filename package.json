@@ -25,6 +25,7 @@
     "format:check": "prettier --check .",
     "test:d1": "vitest run tests/d1-integration.test.ts",
     "typecheck": "tsc --noEmit",
+    "pretest": "npm run build:css",
     "test": "vitest run"
   },
   "devDependencies": {
