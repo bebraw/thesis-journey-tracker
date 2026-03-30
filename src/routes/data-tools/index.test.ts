@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loginWithPassword, seedTestUsers } from "../../tests/helpers/auth";
-import { MockD1Database } from "../../tests/helpers/mock-d1";
+import { loginWithPassword, seedTestUsers } from "../../../tests/helpers/auth";
+import { MockD1Database } from "../../../tests/helpers/mock-d1";
 
-vi.mock("../../.generated/styles.css", () => ({ default: "" }));
-vi.mock("../favicon.ico", () => ({ default: new ArrayBuffer(0) }));
+vi.mock("../../../.generated/styles.css", () => ({ default: "" }));
+vi.mock("../../favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 
-type WorkerFetch = (typeof import("../worker"))["default"]["fetch"];
+type WorkerFetch = (typeof import("../../worker"))["default"]["fetch"];
 
 describe("data import and export", () => {
   let env: { DB: MockD1Database; SESSION_SECRET: string; REPLACE_IMPORT_ENABLED?: string };
@@ -13,7 +13,7 @@ describe("data import and export", () => {
 
   beforeEach(async () => {
     vi.resetModules();
-    const workerModule = await import("../worker");
+    const workerModule = await import("../../worker");
     fetchHandler = workerModule.default.fetch;
     env = {
       DB: new MockD1Database(),

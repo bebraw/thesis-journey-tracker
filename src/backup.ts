@@ -13,7 +13,7 @@ import {
   createDataExport,
   createProfessorStatusReport,
   type DataExportFile,
-} from "./import-export";
+} from "./routes/data-tools/import-export";
 
 export interface R2HttpMetadata {
   contentDisposition?: string;

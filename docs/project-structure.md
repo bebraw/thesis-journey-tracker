@@ -15,6 +15,7 @@ This document gives a technical overview of how the project is put together.
 
 - [`src/worker.ts`](../src/worker.ts): thin Worker entrypoint for request/session setup, auth flow, and route dispatch
 - [`src/routes/`](../src/routes): page and form-action handlers grouped by feature area
+- [`src/routes/data-tools/`](../src/routes/data-tools): the data-tools slice, including route handlers, import/export helpers, and co-located tests
 - [`src/backup.ts`](../src/backup.ts): scheduled R2 backup generation and object layout
 - [`src/google-calendar-settings.ts`](../src/google-calendar-settings.ts): encrypted Google Calendar settings storage and source resolution
 - [`src/reference-data.ts`](../src/reference-data.ts): shared thesis phase and degree reference data
