@@ -20,6 +20,7 @@ var selectedStudentPanel = null;
 var emptySelectedStudentPanelTemplate = null;
 var toggleStudentPanelButton = null;
 var clearSelectedStudentButton = null;
+var closeSelectedStudentPanelButton = null;
 var defaultSortKey = "nextMeeting";
 var defaultSortDirection = "asc";
 var currentSortKey = "nextMeeting";
@@ -47,4 +48,5 @@ function syncDashboardDom() {
   emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");
   toggleStudentPanelButton = document.getElementById("toggleStudentPanelButton");
   clearSelectedStudentButton = document.getElementById("clearSelectedStudentButton");
+  closeSelectedStudentPanelButton = document.getElementById("closeSelectedStudentPanelButton");
 }`;

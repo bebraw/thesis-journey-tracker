@@ -326,9 +326,12 @@ export function renderSelectedStudentPanel(
   return renderView(
     `<article &class="(get props cardClass)">
       <section>
-        <div>
-          <h2 class="text-lg font-semibold">Student Workspace</h2>
-          <p &class="(get props currentStudentLineClass)" &children="(get props currentlyViewingText)"></p>
+        <div class="flex items-start justify-between gap-stack-xs">
+          <div class="min-w-0">
+            <h2 class="text-lg font-semibold">Student Workspace</h2>
+            <p &class="(get props currentStudentLineClass)" &children="(get props currentlyViewingText)"></p>
+          </div>
+          <noop &children="(get props closeButtonHtml)"></noop>
         </div>
         <p &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></p>
         <p class="mt-3 text-sm leading-6 text-app-text-soft dark:text-app-text-soft-dark">
@@ -442,6 +445,12 @@ export function renderSelectedStudentPanel(
       currentlyViewingText: escapeHtml(`Currently viewing: ${student.name}`),
       topicVisible: Boolean(student.thesisTopic),
       topic: escapeHtml(student.thesisTopic || ""),
+      closeButtonHtml: renderButton({
+        label: "Close",
+        type: "button",
+        variant: "inline",
+        attributes: 'id="closeSelectedStudentPanelButton" aria-label="Close student workspace"',
+      }),
       editFormHtml,
       addLogFormHtml,
       hasLogs: preparedLogs.length > 0,

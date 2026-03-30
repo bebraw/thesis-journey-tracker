@@ -248,6 +248,20 @@ test.describe("dashboard e2e", () => {
     await expect(page.locator("#dashboardWorkspace").getByRole("button", { name: "Clear selection" })).toBeHidden();
   });
 
+  test("can close the student workspace without clearing selection", async ({ page }) => {
+    await login(page);
+
+    await selectStudentFromTable(page, "Mia Koskinen");
+    await expect(page.locator("#selectedStudentPanelShell")).toBeVisible();
+
+    const selectedId = new URL(page.url()).searchParams.get("selected");
+    await page.locator("#selectedStudentPanel").getByRole("button", { name: "Close" }).click();
+
+    await expect(page.locator("#selectedStudentPanelShell")).toBeHidden();
+    await expect.poll(() => new URL(page.url()).searchParams.get("selected")).toBe(selectedId);
+    await expect(page.locator("[data-student-row][aria-selected='true']")).toContainText("Mia Koskinen");
+  });
+
   test("updates filter query params from click-driven filter interactions", async ({ page }) => {
     await login(page);
 

@@ -320,6 +320,7 @@ function rebindDashboardUi() {
   bindStudentSort();
   bindPanelToggle();
   bindClearSelection();
+  bindCloseSelectedPanel();
   bindInlineStudentUpdateForm();
   bindInlineLogEntryForm();
   bindDashboardToasts();

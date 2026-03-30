@@ -176,6 +176,13 @@ function bindClearSelection() {
   });
 }
 
+function bindCloseSelectedPanel() {
+  if (!closeSelectedStudentPanelButton) return;
+  closeSelectedStudentPanelButton.addEventListener("click", function () {
+    setPanelVisibility(false);
+  });
+}
+
 function bindDashboardToasts() {
   var toasts = Array.prototype.slice.call(document.querySelectorAll("[data-dashboard-toast='1']"));
 

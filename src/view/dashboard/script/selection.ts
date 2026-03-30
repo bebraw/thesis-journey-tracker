@@ -99,11 +99,13 @@ async function selectStudentWithoutRefresh(studentId, pushHistory) {
     }
 
     selectedStudentPanel.innerHTML = await response.text();
+    closeSelectedStudentPanelButton = document.getElementById("closeSelectedStudentPanelButton");
     applySelectedRowState(studentId);
     applySelectedLaneState(studentId);
     setSelectionActionState(studentId);
     revealSelectedPanel();
     syncInteractiveUrls();
+    bindCloseSelectedPanel();
     bindInlineStudentUpdateForm();
     bindInlineLogEntryForm();
 
