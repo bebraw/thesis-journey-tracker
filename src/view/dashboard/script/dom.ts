@@ -1,0 +1,34 @@
+export const DASHBOARD_DOM_SECTION = `
+var tableBody = null;
+var studentRows = [];
+var laneStudentCards = [];
+var searchInput = null;
+var degreeFilter = null;
+var phaseFilter = null;
+var statusFilter = null;
+var sortButtons = [];
+var studentResultsMeta = null;
+var selectedStudentPanelShell = null;
+var selectedStudentPanel = null;
+var emptySelectedStudentPanelTemplate = null;
+var toggleStudentPanelButton = null;
+var defaultSortKey = "nextMeeting";
+var defaultSortDirection = "asc";
+var currentSortKey = "nextMeeting";
+var currentSortDirection = "asc";
+
+function syncDashboardDom() {
+  tableBody = document.getElementById("studentsTableBody");
+  studentRows = Array.prototype.slice.call(document.querySelectorAll("[data-student-row]"));
+  laneStudentCards = Array.prototype.slice.call(document.querySelectorAll("[data-lane-student-card]"));
+  searchInput = document.getElementById("studentSearch");
+  degreeFilter = document.getElementById("degreeFilter");
+  phaseFilter = document.getElementById("phaseFilter");
+  statusFilter = document.getElementById("statusFilter");
+  sortButtons = Array.prototype.slice.call(document.querySelectorAll("[data-student-sort='1']"));
+  studentResultsMeta = document.getElementById("studentResultsMeta");
+  selectedStudentPanelShell = document.getElementById("selectedStudentPanelShell");
+  selectedStudentPanel = document.getElementById("selectedStudentPanel");
+  emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");
+  toggleStudentPanelButton = document.getElementById("toggleStudentPanelButton");
+}`;
