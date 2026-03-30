@@ -1,4 +1,4 @@
-import { escapeHtml } from "../utils";
+import { escapeHtml } from "../formatting";
 import { renderHTMLisp } from "../htmlisp";
 import { FIELD_LABEL, FORM_LABEL } from "./styles";
 

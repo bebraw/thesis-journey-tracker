@@ -14,7 +14,8 @@ import {
   resolveWeekStart,
   type GoogleCalendarEvent,
 } from "../calendar";
-import { htmlResponse, normalizeString, redirect } from "../utils";
+import { normalizeString } from "../forms/normalize";
+import { htmlResponse, redirect } from "../http/response";
 import { renderSchedulePage } from "../views";
 import type { SessionUser } from "../auth";
 import type { Env } from "../app-env";

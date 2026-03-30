@@ -1,13 +1,7 @@
+import { formatDateTime } from "../formatting";
+import { normalizeDate, normalizeDateTime, normalizeDegree, normalizePhase, normalizeString } from "../forms/normalize";
 import type { CreateStudentInput, DegreeId, MeetingLog, PhaseAuditEntry, PhaseId, Student } from "../students/store";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusText, PHASES } from "../students";
-import {
-  formatDateTime,
-  normalizeDate,
-  normalizeDateTime,
-  normalizeDegree,
-  normalizePhase,
-  normalizeString,
-} from "../utils";
 
 export const DATA_EXPORT_SCHEMA_VERSION = 1;
 

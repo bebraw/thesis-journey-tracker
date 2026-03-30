@@ -1,4 +1,6 @@
 import type { Env } from "../../app-env";
+import { normalizeDate, normalizeDateTime, normalizeString } from "../../forms/normalize";
+import { redirect } from "../../http/response";
 import { parseStudentFormSubmission } from "../../students";
 import {
   archiveStudent,
@@ -9,7 +11,6 @@ import {
   updateStudent,
   updateStudentWithPhaseAudit,
 } from "../../students/store";
-import { normalizeDate, normalizeDateTime, normalizeString, redirect } from "../../utils";
 import { appendDashboardMessage, getDashboardReturnPath } from "./filters";
 
 export async function handleAddStudent(request: Request, env: Env): Promise<Response> {

@@ -1,4 +1,4 @@
-import { escapeHtml } from "../utils";
+import { escapeHtml } from "../formatting";
 import { parseHtmlispAttributes, renderHTMLisp, serializeHtmlispAttributes } from "../htmlisp";
 import { fillTemplate, mergeClasses } from "./helpers";
 import { BUTTON_CLASS_MAP } from "./styles";

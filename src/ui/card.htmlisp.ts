@@ -1,4 +1,4 @@
-import { escapeHtml } from "../utils";
+import { escapeHtml } from "../formatting";
 import { renderHTMLisp } from "../htmlisp";
 import { mergeClasses } from "./helpers";
 import { SURFACE_CARD, SURFACE_CARD_SM } from "./styles";

@@ -1,3 +1,5 @@
+import { normalizeString } from "../../forms/normalize";
+import { htmlResponse, redirect } from "../../http/response";
 import type { D1Database, D1PreparedStatement } from "../../db-core";
 import { listLogsForStudent, listPhaseAuditEntriesForStudent, listStudents } from "../../students/store";
 import {
@@ -18,7 +20,6 @@ import {
   saveStoredGoogleCalendarSettings,
   type StoredGoogleCalendarSettings,
 } from "../../calendar";
-import { htmlResponse, normalizeString, redirect } from "../../utils";
 import { renderDataToolsPage } from "../../views";
 import type { SessionUser } from "../../auth";
 import type { Env } from "../../app-env";

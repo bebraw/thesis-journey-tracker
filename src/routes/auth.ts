@@ -9,7 +9,7 @@ import {
   verifyLoginCredentials,
 } from "../auth";
 import type { Env } from "../app-env";
-import { htmlResponse, redirect } from "../utils";
+import { htmlResponse, redirect } from "../http/response";
 import { renderLoginPage } from "../views";
 
 export async function handleLoginRequest(request: Request, env: Env, authState: AuthState, sessionUser: SessionUser | null): Promise<Response> {

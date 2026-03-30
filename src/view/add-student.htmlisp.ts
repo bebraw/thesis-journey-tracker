@@ -1,6 +1,6 @@
 import { PAGE_WRAP_NARROW, SUBTLE_TEXT, renderButton, renderCard } from "../ui";
 import { getDefaultStudentFormValues } from "../students";
-import { escapeHtml } from "../utils";
+import { escapeHtml } from "../formatting";
 import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderFlashMessages, renderView } from "./shared.htmlisp";
 import { renderStudentFormFields } from "./student-form-fields";
 import { type AddStudentPageData } from "./types";

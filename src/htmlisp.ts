@@ -1,6 +1,6 @@
 import { htmlispToHTMLSync } from "htmlisp";
 
-import { escapeHtml } from "./utils";
+import { escapeHtml } from "./formatting";
 
 export type HtmlispProps = Record<string, unknown>;
 export type AttributeValue = string | true;

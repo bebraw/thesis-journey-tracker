@@ -1,6 +1,6 @@
 import { ALERT_CLASS_MAP, BODY_CLASS_LOGIN, FIELD_CONTROL_SM, LOGIN_CARD, renderButton, SUBTLE_TEXT } from "../ui";
 import { type HtmlispComponents } from "../htmlisp";
-import { escapeHtml } from "../utils";
+import { escapeHtml } from "../formatting";
 import { renderDocument, renderView } from "./shared.htmlisp";
 
 export function renderLoginPage(errorState: "invalid" | "rate_limit" | "password_reset" | null, supportsMultipleAccounts = false): string {

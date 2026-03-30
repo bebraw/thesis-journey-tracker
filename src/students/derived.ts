@@ -1,3 +1,4 @@
+import { mapLegacyPhaseId } from "../forms/normalize";
 import type { DegreeId, Student } from "./store";
 import type { DegreeDefinition, PhaseDefinition } from "./reference-data";
 
@@ -65,12 +66,3 @@ export function meetingStatusId(student: Student): string {
   }
   return "scheduled";
 }
-
-function mapLegacyPhaseId(value: string): string {
-  return LEGACY_PHASE_ID_MAP[value] || value;
-}
-
-const LEGACY_PHASE_ID_MAP: Record<string, string> = {
-  first_complete_draft: "editing",
-  submission_ready: "editing",
-};

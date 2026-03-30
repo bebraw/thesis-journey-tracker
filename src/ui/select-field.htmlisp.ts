@@ -1,4 +1,4 @@
-import { escapeHtml } from "../utils";
+import { escapeHtml } from "../formatting";
 import {
   buildHtmlispAttributes,
   omitHtmlispAttributes,

@@ -20,7 +20,7 @@ import {
 } from "../ui";
 import { type HtmlispComponents } from "../htmlisp";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getStudentFormValues, getTargetSubmissionDate, PHASES } from "../students";
-import { escapeHtml, escapeJsString, formatDateTime } from "../utils";
+import { escapeHtml, escapeJsString, formatDateTime } from "../formatting";
 import { renderView } from "./shared.htmlisp";
 import { renderStudentFormFields } from "./student-form-fields";
 import type { DashboardFilters } from "./types";

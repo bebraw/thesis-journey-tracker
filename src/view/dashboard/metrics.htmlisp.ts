@@ -1,6 +1,6 @@
 import { MUTED_TEXT, SURFACE_CARD_SM } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
-import { escapeHtml } from "../../utils";
+import { escapeHtml } from "../../formatting";
 import { renderView } from "../shared.htmlisp";
 import type { Metrics } from "../types";
 

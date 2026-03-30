@@ -1,4 +1,4 @@
-import { escapeHtml } from "../utils";
+import { escapeHtml } from "../formatting";
 
 export function mergeClasses(...classes: Array<string | undefined>): string {
   return classes.filter(Boolean).join(" ");

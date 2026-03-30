@@ -11,7 +11,7 @@ import {
   renderButton,
   renderCard,
 } from "../ui";
-import { escapeHtml } from "../utils";
+import { escapeHtml } from "../formatting";
 import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderFlashMessages, renderView } from "./shared.htmlisp";
 import type { SchedulePageData } from "./types";
 

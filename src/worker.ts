@@ -4,6 +4,7 @@ import { getSessionUser, isReadonlyUser, resolveAuthState, SESSION_COOKIE, SESSI
 import { runAutomatedBackup } from "./backup";
 import type { Env, ScheduledControllerLike } from "./app-env";
 import type { D1Database } from "./db-core";
+import { cssResponse, htmlResponse, iconResponse, javascriptResponse, redirect } from "./http/response";
 import { handleLoginRequest, handleLogout, readonlyRedirect } from "./routes/auth";
 import {
   handleAddLog,
@@ -27,13 +28,6 @@ import {
   renderDataTools,
 } from "./routes/data-tools";
 import { getScheduleReturnPath, handleScheduleMeeting, renderSchedule } from "./routes/schedule";
-import {
-  cssResponse,
-  htmlResponse,
-  iconResponse,
-  javascriptResponse,
-  redirect,
-} from "./utils";
 import { DASHBOARD_INTERACTION_SCRIPT } from "./view/dashboard/interaction-script";
 import { renderStyleGuidePage } from "./views";
 

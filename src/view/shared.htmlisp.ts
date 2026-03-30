@@ -1,6 +1,6 @@
 import { ALERT_CLASS_MAP, BODY_CLASS, BUTTON_CLASS_MAP, HEADER_CARD, SUBTLE_TEXT, THEME_TOGGLE_BUTTON, renderButton } from "../ui";
 import { type HtmlispComponents, renderHTMLisp } from "../htmlisp";
-import { escapeHtml } from "../utils";
+import { escapeHtml } from "../formatting";
 import type { ViewerContext } from "./types";
 
 const THEME_BOOTSTRAP_SCRIPT = `<script>

@@ -15,7 +15,7 @@ import {
   renderTextareaField,
   type SelectOption,
 } from "../ui";
-import { escapeHtml } from "../utils";
+import { escapeHtml } from "../formatting";
 import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderView } from "./shared.htmlisp";
 import { DEGREE_TYPES } from "../students";
 import type { ViewerContext } from "./types";

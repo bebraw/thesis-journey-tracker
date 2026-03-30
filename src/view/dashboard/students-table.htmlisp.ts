@@ -12,7 +12,7 @@ import {
 } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusId, PHASES } from "../../students";
-import { escapeHtml, formatDateTime } from "../../utils";
+import { escapeHtml, formatDateTime } from "../../formatting";
 import { renderView } from "../shared.htmlisp";
 import type { DashboardFilters } from "../types";
 

@@ -9,7 +9,7 @@ import {
 } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
 import { DEGREE_TYPES, getDegreeLabel, getTargetSubmissionDate, PHASES } from "../../students";
-import { escapeHtml } from "../../utils";
+import { escapeHtml } from "../../formatting";
 import { renderView } from "../shared.htmlisp";
 import type { DashboardFilters } from "../types";
 
