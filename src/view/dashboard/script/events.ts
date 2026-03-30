@@ -28,6 +28,24 @@ function bindStudentRowSelection() {
   });
 }
 
+function bindMobileStudentCardSelection() {
+  mobileStudentCards.forEach(function (card) {
+    card.addEventListener("click", function (event) {
+      var target = event.target;
+      if (isInlineSelectionTarget(target) || isInteractiveChild(target)) {
+        return;
+      }
+      void selectStudentWithoutRefresh(getMobileCardStudentId(card), true);
+    });
+
+    card.addEventListener("keydown", function (event) {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      void selectStudentWithoutRefresh(getMobileCardStudentId(card), true);
+    });
+  });
+}
+
 function bindLaneSelection() {
   laneStudentCards.forEach(function (card) {
     card.addEventListener("click", function (event) {
@@ -143,11 +161,8 @@ function bindInlineStudentUpdateForm() {
     var panelWasVisible = selectedStudentPanelShell ? !selectedStudentPanelShell.classList.contains("hidden") : false;
     var openSummaries = collectOpenPanelDetails();
     var submitButton = form.querySelector("button[type='submit']");
-    var originalDisabled = submitButton ? submitButton.disabled : false;
-
-    if (submitButton) {
-      submitButton.disabled = true;
-    }
+    var previousButtonState = setSubmitButtonBusy(submitButton, "Saving updates...");
+    form.setAttribute("aria-busy", "true");
 
     fetch(action, {
       method: "POST",
@@ -176,9 +191,8 @@ function bindInlineStudentUpdateForm() {
         form.submit();
       })
       .finally(function () {
-        if (submitButton) {
-          submitButton.disabled = originalDisabled;
-        }
+        form.removeAttribute("aria-busy");
+        restoreSubmitButton(submitButton, previousButtonState);
       });
   });
 }
@@ -204,11 +218,8 @@ function bindInlineLogEntryForm() {
     var panelWasVisible = selectedStudentPanelShell ? !selectedStudentPanelShell.classList.contains("hidden") : false;
     var openSummaries = collectOpenPanelDetails();
     var submitButton = form.querySelector("button[type='submit']");
-    var originalDisabled = submitButton ? submitButton.disabled : false;
-
-    if (submitButton) {
-      submitButton.disabled = true;
-    }
+    var previousButtonState = setSubmitButtonBusy(submitButton, "Saving log...");
+    form.setAttribute("aria-busy", "true");
 
     fetch(action, {
       method: "POST",
@@ -237,9 +248,8 @@ function bindInlineLogEntryForm() {
         form.submit();
       })
       .finally(function () {
-        if (submitButton) {
-          submitButton.disabled = originalDisabled;
-        }
+        form.removeAttribute("aria-busy");
+        restoreSubmitButton(submitButton, previousButtonState);
       });
   });
 }`;

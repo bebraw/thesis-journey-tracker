@@ -245,16 +245,29 @@ test.describe("dashboard e2e", () => {
     await searchInput.click();
     await searchInput.fill(secondaryStudentName);
     await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe(secondaryStudentName);
+    await expect(page.locator("#activeDashboardFilters")).toContainText(`Search: "${secondaryStudentName}"`);
+    await expect(page.locator("#activeDashboardFilters")).toContainText("Degree: BSc");
+    await expect(page.locator("#activeDashboardFilters")).toContainText("Phase: Planning research");
+    await expect(page.locator("#activeDashboardFilters")).toContainText("Status: Not booked");
 
-    await degreeFilter.selectOption("");
-    await phaseFilter.selectOption("");
-    await statusFilter.selectOption("");
-    await searchInput.clear();
+    await page.getByRole("button", { name: "Clear filters" }).click();
 
     await expect.poll(() => new URL(page.url()).searchParams.get("degree")).toBeNull();
     await expect.poll(() => new URL(page.url()).searchParams.get("phase")).toBeNull();
     await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBeNull();
     await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBeNull();
+    await expect(page.locator("#activeDashboardFilters")).toBeHidden();
+  });
+
+  test("auto-updates the schedule when choosing a student", async ({ page }) => {
+    await login(page);
+
+    await page.getByRole("link", { name: "Schedule", exact: true }).click();
+    await expect(page).toHaveURL(/\/schedule$/);
+
+    await page.getByLabel("Student").selectOption({ index: 1 });
+
+    await expect.poll(() => new URL(page.url()).searchParams.get("student")).not.toBeNull();
   });
 
   test("persists table sorting in the URL across reloads and selection", async ({ page }) => {

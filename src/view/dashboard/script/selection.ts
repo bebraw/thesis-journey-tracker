@@ -20,6 +20,23 @@ function applySelectedRowState(selectedId) {
     row.classList.toggle("dark:hover:bg-app-surface-soft-dark/35", !isSelected);
     row.setAttribute("aria-selected", isSelected ? "true" : "false");
   });
+
+  mobileStudentCards.forEach(function (card) {
+    var isSelected = selectedId > 0 && getMobileCardStudentId(card) === selectedId;
+    card.classList.toggle("border-app-brand", isSelected);
+    card.classList.toggle("dark:border-app-brand-ring", isSelected);
+    card.classList.toggle("bg-app-brand-soft/80", isSelected);
+    card.classList.toggle("dark:bg-app-brand-soft-dark/20", isSelected);
+    card.classList.toggle("border-app-line", !isSelected);
+    card.classList.toggle("dark:border-app-line-dark", !isSelected);
+    card.classList.toggle("bg-app-surface", !isSelected);
+    card.classList.toggle("dark:bg-app-surface-dark", !isSelected);
+    card.classList.toggle("hover:border-app-line-strong", !isSelected);
+    card.classList.toggle("hover:bg-app-surface-soft", !isSelected);
+    card.classList.toggle("dark:hover:border-app-line-dark-strong", !isSelected);
+    card.classList.toggle("dark:hover:bg-app-surface-soft-dark/40", !isSelected);
+    card.setAttribute("aria-selected", isSelected ? "true" : "false");
+  });
 }
 
 function applySelectedLaneState(selectedId) {

@@ -12,7 +12,7 @@ export function renderScheduleControlsCard(data: SchedulePageData): string {
         <form action="/schedule" method="get" class="grid flex-1 grid-cols-1 gap-stack-xs sm:grid-cols-[minmax(0,20rem)_auto]">
           <label &class="(get props formLabelClass)">
             <span>Student</span>
-            <select name="student" &class="(get props fieldClass)">
+            <select name="student" onchange="this.form.requestSubmit()" &class="(get props fieldClass)">
               <option value="">Choose a student</option>
               <noop &foreach="(get props studentOptions)">
                 <option &value="(get props value)" &selected="(get props selectedAttr)" &children="(get props label)"></option>
@@ -67,7 +67,7 @@ export function renderScheduleControlsCard(data: SchedulePageData): string {
               : `Viewing Google Calendar iCal availability in ${timeZone}. Choose a student to compare availability against your supervision list.`
             : selectedStudentId
               ? `Scheduling for ${selectedStudentName || "the selected student"} in ${timeZone}. Pick an open slot to prepare a Google Calendar invitation.`
-              : `Viewing Google Calendar availability in ${timeZone}. Choose a student, then pick an open slot.`,
+              : `Viewing Google Calendar availability in ${timeZone}. Choose a student to update the week instantly, then pick an open slot.`,
         ),
       },
     ),

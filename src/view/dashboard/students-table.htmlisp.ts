@@ -8,6 +8,7 @@ import {
   TABLE_HEADER_ROW,
   TEXT_LINK,
   TOPIC_TEXT_SM,
+  renderBadge,
   renderButton,
 } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
@@ -24,6 +25,7 @@ interface PreparedFilterOption {
 
 interface PreparedStudentRow {
   rowClass: string;
+  mobileCardClass: string;
   selectedAttr: string;
   selectHref: string;
   studentIdAttr: string;
@@ -40,11 +42,14 @@ interface PreparedStudentRow {
   dataNextMeetingDate: string;
   dataLogCount: string;
   summaryHtml: string;
+  degreeBadgeHtml: string;
+  phaseBadgeHtml: string;
   degreeLabel: string;
   phaseLabel: string;
   targetDate: string;
   nextMeetingText: string;
   logCountText: string;
+  statusLabel: string;
 }
 
 interface PreparedSortHeader {
@@ -129,6 +134,13 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
       rowClass: escapeHtml(
         `${isSelected ? "bg-app-brand-soft dark:bg-app-brand-soft-dark/20" : "hover:bg-app-surface-soft dark:hover:bg-app-surface-soft-dark/35"} cursor-pointer transition-colors`,
       ),
+      mobileCardClass: escapeHtml(
+        `rounded-card border p-panel-sm transition ${
+          isSelected
+            ? "border-app-brand bg-app-brand-soft/80 dark:border-app-brand-ring dark:bg-app-brand-soft-dark/20"
+            : "border-app-line bg-app-surface hover:border-app-line-strong hover:bg-app-surface-soft dark:border-app-line-dark dark:bg-app-surface-dark dark:hover:border-app-line-dark-strong dark:hover:bg-app-surface-soft-dark/40"
+        }`,
+      ),
       selectedAttr: isSelected ? "true" : "false",
       selectHref: escapeHtml(buildDashboardHref(filters, student.id)),
       studentIdAttr: String(student.id),
@@ -145,11 +157,26 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
       dataNextMeetingDate: escapeHtml(student.nextMeetingAt || ""),
       dataLogCount: String(student.logCount),
       summaryHtml,
+      degreeBadgeHtml: renderBadge({
+        label: degreeLabel,
+      }),
+      phaseBadgeHtml: renderBadge({
+        label: phaseLabel,
+      }),
       degreeLabel: escapeHtml(degreeLabel),
       phaseLabel: escapeHtml(phaseLabel),
       targetDate: escapeHtml(targetSubmissionDate || "Not set"),
       nextMeetingText: escapeHtml(student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked"),
       logCountText: String(student.logCount),
+      statusLabel: escapeHtml(
+        statusId === "overdue"
+          ? "Overdue"
+          : statusId === "not_booked"
+            ? "Not booked"
+            : statusId === "within_2_weeks"
+              ? "Meeting soon"
+              : "Scheduled",
+      ),
     };
   });
 }
@@ -204,6 +231,52 @@ export function renderStudentsTable(
     <td &class="(get props cellClass)" &children="(get props nextMeetingText)"></td>
     <td &class="(get props cellClass)" &children="(get props logCountText)"></td>
   </tr>`,
+    MobileStudentCard: `<article
+    &class="(get props mobileCardClass)"
+    data-mobile-student-card
+    &data-select-href="(get props selectHref)"
+    &data-student-id="(get props studentIdAttr)"
+    &data-name="(get props dataName)"
+    &data-email="(get props dataEmail)"
+    &data-topic="(get props dataTopic)"
+    &data-notes="(get props dataNotes)"
+    &data-degree="(get props dataDegree)"
+    &data-degree-label="(get props dataDegreeLabel)"
+    &data-phase="(get props dataPhase)"
+    &data-phase-label="(get props dataPhaseLabel)"
+    &data-status-id="(get props dataStatusId)"
+    &data-target-date="(get props dataTargetDate)"
+    &data-next-meeting-date="(get props dataNextMeetingDate)"
+    &data-log-count="(get props dataLogCount)"
+    &aria-selected="(get props selectedAttr)"
+    tabindex="0"
+  >
+    <div class="flex items-start justify-between gap-stack-xs">
+      <div class="min-w-0 flex-1"><noop &children="(get props summaryHtml)"></noop></div>
+      <div class="shrink-0 flex flex-col items-end gap-badge-y">
+        <noop &children="(get props degreeBadgeHtml)"></noop>
+        <noop &children="(get props phaseBadgeHtml)"></noop>
+      </div>
+    </div>
+    <dl class="mt-stack-xs grid grid-cols-2 gap-x-stack-xs gap-y-badge-y text-xs">
+      <div>
+        <dt class="text-app-text-muted dark:text-app-text-muted-dark">Target</dt>
+        <dd class="mt-1 font-medium" &children="(get props targetDate)"></dd>
+      </div>
+      <div>
+        <dt class="text-app-text-muted dark:text-app-text-muted-dark">Next meeting</dt>
+        <dd class="mt-1 font-medium" &children="(get props nextMeetingText)"></dd>
+      </div>
+      <div>
+        <dt class="text-app-text-muted dark:text-app-text-muted-dark">Logs</dt>
+        <dd class="mt-1 font-medium" &children="(get props logCountText)"></dd>
+      </div>
+      <div>
+        <dt class="text-app-text-muted dark:text-app-text-muted-dark">Status</dt>
+        <dd class="mt-1 font-medium" &children="(get props statusLabel)"></dd>
+      </div>
+    </dl>
+  </article>`,
   };
 
   const degreeFilterOptions = prepareFilterOptions(
@@ -295,11 +368,46 @@ export function renderStudentsTable(
             </label>
           </div>
         </div>
+        <div id="activeDashboardFilters" class="mb-panel-sm hidden rounded-card border border-app-line bg-app-surface-soft/55 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/25"></div>
         <div class="mb-badge-pill-y flex flex-col gap-badge-y text-xs text-app-text-muted dark:text-app-text-muted-dark sm:flex-row sm:items-center sm:justify-between">
           <p id="studentResultsMeta"></p>
           <p>Tip: rows open the workspace, filters stay in the URL, and headers sort instantly.</p>
         </div>
-        <div class="overflow-x-auto rounded-card border border-app-line bg-app-surface-soft/35 dark:border-app-line-dark dark:bg-app-surface-soft-dark/20">
+        <div id="mobileStudentCardList" class="space-y-stack-xs sm:hidden">
+          <noop &visibleIf="(get props hasStudentRows)">
+            <noop &foreach="(get props studentRows)">
+              <MobileStudentCard
+                &mobileCardClass="(get props mobileCardClass)"
+                &selectedAttr="(get props selectedAttr)"
+                &selectHref="(get props selectHref)"
+                &studentIdAttr="(get props studentIdAttr)"
+                &dataName="(get props dataName)"
+                &dataEmail="(get props dataEmail)"
+                &dataTopic="(get props dataTopic)"
+                &dataNotes="(get props dataNotes)"
+                &dataDegree="(get props dataDegree)"
+                &dataDegreeLabel="(get props dataDegreeLabel)"
+                &dataPhase="(get props dataPhase)"
+                &dataPhaseLabel="(get props dataPhaseLabel)"
+                &dataStatusId="(get props dataStatusId)"
+                &dataTargetDate="(get props dataTargetDate)"
+                &dataNextMeetingDate="(get props dataNextMeetingDate)"
+                &dataLogCount="(get props dataLogCount)"
+                &summaryHtml="(get props summaryHtml)"
+                &degreeBadgeHtml="(get props degreeBadgeHtml)"
+                &phaseBadgeHtml="(get props phaseBadgeHtml)"
+                &targetDate="(get props targetDate)"
+                &nextMeetingText="(get props nextMeetingText)"
+                &logCountText="(get props logCountText)"
+                &statusLabel="(get props statusLabel)"
+              ></MobileStudentCard>
+            </noop>
+          </noop>
+          <p &visibleIf="(get props showEmptyRow)" class="rounded-card border border-app-line bg-app-surface-soft/55 px-panel-sm py-stack-xs text-sm text-app-text-muted dark:border-app-line-dark dark:bg-app-surface-soft-dark/25 dark:text-app-text-muted-dark">
+            No students yet.
+          </p>
+        </div>
+        <div class="hidden overflow-x-auto rounded-card border border-app-line bg-app-surface-soft/35 dark:border-app-line-dark dark:bg-app-surface-soft-dark/20 sm:block">
           <table class="w-full min-w-table divide-y divide-app-line text-sm dark:divide-app-line-dark">
             <thead>
               <tr &class="(get props tableHeaderClass)">

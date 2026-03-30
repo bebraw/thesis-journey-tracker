@@ -39,9 +39,10 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 - Track each student through thesis phases from planning to submission.
 - Store supervision logs with discussion notes and action items.
 - Follow upcoming meetings from the dashboard.
-- Filter the student list by phase, degree type, and meeting status.
+- Jump from dashboard summary cards into filtered student views that need attention.
+- Filter the student list by phase, degree type, and meeting status, and clear active filters quickly.
 - Archive completed or inactive students without deleting their supervision history.
-- Open a weekly Google Calendar scheduling view, see existing events, and send meeting invites to students. If you want a lower-friction setup, the app also supports a read-only Google Calendar iCal fallback for availability.
+- Open a weekly Google Calendar scheduling view, choose a student to update the week immediately, and send meeting invites to students. If you want a lower-friction setup, the app also supports a read-only Google Calendar iCal fallback for availability.
 - Export or restore the dataset as JSON backups, and download an email-ready Markdown status report.
 - Store automated Cloudflare backups in R2 when deployed with the scheduled backup setup.
 

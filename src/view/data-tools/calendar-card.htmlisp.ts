@@ -1,5 +1,5 @@
 import { escapeHtml } from "../../formatting";
-import { FIELD_CONTROL_SM, FORM_LABEL, MUTED_TEXT, SUBTLE_TEXT, TEXT_LINK, renderButton, renderCard } from "../../ui";
+import { DANGER_PANEL, DANGER_TEXT, DANGER_TITLE, FIELD_CONTROL_SM, FORM_LABEL, MUTED_TEXT, SUBTLE_TEXT, TEXT_LINK, renderButton, renderCard } from "../../ui";
 import { renderView } from "../shared.htmlisp";
 import type { DataToolsPageData } from "../types";
 
@@ -115,9 +115,15 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
             </label>
             <noop &children="(get props saveButton)"></noop>
           </form>
-          <form action="/actions/clear-google-calendar-oauth-settings" method="post" class="mt-stack-xs">
-            <noop &children="(get props clearOAuthButton)"></noop>
-          </form>
+          <div &class="(get props scopedDangerPanelClass)">
+            <h4 &class="(get props scopedDangerTitleClass)">Remove full scheduling credentials</h4>
+            <p &class="(get props scopedDangerTextClass)">
+              Use this if you want to disable invitation creation but keep any iCal fallback settings untouched.
+            </p>
+            <form action="/actions/clear-google-calendar-oauth-settings" method="post" class="mt-stack-xs">
+              <noop &children="(get props clearOAuthButton)"></noop>
+            </form>
+          </div>
         </section>
         <section id="calendarIcalMode" class="rounded-card border border-app-line bg-app-surface-soft/75 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/35">
           <h3 class="text-base font-semibold">iCal fallback mode</h3>
@@ -147,9 +153,15 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
             </label>
             <noop &children="(get props saveIcalButton)"></noop>
           </form>
-          <form action="/actions/clear-google-calendar-ical-settings" method="post" class="mt-stack-xs">
-            <noop &children="(get props clearIcalButton)"></noop>
-          </form>
+          <div &class="(get props scopedDangerPanelClass)">
+            <h4 &class="(get props scopedDangerTitleClass)">Remove iCal fallback</h4>
+            <p &class="(get props scopedDangerTextClass)">
+              Use this if you no longer want the app to read availability from the fallback iCal link.
+            </p>
+            <form action="/actions/clear-google-calendar-ical-settings" method="post" class="mt-stack-xs">
+              <noop &children="(get props clearIcalButton)"></noop>
+            </form>
+          </div>
         </section>
       </div>
       <details class="mt-panel-sm rounded-control border border-app-line bg-app-surface-soft p-panel-sm text-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/60">
@@ -175,13 +187,25 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
           Google Calendar provides a <code>Secret address in iCal format</code> under <code>Settings and sharing</code> -> <code>Integrate calendar</code>. This app can use that link as an easier fallback mode, but it cannot create invitations from the app while using it.
         </p>
       </details>
-      <form action="/actions/clear-google-calendar-settings" method="post" class="mt-panel-sm">
-        <noop &children="(get props clearButton)"></noop>
-      </form>
+      <section &class="(get props dangerPanelClass)">
+        <h3 &class="(get props dangerTitleClass)">Clear all saved calendar settings</h3>
+        <p &class="(get props dangerTextClass)">
+          This removes both full scheduling credentials and the iCal fallback at once, leaving scheduling unconfigured.
+        </p>
+        <form action="/actions/clear-google-calendar-settings" method="post" class="mt-panel-sm">
+          <noop &children="(get props clearButton)"></noop>
+        </form>
+      </section>
       <p &class="(get props metaText)" &children="(get props encryptionNote)"></p>`,
       {
+        dangerPanelClass: escapeHtml(`${DANGER_PANEL} mt-panel-sm`),
+        dangerTitleClass: escapeHtml(DANGER_TITLE),
+        dangerTextClass: escapeHtml(DANGER_TEXT),
         subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
         metaText: escapeHtml(`mt-panel-sm ${MUTED_TEXT}`),
+        scopedDangerPanelClass: escapeHtml("mt-panel-sm rounded-control border border-app-danger-line/70 bg-app-danger-soft/45 p-panel-sm dark:border-app-danger-line-dark/40 dark:bg-app-danger-soft-dark/20"),
+        scopedDangerTitleClass: escapeHtml("text-sm font-semibold text-app-danger-text dark:text-app-danger-text-dark"),
+        scopedDangerTextClass: escapeHtml("mt-1 text-sm text-app-danger-text dark:text-app-danger-text-dark"),
         description: escapeHtml(
           "Choose either full OAuth scheduling or the easier iCal fallback. The app encrypts the saved values before storing them in D1.",
         ),
@@ -239,7 +263,7 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
         clearButton: renderButton({
           label: "Clear stored calendar settings",
           type: "submit",
-          variant: "neutral",
+          variant: "dangerBlock",
         }),
         encryptionNote: escapeHtml(
           "Saved calendar settings are encrypted before they are written to the database. Set APP_ENCRYPTION_SECRET in the Worker environment if you want that encryption key to be separate from SESSION_SECRET.",

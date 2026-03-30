@@ -1,6 +1,8 @@
 export const DASHBOARD_DOM_SECTION = `
 var tableBody = null;
 var studentRows = [];
+var mobileStudentCardList = null;
+var mobileStudentCards = [];
 var laneStudentCards = [];
 var searchInput = null;
 var degreeFilter = null;
@@ -8,6 +10,7 @@ var phaseFilter = null;
 var statusFilter = null;
 var sortButtons = [];
 var studentResultsMeta = null;
+var activeDashboardFilters = null;
 var selectedStudentPanelShell = null;
 var selectedStudentPanel = null;
 var emptySelectedStudentPanelTemplate = null;
@@ -20,6 +23,8 @@ var currentSortDirection = "asc";
 function syncDashboardDom() {
   tableBody = document.getElementById("studentsTableBody");
   studentRows = Array.prototype.slice.call(document.querySelectorAll("[data-student-row]"));
+  mobileStudentCardList = document.getElementById("mobileStudentCardList");
+  mobileStudentCards = Array.prototype.slice.call(document.querySelectorAll("[data-mobile-student-card]"));
   laneStudentCards = Array.prototype.slice.call(document.querySelectorAll("[data-lane-student-card]"));
   searchInput = document.getElementById("studentSearch");
   degreeFilter = document.getElementById("degreeFilter");
@@ -27,6 +32,7 @@ function syncDashboardDom() {
   statusFilter = document.getElementById("statusFilter");
   sortButtons = Array.prototype.slice.call(document.querySelectorAll("[data-student-sort='1']"));
   studentResultsMeta = document.getElementById("studentResultsMeta");
+  activeDashboardFilters = document.getElementById("activeDashboardFilters");
   selectedStudentPanelShell = document.getElementById("selectedStudentPanelShell");
   selectedStudentPanel = document.getElementById("selectedStudentPanel");
   emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");

@@ -126,6 +126,10 @@ function getRowStudentId(row) {
   return parseStudentId(row.getAttribute("data-student-id"));
 }
 
+function getMobileCardStudentId(card) {
+  return parseStudentId(card.getAttribute("data-student-id"));
+}
+
 function getLaneStudentId(card) {
   return parseStudentId(card.getAttribute("data-student-id"));
 }
@@ -213,6 +217,28 @@ function updateSortHeaders() {
   });
 }
 
+function setSubmitButtonBusy(submitButton, loadingLabel) {
+  if (!submitButton) return null;
+
+  var previousState = {
+    disabled: submitButton.disabled,
+    text: submitButton.textContent || ""
+  };
+
+  submitButton.disabled = true;
+  submitButton.textContent = loadingLabel;
+  submitButton.classList.add("opacity-70", "cursor-wait");
+
+  return previousState;
+}
+
+function restoreSubmitButton(submitButton, previousState) {
+  if (!submitButton || !previousState) return;
+  submitButton.disabled = previousState.disabled;
+  submitButton.textContent = previousState.text;
+  submitButton.classList.remove("opacity-70", "cursor-wait");
+}
+
 function setPanelVisibility(visible) {
   if (!selectedStudentPanelShell) return;
   selectedStudentPanelShell.classList.toggle("hidden", !visible);
@@ -253,6 +279,7 @@ function restoreOpenPanelDetails(openSummaries) {
 function rebindDashboardUi() {
   bindInlineSelectionLinks();
   bindStudentRowSelection();
+  bindMobileStudentCardSelection();
   bindLaneSelection();
   bindDashboardFilters();
   bindStudentSort();
