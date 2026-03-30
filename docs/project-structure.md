@@ -13,8 +13,10 @@ This document gives a technical overview of how the project is put together.
 
 ## Architecture At A Glance
 
-- [`src/worker.ts`](../src/worker.ts): route handling, auth, rendering, and core app logic
+- [`src/worker.ts`](../src/worker.ts): thin Worker entrypoint for request/session setup, auth flow, and route dispatch
+- [`src/routes/`](../src/routes): page and form-action handlers grouped by feature area
 - [`src/backup.ts`](../src/backup.ts): scheduled R2 backup generation and object layout
+- [`src/google-calendar-settings.ts`](../src/google-calendar-settings.ts): encrypted Google Calendar settings storage and source resolution
 - [`src/reference-data.ts`](../src/reference-data.ts): shared thesis phase and degree reference data
 - [`src/view/`](../src/view): page and partial rendering helpers
 - [`src/view/dashboard/`](../src/view/dashboard): dashboard-specific sections and interactions
@@ -29,13 +31,15 @@ This document gives a technical overview of how the project is put together.
 ```mermaid
 graph TD
     Browser[Browser]
-    Worker[src/worker.ts<br/>Routes, auth, page rendering]
+    Worker[src/worker.ts<br/>Entry, auth, route dispatch]
+    Routes[src/routes/<br/>Page and action handlers]
     Views[src/view/<br/>Page templates]
     Dashboard[src/view/dashboard/<br/>Dashboard sections and interactions]
     UI[src/ui/<br/>Reusable UI components]
     Reference[src/reference-data.ts<br/>Phases and degree types]
     DB[src/db.ts<br/>Database helpers]
     Backup[src/backup.ts<br/>Scheduled backup generation]
+    CalendarSettings[src/google-calendar-settings.ts<br/>Encrypted calendar settings]
     D1[(Cloudflare D1)]
     R2[(Cloudflare R2 backups)]
     Migrations[migrations/<br/>Schema changes]
@@ -44,11 +48,13 @@ graph TD
     Cron[Cloudflare Cron Trigger]
 
     Browser --> Worker
-    Worker --> Views
-    Worker --> Dashboard
-    Worker --> UI
-    Worker --> Reference
-    Worker --> DB
+    Worker --> Routes
+    Routes --> Views
+    Routes --> Dashboard
+    Routes --> UI
+    Routes --> Reference
+    Routes --> DB
+    Routes --> CalendarSettings
     Worker --> Backup
     Worker --> CSS
     DB --> D1
@@ -60,7 +66,7 @@ graph TD
     Tests --> D1
 ```
 
-The Worker is the center of the app: it handles requests, checks authentication, talks to D1 through the database helpers, renders server-side HTML using the shared view and UI layers, and can run scheduled backups into R2 when deployed on Cloudflare.
+The Worker is now intentionally thin: it handles request/session setup, authentication, and route dispatch. Feature-specific page rendering and form-action behavior live under [`src/routes/`](../src/routes), where handlers talk to D1 through the database helpers, render server-side HTML through the shared view/UI layers, and coordinate support modules such as encrypted Google Calendar settings.
 
 Authentication remains intentionally lightweight: accounts are stored in the `app_users` D1 table with hashed passwords, and the Worker stores the signed session together with the viewer role (`editor` or `readonly`) in an `HttpOnly` cookie. Legacy `APP_USERS_JSON` or `APP_PASSWORD` values are only used as a one-time bootstrap path when the auth table is still empty.
 
