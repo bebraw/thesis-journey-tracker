@@ -17,6 +17,7 @@ export interface DashboardFilters {
   degree: string;
   phase: string;
   status: string;
+  viewMode: "list" | "phases";
   sortKey: string;
   sortDirection: "asc" | "desc";
 }

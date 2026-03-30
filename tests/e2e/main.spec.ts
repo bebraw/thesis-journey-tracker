@@ -85,7 +85,10 @@ test.describe("dashboard e2e", () => {
 
     await expect(page.locator("#selectedStudentPanelShell")).toBeHidden();
     await expect(page.locator("[data-student-row]", { hasText: "Mia Koskinen" })).toBeVisible();
+    await page.getByRole("button", { name: "Phases" }).click();
     await expect(page.locator("[data-lane-student-card]", { hasText: "Noah Virtanen" })).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.get("view")).toBe("phases");
+    await page.getByRole("button", { name: "List" }).click();
 
     const studentSortHeader = page.getByRole("button", { name: "Student" });
     await studentSortHeader.click();
@@ -178,13 +181,15 @@ test.describe("dashboard e2e", () => {
       label: "All degree types",
     });
 
+    await page.getByRole("button", { name: "Phases" }).click();
     const lanePartialResponse = page.waitForResponse((response) => response.url().includes("/partials/student/"));
     await page.locator("[data-lane-student-card]", { hasText: secondaryStudentName }).first().click();
     await lanePartialResponse;
 
     await expect(page.locator("#selectedStudentPanelShell")).toBeVisible();
     await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${secondaryStudentName}`);
-    await expect(page).toHaveURL(/\/\?selected=/);
+    await expect.poll(() => new URL(page.url()).searchParams.get("selected")).not.toBeNull();
+    await expect.poll(() => new URL(page.url()).searchParams.get("view")).toBe("phases");
 
     const laneLogSuffix = Date.now().toString();
     await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Add Log Entry" }).click();

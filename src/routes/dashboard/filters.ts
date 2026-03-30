@@ -2,6 +2,7 @@ import type { DashboardFilters } from "../../view/types";
 
 const DEFAULT_DASHBOARD_SORT_KEY = "nextMeeting";
 const DEFAULT_DASHBOARD_SORT_DIRECTION: DashboardFilters["sortDirection"] = "asc";
+const DEFAULT_DASHBOARD_VIEW_MODE: DashboardFilters["viewMode"] = "list";
 const DASHBOARD_SORT_KEYS = new Set(["student", "degree", "phase", "target", "nextMeeting", "logs"]);
 
 export function getDashboardFilters(searchParams: URLSearchParams): DashboardFilters {
@@ -14,6 +15,7 @@ export function getDashboardFilters(searchParams: URLSearchParams): DashboardFil
     degree: searchParams.get("degree") || "",
     phase: searchParams.get("phase") || "",
     status: searchParams.get("status") || "",
+    viewMode: searchParams.get("view") === "phases" ? "phases" : DEFAULT_DASHBOARD_VIEW_MODE,
     sortKey,
     sortDirection: rawSortDirection,
   };
@@ -36,6 +38,9 @@ export function buildDashboardPath(filters: DashboardFilters, options: { selecte
   }
   if (filters.status) {
     searchParams.set("status", filters.status);
+  }
+  if (filters.viewMode !== DEFAULT_DASHBOARD_VIEW_MODE) {
+    searchParams.set("view", filters.viewMode);
   }
   if (filters.sortKey !== DEFAULT_DASHBOARD_SORT_KEY || filters.sortDirection !== DEFAULT_DASHBOARD_SORT_DIRECTION) {
     searchParams.set("sort", filters.sortKey);

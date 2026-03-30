@@ -28,6 +28,7 @@ function getDashboardUrl(selectedId) {
   var degreeValue = degreeFilter ? degreeFilter.value : "";
   var phaseValue = phaseFilter ? phaseFilter.value : "";
   var statusValue = statusFilter ? statusFilter.value : "";
+  var viewMode = getWorkspaceViewFromLocation();
 
   if (selectedId) {
     url.searchParams.set("selected", String(selectedId));
@@ -62,6 +63,12 @@ function getDashboardUrl(selectedId) {
     url.searchParams.delete("status");
   }
 
+  if (viewMode !== "list") {
+    url.searchParams.set("view", viewMode);
+  } else {
+    url.searchParams.delete("view");
+  }
+
   if (currentSortKey !== defaultSortKey || currentSortDirection !== defaultSortDirection) {
     url.searchParams.set("sort", currentSortKey);
     url.searchParams.set("dir", currentSortDirection);
@@ -79,6 +86,26 @@ function applyFiltersFromLocation() {
   if (degreeFilter) degreeFilter.value = url.searchParams.get("degree") || "";
   if (phaseFilter) phaseFilter.value = url.searchParams.get("phase") || "";
   if (statusFilter) statusFilter.value = url.searchParams.get("status") || "";
+}
+
+function getWorkspaceViewFromLocation() {
+  return new URL(window.location.href).searchParams.get("view") === "phases" ? "phases" : "list";
+}
+
+function applyWorkspaceView() {
+  var currentView = getWorkspaceViewFromLocation();
+
+  if (workspaceListView) {
+    workspaceListView.classList.toggle("hidden", currentView !== "list");
+  }
+  if (workspacePhaseView) {
+    workspacePhaseView.classList.toggle("hidden", currentView !== "phases");
+  }
+
+  workspaceViewButtons.forEach(function (button) {
+    var buttonView = button.getAttribute("data-workspace-view-button") || "list";
+    button.setAttribute("aria-pressed", buttonView === currentView ? "true" : "false");
+  });
 }
 
 function applySortFromLocation() {
@@ -281,6 +308,7 @@ function rebindDashboardUi() {
   bindStudentRowSelection();
   bindMobileStudentCardSelection();
   bindLaneSelection();
+  bindWorkspaceViewToggle();
   bindDashboardFilters();
   bindStudentSort();
   bindPanelToggle();
@@ -298,7 +326,6 @@ function applyDashboardHtml(htmlText, nextUrl, options) {
 
   replaceDashboardSection(nextDocument, "dashboardFlashMessages");
   replaceDashboardSection(nextDocument, "dashboardMetrics");
-  replaceDashboardSection(nextDocument, "dashboardPhaseLanes");
   replaceDashboardSection(nextDocument, "dashboardWorkspace");
 
   if (nextUrl) {
@@ -308,6 +335,7 @@ function applyDashboardHtml(htmlText, nextUrl, options) {
 
   syncDashboardDom();
   applyFiltersFromLocation();
+  applyWorkspaceView();
   applySortFromLocation();
   refreshStudentTable();
   syncInteractiveUrls();

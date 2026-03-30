@@ -1,6 +1,7 @@
 export const DASHBOARD_BOOTSTRAP_SECTION = `
 syncDashboardDom();
 applyFiltersFromLocation();
+applyWorkspaceView();
 applySortFromLocation();
 refreshStudentTable();
 syncInteractiveUrls();

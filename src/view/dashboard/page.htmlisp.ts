@@ -32,8 +32,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
       <noop &children="(get props toastHtml)"></noop>
       <div class="flex flex-col gap-stack">
         <div class="order-2 space-y-stack-xs xl:order-1" id="dashboardMetrics"><noop &children="(get props metricsHtml)"></noop></div>
-        <div class="order-3 space-y-stack-xs xl:order-2" id="dashboardPhaseLanes"><noop &children="(get props phaseLanesHtml)"></noop></div>
-        <div class="order-1 xl:order-3"><noop &children="(get props studentsTableHtml)"></noop></div>
+        <div class="order-1 xl:order-2"><noop &children="(get props studentsTableHtml)"></noop></div>
       </div>
     </div>
     <noop &children="(get props dashboardScript)"></noop>
@@ -50,11 +49,11 @@ export function renderDashboardPage(data: DashboardPageData): string {
       ),
       toastHtml: renderDashboardToastMessages(notice, error),
       metricsHtml: renderMetricCards(metrics),
-      phaseLanesHtml: renderPhaseLanes(students, selectedStudent, filters),
       studentsTableHtml: renderStudentsTable(
         students,
         selectedStudent,
         filters,
+        renderPhaseLanes(students, selectedStudent, filters, { embedded: true }),
         selectedPanel,
         renderEmptySelectedPanel(
           canEdit

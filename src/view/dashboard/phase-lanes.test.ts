@@ -26,6 +26,7 @@ const DEFAULT_FILTERS: DashboardFilters = {
   degree: "",
   phase: "",
   status: "",
+  viewMode: "list",
   sortKey: "nextMeeting",
   sortDirection: "asc",
 };
@@ -41,7 +42,7 @@ describe("phase lanes", () => {
       DEFAULT_FILTERS,
     );
 
-    const selectedCardMatch = html.match(/<li class="([^"]+)" data-lane-student-card data-student-id="13" aria-selected="true"/);
+    const selectedCardMatch = html.match(/<li class="([^"]+)" data-lane-student-card data-student-id="13"[\s\S]*?aria-selected="true"/);
     expect(selectedCardMatch).not.toBeNull();
 
     const selectedCardClass = selectedCardMatch?.[1] || "";

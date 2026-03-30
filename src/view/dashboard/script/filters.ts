@@ -106,7 +106,9 @@ function applyStudentFilters() {
   var degree = degreeFilter ? degreeFilter.value : "";
   var phase = phaseFilter ? phaseFilter.value : "";
   var status = statusFilter ? statusFilter.value : "";
+  var hasActiveFilters = Boolean(query || degree || phase || status);
   var visibleCount = 0;
+  var visibleLaneCounts = {};
 
   studentRows.forEach(function (row) {
     var name = row.getAttribute("data-name") || "";
@@ -130,7 +132,35 @@ function applyStudentFilters() {
     if (matchingCard) {
       matchingCard.style.display = visible ? "" : "none";
     }
+    laneStudentCards.forEach(function (laneCard) {
+      if (getLaneStudentId(laneCard) !== getRowStudentId(row)) return;
+      laneCard.style.display = visible ? "" : "none";
+      if (visible) {
+        var lanePhase = laneCard.getAttribute("data-phase") || "";
+        visibleLaneCounts[lanePhase] = (visibleLaneCounts[lanePhase] || 0) + 1;
+      }
+    });
     if (visible) visibleCount += 1;
+  });
+
+  phaseLanes.forEach(function (lane) {
+    var phaseId = lane.getAttribute("data-phase-id") || "";
+    var visibleLaneCount = visibleLaneCounts[phaseId] || 0;
+    var countBadge = lane.querySelector("[data-phase-lane-count] > *");
+    var emptyState = lane.querySelector("[data-lane-empty-state]");
+    var studentList = lane.querySelector("ul");
+
+    lane.style.display = hasActiveFilters && visibleLaneCount === 0 ? "none" : "";
+    if (countBadge) {
+      countBadge.textContent = String(visibleLaneCount);
+    }
+    if (studentList) {
+      studentList.style.display = visibleLaneCount > 0 ? "" : "none";
+    }
+    if (emptyState) {
+      emptyState.style.display = visibleLaneCount > 0 ? "none" : "";
+      emptyState.textContent = hasActiveFilters ? "No matching students in this phase." : "No students in this phase.";
+    }
   });
 
   if (studentResultsMeta) {

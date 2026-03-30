@@ -67,6 +67,7 @@ function bindLaneSelection() {
 function bindHistorySelection() {
   window.addEventListener("popstate", function () {
     applyFiltersFromLocation();
+    applyWorkspaceView();
     applySortFromLocation();
     refreshStudentTable();
     syncInteractiveUrls();
@@ -76,6 +77,25 @@ function bindHistorySelection() {
       return;
     }
     void selectStudentWithoutRefresh(selectedId, false);
+  });
+}
+
+function bindWorkspaceViewToggle() {
+  workspaceViewButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      var nextView = button.getAttribute("data-workspace-view-button") || "list";
+      var url = getDashboardUrl(getSelectedStudentIdFromLocation());
+
+      if (nextView === "phases") {
+        url.searchParams.set("view", "phases");
+      } else {
+        url.searchParams.delete("view");
+      }
+
+      window.history.replaceState(window.history.state, "", url.pathname + url.search);
+      applyWorkspaceView();
+      syncInteractiveUrls();
+    });
   });
 }
 

@@ -83,6 +83,9 @@ function buildDashboardHref(filters: DashboardFilters, selectedId?: number): str
   if (filters.status) {
     searchParams.set("status", filters.status);
   }
+  if (filters.viewMode !== "list") {
+    searchParams.set("view", filters.viewMode);
+  }
   if (filters.sortKey !== "nextMeeting" || filters.sortDirection !== "asc") {
     searchParams.set("sort", filters.sortKey);
     searchParams.set("dir", filters.sortDirection);
@@ -185,6 +188,7 @@ export function renderStudentsTable(
   students: Student[],
   selectedStudent: Student | null,
   filters: DashboardFilters,
+  phaseLanesHtml: string,
   selectedPanel: string,
   emptySelectedPanel: string,
   options: { canEdit?: boolean } = {},
@@ -327,9 +331,23 @@ export function renderStudentsTable(
         <div class="mb-panel-sm flex flex-col gap-stack-xs sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 class="text-lg font-semibold">Student Workspace</h2>
-            <p &class="(get props mutedTextXs)">Find a student, then work through updates and supervision history without leaving the dashboard.</p>
+            <p &class="(get props mutedTextXs)">Switch between a sortable list and phase-based view without leaving the same workspace.</p>
           </div>
           <div class="flex flex-wrap items-center gap-badge-y sm:justify-end">
+            <div class="inline-flex rounded-control border border-app-field bg-app-surface-soft/80 p-1 shadow-sm dark:border-app-field-dark dark:bg-app-surface-soft-dark/45">
+              <button
+                type="button"
+                data-workspace-view-button="list"
+                &class="(get props workspaceViewButtonClass)"
+                &aria-pressed="(get props listViewPressed)"
+              >List</button>
+              <button
+                type="button"
+                data-workspace-view-button="phases"
+                &class="(get props workspaceViewButtonClass)"
+                &aria-pressed="(get props phasesViewPressed)"
+              >Phases</button>
+            </div>
             <noop &children="(get props addStudentButtonHtml)"></noop>
             <noop &children="(get props panelToggleButtonHtml)"></noop>
           </div>
@@ -376,85 +394,90 @@ export function renderStudentsTable(
         <div id="activeDashboardFilters" class="mb-panel-sm hidden rounded-card border border-app-line bg-app-surface-soft/55 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/25"></div>
         <div class="mb-badge-pill-y flex flex-col gap-badge-y text-xs text-app-text-muted dark:text-app-text-muted-dark sm:flex-row sm:items-center sm:justify-between">
           <p id="studentResultsMeta"></p>
-          <p>Tip: rows open the workspace, filters stay in the URL, and headers sort instantly.</p>
+          <p>Tip: selection, filters, and the current view stay in the URL.</p>
         </div>
-        <div id="mobileStudentCardList" class="space-y-stack-xs sm:hidden">
-          <noop &visibleIf="(get props hasStudentRows)">
-            <noop &foreach="(get props studentRows)">
-              <MobileStudentCard
-                &mobileCardClass="(get props mobileCardClass)"
-                &selectedAttr="(get props selectedAttr)"
-                &selectHref="(get props selectHref)"
-                &studentIdAttr="(get props studentIdAttr)"
-                &dataName="(get props dataName)"
-                &dataEmail="(get props dataEmail)"
-                &dataTopic="(get props dataTopic)"
-                &dataNotes="(get props dataNotes)"
-                &dataDegree="(get props dataDegree)"
-                &dataDegreeLabel="(get props dataDegreeLabel)"
-                &dataPhase="(get props dataPhase)"
-                &dataPhaseLabel="(get props dataPhaseLabel)"
-                &dataStatusId="(get props dataStatusId)"
-                &dataTargetDate="(get props dataTargetDate)"
-                &dataNextMeetingDate="(get props dataNextMeetingDate)"
-                &dataLogCount="(get props dataLogCount)"
-                &summaryHtml="(get props summaryHtml)"
-                &degreeBadgeHtml="(get props degreeBadgeHtml)"
-                &phaseBadgeHtml="(get props phaseBadgeHtml)"
-                &targetDate="(get props targetDate)"
-                &nextMeetingText="(get props nextMeetingText)"
-                &logCountText="(get props logCountText)"
-                &statusLabel="(get props statusLabel)"
-              ></MobileStudentCard>
-            </noop>
-          </noop>
-          <p &visibleIf="(get props showEmptyRow)" class="rounded-card border border-app-line bg-app-surface-soft/55 px-panel-sm py-stack-xs text-sm text-app-text-muted dark:border-app-line-dark dark:bg-app-surface-soft-dark/25 dark:text-app-text-muted-dark">
-            No students yet.
-          </p>
-        </div>
-        <div class="hidden overflow-x-auto rounded-card border border-app-line bg-app-surface-soft/35 dark:border-app-line-dark dark:bg-app-surface-soft-dark/20 sm:block">
-          <table class="w-full min-w-table divide-y divide-app-line text-sm dark:divide-app-line-dark">
-            <thead>
-              <tr &class="(get props tableHeaderClass)">
-                <noop &foreach="(get props sortHeaders)">
-                  <SortHeader &key="(get props key)" &label="(get props label)"></SortHeader>
-                </noop>
-              </tr>
-            </thead>
-            <tbody id="studentsTableBody" class="divide-y divide-app-surface-soft dark:divide-app-surface-soft-dark">
-              <noop &visibleIf="(get props hasStudentRows)">
-                <noop &foreach="(get props studentRows)">
-                  <StudentTableRow
-                    &rowClass="(get props rowClass)"
-                    &selectedAttr="(get props selectedAttr)"
-                    &selectHref="(get props selectHref)"
-                    &studentIdAttr="(get props studentIdAttr)"
-                    &dataName="(get props dataName)"
-                    &dataEmail="(get props dataEmail)"
-                    &dataTopic="(get props dataTopic)"
-                    &dataNotes="(get props dataNotes)"
-                    &dataDegree="(get props dataDegree)"
-                    &dataDegreeLabel="(get props dataDegreeLabel)"
-                    &dataPhase="(get props dataPhase)"
-                    &dataPhaseLabel="(get props dataPhaseLabel)"
-                    &dataStatusId="(get props dataStatusId)"
-                    &dataTargetDate="(get props dataTargetDate)"
-                    &dataNextMeetingDate="(get props dataNextMeetingDate)"
-                    &dataLogCount="(get props dataLogCount)"
-                    &summaryHtml="(get props summaryHtml)"
-                    &degreeLabel="(get props degreeLabel)"
-                    &phaseLabel="(get props phaseLabel)"
-                    &targetDate="(get props targetDate)"
-                    &nextMeetingText="(get props nextMeetingText)"
-                    &logCountText="(get props logCountText)"
-                  ></StudentTableRow>
-                </noop>
+        <div id="workspaceListView" &class="(get props listViewClass)">
+          <div id="mobileStudentCardList" class="space-y-stack-xs sm:hidden">
+            <noop &visibleIf="(get props hasStudentRows)">
+              <noop &foreach="(get props studentRows)">
+                <MobileStudentCard
+                  &mobileCardClass="(get props mobileCardClass)"
+                  &selectedAttr="(get props selectedAttr)"
+                  &selectHref="(get props selectHref)"
+                  &studentIdAttr="(get props studentIdAttr)"
+                  &dataName="(get props dataName)"
+                  &dataEmail="(get props dataEmail)"
+                  &dataTopic="(get props dataTopic)"
+                  &dataNotes="(get props dataNotes)"
+                  &dataDegree="(get props dataDegree)"
+                  &dataDegreeLabel="(get props dataDegreeLabel)"
+                  &dataPhase="(get props dataPhase)"
+                  &dataPhaseLabel="(get props dataPhaseLabel)"
+                  &dataStatusId="(get props dataStatusId)"
+                  &dataTargetDate="(get props dataTargetDate)"
+                  &dataNextMeetingDate="(get props dataNextMeetingDate)"
+                  &dataLogCount="(get props dataLogCount)"
+                  &summaryHtml="(get props summaryHtml)"
+                  &degreeBadgeHtml="(get props degreeBadgeHtml)"
+                  &phaseBadgeHtml="(get props phaseBadgeHtml)"
+                  &targetDate="(get props targetDate)"
+                  &nextMeetingText="(get props nextMeetingText)"
+                  &logCountText="(get props logCountText)"
+                  &statusLabel="(get props statusLabel)"
+                ></MobileStudentCard>
               </noop>
-              <tr &visibleIf="(get props showEmptyRow)">
-                <td colspan="6" class="px-cell-x py-stack-xs text-sm text-app-text-muted dark:text-app-text-muted-dark">No students yet.</td>
-              </tr>
-            </tbody>
-          </table>
+            </noop>
+            <p &visibleIf="(get props showEmptyRow)" class="rounded-card border border-app-line bg-app-surface-soft/55 px-panel-sm py-stack-xs text-sm text-app-text-muted dark:border-app-line-dark dark:bg-app-surface-soft-dark/25 dark:text-app-text-muted-dark">
+              No students yet.
+            </p>
+          </div>
+          <div class="hidden overflow-x-auto rounded-card border border-app-line bg-app-surface-soft/35 dark:border-app-line-dark dark:bg-app-surface-soft-dark/20 sm:block">
+            <table class="w-full min-w-table divide-y divide-app-line text-sm dark:divide-app-line-dark">
+              <thead>
+                <tr &class="(get props tableHeaderClass)">
+                  <noop &foreach="(get props sortHeaders)">
+                    <SortHeader &key="(get props key)" &label="(get props label)"></SortHeader>
+                  </noop>
+                </tr>
+              </thead>
+              <tbody id="studentsTableBody" class="divide-y divide-app-surface-soft dark:divide-app-surface-soft-dark">
+                <noop &visibleIf="(get props hasStudentRows)">
+                  <noop &foreach="(get props studentRows)">
+                    <StudentTableRow
+                      &rowClass="(get props rowClass)"
+                      &selectedAttr="(get props selectedAttr)"
+                      &selectHref="(get props selectHref)"
+                      &studentIdAttr="(get props studentIdAttr)"
+                      &dataName="(get props dataName)"
+                      &dataEmail="(get props dataEmail)"
+                      &dataTopic="(get props dataTopic)"
+                      &dataNotes="(get props dataNotes)"
+                      &dataDegree="(get props dataDegree)"
+                      &dataDegreeLabel="(get props dataDegreeLabel)"
+                      &dataPhase="(get props dataPhase)"
+                      &dataPhaseLabel="(get props dataPhaseLabel)"
+                      &dataStatusId="(get props dataStatusId)"
+                      &dataTargetDate="(get props dataTargetDate)"
+                      &dataNextMeetingDate="(get props dataNextMeetingDate)"
+                      &dataLogCount="(get props dataLogCount)"
+                      &summaryHtml="(get props summaryHtml)"
+                      &degreeLabel="(get props degreeLabel)"
+                      &phaseLabel="(get props phaseLabel)"
+                      &targetDate="(get props targetDate)"
+                      &nextMeetingText="(get props nextMeetingText)"
+                      &logCountText="(get props logCountText)"
+                    ></StudentTableRow>
+                  </noop>
+                </noop>
+                <tr &visibleIf="(get props showEmptyRow)">
+                  <td colspan="6" class="px-cell-x py-stack-xs text-sm text-app-text-muted dark:text-app-text-muted-dark">No students yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="workspacePhaseView" &class="(get props phaseViewClass)">
+          <noop &children="(get props phaseLanesHtml)"></noop>
         </div>
       </article>
       <div id="selectedStudentPanelShell" &class="(get props selectedPanelShellClass)">
@@ -469,6 +492,13 @@ export function renderStudentsTable(
       mutedTextXs: escapeHtml(MUTED_TEXT_XS),
       filterLabelClass: escapeHtml(FILTER_LABEL),
       filterControlClass: escapeHtml(FIELD_CONTROL_WITH_MARGIN),
+      workspaceViewButtonClass: escapeHtml(
+        "rounded-control px-badge-pill-x py-badge-pill-y text-xs font-medium text-app-text transition aria-[pressed='true']:bg-app-brand aria-[pressed='true']:text-white dark:text-app-text-dark dark:aria-[pressed='true']:bg-app-brand-strong sm:text-sm",
+      ),
+      listViewPressed: filters.viewMode === "list" ? "true" : "false",
+      phasesViewPressed: filters.viewMode === "phases" ? "true" : "false",
+      listViewClass: escapeHtml(filters.viewMode === "list" ? "" : "hidden "),
+      phaseViewClass: escapeHtml(filters.viewMode === "phases" ? "" : "hidden "),
       searchValue: escapeHtml(filters.search),
       tableHeaderClass: escapeHtml(TABLE_HEADER_ROW),
       degreeFilterOptions,
@@ -494,6 +524,7 @@ export function renderStudentsTable(
       selectedPanelShellClass: escapeHtml(`${selectedStudent ? "" : "hidden "}min-w-0 xl:sticky xl:top-6 xl:w-[32rem] xl:shrink-0`),
       showEmptyRow: studentRows.length === 0,
       studentRows,
+      phaseLanesHtml,
       selectedPanel,
       emptySelectedPanel,
     },

@@ -26,6 +26,7 @@ const DEFAULT_FILTERS: DashboardFilters = {
   degree: "",
   phase: "",
   status: "",
+  viewMode: "list",
   sortKey: "nextMeeting",
   sortDirection: "asc",
 };
@@ -39,6 +40,7 @@ describe("students table", () => {
       ],
       buildStudent({ id: 13, name: "Selected Student" }),
       DEFAULT_FILTERS,
+      "<div>Phases</div>",
       "<div>Panel</div>",
       "<div>Empty</div>",
       { canEdit: true },
