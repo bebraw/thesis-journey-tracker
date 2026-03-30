@@ -1,4 +1,4 @@
-import { ALERT_CLASS_MAP, BODY_CLASS, HEADER_CARD, SUBTLE_TEXT, THEME_TOGGLE_BUTTON, renderButton } from "../ui";
+import { ALERT_CLASS_MAP, BODY_CLASS, BUTTON_CLASS_MAP, HEADER_CARD, SUBTLE_TEXT, THEME_TOGGLE_BUTTON, renderButton } from "../ui";
 import { type HtmlispComponents, renderHTMLisp } from "../htmlisp";
 import { escapeHtml } from "../utils";
 import type { ViewerContext } from "./types";
@@ -107,6 +107,86 @@ export function renderFlashMessages(notice: string | null, error: string | null)
       errorVisible: Boolean(error),
       errorClass: escapeHtml(ALERT_CLASS_MAP.error),
       errorMessage: escapeHtml(error || ""),
+    },
+    components,
+  );
+}
+
+export function renderDashboardToastMessages(notice: string | null, error: string | null): string {
+  const components: HtmlispComponents = {
+    ToastStack: `<div
+      id="dashboardFlashMessages"
+      class="pointer-events-none fixed inset-x-4 top-4 z-50 flex flex-col gap-stack-xs sm:left-auto sm:right-4 sm:w-full sm:max-w-sm"
+    >
+      <noop &children="(get props toastHtml)"></noop>
+    </div>`,
+    NoticeToast: `<div
+      &visibleIf="(get props visible)"
+      data-dashboard-toast="1"
+      data-toast-kind="notice"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      &class="(get props toastClass)"
+    >
+      <p class="min-w-0 flex-1" &children="(get props message)"></p>
+      <button
+        type="button"
+        data-toast-dismiss="1"
+        &class="(get props dismissButtonClass)"
+      >Dismiss</button>
+    </div>`,
+    ErrorToast: `<div
+      &visibleIf="(get props visible)"
+      data-dashboard-toast="1"
+      data-toast-kind="error"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+      &class="(get props toastClass)"
+    >
+      <p class="min-w-0 flex-1" &children="(get props message)"></p>
+      <button
+        type="button"
+        data-toast-dismiss="1"
+        &class="(get props dismissButtonClass)"
+      >Dismiss</button>
+    </div>`,
+  };
+
+  return renderView(
+    `<ToastStack &toastHtml="(get props toastHtml)"></ToastStack>`,
+    {
+      toastHtml: renderView(
+        `<noop>
+          <NoticeToast
+            &visible="(get props noticeVisible)"
+            &message="(get props noticeMessage)"
+            &toastClass="(get props noticeClass)"
+            &dismissButtonClass="(get props dismissButtonClass)"
+          ></NoticeToast>
+          <ErrorToast
+            &visible="(get props errorVisible)"
+            &message="(get props errorMessage)"
+            &toastClass="(get props errorClass)"
+            &dismissButtonClass="(get props dismissButtonClass)"
+          ></ErrorToast>
+        </noop>`,
+        {
+          noticeVisible: Boolean(notice),
+          noticeClass: escapeHtml(
+            "pointer-events-auto flex items-start gap-badge-y rounded-panel border border-app-success-line bg-app-success-soft/96 px-panel-sm py-stack-xs text-sm text-app-success-text opacity-100 shadow-elevated transition duration-200 ease-out supports-[backdrop-filter]:bg-app-success-soft/86 dark:border-app-success-line-dark/45 dark:bg-app-success-soft-dark/88 dark:text-app-success-text-dark dark:supports-[backdrop-filter]:bg-app-success-soft-dark/78",
+          ),
+          noticeMessage: escapeHtml(notice || ""),
+          errorVisible: Boolean(error),
+          errorClass: escapeHtml(
+            "pointer-events-auto flex items-start gap-badge-y rounded-panel border border-app-danger-line bg-app-danger-soft/96 px-panel-sm py-stack-xs text-sm text-app-danger-text opacity-100 shadow-elevated transition duration-200 ease-out supports-[backdrop-filter]:bg-app-danger-soft/86 dark:border-app-danger-line-dark/45 dark:bg-app-danger-soft-dark/88 dark:text-app-danger-text-dark dark:supports-[backdrop-filter]:bg-app-danger-soft-dark/78",
+          ),
+          errorMessage: escapeHtml(error || ""),
+          dismissButtonClass: escapeHtml(`shrink-0 ${BUTTON_CLASS_MAP.inline}`),
+        },
+        components,
+      ),
     },
     components,
   );

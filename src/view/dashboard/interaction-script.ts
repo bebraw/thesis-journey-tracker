@@ -141,6 +141,26 @@ function syncFiltersToUrl() {
   window.history.replaceState(window.history.state, "", url.pathname + url.search);
 }
 
+function clearDashboardMessageParams() {
+  var url = new URL(window.location.href);
+  if (!url.searchParams.has("notice") && !url.searchParams.has("error")) return;
+  url.searchParams.delete("notice");
+  url.searchParams.delete("error");
+  window.history.replaceState(window.history.state, "", url.pathname + url.search);
+}
+
+function dismissDashboardToast(toast) {
+  if (!toast || toast.getAttribute("data-toast-closing") === "1") return;
+
+  toast.setAttribute("data-toast-closing", "1");
+  toast.classList.add("translate-y-2", "opacity-0");
+  window.setTimeout(function () {
+    if (toast.parentNode) {
+      toast.parentNode.removeChild(toast);
+    }
+  }, 220);
+}
+
 function getRowStudentId(row) {
   return parseStudentId(row.getAttribute("data-student-id"));
 }
@@ -276,6 +296,7 @@ function rebindDashboardUi() {
   bindPanelToggle();
   bindInlineStudentUpdateForm();
   bindInlineLogEntryForm();
+  bindDashboardToasts();
 }
 
 function applyDashboardHtml(htmlText, nextUrl, options) {
@@ -545,6 +566,32 @@ function bindPanelToggle() {
     var isVisible = !selectedStudentPanelShell.classList.contains("hidden");
     setPanelVisibility(!isVisible);
   });
+}
+
+function bindDashboardToasts() {
+  var toasts = Array.prototype.slice.call(document.querySelectorAll("[data-dashboard-toast='1']"));
+
+  toasts.forEach(function (toast) {
+    if (toast.getAttribute("data-toast-bound") === "1") return;
+    toast.setAttribute("data-toast-bound", "1");
+
+    var dismissButton = toast.querySelector("[data-toast-dismiss='1']");
+    if (dismissButton) {
+      dismissButton.addEventListener("click", function () {
+        dismissDashboardToast(toast);
+      });
+    }
+
+    if (toast.getAttribute("data-toast-kind") === "notice") {
+      window.setTimeout(function () {
+        dismissDashboardToast(toast);
+      }, 3200);
+    }
+  });
+
+  if (toasts.length > 0) {
+    clearDashboardMessageParams();
+  }
 }
 
 function bindInlineStudentUpdateForm() {

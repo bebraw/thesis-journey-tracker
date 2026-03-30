@@ -1,7 +1,7 @@
 import { PAGE_WRAP, renderButton } from "../../ui";
 import { escapeHtml } from "../../utils";
 import { renderEmptySelectedPanel, renderSelectedStudentPanel } from "../student-panel.htmlisp";
-import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderFlashMessages, renderView } from "../shared.htmlisp";
+import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDashboardToastMessages, renderDocument, renderView } from "../shared.htmlisp";
 import type { DashboardPageData } from "../types";
 import { renderDashboardScriptTag } from "./interaction-script";
 import { renderMetricCards } from "./metrics.htmlisp";
@@ -22,7 +22,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
   const bodyContent = renderView(
     `<div &class="(get props pageWrap)">
       <noop &children="(get props headerHtml)"></noop>
-      <div id="dashboardFlashMessages"><noop &children="(get props flashHtml)"></noop></div>
+      <noop &children="(get props toastHtml)"></noop>
       <div id="dashboardMetrics" class="space-y-stack-xs"><noop &children="(get props metricsHtml)"></noop></div>
       <div id="dashboardPhaseLanes" class="space-y-stack-xs"><noop &children="(get props phaseLanesHtml)"></noop></div>
       <noop &children="(get props studentsTableHtml)"></noop>
@@ -61,7 +61,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
           : "",
         viewer,
       ),
-      flashHtml: renderFlashMessages(notice, error),
+      toastHtml: renderDashboardToastMessages(notice, error),
       metricsHtml: renderMetricCards(metrics),
       phaseLanesHtml: renderPhaseLanes(students, selectedStudent, filters),
       studentsTableHtml: renderStudentsTable(

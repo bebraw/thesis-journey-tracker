@@ -189,7 +189,8 @@ test.describe("dashboard e2e", () => {
     });
     await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save log entry" }).click();
 
-    await expect(page).toHaveURL(/notice=Log\+saved/);
+    await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Log saved");
+    await expect.poll(() => new URL(page.url()).searchParams.get("notice")).toBeNull();
     await expect
       .poll(() => page.evaluate(() => (window as Window & { __laneLogNoReloadMarker?: number }).__laneLogNoReloadMarker ?? 0))
       .toBe(1);
@@ -336,7 +337,8 @@ test.describe("dashboard e2e", () => {
     });
     await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save student updates" }).click();
 
-    await expect(page).toHaveURL(/notice=Student\+updated/);
+    await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Student updated");
+    await expect.poll(() => new URL(page.url()).searchParams.get("notice")).toBeNull();
     await expect
       .poll(() =>
         page.evaluate(() => (window as Window & { __studentEditNoReloadMarker?: number }).__studentEditNoReloadMarker ?? 0),
@@ -367,7 +369,8 @@ test.describe("dashboard e2e", () => {
     });
     await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save log entry" }).click();
 
-    await expect(page).toHaveURL(/notice=Log\+saved/);
+    await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Log saved");
+    await expect.poll(() => new URL(page.url()).searchParams.get("notice")).toBeNull();
     await expect
       .poll(() =>
         page.evaluate(() => (window as Window & { __studentLogNoReloadMarker?: number }).__studentLogNoReloadMarker ?? 0),
@@ -394,7 +397,8 @@ test.describe("dashboard e2e", () => {
     });
     await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save student updates" }).click();
 
-    await expect(page).toHaveURL(/notice=Student\+updated/);
+    await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Student updated");
+    await expect.poll(() => new URL(page.url()).searchParams.get("notice")).toBeNull();
     await expect
       .poll(() =>
         page.evaluate(() => (window as Window & { __studentEditNoReloadMarker?: number }).__studentEditNoReloadMarker ?? 0),
@@ -433,7 +437,8 @@ test.describe("dashboard e2e", () => {
     expect(dialog.message()).toContain(`Archive ${secondaryStudentName}?`);
     await dialog.accept();
 
-    await expect(page).toHaveURL(/notice=Student\+archived/);
+    await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Student archived");
+    await expect.poll(() => new URL(page.url()).searchParams.get("notice")).toBeNull();
     await page.locator("#studentSearch").fill(secondaryStudentName);
     await expect(page.locator("[data-student-row]", { hasText: secondaryStudentName })).toHaveCount(0);
     await expect(page.locator("#selectedStudentPanel")).toContainText(
