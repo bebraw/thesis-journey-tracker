@@ -43,7 +43,7 @@ export async function renderSchedule(url: URL, env: Env, sessionUser: SessionUse
     }
   } else if (calendarSource?.mode === "ical") {
     try {
-      events = await listIcalCalendarEvents(calendarSource.iCalUrl, timeZone);
+      events = await listIcalCalendarEventsForWeek(calendarSource.iCalUrl, weekStart, timeZone);
     } catch (calendarError) {
       console.error("Failed to load Google Calendar iCal events", calendarError);
       syncFailed = true;
@@ -112,11 +112,24 @@ async function listGoogleCalendarEventsForWeek(
   weekStart: string,
   timeZone: string,
 ) {
-  const weekEndExclusive = addHourToLocalDateTime(`${weekStart}T00:00`, 24 * 7);
+  const window = buildScheduleWeekWindow(weekStart, timeZone);
   return await listGoogleCalendarEvents(config, {
+    timeMinIso: window.timeMinIso,
+    timeMaxIso: window.timeMaxIso,
+  });
+}
+
+async function listIcalCalendarEventsForWeek(iCalUrl: string, weekStart: string, timeZone: string) {
+  const window = buildScheduleWeekWindow(weekStart, timeZone);
+  return await listIcalCalendarEvents(iCalUrl, timeZone, window);
+}
+
+function buildScheduleWeekWindow(weekStart: string, timeZone: string) {
+  const weekEndExclusive = addHourToLocalDateTime(`${weekStart}T00:00`, 24 * 7);
+  return {
     timeMinIso: localDateTimeToUtcIso(`${weekStart}T00:00`, timeZone),
     timeMaxIso: localDateTimeToUtcIso(weekEndExclusive, timeZone),
-  });
+  };
 }
 
 function formatCalendarSyncError(sourceLabel: string, error: unknown): string {

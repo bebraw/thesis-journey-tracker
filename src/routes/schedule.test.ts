@@ -204,6 +204,72 @@ describe("google calendar scheduling", () => {
     expect(dataToolsBody).toContain('value="https://calendar.google.com/calendar/ical/example/private-ical/basic.ics"');
   });
 
+  it("expands recurring iCal fallback events with exceptions for the requested week", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+
+    await fetchHandler(
+      new Request("http://localhost/actions/save-google-calendar-ical-settings", {
+        method: "POST",
+        headers: { cookie },
+        body: new URLSearchParams({
+          iCalUrl: "https://calendar.google.com/calendar/ical/example/private-ical/basic.ics",
+          timeZone: "Europe/Helsinki",
+        }),
+      }),
+      env,
+    );
+
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url === "https://calendar.google.com/calendar/ical/example/private-ical/basic.ics") {
+        return new Response(
+          [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "X-WR-TIMEZONE:Europe/Helsinki",
+            "BEGIN:VEVENT",
+            "UID:series-1",
+            "DTSTART;TZID=Europe/Helsinki:20260324T130000",
+            "DTEND;TZID=Europe/Helsinki:20260324T140000",
+            "RRULE:FREQ=WEEKLY;BYDAY=TU;COUNT=4",
+            "EXDATE;TZID=Europe/Helsinki:20260331T130000",
+            "SUMMARY:Weekly supervision",
+            "END:VEVENT",
+            "BEGIN:VEVENT",
+            "UID:series-1",
+            "RECURRENCE-ID;TZID=Europe/Helsinki:20260407T130000",
+            "DTSTART;TZID=Europe/Helsinki:20260407T150000",
+            "DTEND;TZID=Europe/Helsinki:20260407T160000",
+            "SUMMARY:Moved supervision",
+            "DESCRIPTION:Rescheduled instance",
+            "END:VEVENT",
+            "END:VCALENDAR",
+          ].join("\r\n"),
+          {
+            status: 200,
+            headers: { "content-type": "text/calendar" },
+          },
+        );
+      }
+
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const scheduleResponse = await fetchHandler(
+      new Request("http://localhost/schedule?student=1&week=2026-04-06", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    const scheduleBody = await scheduleResponse.text();
+    expect(scheduleResponse.status).toBe(200);
+    expect(scheduleBody).toContain("Moved supervision");
+    expect(scheduleBody).toContain("15:00 - 16:00");
+    expect(scheduleBody).not.toContain("Weekly supervision");
+  });
+
   it("can clear stored database credentials", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
 
