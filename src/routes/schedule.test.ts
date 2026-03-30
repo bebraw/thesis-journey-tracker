@@ -587,6 +587,7 @@ describe("google calendar scheduling", () => {
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/schedule?week=2026-03-23&student=1&notice=Meeting+scheduled");
     expect(createdEventPayload).toEqual({
+      id: expect.stringMatching(/^tjt[0-9a-v]{13}$/),
       summary: "Thesis supervision sync",
       description: "Discuss the next milestone",
       start: {
@@ -600,6 +601,121 @@ describe("google calendar scheduling", () => {
       attendees: [{ email: "student@example.edu" }],
     });
     expect(env.DB.students[0]?.email).toBe("student@example.edu");
+    expect(env.DB.students[0]?.next_meeting_at).toBe("2026-03-24T07:00:00.000Z");
+  });
+
+  it("reuses the same Google Calendar event when retrying after a local student update failure", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    await saveGoogleCalendarSettings(fetchHandler, env, cookie, {
+      clientId: "google-client-id",
+      clientSecret: "google-client-secret",
+      refreshToken: "google-refresh-token",
+      calendarId: "primary",
+      timeZone: "Europe/Helsinki",
+    });
+
+    let createCalls = 0;
+    const postedEventIds: string[] = [];
+
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+
+      if (url === "https://oauth2.googleapis.com/token") {
+        return jsonResponse({ access_token: "google-access-token" });
+      }
+
+      if (url === "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all") {
+        createCalls += 1;
+        const payload = JSON.parse(String(init?.body || "{}")) as Record<string, unknown>;
+        const eventId = String(payload.id || "");
+        postedEventIds.push(eventId);
+
+        if (createCalls === 1) {
+          return jsonResponse({
+            id: eventId,
+            summary: payload.summary,
+            description: payload.description,
+            htmlLink: `https://calendar.google.com/calendar/event?eid=${eventId}`,
+            start: { dateTime: "2026-03-24T09:00:00+02:00" },
+            end: { dateTime: "2026-03-24T10:00:00+02:00" },
+            attendees: [{ email: "base@example.edu" }],
+          });
+        }
+
+        return new Response(JSON.stringify({ error: { message: "The requested identifier already exists." } }), {
+          status: 409,
+          headers: { "content-type": "application/json" },
+        });
+      }
+
+      if (url.startsWith("https://www.googleapis.com/calendar/v3/calendars/primary/events/")) {
+        const eventId = url.split("/").pop() || "";
+        return jsonResponse({
+          id: eventId,
+          summary: "Retry-safe thesis supervision",
+          description: "Discuss the next milestone",
+          htmlLink: `https://calendar.google.com/calendar/event?eid=${eventId}`,
+          start: { dateTime: "2026-03-24T09:00:00+02:00" },
+          end: { dateTime: "2026-03-24T10:00:00+02:00" },
+          attendees: [{ email: "base@example.edu" }],
+        });
+      }
+
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    env.DB.failQueries.push(/^UPDATE students/);
+
+    const firstResponse = await fetchHandler(
+      new Request("http://localhost/actions/schedule-meeting", {
+        method: "POST",
+        headers: { cookie },
+        body: new URLSearchParams({
+          returnTo: "/schedule?week=2026-03-23&student=1&slot=2026-03-24T09:00",
+          studentId: "1",
+          week: "2026-03-23",
+          slotStart: "2026-03-24T09:00",
+          slotEnd: "2026-03-24T10:00",
+          title: "Retry-safe thesis supervision",
+          meetingEmail: "base@example.edu",
+          description: "Discuss the next milestone",
+        }),
+      }),
+      env,
+    );
+
+    expect(firstResponse.status).toBe(302);
+    expect(firstResponse.headers.get("location")).toBe(
+      "/schedule?week=2026-03-23&student=1&slot=2026-03-24T09%3A00&error=Google+Calendar+invite+was+created%2C+but+saving+it+in+the+app+failed.+Retrying+is+safe.",
+    );
+    expect(env.DB.students[0]?.next_meeting_at).toBeNull();
+
+    env.DB.failQueries = [];
+
+    const retryResponse = await fetchHandler(
+      new Request("http://localhost/actions/schedule-meeting", {
+        method: "POST",
+        headers: { cookie },
+        body: new URLSearchParams({
+          returnTo: "/schedule?week=2026-03-23&student=1&slot=2026-03-24T09:00",
+          studentId: "1",
+          week: "2026-03-23",
+          slotStart: "2026-03-24T09:00",
+          slotEnd: "2026-03-24T10:00",
+          title: "Retry-safe thesis supervision",
+          meetingEmail: "base@example.edu",
+          description: "Discuss the next milestone",
+        }),
+      }),
+      env,
+    );
+
+    expect(retryResponse.status).toBe(302);
+    expect(retryResponse.headers.get("location")).toBe("/schedule?week=2026-03-23&student=1&notice=Meeting+scheduled");
+    expect(createCalls).toBe(2);
+    expect(postedEventIds).toHaveLength(2);
+    expect(postedEventIds[0]).toBe(postedEventIds[1]);
     expect(env.DB.students[0]?.next_meeting_at).toBe("2026-03-24T07:00:00.000Z");
   });
 });

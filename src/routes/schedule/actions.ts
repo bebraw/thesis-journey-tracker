@@ -61,16 +61,23 @@ export async function handleScheduleMeeting(request: Request, env: Env): Promise
 
   const title = normalizeString(formData.get("title")) || buildScheduleEventTitle(student);
   const description = normalizeString(formData.get("description")) || buildScheduleEventDescription(student);
+  const eventId = buildScheduledMeetingEventId(studentId, slotStart, slotEnd);
 
   try {
     await createGoogleCalendarEvent(calendarSource.config, {
+      eventId,
       summary: title,
       description,
       startLocal: slotStart,
       endLocal: slotEnd,
       attendeeEmails: [meetingEmail],
     });
+  } catch (error) {
+    console.error("Failed to schedule Google Calendar event", error);
+    return redirect(appendScheduleMessage(returnPath, { weekStart, studentId, slotStart, error: "Failed to schedule Google Calendar event" }));
+  }
 
+  try {
     await updateStudent(env.DB, studentId, {
       name: student.name,
       email: meetingEmail,
@@ -82,8 +89,15 @@ export async function handleScheduleMeeting(request: Request, env: Env): Promise
       nextMeetingAt: localDateTimeToUtcIso(slotStart, calendarSource.config.timeZone),
     });
   } catch (error) {
-    console.error("Failed to schedule Google Calendar event", error);
-    return redirect(appendScheduleMessage(returnPath, { weekStart, studentId, slotStart, error: "Failed to schedule Google Calendar event" }));
+    console.error("Google Calendar invite created but student update failed", error);
+    return redirect(
+      appendScheduleMessage(returnPath, {
+        weekStart,
+        studentId,
+        slotStart,
+        error: "Google Calendar invite was created, but saving it in the app failed. Retrying is safe.",
+      }),
+    );
   }
 
   return redirect(appendScheduleMessage(returnPath, { weekStart, studentId, notice: "Meeting scheduled" }));
@@ -92,4 +106,32 @@ export async function handleScheduleMeeting(request: Request, env: Env): Promise
 function normalizeScheduleWeekValue(value: FormDataEntryValue | string | null | undefined): string | null {
   const text = typeof value === "string" ? value.trim() : "";
   return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
+}
+
+function buildScheduledMeetingEventId(studentId: number, slotStart: string, slotEnd: string): string {
+  const hash = hashBase32Hex(`${studentId}|${slotStart}|${slotEnd}`);
+  return `tjt${hash.padStart(13, "0")}`;
+}
+
+function hashBase32Hex(value: string): string {
+  const alphabet = "0123456789abcdefghijklmnopqrstuv";
+  let hash = 2166136261;
+
+  for (const character of value) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+
+  if (hash === 0) {
+    return "0";
+  }
+
+  let encoded = "";
+  let remaining = hash >>> 0;
+  while (remaining > 0) {
+    encoded = `${alphabet[remaining % 32]}${encoded}`;
+    remaining = Math.floor(remaining / 32);
+  }
+
+  return encoded;
 }

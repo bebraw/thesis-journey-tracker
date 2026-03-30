@@ -27,6 +27,7 @@ export interface GoogleCalendarEvent {
 }
 
 export interface CreateGoogleCalendarEventInput {
+  eventId?: string;
   summary: string;
   description?: string | null;
   startLocal: string;
@@ -136,6 +137,7 @@ export async function createGoogleCalendarEvent(
       "content-type": "application/json",
     },
     body: JSON.stringify({
+      id: input.eventId || undefined,
       summary: input.summary,
       description: input.description || undefined,
       start: {
@@ -151,12 +153,48 @@ export async function createGoogleCalendarEvent(
   });
 
   if (!response.ok) {
+    if (response.status === 409 && input.eventId) {
+      return await getGoogleCalendarEvent(config, input.eventId, accessToken, fetchImpl);
+    }
+
     throw new GoogleCalendarError(await buildGoogleApiErrorMessage("Google Calendar event creation failed", response));
   }
 
   const item = (await response.json()) as GoogleCalendarApiEvent;
+  return mapGoogleCalendarApiEvent(item, input);
+}
+
+async function getGoogleCalendarEvent(
+  config: GoogleCalendarConfig,
+  eventId: string,
+  accessToken: string,
+  fetchImpl: typeof fetch,
+): Promise<GoogleCalendarEvent> {
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(config.calendarId)}/events/${encodeURIComponent(eventId)}`;
+  const response = await fetchImpl(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new GoogleCalendarError(await buildGoogleApiErrorMessage("Google Calendar event lookup failed", response));
+  }
+
+  const item = (await response.json()) as GoogleCalendarApiEvent;
+  return mapGoogleCalendarApiEvent(item, {
+    eventId,
+    summary: "Untitled event",
+    description: null,
+    startLocal: "",
+    endLocal: "",
+    attendeeEmails: [],
+  });
+}
+
+function mapGoogleCalendarApiEvent(item: GoogleCalendarApiEvent | undefined, input: CreateGoogleCalendarEventInput): GoogleCalendarEvent {
   return {
-    id: item?.id || "",
+    id: item?.id || input.eventId || "",
     summary: item?.summary || input.summary,
     description: item?.description || input.description || null,
     htmlLink: item?.htmlLink || null,
