@@ -16,7 +16,7 @@ import {
   type SelectOption,
 } from "../ui";
 import { escapeHtml } from "../formatting";
-import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderView } from "./shared.htmlisp";
+import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderPageHeaderNavigation, renderView } from "./shared.htmlisp";
 import { DEGREE_TYPES } from "../students";
 import type { ViewerContext } from "./types";
 
@@ -196,19 +196,7 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
       headerHtml: renderAuthedPageHeader(
         "Style Guide",
         "Reusable UI patterns for buttons, badges, fields, and surfaces.",
-        `${renderButton({
-          label: "Dashboard",
-          href: "/",
-          variant: "neutral",
-        })}${renderButton({
-          label: "Data tools",
-          href: "/data-tools",
-          variant: "neutral",
-        })}${renderButton({
-          label: "Add student",
-          href: "/students/new",
-          variant: "primary",
-        })}`,
+        renderPageHeaderNavigation("style-guide", viewer, true),
         viewer,
       ),
       buttonsCard,

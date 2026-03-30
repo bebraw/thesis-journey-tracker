@@ -187,7 +187,9 @@ export function renderStudentsTable(
   filters: DashboardFilters,
   selectedPanel: string,
   emptySelectedPanel: string,
+  options: { canEdit?: boolean } = {},
 ): string {
+  const { canEdit = false } = options;
   const components: HtmlispComponents = {
     SortHeader: `<th
     scope="col"
@@ -327,7 +329,10 @@ export function renderStudentsTable(
             <h2 class="text-lg font-semibold">Student Workspace</h2>
             <p &class="(get props mutedTextXs)">Find a student, then work through updates and supervision history without leaving the dashboard.</p>
           </div>
-          <noop &children="(get props panelToggleButtonHtml)"></noop>
+          <div class="flex flex-wrap items-center gap-badge-y sm:justify-end">
+            <noop &children="(get props addStudentButtonHtml)"></noop>
+            <noop &children="(get props panelToggleButtonHtml)"></noop>
+          </div>
         </div>
         <div class="mb-panel-sm rounded-card border border-app-line bg-app-surface-soft/75 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/35">
           <div class="grid grid-cols-1 gap-stack-xs sm:grid-cols-2 xl:grid-cols-4">
@@ -471,6 +476,14 @@ export function renderStudentsTable(
       statusFilterOptions,
       sortHeaders,
       hasStudentRows: studentRows.length > 0,
+      addStudentButtonHtml: canEdit
+        ? renderButton({
+            label: "Add student",
+            href: "/students/new",
+            variant: "primary",
+            className: "w-full sm:w-auto",
+          })
+        : "",
       panelToggleButtonHtml: renderButton({
         label: selectedStudent ? "Hide student workspace" : "Show student workspace",
         type: "button",

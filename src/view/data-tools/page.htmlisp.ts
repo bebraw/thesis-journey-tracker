@@ -1,7 +1,14 @@
 import { escapeHtml } from "../../formatting";
-import { PAGE_WRAP_NARROW, renderButton } from "../../ui";
+import { PAGE_WRAP_NARROW } from "../../ui";
 import type { DataToolsPageData } from "../types";
-import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderFlashMessages, renderView } from "../shared.htmlisp";
+import {
+  THEME_TOGGLE_SCRIPT,
+  renderAuthedPageHeader,
+  renderDocument,
+  renderFlashMessages,
+  renderPageHeaderNavigation,
+  renderView,
+} from "../shared.htmlisp";
 import { renderGoogleCalendarCard } from "./calendar-card.htmlisp";
 import { renderExportCard } from "./export-card.htmlisp";
 import { renderImportCard } from "./import-card.htmlisp";
@@ -25,19 +32,7 @@ export function renderDataToolsPage(data: DataToolsPageData): string {
       headerHtml: renderAuthedPageHeader(
         "Data Tools",
         "Back up or restore the thesis tracking dataset as JSON.",
-        `${renderButton({
-          label: "Dashboard",
-          href: "/",
-          variant: "neutral",
-        })}${renderButton({
-          label: "Schedule",
-          href: "/schedule",
-          variant: "neutral",
-        })}${renderButton({
-          label: "Add student",
-          href: "/students/new",
-          variant: "primary",
-        })}`,
+        renderPageHeaderNavigation("data-tools", viewer),
         viewer,
       ),
       flashHtml: renderFlashMessages(notice, error),

@@ -41,6 +41,7 @@ describe("students table", () => {
       DEFAULT_FILTERS,
       "<div>Panel</div>",
       "<div>Empty</div>",
+      { canEdit: true },
     );
 
     const selectedRowMatch = html.match(/<tr class="([^"]+)" data-student-row data-select-href="\/\?selected=13" data-student-id="13"[\s\S]*?aria-selected="true"/);

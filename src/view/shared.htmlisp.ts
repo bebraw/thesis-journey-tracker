@@ -192,7 +192,93 @@ export function renderDashboardToastMessages(notice: string | null, error: strin
   );
 }
 
-export function renderAuthedPageHeader(title: string, description: string, actionsHtml: string, viewer: ViewerContext): string {
+export type HeaderPageId = "dashboard" | "schedule" | "data-tools" | "add-student" | "style-guide";
+
+interface HeaderLink {
+  label: string;
+  href: string;
+  current: boolean;
+}
+
+function renderHeaderNavLink(link: HeaderLink): string {
+  return renderButton({
+    label: link.label,
+    href: link.href,
+    variant: "neutral",
+    className: link.current
+      ? "border-app-brand bg-app-brand-soft px-badge-pill-x py-badge-pill-y text-xs font-semibold text-app-brand-strong dark:border-app-brand-ring dark:bg-app-brand-soft-dark/30 dark:text-app-brand-ring sm:text-sm"
+      : "bg-transparent px-badge-pill-x py-badge-pill-y text-xs shadow-none hover:bg-app-surface-soft dark:bg-transparent dark:hover:bg-app-surface-soft-dark/55 sm:text-sm",
+    attributes: link.current ? 'aria-current="page"' : "",
+  });
+}
+
+export function renderPageHeaderNavigation(currentPage: HeaderPageId, viewer: ViewerContext, showStyleGuide = false): string {
+  const primaryLinks: HeaderLink[] = [{ label: "Dashboard", href: "/", current: currentPage === "dashboard" }];
+
+  if (viewer.role === "editor") {
+    primaryLinks.push({ label: "Schedule", href: "/schedule", current: currentPage === "schedule" });
+  }
+
+  const moreLinks: HeaderLink[] = [];
+  if (viewer.role === "editor") {
+    moreLinks.push({ label: "Data tools", href: "/data-tools", current: currentPage === "data-tools" });
+  }
+  if (showStyleGuide) {
+    moreLinks.push({ label: "Style guide", href: "/style-guide", current: currentPage === "style-guide" });
+  }
+
+  const primaryNavHtml = primaryLinks.map(renderHeaderNavLink).join("");
+  if (moreLinks.length === 0) {
+    return primaryNavHtml;
+  }
+
+  const moreMenuIsCurrent = moreLinks.some((link) => link.current);
+  const moreMenuHtml = renderView(
+    `<details class="relative shrink-0">
+      <summary &class="(get props summaryClass)">
+        <span>More</span>
+        <span aria-hidden="true" class="text-[10px]">▾</span>
+      </summary>
+      <div class="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-48 rounded-card border border-app-line bg-app-surface p-badge-y shadow-elevated dark:border-app-line-dark dark:bg-app-surface-dark">
+        <nav aria-label="Secondary">
+          <ul class="space-y-1">
+            <noop &foreach="(get props moreLinks)">
+              <li>
+                <a
+                  &href="(get props href)"
+                  &class="(get props linkClass)"
+                  &aria-current="(get props currentAttr)"
+                  &children="(get props label)"
+                ></a>
+              </li>
+            </noop>
+          </ul>
+        </nav>
+      </div>
+    </details>`,
+    {
+      summaryClass: escapeHtml(
+        `${BUTTON_CLASS_MAP.neutral} cursor-pointer list-none px-badge-pill-x py-badge-pill-y text-xs [&::-webkit-details-marker]:hidden sm:text-sm ${
+          moreMenuIsCurrent
+            ? "border-app-brand bg-app-brand-soft text-app-brand-strong dark:border-app-brand-ring dark:bg-app-brand-soft-dark/30 dark:text-app-brand-ring"
+            : ""
+        }`,
+      ),
+      linkClass: escapeHtml(
+        "block rounded-control px-control-x py-control-y text-sm text-app-text transition hover:bg-app-surface-soft dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark/55",
+      ),
+      moreLinks: moreLinks.map((link) => ({
+        href: escapeHtml(link.href),
+        label: escapeHtml(link.label),
+        currentAttr: link.current ? "page" : null,
+      })),
+    },
+  );
+
+  return `${primaryNavHtml}${moreMenuHtml}`;
+}
+
+export function renderAuthedPageHeader(title: string, description: string, navigationHtml: string, viewer: ViewerContext): string {
   const components: HtmlispComponents = {
     ThemeToggleButton: `<button
     id="themeToggle"
@@ -215,13 +301,13 @@ export function renderAuthedPageHeader(title: string, description: string, actio
       <h1 class="text-lg font-semibold leading-tight sm:text-xl" &children="(get props title)"></h1>
       <p &class="(get props descriptionClass)" &children="(get props description)"></p>
     </div>
-    <div class="flex items-center justify-between gap-badge-y sm:flex-nowrap sm:justify-end sm:gap-badge-pill-y">
+    <div class="flex flex-wrap items-center justify-between gap-badge-y sm:flex-nowrap sm:justify-end sm:gap-badge-pill-y">
       <div &class="(get props viewerSummaryClass)">
         <span &children="(get props viewerNameText)"></span>
         <span class="font-semibold" &children="(get props viewerRoleText)"></span>
       </div>
       <div &class="(get props actionsRowClass)">
-        <noop &children="(get props actionsHtml)"></noop>
+        <noop &children="(get props navigationHtml)"></noop>
       </div>
       <div class="flex shrink-0 items-center gap-badge-y sm:gap-badge-pill-y">
         <ThemeToggleButton &className="(get props themeToggleClass)" />
@@ -243,7 +329,7 @@ export function renderAuthedPageHeader(title: string, description: string, actio
       &viewerNameText="(get props viewerNameText)"
       &viewerRoleText="(get props viewerRoleText)"
       &actionsRowClass="(get props actionsRowClass)"
-      &actionsHtml="(get props actionsHtml)"
+      &navigationHtml="(get props navigationHtml)"
       &themeToggleClass="(get props themeToggleClass)"
       &logoutButtonHtml="(get props logoutButtonHtml)"
     ></AuthHeader>`,
@@ -258,9 +344,9 @@ export function renderAuthedPageHeader(title: string, description: string, actio
       viewerNameText: escapeHtml(`Signed in as ${viewer.name}`),
       viewerRoleText: escapeHtml(viewer.role === "readonly" ? "Read-only" : "Editor"),
       actionsRowClass: escapeHtml(
-        "flex min-w-0 flex-1 items-center gap-badge-y overflow-x-auto pb-0.5 pr-badge-y sm:flex-nowrap sm:justify-end sm:overflow-visible sm:pb-0 sm:pr-0 [&>*]:shrink-0",
+        "flex min-w-0 flex-1 items-center gap-badge-y overflow-visible pb-0.5 pr-badge-y sm:flex-nowrap sm:justify-end sm:pb-0 sm:pr-0 [&>*]:shrink-0",
       ),
-      actionsHtml,
+      navigationHtml,
       themeToggleClass: escapeHtml(THEME_TOGGLE_BUTTON),
       logoutButtonHtml: renderButton({
         label: "Log out",

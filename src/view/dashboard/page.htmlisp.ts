@@ -1,7 +1,14 @@
-import { PAGE_WRAP, renderButton } from "../../ui";
+import { PAGE_WRAP } from "../../ui";
 import { escapeHtml } from "../../formatting";
 import { renderEmptySelectedPanel, renderSelectedStudentPanel } from "../students";
-import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDashboardToastMessages, renderDocument, renderView } from "../shared.htmlisp";
+import {
+  THEME_TOGGLE_SCRIPT,
+  renderAuthedPageHeader,
+  renderDashboardToastMessages,
+  renderDocument,
+  renderPageHeaderNavigation,
+  renderView,
+} from "../shared.htmlisp";
 import type { DashboardPageData } from "../types";
 import { renderDashboardScriptTag } from "./interaction-script";
 import { renderMetricCards } from "./metrics.htmlisp";
@@ -38,29 +45,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
         canEdit
           ? "A clean overview for tracking thesis progress, supervision follow-ups, and the students who need attention next."
           : "Read-only access for reviewing student progress, meetings, and supervision history without changing records.",
-        canEdit
-          ? `${renderButton({
-              label: "Schedule",
-              href: "/schedule",
-              variant: "neutral",
-            })}${renderButton({
-              label: "Data tools",
-              href: "/data-tools",
-              variant: "neutral",
-            })}${
-              showStyleGuide
-                ? renderButton({
-                    label: "Style guide",
-                    href: "/style-guide",
-                    variant: "neutral",
-                  })
-                : ""
-            }${renderButton({
-              label: "Add student",
-              href: "/students/new",
-              variant: "primary",
-            })}`
-          : "",
+        renderPageHeaderNavigation("dashboard", viewer, showStyleGuide),
         viewer,
       ),
       toastHtml: renderDashboardToastMessages(notice, error),
@@ -76,6 +61,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
             ? "Select a student from the table to edit details and view/add supervision logs."
             : "Select a student from the table to view details, supervision logs, and phase history.",
         ),
+        { canEdit },
       ),
       dashboardScript: renderDashboardScriptTag(),
       themeToggleScript: THEME_TOGGLE_SCRIPT,

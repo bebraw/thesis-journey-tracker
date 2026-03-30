@@ -46,7 +46,7 @@ async function addStudent(
   thesisTopic = "Test thesis topic",
   options?: { startDate?: string; studentNotes?: string },
 ) {
-  await page.getByRole("link", { name: "Add student" }).click();
+  await page.locator("#dashboardWorkspace").getByRole("link", { name: "Add student" }).click();
   await expect(page).toHaveURL(/\/students\/new$/);
 
   await page.getByLabel("Name").fill(studentName);
@@ -66,12 +66,17 @@ async function addStudent(
   await expect(page).toHaveURL(/\/\?selected=/);
 }
 
+async function openMoreMenu(page: Page) {
+  await page.locator("summary", { hasText: "More" }).click();
+}
+
 test.describe("dashboard e2e", () => {
   test.describe.configure({ mode: "serial" });
 
   test("shows seeded test data only in the dedicated e2e environment", async ({ page }) => {
     await login(page);
 
+    await openMoreMenu(page);
     await page.getByRole("link", { name: "Style guide" }).click();
     await expect(page).toHaveURL(/\/style-guide$/);
     await expect(page.getByRole("heading", { name: "Buttons" })).toBeVisible();
@@ -92,6 +97,7 @@ test.describe("dashboard e2e", () => {
   test("can export and import JSON backups from data tools", async ({ page }) => {
     await login(page);
 
+    await openMoreMenu(page);
     await page.getByRole("link", { name: "Data tools" }).click();
     await expect(page).toHaveURL(/\/data-tools$/);
     await expect(page.getByRole("heading", { name: "Data Tools" })).toBeVisible();

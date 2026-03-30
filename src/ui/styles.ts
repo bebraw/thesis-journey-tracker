@@ -5,7 +5,7 @@ export const BODY_CLASS_LOGIN = "h-full bg-app-canvas text-app-text antialiased 
 export const PAGE_WRAP = "mx-auto max-w-layout space-y-stack px-page-x py-page-y sm:px-page-x-sm lg:px-page-x-lg";
 export const PAGE_WRAP_NARROW = "mx-auto max-w-layout-narrow space-y-stack px-page-x py-page-y sm:px-page-x-sm lg:px-page-x-lg";
 export const HEADER_CARD =
-  "sticky top-2 z-40 flex flex-col gap-badge-y overflow-hidden rounded-panel border border-app-line bg-app-surface/92 px-panel-sm py-badge-pill-y shadow-panel backdrop-blur supports-[backdrop-filter]:bg-app-surface/88 dark:border-app-line-dark dark:bg-app-surface-dark/92 dark:supports-[backdrop-filter]:bg-app-surface-dark/84 sm:top-3 sm:flex-row sm:items-center sm:justify-between sm:gap-stack-xs sm:px-panel sm:py-badge-pill-y";
+  "sticky top-2 z-40 flex flex-col gap-badge-y overflow-visible rounded-panel border border-app-line bg-app-surface/92 px-panel-sm py-badge-pill-y shadow-panel backdrop-blur supports-[backdrop-filter]:bg-app-surface/88 dark:border-app-line-dark dark:bg-app-surface-dark/92 dark:supports-[backdrop-filter]:bg-app-surface-dark/84 sm:top-3 sm:flex-row sm:items-center sm:justify-between sm:gap-stack-xs sm:px-panel sm:py-badge-pill-y";
 export const SURFACE_CARD =
   "rounded-panel border border-app-line bg-app-surface p-panel shadow-panel dark:border-app-line-dark dark:bg-app-surface-dark";
 export const SURFACE_CARD_SM =

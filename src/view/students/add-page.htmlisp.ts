@@ -2,7 +2,14 @@ import { escapeHtml } from "../../formatting";
 import { getDefaultStudentFormValues } from "../../students";
 import { PAGE_WRAP_NARROW, SUBTLE_TEXT, renderButton, renderCard } from "../../ui";
 import type { AddStudentPageData } from "../types";
-import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderFlashMessages, renderView } from "../shared.htmlisp";
+import {
+  THEME_TOGGLE_SCRIPT,
+  renderAuthedPageHeader,
+  renderDocument,
+  renderFlashMessages,
+  renderPageHeaderNavigation,
+  renderView,
+} from "../shared.htmlisp";
 import { renderStudentFormFields } from "./form-fields";
 
 export function renderAddStudentPage(data: AddStudentPageData): string {
@@ -50,23 +57,7 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
       headerHtml: renderAuthedPageHeader(
         "Add Student",
         "Create a new thesis supervision entry.",
-        `${renderButton({
-          label: "Dashboard",
-          href: "/",
-          variant: "neutral",
-        })}${renderButton({
-          label: "Schedule",
-          href: "/schedule",
-          variant: "neutral",
-        })}${renderButton({
-          label: "Data tools",
-          href: "/data-tools",
-          variant: "neutral",
-        })}${showStyleGuide ? renderButton({
-          label: "Style guide",
-          href: "/style-guide",
-          variant: "neutral",
-        }) : ""}`,
+        renderPageHeaderNavigation("add-student", viewer, showStyleGuide),
         viewer,
       ),
       flashHtml: renderFlashMessages(notice, error),

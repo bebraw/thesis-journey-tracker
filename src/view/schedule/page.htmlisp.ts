@@ -1,6 +1,13 @@
 import { escapeHtml } from "../../formatting";
-import { PAGE_WRAP, renderButton } from "../../ui";
-import { renderAuthedPageHeader, renderDocument, renderFlashMessages, renderView, THEME_TOGGLE_SCRIPT } from "../shared.htmlisp";
+import { PAGE_WRAP } from "../../ui";
+import {
+  renderAuthedPageHeader,
+  renderDocument,
+  renderFlashMessages,
+  renderPageHeaderNavigation,
+  renderView,
+  THEME_TOGGLE_SCRIPT,
+} from "../shared.htmlisp";
 import type { SchedulePageData } from "../types";
 import { renderScheduleCalendarCard } from "./calendar-card.htmlisp";
 import { renderScheduleControlsCard } from "./controls-card.htmlisp";
@@ -24,23 +31,7 @@ export function renderSchedulePage(data: SchedulePageData): string {
       headerHtml: renderAuthedPageHeader(
         "Google Calendar Scheduling",
         "See existing Google Calendar events, find open slots, and send student meeting invitations.",
-        `${renderButton({
-          label: "Dashboard",
-          href: "/",
-          variant: "neutral",
-        })}${renderButton({
-          label: "Data tools",
-          href: "/data-tools",
-          variant: "neutral",
-        })}${renderButton({
-          label: "Add student",
-          href: "/students/new",
-          variant: "primary",
-        })}${showStyleGuide ? renderButton({
-          label: "Style guide",
-          href: "/style-guide",
-          variant: "neutral",
-        }) : ""}`,
+        renderPageHeaderNavigation("schedule", viewer, showStyleGuide),
         viewer,
       ),
       flashHtml: renderFlashMessages(notice, error),
