@@ -296,13 +296,6 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return await handleArchiveStudent(request, env, Number(archiveMatch[1]));
   }
 
-  const legacyDeleteMatch = pathname.match(/^\/actions\/delete-student\/(\d+)$/);
-  if (legacyDeleteMatch && request.method === "POST") {
-    const readonlyResponse = ensureEditor(await getDashboardReturnPath(request, { selectedId: Number(legacyDeleteMatch[1]) }));
-    if (readonlyResponse) return readonlyResponse;
-    return await handleArchiveStudent(request, env, Number(legacyDeleteMatch[1]));
-  }
-
   return new Response("Not found", { status: 404 });
 }
 

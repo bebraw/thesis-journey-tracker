@@ -1,11 +1,6 @@
 import type { DegreeId, PhaseId } from "../students/store";
 import type { DegreeDefinition, PhaseDefinition } from "../students/reference-data";
 
-const LEGACY_PHASE_ID_MAP: Record<string, PhaseId> = {
-  first_complete_draft: "editing",
-  submission_ready: "editing",
-};
-
 export function normalizeString(value: FormDataEntryValue | string | null | undefined): string | null {
   if (value === null || value === undefined) {
     return null;
@@ -41,12 +36,7 @@ export function normalizePhase(value: FormDataEntryValue | string | null | undef
   if (!text) {
     return null;
   }
-  const normalized = mapLegacyPhaseId(text);
-  return phases.some((phase) => phase.id === normalized) ? (normalized as PhaseId) : null;
-}
-
-export function mapLegacyPhaseId(value: string): string {
-  return LEGACY_PHASE_ID_MAP[value] || value;
+  return phases.some((phase) => phase.id === text) ? (text as PhaseId) : null;
 }
 
 export function normalizeDegree(

@@ -186,7 +186,7 @@ describe("data import and export", () => {
                 thesisTopic: "Imported thesis",
                 studentNotes: "Imported student note",
                 startDate: "2026-02-01",
-                currentPhase: "submission_ready",
+                currentPhase: "editing",
                 nextMeetingAt: "2026-04-01T09:00:00.000Z",
                 logs: [
                   {
@@ -200,7 +200,7 @@ describe("data import and export", () => {
                   {
                     changedAt: "2026-03-15T08:00:00.000Z",
                     fromPhase: "research_plan",
-                    toPhase: "first_complete_draft",
+                    toPhase: "editing",
                   },
                 ],
               },

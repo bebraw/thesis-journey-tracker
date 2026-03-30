@@ -1,4 +1,3 @@
-import { mapLegacyPhaseId } from "../forms/normalize";
 import type { DegreeId, Student } from "./store";
 import type { DegreeDefinition, PhaseDefinition } from "./reference-data";
 
@@ -27,9 +26,8 @@ export function isPastTargetSubmissionDate(student: Pick<Student, "degreeType" |
 }
 
 export function getPhaseLabel(phaseId: string, phases: readonly PhaseDefinition[]): string {
-  const normalized = mapLegacyPhaseId(phaseId);
-  const phase = phases.find((item) => item.id === normalized);
-  return phase ? phase.label : normalized;
+  const phase = phases.find((item) => item.id === phaseId);
+  return phase ? phase.label : phaseId;
 }
 
 export function getDegreeLabel(degreeId: DegreeId, degrees: readonly DegreeDefinition[]): string {

@@ -8,7 +8,7 @@ vi.mock("../favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 type WorkerFetch = (typeof import("../worker"))["default"]["fetch"];
 
 describe("multi-user access control", () => {
-  let env: { DB: MockD1Database; SESSION_SECRET: string; APP_USERS_JSON?: string };
+  let env: { DB: MockD1Database; SESSION_SECRET: string };
   let fetchHandler: WorkerFetch;
 
   beforeEach(async () => {
@@ -122,7 +122,7 @@ describe("multi-user access control", () => {
         },
         body: new URLSearchParams({
           name: "Readonly Attempt",
-          email: "readonly@example.edu",
+          studentEmail: "readonly@example.edu",
           degreeType: "msc",
           thesisTopic: "Should not save",
           startDate: "",
@@ -253,7 +253,7 @@ describe("multi-user access control", () => {
         },
         body: new URLSearchParams({
           name: "Second Student",
-          email: "second@example.edu",
+          studentEmail: "second@example.edu",
           degreeType: "msc",
           thesisTopic: "Allowed change",
           studentNotes: "Created from access-control test",
@@ -413,24 +413,6 @@ describe("multi-user access control", () => {
     );
 
     expect(remoteStyleGuideResponse.status).toBe(404);
-  });
-
-  it("bootstraps auth users from legacy APP_USERS_JSON when the auth table is empty", async () => {
-    env = {
-      DB: new MockD1Database(),
-      APP_USERS_JSON: JSON.stringify([
-        { name: "Advisor", password: "editor-password", role: "editor" },
-        { name: "Professor", password: "readonly-password", role: "readonly" },
-      ]),
-      SESSION_SECRET: "test-secret",
-    };
-
-    const cookie = await loginWithPassword(fetchHandler, env, "Professor", "readonly-password");
-
-    expect(cookie.startsWith("thesis_session=")).toBe(true);
-    expect(env.DB.appUsers).toHaveLength(2);
-    expect(env.DB.appUsers.some((user) => user.name === "Professor" && user.role === "readonly")).toBe(true);
-    expect(env.DB.appUsers.every((user) => !user.password_hash.includes("readonly-password"))).toBe(true);
   });
 
   it("redirects to password reset guidance for accounts hashed above the Cloudflare PBKDF2 limit", async () => {

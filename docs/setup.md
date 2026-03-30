@@ -180,8 +180,6 @@ npm run account:create -- --name "Professor" --password "change-this-readonly-pa
 
 If you are updating an existing deployment or local database that used the older `210000` PBKDF2 default, re-run `npm run account:create` for each account so the stored password hash is rewritten with the Cloudflare-compatible `100000` iteration default.
 
-If you are upgrading an older local setup and still have `APP_USERS_JSON` or `APP_PASSWORD` in `.dev.vars`, the app can bootstrap those values into D1 on first request after the new migration is applied. After that, remove the old auth env vars.
-
 ## 6. Optionally Load Sample Data
 
 If you want a ready-made local dataset for trying the dashboard, import/export, and reports:

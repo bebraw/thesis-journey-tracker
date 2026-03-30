@@ -37,7 +37,7 @@ describe("SQL injection safety", () => {
           },
           body: new URLSearchParams({
             name: payload,
-            email: "safe@example.edu",
+            studentEmail: "safe@example.edu",
             degreeType: "msc",
             thesisTopic: "Secure advising workflows",
             studentNotes: "Safe notes payload",
@@ -70,7 +70,7 @@ describe("SQL injection safety", () => {
         },
         body: new URLSearchParams({
           name: payload,
-          email: "updated@example.edu",
+          studentEmail: "updated@example.edu",
           degreeType: "dsc",
           thesisTopic: "Updated topic",
           studentNotes: "Updated secure note",

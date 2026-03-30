@@ -64,8 +64,6 @@ npm run account:create -- --name "Professor" --password "change-this-readonly-pa
 
 If you already created production accounts with the older `210000` PBKDF2 default, reset each affected account once with the same command shape above. Running `account:create` again updates the stored hash in place with the Cloudflare-compatible `100000` iteration default.
 
-If you are upgrading an older deployment and still have `APP_USERS_JSON` or `APP_PASSWORD` configured, the Worker can bootstrap those values into the new `app_users` table once the migration has been applied. After the users appear in D1, remove the old auth secrets.
-
 5. Deploy:
 
 ```bash

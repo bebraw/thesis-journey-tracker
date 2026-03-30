@@ -1,4 +1,4 @@
-import { mapLegacyPhaseId, normalizeDate, normalizeDateTime, normalizeString } from "../forms/normalize";
+import { normalizeDate, normalizeDateTime, normalizeString } from "../forms/normalize";
 import { toDateTimeLocalInput } from "../formatting";
 import type { DegreeId, PhaseId, Student, StudentMutationInput } from "./store";
 
@@ -15,7 +15,6 @@ export const STUDENT_FORM_FIELDS = {
   currentPhase: "currentPhase",
   nextMeetingAt: "nextMeetingAt",
 } as const;
-const LEGACY_STUDENT_EMAIL_FIELD = "email";
 
 export type StudentFormMode = "create" | "update";
 
@@ -65,9 +64,7 @@ export function parseStudentFormSubmission(formData: FormData, options: ParseStu
   const { mode, existingStudent } = options;
 
   const name = normalizeString(readRequiredField(formData, STUDENT_FORM_FIELDS.name, existingStudent?.name));
-  const email = normalizeString(
-    readOptionalField(formData, STUDENT_FORM_FIELDS.email, existingStudent?.email ?? null, LEGACY_STUDENT_EMAIL_FIELD),
-  );
+  const email = normalizeString(readOptionalField(formData, STUDENT_FORM_FIELDS.email, existingStudent?.email ?? null));
   const thesisTopic = normalizeString(readOptionalField(formData, STUDENT_FORM_FIELDS.thesisTopic, existingStudent?.thesisTopic ?? null));
   const studentNotes = normalizeString(
     readOptionalField(formData, STUDENT_FORM_FIELDS.studentNotes, existingStudent?.studentNotes ?? null),
@@ -119,8 +116,7 @@ function normalizePhaseId(value: FormDataEntryValue | string | null | undefined)
   if (!text) {
     return null;
   }
-  const normalized = mapLegacyPhaseId(text);
-  return PHASE_IDS.includes(normalized as PhaseId) ? (normalized as PhaseId) : null;
+  return PHASE_IDS.includes(text as PhaseId) ? (text as PhaseId) : null;
 }
 
 function readRequiredField(
@@ -138,13 +134,9 @@ function readOptionalField(
   formData: FormData,
   name: string,
   fallbackValue: string | null,
-  legacyName?: string,
 ): FormDataEntryValue | string | null {
   if (formData.has(name)) {
     return formData.get(name);
-  }
-  if (legacyName && formData.has(legacyName)) {
-    return formData.get(legacyName);
   }
   return fallbackValue;
 }
