@@ -1,5 +1,5 @@
-import type { CreateStudentInput, DegreeId, MeetingLog, PhaseAuditEntry, PhaseId, Student } from "../../db";
-import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusText, PHASES } from "../../students";
+import type { CreateStudentInput, DegreeId, MeetingLog, PhaseAuditEntry, PhaseId, Student } from "../db";
+import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusText, PHASES } from "../students";
 import {
   formatDateTime,
   normalizeDate,
@@ -7,7 +7,7 @@ import {
   normalizeDegree,
   normalizePhase,
   normalizeString,
-} from "../../utils";
+} from "../utils";
 
 export const DATA_EXPORT_SCHEMA_VERSION = 1;
 

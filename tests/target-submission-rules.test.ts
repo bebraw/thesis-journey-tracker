@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createProfessorStatusReport } from "../src/routes/data-tools/import-export";
+import { createProfessorStatusReport } from "../src/data-transfer";
 import { getTargetSubmissionDate, isPastTargetSubmissionDate } from "../src/students";
 import type { Student } from "../src/db";
 
