@@ -1,10 +1,10 @@
 import styles from "../.generated/styles.css";
 import favicon from "./favicon.ico";
-import { type AuthUser, isAccessRole, type SessionUser } from "./auth";
+import type { SessionUser } from "./auth";
 import { runAutomatedBackup } from "./backup";
 import type { Env, ScheduledControllerLike } from "./app-env";
-import { clearLoginAttempt, type D1Database, getLoginAttempt, listAuthUsers, type LoginAttempt, saveLoginAttempt, upsertAuthUser } from "./db";
-import { hashPassword, verifyPassword } from "./password";
+import type { D1Database } from "./db";
+import { handleLoginRequest, handleLogout, isReadonlyUser, readonlyRedirect, resolveAuthState, SESSION_COOKIE, SESSION_TTL_SECONDS } from "./routes/auth";
 import {
   handleAddLog,
   handleAddStudent,
@@ -28,9 +28,6 @@ import {
 } from "./routes/data-tools";
 import { getScheduleReturnPath, handleScheduleMeeting, renderSchedule } from "./routes/schedule";
 import {
-  buildSessionCookie,
-  clearSessionCookie,
-  createSessionToken,
   cssResponse,
   getSessionUser,
   htmlResponse,
@@ -39,14 +36,9 @@ import {
   redirect,
 } from "./utils";
 import { DASHBOARD_INTERACTION_SCRIPT } from "./view/dashboard/interaction-script";
-import { renderLoginPage, renderStyleGuidePage } from "./views";
+import { renderStyleGuidePage } from "./views";
 
-const SESSION_COOKIE = "thesis_session";
 const D1_BOOKMARK_COOKIE = "thesis_d1_bookmark";
-const SESSION_TTL_SECONDS = 60 * 60 * 12;
-const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
-const LOGIN_MAX_FAILURES = 5;
-const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
 
 interface D1SessionState {
   session: globalThis.D1DatabaseSession;
@@ -176,101 +168,35 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   const sessionUser = await getSessionUser(request, env.SESSION_SECRET, SESSION_COOKIE);
 
-  if (pathname === "/login" && request.method === "GET") {
-    if (sessionUser) {
-      return redirect("/");
-    }
-    const errorState =
-      url.searchParams.get("error") === "rate_limit"
-        ? "rate_limit"
-        : url.searchParams.get("error") === "password_reset"
-          ? "password_reset"
-          : url.searchParams.get("error")
-            ? "invalid"
-            : null;
-    return htmlResponse(renderLoginPage(errorState, authState.users.length > 1));
-  }
-
-  if (pathname === "/login" && request.method === "POST") {
-    const formData = await request.formData();
-    const enteredName = (formData.get("name") || "").toString().trim();
-    const password = (formData.get("password") || "").toString();
-    const now = new Date();
-    const loginAttemptKey = buildLoginAttemptKey(request);
-    const currentAttempt = await getLoginAttempt(env.DB, loginAttemptKey);
-
-    if (isLoginAttemptLocked(currentAttempt, now)) {
-      return redirect("/login?error=rate_limit");
-    }
-
-    const candidateUser =
-      authState.users.length === 1 && !enteredName
-        ? authState.users[0] || null
-        : authState.users.find((user) => user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase()) || null;
-
-    let passwordVerified = false;
-    try {
-      passwordVerified = candidateUser ? await verifyPassword(password, candidateUser.passwordHash) : false;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message.includes("Stored password hash uses")) {
-        console.error("Password hash requires reset", { user: candidateUser?.name || enteredName, message });
-        return redirect("/login?error=password_reset");
-      }
-      throw error;
-    }
-
-    if (!candidateUser || !passwordVerified) {
-      const nextAttempt = buildFailedLoginAttempt(currentAttempt, loginAttemptKey, now);
-      await saveLoginAttempt(env.DB, nextAttempt);
-      return redirect(nextAttempt.lockedUntil ? "/login?error=rate_limit" : "/login?error=1");
-    }
-
-    await clearLoginAttempt(env.DB, loginAttemptKey);
-    const token = await createSessionToken(env.SESSION_SECRET, SESSION_TTL_SECONDS, {
-      name: candidateUser.name,
-      role: candidateUser.role,
-    });
-    return redirect("/", {
-      "Set-Cookie": buildSessionCookie(token, request.url, {
-        cookieName: SESSION_COOKIE,
-        ttlSeconds: SESSION_TTL_SECONDS,
-      }),
-    });
+  if (pathname === "/login" && (request.method === "GET" || request.method === "POST")) {
+    return await handleLoginRequest(request, env, authState, sessionUser);
   }
 
   if (pathname === "/logout" && request.method === "POST") {
-    const headers = new Headers();
-    headers.append(
-      "Set-Cookie",
-      clearSessionCookie(request.url, {
-        cookieName: SESSION_COOKIE,
-        ttlSeconds: SESSION_TTL_SECONDS,
-      }),
-    );
-    headers.append("Set-Cookie", clearBookmarkCookie(request.url));
-    return redirect("/login", headers);
+    return handleLogout(request.url, clearBookmarkCookie(request.url));
   }
 
   if (!sessionUser) {
     return redirect("/login");
   }
 
+  const ensureEditor = (pathname: string): Response | null => {
+    return isReadonlyUser(sessionUser) ? readonlyRedirect(pathname) : null;
+  };
+
   if (pathname === "/" && request.method === "GET") {
     return await renderDashboard(env, url, sessionUser, showStyleGuide);
   }
 
   if (pathname === "/students/new" && request.method === "GET") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect("/");
-    }
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
     return renderAddStudent(url, sessionUser, showStyleGuide);
   }
 
   if (pathname === "/style-guide" && request.method === "GET") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect("/");
-    }
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
     return htmlResponse(
       renderStyleGuidePage({
         name: sessionUser.name,
@@ -280,16 +206,14 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   if (pathname === "/data-tools" && request.method === "GET") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect("/");
-    }
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
     return await renderDataTools(url, env, sessionUser);
   }
 
   if (pathname === "/schedule" && request.method === "GET") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect("/");
-    }
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
     return await renderSchedule(url, env, sessionUser, showStyleGuide);
   }
 
@@ -299,104 +223,90 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   if (pathname === "/actions/export-json" && request.method === "GET") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect("/");
-    }
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
     return await handleExportJson(env);
   }
 
   if (pathname === "/actions/export-professor-report" && request.method === "GET") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect("/");
-    }
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
     return await handleProfessorReportExport(env);
   }
 
   if (pathname === "/actions/add-student" && request.method === "POST") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect("/");
-    }
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
     return await handleAddStudent(request, env);
   }
 
   if (pathname === "/actions/import-json" && request.method === "POST") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect("/");
-    }
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
     return await handleImportJson(request, env);
   }
 
   if (pathname === "/actions/save-google-calendar-settings" && request.method === "POST") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect("/");
-    }
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
     return await handleSaveGoogleCalendarSettings(request, env);
   }
 
   if (pathname === "/actions/save-google-calendar-ical-settings" && request.method === "POST") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect("/");
-    }
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
     return await handleSaveGoogleCalendarIcalSettings(request, env);
   }
 
   if (pathname === "/actions/clear-google-calendar-oauth-settings" && request.method === "POST") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect("/");
-    }
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
     return await handleClearGoogleCalendarOAuthSettings(env);
   }
 
   if (pathname === "/actions/clear-google-calendar-ical-settings" && request.method === "POST") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect("/");
-    }
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
     return await handleClearGoogleCalendarIcalSettings(env);
   }
 
   if (pathname === "/actions/clear-google-calendar-settings" && request.method === "POST") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect("/");
-    }
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
     return await handleClearGoogleCalendarSettings(env);
   }
 
   if (pathname === "/actions/schedule-meeting" && request.method === "POST") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect(await getScheduleReturnPath(request));
-    }
+    const readonlyResponse = ensureEditor(await getScheduleReturnPath(request));
+    if (readonlyResponse) return readonlyResponse;
     return await handleScheduleMeeting(request, env);
   }
 
   const updateMatch = pathname.match(/^\/actions\/update-student\/(\d+)$/);
   if (updateMatch && request.method === "POST") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect(await getDashboardReturnPath(request, { selectedId: Number(updateMatch[1]) }));
-    }
+    const readonlyResponse = ensureEditor(await getDashboardReturnPath(request, { selectedId: Number(updateMatch[1]) }));
+    if (readonlyResponse) return readonlyResponse;
     return await handleUpdateStudent(request, env, Number(updateMatch[1]));
   }
 
   const addLogMatch = pathname.match(/^\/actions\/add-log\/(\d+)$/);
   if (addLogMatch && request.method === "POST") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect(await getDashboardReturnPath(request, { selectedId: Number(addLogMatch[1]) }));
-    }
+    const readonlyResponse = ensureEditor(await getDashboardReturnPath(request, { selectedId: Number(addLogMatch[1]) }));
+    if (readonlyResponse) return readonlyResponse;
     return await handleAddLog(request, env, Number(addLogMatch[1]));
   }
 
   const archiveMatch = pathname.match(/^\/actions\/archive-student\/(\d+)$/);
   if (archiveMatch && request.method === "POST") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect(await getDashboardReturnPath(request, { selectedId: Number(archiveMatch[1]) }));
-    }
+    const readonlyResponse = ensureEditor(await getDashboardReturnPath(request, { selectedId: Number(archiveMatch[1]) }));
+    if (readonlyResponse) return readonlyResponse;
     return await handleArchiveStudent(request, env, Number(archiveMatch[1]));
   }
 
   const legacyDeleteMatch = pathname.match(/^\/actions\/delete-student\/(\d+)$/);
   if (legacyDeleteMatch && request.method === "POST") {
-    if (isReadonlyUser(sessionUser)) {
-      return readonlyRedirect(await getDashboardReturnPath(request, { selectedId: Number(legacyDeleteMatch[1]) }));
-    }
+    const readonlyResponse = ensureEditor(await getDashboardReturnPath(request, { selectedId: Number(legacyDeleteMatch[1]) }));
+    if (readonlyResponse) return readonlyResponse;
     return await handleArchiveStudent(request, env, Number(legacyDeleteMatch[1]));
   }
 
@@ -428,127 +338,6 @@ async function handleScheduledBackup(controller: ScheduledControllerLike, env: E
   console.log(`Automated backup completed: ${result.manifestKey}`);
 }
 
-async function resolveAuthState(env: Env): Promise<{ users: Awaited<ReturnType<typeof listAuthUsers>>; error?: string }> {
-  try {
-    let users = await listAuthUsers(env.DB);
-    if (users.length > 0) {
-      return { users };
-    }
-
-    const bootstrapUsers = resolveLegacyAuthConfig(env);
-    if (!bootstrapUsers) {
-      return {
-        users: [],
-        error: "No auth users found in the database. Create at least one account and run the latest D1 migrations.",
-      };
-    }
-
-    if (bootstrapUsers.error) {
-      return {
-        users: [],
-        error: bootstrapUsers.error,
-      };
-    }
-
-    for (const user of bootstrapUsers.users) {
-      await upsertAuthUser(env.DB, {
-        name: user.name,
-        passwordHash: await hashPassword(user.password),
-        role: user.role,
-      });
-    }
-
-    users = await listAuthUsers(env.DB);
-    if (users.length === 0) {
-      return {
-        users: [],
-        error: "No auth users found in the database. Create at least one account and run the latest D1 migrations.",
-      };
-    }
-
-    return { users };
-  } catch {
-    return {
-      users: [],
-      error: "Auth user storage is unavailable. Run the latest D1 migrations before starting the app.",
-    };
-  }
-}
-
-function resolveLegacyAuthConfig(env: Env): { users: AuthUser[]; error?: string } | null {
-  if (env.APP_USERS_JSON) {
-    try {
-      const parsed = JSON.parse(env.APP_USERS_JSON) as unknown;
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        return {
-          users: [],
-          error: "APP_USERS_JSON must be a non-empty JSON array.",
-        };
-      }
-
-      const users = parsed.flatMap((value) => {
-        if (!value || typeof value !== "object") {
-          return [];
-        }
-
-        const candidate = value as Record<string, unknown>;
-        const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
-        const password = typeof candidate.password === "string" ? candidate.password : "";
-        const role = candidate.role;
-
-        if (!name || !password || !isAccessRole(role)) {
-          return [];
-        }
-
-        return [
-          {
-            name,
-            password,
-            role,
-          },
-        ];
-      });
-
-      if (users.length !== parsed.length) {
-        return {
-          users: [],
-          error: 'Each APP_USERS_JSON entry must include "name", "password", and role "editor" or "readonly".',
-        };
-      }
-
-      return { users };
-    } catch {
-      return {
-        users: [],
-        error: "APP_USERS_JSON must be valid JSON.",
-      };
-    }
-  }
-
-  if (env.APP_PASSWORD) {
-    return {
-      users: [
-        {
-          name: "Advisor",
-          password: env.APP_PASSWORD,
-          role: "editor",
-        },
-      ],
-    };
-  }
-
-  return null;
-}
-
-function isReadonlyUser(user: SessionUser): boolean {
-  return user.role === "readonly";
-}
-
-function readonlyRedirect(pathname: string): Response {
-  const separator = pathname.includes("?") ? "&" : "?";
-  return redirect(`${pathname}${separator}error=Read-only+access`);
-}
-
 function isLocalDevelopmentRequest(request: Request): boolean {
   const hostname = new URL(request.url).hostname.toLocaleLowerCase();
   return (
@@ -559,62 +348,4 @@ function isLocalDevelopmentRequest(request: Request): boolean {
     hostname === "::1" ||
     hostname === "[::1]"
   );
-}
-
-function buildLoginAttemptKey(request: Request): string {
-  return `ip:${readClientIpAddress(request)}`;
-}
-
-function readClientIpAddress(request: Request): string {
-  const directIp = normalizeIpAddress(request.headers.get("cf-connecting-ip"));
-  if (directIp) {
-    return directIp;
-  }
-
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    const forwardedIp = normalizeIpAddress(forwardedFor.split(",")[0] || "");
-    if (forwardedIp) {
-      return forwardedIp;
-    }
-  }
-
-  return "local-development";
-}
-
-function normalizeIpAddress(value: string | null | undefined): string | null {
-  const normalized = (value || "").trim();
-  return normalized.length > 0 ? normalized : null;
-}
-
-function isLoginAttemptLocked(attempt: LoginAttempt | null, now: Date): boolean {
-  if (!attempt?.lockedUntil) {
-    return false;
-  }
-
-  const lockedUntilTime = Date.parse(attempt.lockedUntil);
-  return Number.isFinite(lockedUntilTime) && lockedUntilTime > now.getTime();
-}
-
-function buildFailedLoginAttempt(previousAttempt: LoginAttempt | null, attemptKey: string, now: Date): LoginAttempt {
-  const nowIso = now.toISOString();
-  const nowTime = now.getTime();
-  const previousLastFailedAt = previousAttempt ? Date.parse(previousAttempt.lastFailedAt) : NaN;
-  const previousLockExpired =
-    previousAttempt?.lockedUntil && Number.isFinite(Date.parse(previousAttempt.lockedUntil))
-      ? Date.parse(previousAttempt.lockedUntil) <= nowTime
-      : false;
-  const isWithinFailureWindow =
-    previousAttempt && !previousLockExpired && Number.isFinite(previousLastFailedAt) && nowTime - previousLastFailedAt <= LOGIN_FAILURE_WINDOW_MS;
-
-  const failureCount = isWithinFailureWindow ? previousAttempt.failureCount + 1 : 1;
-  const firstFailedAt = isWithinFailureWindow ? previousAttempt.firstFailedAt : nowIso;
-
-  return {
-    attemptKey,
-    failureCount,
-    firstFailedAt,
-    lastFailedAt: nowIso,
-    lockedUntil: failureCount >= LOGIN_MAX_FAILURES ? new Date(nowTime + LOGIN_LOCKOUT_MS).toISOString() : null,
-  };
 }
