@@ -327,38 +327,9 @@ export function renderStudentsTable(
   ];
 
   return renderView(
-    `<section id="dashboardWorkspace" class="flex flex-col gap-stack xl:flex-row xl:items-start">
+    `<section id="dashboardWorkspace">
       <article &class="(get props studentsCardClass)">
-        <div class="mb-panel-sm flex flex-col gap-stack-xs sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 class="text-lg font-semibold">Student Workspace</h2>
-            <p &class="(get props mutedTextXs)">Switch between a sortable list and phase-based view without leaving the same workspace.</p>
-          </div>
-          <div class="flex flex-wrap items-center gap-badge-y sm:justify-end">
-            <div class="inline-flex rounded-control border border-app-field bg-app-surface-soft/80 p-1 shadow-sm dark:border-app-field-dark dark:bg-app-surface-soft-dark/45">
-              <button
-                type="button"
-                data-workspace-view-button="list"
-                &class="(get props workspaceViewButtonClass)"
-                &aria-pressed="(get props listViewPressed)"
-              >List</button>
-              <button
-                type="button"
-                data-workspace-view-button="phases"
-                &class="(get props workspaceViewButtonClass)"
-                &aria-pressed="(get props phasesViewPressed)"
-              >Phases</button>
-            </div>
-            <noop &children="(get props clearSelectionButtonHtml)"></noop>
-            <noop &children="(get props addStudentButtonHtml)"></noop>
-            <noop &children="(get props panelToggleButtonHtml)"></noop>
-          </div>
-        </div>
-        <div class="mb-panel-sm space-y-badge-y">
-          <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
-            <h3 class="text-sm font-semibold uppercase tracking-[0.16em] text-app-text-muted dark:text-app-text-muted-dark">Quick filters</h3>
-            <p class="text-xs text-app-text-soft dark:text-app-text-soft-dark">Tap a stat to jump straight into the matching student set.</p>
-          </div>
+        <div class="mb-panel-sm">
           <div id="workspaceMetricStrip"><noop &children="(get props metricsHtml)"></noop></div>
         </div>
         <div class="mb-panel-sm rounded-card border border-app-line bg-app-surface-soft/75 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/35">
@@ -401,9 +372,29 @@ export function renderStudentsTable(
           </div>
         </div>
         <div id="activeDashboardFilters" class="mb-panel-sm hidden rounded-card border border-app-line bg-app-surface-soft/55 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/25"></div>
-        <div class="mb-badge-pill-y flex flex-col gap-badge-y text-xs text-app-text-muted dark:text-app-text-muted-dark sm:flex-row sm:items-center sm:justify-between">
-          <p id="studentResultsMeta"></p>
-          <p>Tip: selection, filters, and the current view stay in the URL.</p>
+        <div class="mb-badge-pill-y flex flex-col gap-badge-y lg:flex-row lg:items-center lg:justify-between">
+          <p id="studentResultsMeta" class="min-w-0 text-sm font-medium text-app-text-muted dark:text-app-text-muted-dark"></p>
+          <div class="flex flex-wrap items-center gap-badge-y self-start lg:justify-end">
+            <div class="inline-flex items-center gap-1 rounded-control bg-app-surface-soft/45 p-0.5 dark:bg-app-surface-soft-dark/25">
+              <button
+                type="button"
+                data-workspace-view-button="list"
+                &class="(get props workspaceViewButtonClass)"
+                &aria-pressed="(get props listViewPressed)"
+              >List</button>
+              <button
+                type="button"
+                data-workspace-view-button="phases"
+                &class="(get props workspaceViewButtonClass)"
+                &aria-pressed="(get props phasesViewPressed)"
+              >Phases</button>
+            </div>
+            <noop &children="(get props addStudentButtonHtml)"></noop>
+            <noop &children="(get props panelToggleButtonHtml)"></noop>
+          </div>
+        </div>
+        <div id="selectedStudentPanelShell" &class="(get props selectedPanelShellClass)">
+          <div id="selectedStudentPanel"><noop &children="(get props selectedPanel)"></noop></div>
         </div>
         <div id="workspaceListView" &class="(get props listViewClass)">
           <div id="mobileStudentCardList" class="space-y-stack-xs sm:hidden">
@@ -489,9 +480,6 @@ export function renderStudentsTable(
           <noop &children="(get props phaseLanesHtml)"></noop>
         </div>
       </article>
-      <div id="selectedStudentPanelShell" &class="(get props selectedPanelShellClass)">
-        <div id="selectedStudentPanel"><noop &children="(get props selectedPanel)"></noop></div>
-      </div>
       <template id="emptySelectedStudentPanelTemplate"><noop &children="(get props emptySelectedPanel)"></noop></template>
     </section>`,
     {
@@ -502,11 +490,11 @@ export function renderStudentsTable(
       filterLabelClass: escapeHtml(FILTER_LABEL),
       filterControlClass: escapeHtml(FIELD_CONTROL_WITH_MARGIN),
       workspaceViewButtonClass: escapeHtml(
-        "rounded-control px-badge-pill-x py-badge-pill-y text-xs font-medium text-app-text transition aria-[pressed='true']:bg-app-brand aria-[pressed='true']:text-white dark:text-app-text-dark dark:aria-[pressed='true']:bg-app-brand-strong sm:text-sm",
+        "rounded-control border border-transparent px-badge-pill-x py-badge-pill-y text-xs font-medium text-app-text transition hover:bg-app-surface hover:text-app-text aria-[pressed='true']:border-app-brand aria-[pressed='true']:bg-app-surface aria-[pressed='true']:text-app-brand-strong aria-[pressed='true']:shadow-sm dark:text-app-text-dark dark:hover:bg-app-surface-dark dark:hover:text-app-text-dark dark:aria-[pressed='true']:border-app-brand-ring dark:aria-[pressed='true']:bg-app-surface-dark dark:aria-[pressed='true']:text-app-brand-ring sm:text-sm",
       ),
       listViewPressed: filters.viewMode === "list" ? "true" : "false",
       phasesViewPressed: filters.viewMode === "phases" ? "true" : "false",
-      listViewClass: escapeHtml(filters.viewMode === "list" ? "" : "hidden "),
+      listViewClass: escapeHtml(`${filters.viewMode === "list" ? "" : "hidden "}space-y-stack-xs`),
       phaseViewClass: escapeHtml(filters.viewMode === "phases" ? "" : "hidden "),
       searchValue: escapeHtml(filters.search),
       tableHeaderClass: escapeHtml(TABLE_HEADER_ROW),
@@ -515,13 +503,6 @@ export function renderStudentsTable(
       statusFilterOptions,
       sortHeaders,
       hasStudentRows: studentRows.length > 0,
-      clearSelectionButtonHtml: renderButton({
-        label: "Clear selection",
-        type: "button",
-        variant: "neutral",
-        className: `${selectedStudent ? "" : "hidden "}w-full sm:w-auto`,
-        attributes: `id="clearSelectedStudentButton" ${selectedStudent ? "" : 'aria-hidden="true"'}`,
-      }),
       addStudentButtonHtml: canEdit
         ? renderButton({
             label: "Add student",
@@ -531,13 +512,13 @@ export function renderStudentsTable(
           })
         : "",
       panelToggleButtonHtml: renderButton({
-        label: selectedStudent ? "Hide student workspace" : "Show student workspace",
+        label: selectedStudent ? "Hide details" : "Show details",
         type: "button",
         variant: "neutral",
         className: "xl:hidden",
         attributes: `id="toggleStudentPanelButton" aria-expanded="${selectedStudent ? "true" : "false"}"`,
       }),
-      selectedPanelShellClass: escapeHtml(`${selectedStudent ? "" : "hidden "}min-w-0 xl:sticky xl:top-6 xl:w-[32rem] xl:shrink-0`),
+      selectedPanelShellClass: escapeHtml(`${selectedStudent ? "" : "hidden "}mb-panel-sm`),
       showEmptyRow: studentRows.length === 0,
       studentRows,
       metricsHtml,

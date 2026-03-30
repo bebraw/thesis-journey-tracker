@@ -6,9 +6,6 @@ import {
   DANGER_PANEL,
   DANGER_TEXT,
   DANGER_TITLE,
-  DISCLOSURE,
-  DISCLOSURE_CONTENT,
-  DISCLOSURE_SUMMARY,
   EMPTY_STATE_CARD,
   FIELD_CONTROL,
   FORM_STACK,
@@ -17,6 +14,7 @@ import {
   SUBTLE_TEXT,
   SURFACE_CARD,
   TOPIC_TEXT,
+  renderBadge,
   renderButton,
   renderInputField,
   renderTextareaField,
@@ -62,6 +60,12 @@ interface StudentPanelOptions {
 interface PreparedReadonlyField {
   label: string;
   text: string;
+}
+
+interface PreparedToolAction {
+  key: string;
+  label: string;
+  meta?: string;
 }
 
 function prepareLogEntries(logs: MeetingLog[]): PreparedLogEntry[] {
@@ -131,6 +135,40 @@ function renderReadonlyStudentSummary(student: Student): string {
   );
 }
 
+function renderToolActions(actions: PreparedToolAction[]): string {
+  return renderView(
+    `<div class="mt-3 flex flex-wrap gap-badge-y">
+      <noop &foreach="(get props actions)">
+        <button
+          type="button"
+          data-selected-tool-button="1"
+          &data-tool-key="(get props key)"
+          aria-pressed="false"
+          &class="(get props buttonClass)"
+        >
+          <span class="leading-tight" &children="(get props label)"></span>
+          <span
+            &visibleIf="(get props metaVisible)"
+            class="mt-0.5 text-[11px] leading-tight font-medium text-app-text-muted dark:text-app-text-muted-dark"
+            &children="(get props meta)"
+          ></span>
+        </button>
+      </noop>
+    </div>`,
+    {
+      buttonClass: escapeHtml(
+        "inline-flex min-w-[8.25rem] flex-col items-start rounded-control border border-app-field bg-app-surface px-control-x py-badge-pill-y text-left text-sm font-medium text-app-text shadow-sm transition hover:bg-app-surface-soft aria-[pressed='true']:border-app-brand aria-[pressed='true']:bg-app-brand-soft/70 dark:border-app-field-dark dark:bg-app-surface-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark dark:aria-[pressed='true']:border-app-brand-ring dark:aria-[pressed='true']:bg-app-brand-soft-dark/25 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark",
+      ),
+      actions: actions.map((action) => ({
+        key: escapeHtml(action.key),
+        label: escapeHtml(action.label),
+        metaVisible: Boolean(action.meta),
+        meta: escapeHtml(action.meta || ""),
+      })),
+    },
+  );
+}
+
 export function renderSelectedStudentPanel(
   student: Student,
   logs: MeetingLog[],
@@ -175,6 +213,15 @@ export function renderSelectedStudentPanel(
   const fields = renderStudentFormFields({
     values: getStudentFormValues(student),
   });
+  const targetSubmissionDate = getTargetSubmissionDate(student) || "Not set";
+  const nextMeetingText = student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked";
+  const summaryBadgesHtml = [
+    renderBadge({ label: getDegreeLabel(student.degreeType, DEGREE_TYPES) }),
+    renderBadge({ label: getPhaseLabel(student.currentPhase, PHASES) }),
+    renderBadge({ label: `Target ${targetSubmissionDate}` }),
+    renderBadge({ label: `Next ${nextMeetingText}` }),
+  ].join("");
+  const historySummaryText = `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"} · ${preparedPhaseAudit.length} change${preparedPhaseAudit.length === 1 ? "" : "s"}`;
 
   const editFormHtml = renderView(
     `<form &action="(get props action)" method="post" &class="(get props formStack)">
@@ -256,54 +303,55 @@ export function renderSelectedStudentPanel(
       `<article &class="(get props cardClass)">
         <noop &children="(get props summaryHtml)"></noop>
 
-        <details &class="(get props disclosureClass)">
-          <summary &class="(get props disclosureSummaryClass)">
-            <span>Meeting Log History</span>
-            <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props logSummaryText)"></span>
-          </summary>
-          <div &class="(get props disclosureContentClass)">
-            <div &class="(get props formStack)" &visibleIf="(get props hasLogs)">
-              <noop &foreach="(get props logs)">
-                <MeetingLogEntry
-                  &cardClass="(get props logEntryClass)"
-                  &timestampText="(get props timestampText)"
-                  &discussed="(get props discussed)"
-                  &agreedPlan="(get props agreedPlan)"
-                  &hasDeadline="(get props hasDeadline)"
-                  &deadlineText="(get props deadlineText)"
-                ></MeetingLogEntry>
-              </noop>
-            </div>
-            <p &visibleIf="(get props showNoLogs)" &class="(get props emptyStateClass)">No entries yet.</p>
+        <section class="rounded-card border border-app-line bg-app-surface-soft/60 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/30">
+          <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
+            <h3 class="text-base font-semibold">History</h3>
+            <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props historySummaryText)"></p>
           </div>
-        </details>
-
-        <details &class="(get props disclosureClass)">
-          <summary &class="(get props disclosureSummaryClass)">
-            <span>Phase Change Audit</span>
-            <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props auditSummaryText)"></span>
-          </summary>
-          <div &class="(get props disclosureContentClass)">
-            <div &class="(get props formStack)" &visibleIf="(get props hasPhaseAudit)">
-              <noop &foreach="(get props phaseAuditEntries)">
-                <PhaseAuditLogEntry
-                  &cardClass="(get props logEntryClass)"
-                  &timestampText="(get props timestampText)"
-                  &transitionText="(get props transitionText)"
-                ></PhaseAuditLogEntry>
-              </noop>
-            </div>
-            <p &visibleIf="(get props showNoPhaseAudit)" &class="(get props emptyStateClass)">No phase changes recorded yet.</p>
+          <div class="mt-stack-xs grid grid-cols-1 gap-stack-xs xl:grid-cols-2">
+            <section class="space-y-stack-xs">
+              <div class="flex items-baseline justify-between gap-badge-y">
+                <h4 class="text-sm font-semibold">Meeting log history</h4>
+                <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props logSummaryText)"></span>
+              </div>
+              <div &class="(get props formStack)" &visibleIf="(get props hasLogs)">
+                <noop &foreach="(get props logs)">
+                  <MeetingLogEntry
+                    &cardClass="(get props logEntryClass)"
+                    &timestampText="(get props timestampText)"
+                    &discussed="(get props discussed)"
+                    &agreedPlan="(get props agreedPlan)"
+                    &hasDeadline="(get props hasDeadline)"
+                    &deadlineText="(get props deadlineText)"
+                  ></MeetingLogEntry>
+                </noop>
+              </div>
+              <p &visibleIf="(get props showNoLogs)" &class="(get props emptyStateClass)">No entries yet.</p>
+            </section>
+            <section class="space-y-stack-xs">
+              <div class="flex items-baseline justify-between gap-badge-y">
+                <h4 class="text-sm font-semibold">Phase timeline</h4>
+                <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props auditSummaryText)"></span>
+              </div>
+              <div &class="(get props formStack)" &visibleIf="(get props hasPhaseAudit)">
+                <noop &foreach="(get props phaseAuditEntries)">
+                  <PhaseAuditLogEntry
+                    &cardClass="(get props logEntryClass)"
+                    &timestampText="(get props timestampText)"
+                    &transitionText="(get props transitionText)"
+                  ></PhaseAuditLogEntry>
+                </noop>
+              </div>
+              <p &visibleIf="(get props showNoPhaseAudit)" &class="(get props emptyStateClass)">No phase changes recorded yet.</p>
+            </section>
           </div>
-        </details>
+        </section>
       </article>`,
       {
         cardClass: escapeHtml(`${PANEL_STACK} ${SURFACE_CARD}`),
-        disclosureClass: escapeHtml(DISCLOSURE),
-        disclosureContentClass: escapeHtml(DISCLOSURE_CONTENT),
-        disclosureSummaryClass: escapeHtml(DISCLOSURE_SUMMARY),
         emptyStateClass: escapeHtml(EMPTY_STATE_CARD),
         formStack: escapeHtml(FORM_STACK),
+        historySummaryText: escapeHtml(historySummaryText),
         logSummaryText: escapeHtml(
           preparedLogs.length > 0 ? `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"}` : "Empty",
         ),
@@ -324,114 +372,129 @@ export function renderSelectedStudentPanel(
   }
 
   return renderView(
-    `<article &class="(get props cardClass)">
+      `<article &class="(get props cardClass)">
       <section>
         <div class="flex items-start justify-between gap-stack-xs">
           <div class="min-w-0">
-            <h2 class="text-lg font-semibold">Student Workspace</h2>
-            <p &class="(get props currentStudentLineClass)" &children="(get props currentlyViewingText)"></p>
+            <h2 class="text-lg font-semibold" &children="(get props selectedHeadingText)"></h2>
           </div>
           <noop &children="(get props closeButtonHtml)"></noop>
         </div>
         <p &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></p>
-        <p class="mt-3 text-sm leading-6 text-app-text-soft dark:text-app-text-soft-dark">
-          Keep the workspace open while moving through edits, supervision logs, and phase history for this student.
-        </p>
+        <div class="mt-3 flex flex-wrap gap-badge-y">
+          <noop &children="(get props summaryBadgesHtml)"></noop>
+        </div>
+        <noop &children="(get props toolActionsHtml)"></noop>
       </section>
 
-      <details &class="(get props disclosureClass)">
-        <summary &class="(get props disclosureSummaryClass)">
-          <span>Edit Student</span>
-          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Core details</span>
-        </summary>
-        <div &class="(get props disclosureContentClass)">
+      <section
+        data-selected-tool-panel="1"
+        data-tool-key="edit"
+        class="hidden rounded-card border border-app-line bg-app-surface-soft/60 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/30"
+      >
+        <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
+          <h3 class="text-base font-semibold">Edit student</h3>
+          <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Core details</p>
+        </div>
+        <div class="mt-stack-xs">
           <noop &children="(get props editFormHtml)"></noop>
         </div>
-      </details>
+      </section>
 
-      <details &class="(get props disclosureClass)">
-        <summary &class="(get props disclosureSummaryClass)">
-          <span>Add Log Entry</span>
-          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Meeting notes</span>
-        </summary>
-        <div &class="(get props disclosureContentClass)">
+      <section
+        data-selected-tool-panel="1"
+        data-tool-key="log"
+        class="hidden rounded-card border border-app-line bg-app-surface-soft/60 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/30"
+      >
+        <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
+          <h3 class="text-base font-semibold">Add log entry</h3>
+          <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Meeting notes</p>
+        </div>
+        <div class="mt-stack-xs">
           <noop &children="(get props addLogFormHtml)"></noop>
         </div>
-      </details>
+      </section>
 
-      <details &class="(get props disclosureClass)">
-        <summary &class="(get props disclosureSummaryClass)">
-          <span>Meeting Log History</span>
-          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props logSummaryText)"></span>
-        </summary>
-        <div &class="(get props disclosureContentClass)">
-          <div &class="(get props formStack)" &visibleIf="(get props hasLogs)">
-            <noop &foreach="(get props logs)">
-              <MeetingLogEntry
-                &cardClass="(get props logEntryClass)"
-                &timestampText="(get props timestampText)"
-                &discussed="(get props discussed)"
-                &agreedPlan="(get props agreedPlan)"
-                &hasDeadline="(get props hasDeadline)"
-                &deadlineText="(get props deadlineText)"
-              ></MeetingLogEntry>
-            </noop>
-          </div>
-          <p &visibleIf="(get props showNoLogs)" &class="(get props emptyStateClass)">No entries yet.</p>
+      <section
+        data-selected-tool-panel="1"
+        data-tool-key="history"
+        class="hidden rounded-card border border-app-line bg-app-surface-soft/60 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/30"
+      >
+        <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
+          <h3 class="text-base font-semibold">History</h3>
+          <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props historySummaryText)"></p>
         </div>
-      </details>
-
-      <details &class="(get props disclosureClass)">
-        <summary &class="(get props disclosureSummaryClass)">
-          <span>Phase Change Audit</span>
-          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props auditSummaryText)"></span>
-        </summary>
-        <div &class="(get props disclosureContentClass)">
-          <div &class="(get props formStack)" &visibleIf="(get props hasPhaseAudit)">
-            <noop &foreach="(get props phaseAuditEntries)">
-              <PhaseAuditLogEntry
-                &cardClass="(get props logEntryClass)"
-                &timestampText="(get props timestampText)"
-                &transitionText="(get props transitionText)"
-              ></PhaseAuditLogEntry>
-            </noop>
-          </div>
-          <p &visibleIf="(get props showNoPhaseAudit)" &class="(get props emptyStateClass)">No phase changes recorded yet.</p>
-        </div>
-      </details>
-
-      <details &class="(get props disclosureClass)">
-        <summary &class="(get props disclosureSummaryClass)">
-          <span>Archive Student</span>
-          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Hide from active work</span>
-        </summary>
-        <div &class="(get props disclosureContentClass)">
-          <section &class="(get props dangerPanelClass)">
-            <h2 &class="(get props dangerTitleClass)">Archive Student</h2>
-            <p &class="(get props dangerTextClass)">This removes the student from the active dashboard while preserving meeting logs and phase history.</p>
-            <form
-              &action="(get props deleteAction)"
-              method="post"
-              class="mt-panel-sm"
-              &onsubmit="(get props deleteConfirm)"
-            >
-              <input type="hidden" name="returnTo" &value="(get props returnTo)" />
-              <noop &children="(get props deleteButtonHtml)"></noop>
-            </form>
+        <div class="mt-stack-xs grid grid-cols-1 gap-stack-xs xl:grid-cols-2">
+          <section class="space-y-stack-xs">
+            <div class="flex items-baseline justify-between gap-badge-y">
+              <h4 class="text-sm font-semibold">Meeting log history</h4>
+              <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props logSummaryText)"></span>
+            </div>
+            <div &class="(get props formStack)" &visibleIf="(get props hasLogs)">
+              <noop &foreach="(get props logs)">
+                <MeetingLogEntry
+                  &cardClass="(get props logEntryClass)"
+                  &timestampText="(get props timestampText)"
+                  &discussed="(get props discussed)"
+                  &agreedPlan="(get props agreedPlan)"
+                  &hasDeadline="(get props hasDeadline)"
+                  &deadlineText="(get props deadlineText)"
+                ></MeetingLogEntry>
+              </noop>
+            </div>
+            <p &visibleIf="(get props showNoLogs)" &class="(get props emptyStateClass)">No entries yet.</p>
+          </section>
+          <section class="space-y-stack-xs">
+            <div class="flex items-baseline justify-between gap-badge-y">
+              <h4 class="text-sm font-semibold">Phase timeline</h4>
+              <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props auditSummaryText)"></span>
+            </div>
+            <div &class="(get props formStack)" &visibleIf="(get props hasPhaseAudit)">
+              <noop &foreach="(get props phaseAuditEntries)">
+                <PhaseAuditLogEntry
+                  &cardClass="(get props logEntryClass)"
+                  &timestampText="(get props timestampText)"
+                  &transitionText="(get props transitionText)"
+                ></PhaseAuditLogEntry>
+              </noop>
+            </div>
+            <p &visibleIf="(get props showNoPhaseAudit)" &class="(get props emptyStateClass)">No phase changes recorded yet.</p>
           </section>
         </div>
-      </details>
+      </section>
+
+      <section
+        data-selected-tool-panel="1"
+        data-tool-key="more"
+        class="hidden rounded-card border border-app-line bg-app-surface-soft/60 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/30"
+      >
+        <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
+          <h3 class="text-base font-semibold">Archive</h3>
+          <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Occasional maintenance</p>
+        </div>
+        <section class="mt-stack-xs" &class="(get props dangerPanelClass)">
+          <h2 &class="(get props dangerTitleClass)">Archive Student</h2>
+          <p &class="(get props dangerTextClass)">This removes the student from the active dashboard while preserving meeting logs and phase history.</p>
+          <form
+            &action="(get props deleteAction)"
+            method="post"
+            class="mt-panel-sm"
+            &onsubmit="(get props deleteConfirm)"
+          >
+            <input type="hidden" name="returnTo" &value="(get props returnTo)" />
+            <noop &children="(get props deleteButtonHtml)"></noop>
+          </form>
+        </section>
+      </section>
     </article>`,
     {
       cardClass: escapeHtml(`${PANEL_STACK} ${SURFACE_CARD}`),
       dangerPanelClass: escapeHtml(DANGER_PANEL),
       dangerTextClass: escapeHtml(DANGER_TEXT),
       dangerTitleClass: escapeHtml(DANGER_TITLE),
-      disclosureClass: escapeHtml(DISCLOSURE),
-      disclosureContentClass: escapeHtml(DISCLOSURE_CONTENT),
-      disclosureSummaryClass: escapeHtml(DISCLOSURE_SUMMARY),
       emptyStateClass: escapeHtml(EMPTY_STATE_CARD),
       formStack: escapeHtml(FORM_STACK),
+      historySummaryText: escapeHtml(historySummaryText),
       logSummaryText: escapeHtml(
         preparedLogs.length > 0 ? `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"}` : "Empty",
       ),
@@ -440,11 +503,17 @@ export function renderSelectedStudentPanel(
       ),
       logEntryClass: escapeHtml(SOFT_SURFACE_CARD),
       subtleText: escapeHtml(SUBTLE_TEXT),
-      currentStudentLineClass: escapeHtml(`mt-1 truncate ${SUBTLE_TEXT}`),
       topicTextClass: escapeHtml(TOPIC_TEXT),
-      currentlyViewingText: escapeHtml(`Currently viewing: ${student.name}`),
+      selectedHeadingText: escapeHtml(`Selected student: ${student.name}`),
       topicVisible: Boolean(student.thesisTopic),
       topic: escapeHtml(student.thesisTopic || ""),
+      summaryBadgesHtml,
+      toolActionsHtml: renderToolActions([
+        { key: "edit", label: "Edit" },
+        { key: "log", label: "Add log" },
+        { key: "history", label: "History", meta: historySummaryText },
+        { key: "more", label: "Archive" },
+      ]),
       closeButtonHtml: renderButton({
         label: "Close",
         type: "button",

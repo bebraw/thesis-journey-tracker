@@ -62,9 +62,10 @@ function applySelectedLaneState(selectedId) {
 function setEmptySelectedPanel() {
   if (!selectedStudentPanel || !emptySelectedStudentPanelTemplate) return;
   selectedStudentPanel.innerHTML = emptySelectedStudentPanelTemplate.innerHTML;
+  syncDashboardDom();
+  setActiveSelectedStudentTool("");
   applySelectedRowState(0);
   applySelectedLaneState(0);
-  setSelectionActionState(0);
 }
 
 function clearSelectedStudentSelection(pushHistory) {
@@ -99,13 +100,14 @@ async function selectStudentWithoutRefresh(studentId, pushHistory) {
     }
 
     selectedStudentPanel.innerHTML = await response.text();
-    closeSelectedStudentPanelButton = document.getElementById("closeSelectedStudentPanelButton");
+    syncDashboardDom();
     applySelectedRowState(studentId);
     applySelectedLaneState(studentId);
-    setSelectionActionState(studentId);
+    setActiveSelectedStudentTool("");
     revealSelectedPanel();
     syncInteractiveUrls();
     bindCloseSelectedPanel();
+    bindSelectedStudentToolToggle();
     bindInlineStudentUpdateForm();
     bindInlineLogEntryForm();
 

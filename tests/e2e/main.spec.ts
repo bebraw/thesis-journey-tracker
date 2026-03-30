@@ -34,8 +34,12 @@ async function showStudentPanel(page: Page) {
     return;
   }
 
-  await page.getByRole("button", { name: /Show (details|editing|student workspace)/ }).click();
+  await page.getByRole("button", { name: /Show (details|editing)/ }).click();
   await expect(panelShell).toBeVisible();
+}
+
+async function openSelectedStudentTool(page: Page, label: "Edit" | "Add log" | "History" | "Archive") {
+  await page.locator("#selectedStudentPanel").getByRole("button", { name: label }).click();
 }
 
 async function addStudent(
@@ -187,12 +191,12 @@ test.describe("dashboard e2e", () => {
     await lanePartialResponse;
 
     await expect(page.locator("#selectedStudentPanelShell")).toBeVisible();
-    await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${secondaryStudentName}`);
+    await expect(page.locator("#selectedStudentPanel")).toContainText(`Selected student: ${secondaryStudentName}`);
     await expect.poll(() => new URL(page.url()).searchParams.get("selected")).not.toBeNull();
     await expect.poll(() => new URL(page.url()).searchParams.get("view")).toBe("phases");
 
     const laneLogSuffix = Date.now().toString();
-    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Add Log Entry" }).click();
+    await openSelectedStudentTool(page, "Add log");
     await page.locator("#selectedStudentPanel").getByLabel("What was discussed").fill(`Lane discussion ${laneLogSuffix}`);
     await page.locator("#selectedStudentPanel").getByLabel("Agreed plan / next actions").fill(`Lane plan ${laneLogSuffix}`);
     await page.evaluate(() => {
@@ -239,13 +243,12 @@ test.describe("dashboard e2e", () => {
 
     await selectStudentFromTable(page, "Mia Koskinen");
     await expect(page.locator("#selectedStudentPanelShell")).toBeVisible();
-    await expect(page.locator("#dashboardWorkspace").getByRole("button", { name: "Clear selection" })).toBeVisible();
 
-    await page.locator("#dashboardWorkspace").getByRole("button", { name: "Clear selection" }).click();
+    await page.locator("[data-student-row]", { hasText: "Mia Koskinen" }).first().click();
 
     await expect.poll(() => new URL(page.url()).searchParams.get("selected")).toBeNull();
     await expect(page.locator("#selectedStudentPanelShell")).toBeHidden();
-    await expect(page.locator("#dashboardWorkspace").getByRole("button", { name: "Clear selection" })).toBeHidden();
+    await expect(page.locator("[data-student-row][aria-selected='true']")).toHaveCount(0);
   });
 
   test("can close the student workspace without clearing selection", async ({ page }) => {
@@ -349,7 +352,7 @@ test.describe("dashboard e2e", () => {
     });
 
     await showStudentPanel(page);
-    await expect(page.locator("#selectedStudentPanel")).toContainText(`Currently viewing: ${noStartDateStudentName}`);
+    await expect(page.locator("#selectedStudentPanel")).toContainText(`Selected student: ${noStartDateStudentName}`);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Start date (optional)")).toHaveValue("");
     await expect(page.locator("[data-student-row]", { hasText: noStartDateStudentName })).toContainText("Not set");
   });
@@ -377,7 +380,7 @@ test.describe("dashboard e2e", () => {
     const discussedText = `Discussed milestone ${suffix}`;
     const agreedPlanText = `Agreed action plan ${suffix}`;
 
-    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Edit Student" }).click();
+    await openSelectedStudentTool(page, "Edit");
     await page.locator("#selectedStudentPanel").getByLabel("Name").fill(updatedStudentName);
     await page.locator("#selectedStudentPanel").getByLabel("Email").fill(updatedEmail);
     await page.locator("#selectedStudentPanel").getByLabel("Degree type").selectOption({ label: "MSc" });
@@ -413,7 +416,7 @@ test.describe("dashboard e2e", () => {
     await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe(updatedNotes);
     await page.locator("#studentSearch").fill("");
 
-    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Add Log Entry" }).click();
+    await openSelectedStudentTool(page, "Add log");
     await page.locator("#selectedStudentPanel").getByLabel("What was discussed").fill(discussedText);
     await page.locator("#selectedStudentPanel").getByLabel("Agreed plan / next actions").fill(agreedPlanText);
     await page.evaluate(() => {
@@ -432,16 +435,14 @@ test.describe("dashboard e2e", () => {
     await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
     await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("desc");
     await showStudentPanel(page);
-    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Meeting Log History" }).click();
+    await openSelectedStudentTool(page, "History");
     await expect(page.locator("#selectedStudentPanel")).toContainText(discussedText);
     await expect(page.locator("#selectedStudentPanel")).toContainText(agreedPlanText);
-
-    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Phase Change Audit" }).click();
     await expect(page.locator("#selectedStudentPanel")).toContainText("Planning research -> Editing");
 
     const phaseField = page.locator("#selectedStudentPanel").getByLabel("Phase");
     if (!(await phaseField.isVisible())) {
-      await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Edit Student" }).click();
+      await openSelectedStudentTool(page, "Edit");
     }
     await phaseField.selectOption({ label: "Submitted" });
     await page.evaluate(() => {
@@ -458,7 +459,7 @@ test.describe("dashboard e2e", () => {
       .toBe(2);
     await showStudentPanel(page);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Phase")).toHaveValue("submitted");
-    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Phase Change Audit" }).click();
+    await openSelectedStudentTool(page, "History");
     await expect(page.locator("#selectedStudentPanel")).toContainText(finalPhaseTransitionText);
     await expect(page.locator("#selectedStudentPanel")).toContainText("Planning research -> Editing");
     const phaseAuditText = (await page.locator("#selectedStudentPanel").textContent()) || "";
@@ -473,7 +474,7 @@ test.describe("dashboard e2e", () => {
     await selectStudentFromTable(page, secondaryStudentName);
     await showStudentPanel(page);
 
-    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Archive Student" }).click();
+    await openSelectedStudentTool(page, "Archive");
 
     const dialogPromise = page.waitForEvent("dialog");
     await page
@@ -506,7 +507,7 @@ test.describe("dashboard e2e", () => {
     await showStudentPanel(page);
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Add Log Entry" }).click();
+    await openSelectedStudentTool(page, "Add log");
 
     const panel = page.locator("#selectedStudentPanel");
     const fieldLabels = ["Meeting date/time"];

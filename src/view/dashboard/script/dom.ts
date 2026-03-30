@@ -18,8 +18,9 @@ var activeDashboardFilters = null;
 var selectedStudentPanelShell = null;
 var selectedStudentPanel = null;
 var emptySelectedStudentPanelTemplate = null;
+var selectedStudentToolButtons = [];
+var selectedStudentToolPanels = [];
 var toggleStudentPanelButton = null;
-var clearSelectedStudentButton = null;
 var closeSelectedStudentPanelButton = null;
 var defaultSortKey = "nextMeeting";
 var defaultSortDirection = "asc";
@@ -46,7 +47,12 @@ function syncDashboardDom() {
   selectedStudentPanelShell = document.getElementById("selectedStudentPanelShell");
   selectedStudentPanel = document.getElementById("selectedStudentPanel");
   emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");
+  selectedStudentToolButtons = selectedStudentPanel
+    ? Array.prototype.slice.call(selectedStudentPanel.querySelectorAll("[data-selected-tool-button='1']"))
+    : [];
+  selectedStudentToolPanels = selectedStudentPanel
+    ? Array.prototype.slice.call(selectedStudentPanel.querySelectorAll("[data-selected-tool-panel='1']"))
+    : [];
   toggleStudentPanelButton = document.getElementById("toggleStudentPanelButton");
-  clearSelectedStudentButton = document.getElementById("clearSelectedStudentButton");
   closeSelectedStudentPanelButton = document.getElementById("closeSelectedStudentPanelButton");
 }`;

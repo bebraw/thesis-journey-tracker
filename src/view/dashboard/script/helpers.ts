@@ -270,16 +270,28 @@ function setPanelVisibility(visible) {
   if (!selectedStudentPanelShell) return;
   selectedStudentPanelShell.classList.toggle("hidden", !visible);
   if (toggleStudentPanelButton) {
-    toggleStudentPanelButton.textContent = visible ? "Hide student workspace" : "Show student workspace";
+    toggleStudentPanelButton.textContent = visible ? "Hide details" : "Show details";
     toggleStudentPanelButton.setAttribute("aria-expanded", visible ? "true" : "false");
   }
 }
 
-function setSelectionActionState(selectedId) {
-  if (!clearSelectedStudentButton) return;
-  var hasSelection = selectedId > 0;
-  clearSelectedStudentButton.classList.toggle("hidden", !hasSelection);
-  clearSelectedStudentButton.setAttribute("aria-hidden", hasSelection ? "false" : "true");
+function getActiveSelectedStudentTool() {
+  var activeButton = selectedStudentToolButtons.find(function (button) {
+    return button.getAttribute("aria-pressed") === "true";
+  });
+  return activeButton ? activeButton.getAttribute("data-tool-key") || "" : "";
+}
+
+function setActiveSelectedStudentTool(toolKey) {
+  selectedStudentToolButtons.forEach(function (button) {
+    var isActive = Boolean(toolKey) && button.getAttribute("data-tool-key") === toolKey;
+    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+
+  selectedStudentToolPanels.forEach(function (panel) {
+    var isActive = Boolean(toolKey) && panel.getAttribute("data-tool-key") === toolKey;
+    panel.classList.toggle("hidden", !isActive);
+  });
 }
 
 function replaceDashboardSection(nextDocument, id) {
@@ -287,27 +299,6 @@ function replaceDashboardSection(nextDocument, id) {
   var nextSection = nextDocument.getElementById(id);
   if (!currentSection || !nextSection) return;
   currentSection.outerHTML = nextSection.outerHTML;
-}
-
-function collectOpenPanelDetails() {
-  if (!selectedStudentPanel) return [];
-
-  return Array.prototype.slice.call(selectedStudentPanel.querySelectorAll("details[open] > summary")).map(function (summary) {
-    return (summary.textContent || "").trim();
-  });
-}
-
-function restoreOpenPanelDetails(openSummaries) {
-  if (!selectedStudentPanel || !openSummaries || openSummaries.length === 0) return;
-
-  Array.prototype.slice.call(selectedStudentPanel.querySelectorAll("details > summary")).forEach(function (summary) {
-    var summaryText = (summary.textContent || "").trim();
-    if (openSummaries.indexOf(summaryText) === -1) return;
-    var details = summary.closest("details");
-    if (details) {
-      details.open = true;
-    }
-  });
 }
 
 function rebindDashboardUi() {
@@ -319,8 +310,8 @@ function rebindDashboardUi() {
   bindDashboardFilters();
   bindStudentSort();
   bindPanelToggle();
-  bindClearSelection();
   bindCloseSelectedPanel();
+  bindSelectedStudentToolToggle();
   bindInlineStudentUpdateForm();
   bindInlineLogEntryForm();
   bindDashboardToasts();
@@ -331,7 +322,7 @@ function applyDashboardHtml(htmlText, nextUrl, options) {
   var nextDocument = parser.parseFromString(htmlText, "text/html");
   var selectedId = options && options.selectedId ? options.selectedId : getSelectedStudentIdFromLocation();
   var panelWasVisible = options && options.panelWasVisible ? true : false;
-  var openSummaries = (options && options.openSummaries) || [];
+  var activeTool = (options && options.activeTool) || "";
 
   replaceDashboardSection(nextDocument, "dashboardFlashMessages");
   replaceDashboardSection(nextDocument, "dashboardWorkspace");
@@ -348,9 +339,8 @@ function applyDashboardHtml(htmlText, nextUrl, options) {
   refreshStudentTable();
   syncInteractiveUrls();
   setPanelVisibility(panelWasVisible);
-  setSelectionActionState(selectedId);
   applySelectedRowState(selectedId);
   applySelectedLaneState(selectedId);
-  restoreOpenPanelDetails(openSummaries);
+  setActiveSelectedStudentTool(activeTool);
   rebindDashboardUi();
 }`;

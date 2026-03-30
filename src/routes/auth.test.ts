@@ -404,6 +404,8 @@ describe("multi-user access control", () => {
     const remoteDashboardBody = await remoteDashboardResponse.text();
     expect(remoteDashboardResponse.status).toBe(200);
     expect(remoteDashboardBody).not.toContain("Style guide");
+    expect(remoteDashboardBody).toContain("Data tools");
+    expect(remoteDashboardBody).not.toContain(">More<");
 
     const remoteStyleGuideResponse = await fetchHandler(
       new Request("https://tracker.example.com/style-guide", {

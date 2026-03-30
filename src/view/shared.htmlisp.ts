@@ -231,6 +231,9 @@ export function renderPageHeaderNavigation(currentPage: HeaderPageId, viewer: Vi
   if (moreLinks.length === 0) {
     return primaryNavHtml;
   }
+  if (moreLinks.length === 1) {
+    return `${primaryNavHtml}${renderHeaderNavLink(moreLinks[0]!)}`;
+  }
 
   const moreMenuIsCurrent = moreLinks.some((link) => link.current);
   const moreMenuHtml = renderView(

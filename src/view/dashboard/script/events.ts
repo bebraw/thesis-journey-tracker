@@ -169,17 +169,24 @@ function bindPanelToggle() {
   });
 }
 
-function bindClearSelection() {
-  if (!clearSelectedStudentButton) return;
-  clearSelectedStudentButton.addEventListener("click", function () {
-    clearSelectedStudentSelection(true);
-  });
-}
-
 function bindCloseSelectedPanel() {
   if (!closeSelectedStudentPanelButton) return;
   closeSelectedStudentPanelButton.addEventListener("click", function () {
     setPanelVisibility(false);
+  });
+}
+
+function bindSelectedStudentToolToggle() {
+  selectedStudentToolButtons.forEach(function (button) {
+    if (button.getAttribute("data-tool-bound") === "1") return;
+    button.setAttribute("data-tool-bound", "1");
+
+    button.addEventListener("click", function () {
+      var toolKey = button.getAttribute("data-tool-key") || "";
+      if (!toolKey) return;
+      var nextTool = getActiveSelectedStudentTool() === toolKey ? "" : toolKey;
+      setActiveSelectedStudentTool(nextTool);
+    });
   });
 }
 
@@ -228,7 +235,7 @@ function bindInlineStudentUpdateForm() {
 
     var selectedId = getSelectedStudentIdFromLocation();
     var panelWasVisible = selectedStudentPanelShell ? !selectedStudentPanelShell.classList.contains("hidden") : false;
-    var openSummaries = collectOpenPanelDetails();
+    var activeTool = getActiveSelectedStudentTool();
     var submitButton = form.querySelector("button[type='submit']");
     var previousButtonState = setSubmitButtonBusy(submitButton, "Saving updates...");
     form.setAttribute("aria-busy", "true");
@@ -252,7 +259,7 @@ function bindInlineStudentUpdateForm() {
           applyDashboardHtml(htmlText, response.url, {
             selectedId: selectedId,
             panelWasVisible: panelWasVisible,
-            openSummaries: openSummaries
+            activeTool: activeTool
           });
         });
       })
@@ -285,7 +292,7 @@ function bindInlineLogEntryForm() {
 
     var selectedId = getSelectedStudentIdFromLocation();
     var panelWasVisible = selectedStudentPanelShell ? !selectedStudentPanelShell.classList.contains("hidden") : false;
-    var openSummaries = collectOpenPanelDetails();
+    var activeTool = getActiveSelectedStudentTool();
     var submitButton = form.querySelector("button[type='submit']");
     var previousButtonState = setSubmitButtonBusy(submitButton, "Saving log...");
     form.setAttribute("aria-busy", "true");
@@ -309,7 +316,7 @@ function bindInlineLogEntryForm() {
           applyDashboardHtml(htmlText, response.url, {
             selectedId: selectedId,
             panelWasVisible: panelWasVisible,
-            openSummaries: openSummaries
+            activeTool: activeTool
           });
         });
       })
