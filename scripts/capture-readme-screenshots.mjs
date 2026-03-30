@@ -24,8 +24,15 @@ async function showStudentPanel(page, studentName) {
   await page.locator("#studentSearch").fill(studentName);
   await page.locator("[data-student-row]", { hasText: studentName }).first().click();
   if (!(await panelShell.isVisible())) {
-    await page.locator("#toggleStudentPanelButton").click();
+    await page.waitForTimeout(250);
   }
+  if (!(await panelShell.isVisible())) {
+    const toggleButton = page.locator("#toggleStudentPanelButton");
+    if (await toggleButton.isVisible()) {
+      await toggleButton.click();
+    }
+  }
+  await panelShell.waitFor({ state: "visible" });
   await page.locator("#studentSearch").fill("");
   await page.waitForLoadState("networkidle");
 }
@@ -48,8 +55,7 @@ async function screenshotViewport(page, outputPath) {
 async function captureDashboard(page) {
   await login(page);
   await showStudentPanel(page, "Aino Lehtinen");
-  await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Meeting Log History" }).click();
-  await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Phase Change Audit" }).click();
+  await page.locator("#selectedStudentPanel").getByRole("button", { name: "History" }).click();
   await addScreenshotPadding(page, { limitStudentRows: true });
   await page.evaluate(() => window.scrollTo(0, 0));
   await screenshotViewport(page, path.join(OUTPUT_DIR, "dashboard-overview.png"));
@@ -58,9 +64,7 @@ async function captureDashboard(page) {
 async function captureStudentPanel(page) {
   await login(page);
   await showStudentPanel(page, "Aino Lehtinen");
-  await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Edit Student" }).click();
-  await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Meeting Log History" }).click();
-  await page.locator("#selectedStudentPanel").locator("summary", { hasText: "Phase Change Audit" }).click();
+  await page.locator("#selectedStudentPanel").getByRole("button", { name: "History" }).click();
   await addScreenshotPadding(page);
   await page.locator("#selectedStudentPanel").screenshot({
     path: path.join(OUTPUT_DIR, "student-panel.png"),
