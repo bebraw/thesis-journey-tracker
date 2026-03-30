@@ -1,10 +1,10 @@
 import styles from "../.generated/styles.css";
 import favicon from "./favicon.ico";
-import type { SessionUser } from "./auth";
+import { getSessionUser, isReadonlyUser, resolveAuthState, SESSION_COOKIE, SESSION_TTL_SECONDS, type SessionUser } from "./auth";
 import { runAutomatedBackup } from "./backup";
 import type { Env, ScheduledControllerLike } from "./app-env";
 import type { D1Database } from "./db";
-import { handleLoginRequest, handleLogout, isReadonlyUser, readonlyRedirect, resolveAuthState, SESSION_COOKIE, SESSION_TTL_SECONDS } from "./routes/auth";
+import { handleLoginRequest, handleLogout, readonlyRedirect } from "./routes/auth";
 import {
   handleAddLog,
   handleAddStudent,
@@ -29,7 +29,6 @@ import {
 import { getScheduleReturnPath, handleScheduleMeeting, renderSchedule } from "./routes/schedule";
 import {
   cssResponse,
-  getSessionUser,
   htmlResponse,
   iconResponse,
   javascriptResponse,

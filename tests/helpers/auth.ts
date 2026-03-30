@@ -1,5 +1,5 @@
 import type { AccessRole } from "../../src/auth";
-import { hashPassword } from "../../src/password";
+import { hashPassword } from "../../src/auth";
 import { MockD1Database } from "./mock-d1";
 
 const TEST_PASSWORD_HASH_ITERATIONS = 1_000;
