@@ -1,4 +1,4 @@
-import type { GoogleCalendarEvent } from "./google-calendar";
+import type { GoogleCalendarEvent } from "./google";
 import { localDateTimeToUtcIso } from "./scheduling";
 
 export async function listIcalCalendarEvents(

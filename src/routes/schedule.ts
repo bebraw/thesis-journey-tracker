@@ -1,8 +1,19 @@
 import { getStudentById, listStudents, updateStudent } from "../db";
-import { resolveGoogleCalendarSourceForApp } from "../google-calendar-settings";
-import { createGoogleCalendarEvent, listGoogleCalendarEvents, resolveGoogleCalendarConfig, type GoogleCalendarEvent } from "../google-calendar";
-import { listIcalCalendarEvents } from "../ical";
-import { addHourToLocalDateTime, buildScheduleEventDescription, buildScheduleEventTitle, buildScheduleWeek, localDateTimeToUtcIso, resolveScheduleTimeZone, resolveWeekStart } from "../scheduling";
+import {
+  addHourToLocalDateTime,
+  buildScheduleEventDescription,
+  buildScheduleEventTitle,
+  buildScheduleWeek,
+  createGoogleCalendarEvent,
+  listGoogleCalendarEvents,
+  listIcalCalendarEvents,
+  localDateTimeToUtcIso,
+  resolveGoogleCalendarConfig,
+  resolveGoogleCalendarSourceForApp,
+  resolveScheduleTimeZone,
+  resolveWeekStart,
+  type GoogleCalendarEvent,
+} from "../calendar";
 import { htmlResponse, normalizeString, redirect } from "../utils";
 import { renderSchedulePage } from "../views";
 import type { SessionUser } from "../auth";

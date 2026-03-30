@@ -15,9 +15,9 @@ This document gives a technical overview of how the project is put together.
 
 - [`src/worker.ts`](../src/worker.ts): thin Worker entrypoint for request/session setup, auth flow, and route dispatch
 - [`src/routes/`](../src/routes): page and form-action handlers grouped by feature area
+- [`src/calendar/`](../src/calendar): shared calendar feature code for Google API access, encrypted settings, iCal parsing, and schedule-building helpers
 - [`src/routes/data-tools/`](../src/routes/data-tools): the data-tools slice, including route handlers, import/export helpers, and co-located tests
 - [`src/backup.ts`](../src/backup.ts): scheduled R2 backup generation and object layout
-- [`src/google-calendar-settings.ts`](../src/google-calendar-settings.ts): encrypted Google Calendar settings storage and source resolution
 - [`src/reference-data.ts`](../src/reference-data.ts): shared thesis phase and degree reference data
 - [`src/view/`](../src/view): page and partial rendering helpers
 - [`src/view/dashboard/`](../src/view/dashboard): dashboard-specific sections and interactions
@@ -35,13 +35,13 @@ graph TD
     Browser[Browser]
     Worker[src/worker.ts<br/>Entry, auth, route dispatch]
     Routes[src/routes/<br/>Page and action handlers]
+    Calendar[src/calendar/<br/>Google API, settings, iCal, schedule helpers]
     Views[src/view/<br/>Page templates]
     Dashboard[src/view/dashboard/<br/>Dashboard sections and interactions]
     UI[src/ui/<br/>Reusable UI components]
     Reference[src/reference-data.ts<br/>Phases and degree types]
     DB[src/db.ts<br/>Database helpers]
     Backup[src/backup.ts<br/>Scheduled backup generation]
-    CalendarSettings[src/google-calendar-settings.ts<br/>Encrypted calendar settings]
     D1[(Cloudflare D1)]
     R2[(Cloudflare R2 backups)]
     Migrations[migrations/<br/>Schema changes]
@@ -56,7 +56,7 @@ graph TD
     Routes --> UI
     Routes --> Reference
     Routes --> DB
-    Routes --> CalendarSettings
+    Routes --> Calendar
     Worker --> Backup
     Worker --> CSS
     DB --> D1
@@ -68,7 +68,7 @@ graph TD
     Tests --> D1
 ```
 
-The Worker is now intentionally thin: it handles request/session setup, authentication, and route dispatch. Feature-specific page rendering and form-action behavior live under [`src/routes/`](../src/routes), where handlers talk to D1 through the database helpers, render server-side HTML through the shared view/UI layers, and coordinate support modules such as encrypted Google Calendar settings.
+The Worker is now intentionally thin: it handles request/session setup, authentication, and route dispatch. Feature-specific page rendering and form-action behavior live under [`src/routes/`](../src/routes), where handlers talk to D1 through the database helpers, render server-side HTML through the shared view/UI layers, and rely on shared feature modules such as [`src/calendar/`](../src/calendar) for Google Calendar access, iCal fallback parsing, encrypted settings, and schedule-building logic.
 
 Authentication remains intentionally lightweight: accounts are stored in the `app_users` D1 table with hashed passwords, and the Worker stores the signed session together with the viewer role (`editor` or `readonly`) in an `HttpOnly` cookie. Legacy `APP_USERS_JSON` or `APP_PASSWORD` values are only used as a one-time bootstrap path when the auth table is still empty.
 

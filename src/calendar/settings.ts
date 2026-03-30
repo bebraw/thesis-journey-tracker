@@ -1,9 +1,9 @@
-import { deleteAppSecret, getAppSecret, upsertAppSecret } from "./db";
-import { decryptText, encryptText } from "./encryption";
-import { resolveGoogleCalendarConfig } from "./google-calendar";
+import { deleteAppSecret, getAppSecret, upsertAppSecret } from "../db";
+import { decryptText, encryptText } from "../encryption";
+import { resolveGoogleCalendarConfig } from "./google";
 import { resolveScheduleTimeZone } from "./scheduling";
-import { normalizeString } from "./utils";
-import type { Env } from "./app-env";
+import { normalizeString } from "../utils";
+import type { Env } from "../app-env";
 
 const GOOGLE_CALENDAR_SECRET_KEY = "google_calendar_config";
 

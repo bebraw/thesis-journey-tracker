@@ -16,7 +16,7 @@ import {
   resolveGoogleCalendarSourceForApp,
   saveStoredGoogleCalendarSettings,
   type StoredGoogleCalendarSettings,
-} from "../../google-calendar-settings";
+} from "../../calendar";
 import { htmlResponse, normalizeString, redirect } from "../../utils";
 import { renderDataToolsPage } from "../../views";
 import type { SessionUser } from "../../auth";

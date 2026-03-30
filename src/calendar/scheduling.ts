@@ -1,5 +1,5 @@
-import type { Student } from "./db";
-import type { GoogleCalendarEvent } from "./google-calendar";
+import type { Student } from "../db";
+import type { GoogleCalendarEvent } from "./google";
 
 export const DEFAULT_SCHEDULE_TIMEZONE = "Europe/Helsinki";
 const SLOT_START_HOUR = 9;
