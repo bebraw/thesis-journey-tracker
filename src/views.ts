@@ -2,7 +2,7 @@ export { renderAddStudentPage, renderEmptySelectedPanel, renderSelectedStudentPa
 export { renderDataToolsPage } from "./view/data-tools";
 export { renderDashboardPage } from "./view/dashboard";
 export { renderLoginPage } from "./view/login.htmlisp";
-export { renderSchedulePage } from "./view/schedule.htmlisp";
+export { renderSchedulePage } from "./view/schedule";
 export { renderStyleGuidePage } from "./view/style-guide.htmlisp";
 export { DEGREE_TYPES, PHASES } from "./students";
 export type { AddStudentPageData, DashboardPageData, DataToolsPageData, Metrics, SchedulePageData } from "./view/types";

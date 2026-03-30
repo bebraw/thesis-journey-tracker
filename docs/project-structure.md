@@ -31,6 +31,7 @@ This document gives a technical overview of how the project is put together.
 - [`src/htmlisp/`](../src/htmlisp): shared HTMLisp rendering, types, and attribute helper utilities
 - [`src/view/`](../src/view): page and partial rendering helpers
 - [`src/view/dashboard/`](../src/view/dashboard): dashboard-specific sections and interactions
+- [`src/view/schedule/`](../src/view/schedule): scheduling page composition for controls, availability grid, and invitation state
 - [`src/view/students/`](../src/view/students): shared student add/edit/panel view helpers
 - [`src/view/data-tools/`](../src/view/data-tools): data-tools page composition for backup import/export and calendar settings
 - [`src/ui/`](../src/ui): reusable UI components and styling helpers
