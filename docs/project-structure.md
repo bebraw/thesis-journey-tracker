@@ -27,6 +27,7 @@ This document gives a technical overview of how the project is put together.
 - [`src/routes/dashboard/`](../src/routes/dashboard): the dashboard slice, split into render handlers, actions, and filter/path helpers
 - [`src/routes/data-tools/`](../src/routes/data-tools): the data-tools slice, including route handlers and co-located tests
 - [`src/backup.ts`](../src/backup.ts): scheduled R2 backup generation and object layout
+- [`src/htmlisp/`](../src/htmlisp): shared HTMLisp rendering, types, and attribute helper utilities
 - [`src/view/`](../src/view): page and partial rendering helpers
 - [`src/view/dashboard/`](../src/view/dashboard): dashboard-specific sections and interactions
 - [`src/view/data-tools.htmlisp.ts`](../src/view/data-tools.htmlisp.ts): backup import/export page
@@ -51,6 +52,7 @@ graph TD
     Http[src/http/response.ts<br/>HTTP responses]
     Forms[src/forms/normalize.ts<br/>Normalization]
     Formatting[src/formatting.ts<br/>Escaping and dates]
+    HTMLisp[src/htmlisp/<br/>Rendering and attributes]
     Views[src/view/<br/>Page templates]
     Dashboard[src/view/dashboard/<br/>Dashboard sections and interactions]
     UI[src/ui/<br/>Reusable UI components]
@@ -78,6 +80,8 @@ graph TD
     Calendar --> Stores
     Students --> Stores
     Stores --> DBCore
+    Views --> HTMLisp
+    UI --> HTMLisp
     Views --> Formatting
     Worker --> Backup
     Worker --> Http

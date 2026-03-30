@@ -1,22 +1,8 @@
-import { htmlispToHTMLSync } from "htmlisp";
-
-import { escapeHtml } from "./formatting";
-
-export type HtmlispProps = Record<string, unknown>;
-export type AttributeValue = string | true;
-export type HtmlispComponents = Record<string, string>;
-
-export interface ParsedAttribute {
-  name: string;
-  value: AttributeValue;
-}
+import { escapeHtml } from "../formatting";
+import type { AttributeValue, ParsedAttribute } from "./types";
 
 const ATTRIBUTE_PATTERN = /([^\s=]+)(?:=(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
 const SAFE_ATTRIBUTE_NAME = /^[A-Za-z_:][-A-Za-z0-9_:.]*$/;
-
-export function renderHTMLisp(htmlInput: string, props: HtmlispProps = {}, components?: HtmlispComponents): string {
-  return htmlispToHTMLSync({ htmlInput, props, components });
-}
 
 export function parseHtmlispAttributes(attributes?: string): ParsedAttribute[] {
   if (!attributes) {
