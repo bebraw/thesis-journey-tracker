@@ -30,10 +30,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
     `<div &class="(get props pageWrap)">
       <noop &children="(get props headerHtml)"></noop>
       <noop &children="(get props toastHtml)"></noop>
-      <div class="flex flex-col gap-stack">
-        <div class="order-2 space-y-stack-xs xl:order-1" id="dashboardMetrics"><noop &children="(get props metricsHtml)"></noop></div>
-        <div class="order-1 xl:order-2"><noop &children="(get props studentsTableHtml)"></noop></div>
-      </div>
+      <noop &children="(get props studentsTableHtml)"></noop>
     </div>
     <noop &children="(get props dashboardScript)"></noop>
     <noop &children="(get props themeToggleScript)"></noop>`,
@@ -48,11 +45,11 @@ export function renderDashboardPage(data: DashboardPageData): string {
         viewer,
       ),
       toastHtml: renderDashboardToastMessages(notice, error),
-      metricsHtml: renderMetricCards(metrics),
       studentsTableHtml: renderStudentsTable(
         students,
         selectedStudent,
         filters,
+        renderMetricCards(metrics),
         renderPhaseLanes(students, selectedStudent, filters, { embedded: true }),
         selectedPanel,
         renderEmptySelectedPanel(

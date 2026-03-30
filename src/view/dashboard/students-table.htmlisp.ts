@@ -188,6 +188,7 @@ export function renderStudentsTable(
   students: Student[],
   selectedStudent: Student | null,
   filters: DashboardFilters,
+  metricsHtml: string,
   phaseLanesHtml: string,
   selectedPanel: string,
   emptySelectedPanel: string,
@@ -352,6 +353,13 @@ export function renderStudentsTable(
             <noop &children="(get props addStudentButtonHtml)"></noop>
             <noop &children="(get props panelToggleButtonHtml)"></noop>
           </div>
+        </div>
+        <div class="mb-panel-sm space-y-badge-y">
+          <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
+            <h3 class="text-sm font-semibold uppercase tracking-[0.16em] text-app-text-muted dark:text-app-text-muted-dark">Quick filters</h3>
+            <p class="text-xs text-app-text-soft dark:text-app-text-soft-dark">Tap a stat to jump straight into the matching student set.</p>
+          </div>
+          <div id="workspaceMetricStrip"><noop &children="(get props metricsHtml)"></noop></div>
         </div>
         <div class="mb-panel-sm rounded-card border border-app-line bg-app-surface-soft/75 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/35">
           <div class="grid grid-cols-1 gap-stack-xs sm:grid-cols-2 xl:grid-cols-4">
@@ -532,6 +540,7 @@ export function renderStudentsTable(
       selectedPanelShellClass: escapeHtml(`${selectedStudent ? "" : "hidden "}min-w-0 xl:sticky xl:top-6 xl:w-[32rem] xl:shrink-0`),
       showEmptyRow: studentRows.length === 0,
       studentRows,
+      metricsHtml,
       phaseLanesHtml,
       selectedPanel,
       emptySelectedPanel,

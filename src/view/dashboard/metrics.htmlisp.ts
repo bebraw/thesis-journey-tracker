@@ -1,4 +1,4 @@
-import { MUTED_TEXT, SURFACE_CARD_SM } from "../../ui";
+import { SURFACE_CARD_SM } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
 import { escapeHtml } from "../../formatting";
 import { renderView } from "../shared.htmlisp";
@@ -45,38 +45,35 @@ export function renderMetricCards(metrics: Metrics): string {
   ];
   const components: HtmlispComponents = {
     MetricCard: `<a &href="(get props href)" &class="(get props cardClass)">
-    <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-text-muted dark:text-app-text-muted-dark" &children="(get props label)"></p>
-    <p class="mt-3 text-3xl font-semibold sm:text-[2rem]" &children="(get props metricValue)"></p>
-    <p &class="(get props detailClass)" &children="(get props detail)"></p>
-    <p class="mt-3 text-sm font-medium text-app-brand dark:text-app-brand-ring" &children="(get props ctaText)"></p>
+    <div class="flex items-baseline justify-between gap-badge-y">
+      <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-text-muted dark:text-app-text-muted-dark" &children="(get props label)"></p>
+      <p class="text-xs font-semibold text-app-brand dark:text-app-brand-ring" &children="(get props ctaText)"></p>
+    </div>
+    <div class="mt-2 flex items-end justify-between gap-stack-xs">
+      <p class="text-2xl font-semibold leading-none sm:text-[1.8rem]" &children="(get props metricValue)"></p>
+      <p &class="(get props detailClass)" &children="(get props detail)"></p>
+    </div>
   </a>`,
   };
 
   return renderView(
-    `<section class="space-y-stack-xs">
-      <div>
-        <h2 class="text-lg font-semibold">At a Glance</h2>
-        <p &class="(get props labelClass)">Key signals from the current supervision pipeline.</p>
-      </div>
-      <div class="grid grid-cols-1 gap-panel-sm sm:grid-cols-2 xl:grid-cols-4">
-        <noop &foreach="(get props metrics)">
-          <MetricCard
-            &cardClass="(get props cardClass)"
-            &href="(get props href)"
-            &label="(get props label)"
-            &metricValue="(get props metricValue)"
-            &detailClass="(get props detailClass)"
-            &detail="(get props detail)"
-            &ctaText="(get props ctaText)"
-          ></MetricCard>
-        </noop>
-      </div>
-    </section>`,
+    `<div class="grid grid-cols-1 gap-badge-y sm:grid-cols-2 xl:grid-cols-4">
+      <noop &foreach="(get props metrics)">
+        <MetricCard
+          &cardClass="(get props cardClass)"
+          &href="(get props href)"
+          &label="(get props label)"
+          &metricValue="(get props metricValue)"
+          &detailClass="(get props detailClass)"
+          &detail="(get props detail)"
+          &ctaText="(get props ctaText)"
+        ></MetricCard>
+      </noop>
+    </div>`,
     {
       metrics: preparedMetrics,
-      cardClass: escapeHtml(`${SURFACE_CARD_SM} block min-h-[10.5rem] transition hover:-translate-y-px hover:border-app-line-strong hover:shadow-elevated dark:hover:border-app-line-dark-strong`),
-      labelClass: escapeHtml(MUTED_TEXT),
-      detailClass: escapeHtml("mt-2 text-sm leading-6 text-app-text-soft dark:text-app-text-soft-dark"),
+      cardClass: escapeHtml(`${SURFACE_CARD_SM} block p-panel-sm transition hover:-translate-y-px hover:border-app-line-strong hover:shadow-elevated dark:hover:border-app-line-dark-strong`),
+      detailClass: escapeHtml("max-w-[10rem] text-right text-[11px] leading-5 text-app-text-soft dark:text-app-text-soft-dark"),
     },
     components,
   );

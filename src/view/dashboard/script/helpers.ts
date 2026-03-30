@@ -333,7 +333,6 @@ function applyDashboardHtml(htmlText, nextUrl, options) {
   var openSummaries = (options && options.openSummaries) || [];
 
   replaceDashboardSection(nextDocument, "dashboardFlashMessages");
-  replaceDashboardSection(nextDocument, "dashboardMetrics");
   replaceDashboardSection(nextDocument, "dashboardWorkspace");
 
   if (nextUrl) {

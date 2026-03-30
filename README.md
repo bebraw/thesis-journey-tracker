@@ -39,7 +39,7 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 - Track each student through thesis phases from planning to submission.
 - Store supervision logs with discussion notes and action items.
 - Follow upcoming meetings from the dashboard.
-- Jump from dashboard summary cards into filtered student views that need attention.
+- Use quick stats inside Student Workspace to jump straight into filtered student views that need attention.
 - Filter the student workspace by phase, degree type, and meeting status, switch between list and phase views, and clear active filters quickly.
 - Archive completed or inactive students without deleting their supervision history.
 - Open a weekly Google Calendar scheduling view, choose a student to update the week immediately, and send meeting invites to students. If you want a lower-friction setup, the app also supports a read-only Google Calendar iCal fallback for availability.

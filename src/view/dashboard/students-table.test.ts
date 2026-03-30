@@ -40,6 +40,7 @@ describe("students table", () => {
       ],
       buildStudent({ id: 13, name: "Selected Student" }),
       DEFAULT_FILTERS,
+      "<div>Metrics</div>",
       "<div>Phases</div>",
       "<div>Panel</div>",
       "<div>Empty</div>",
