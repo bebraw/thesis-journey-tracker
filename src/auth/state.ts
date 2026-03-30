@@ -42,17 +42,16 @@ export async function verifyLoginCredentials(
   password: string,
 ): Promise<LoginVerificationResult> {
   const now = new Date();
-  const loginAttemptKey = buildLoginAttemptKey(request);
+  const candidateUser =
+    authState.users.length === 1 && !enteredName
+      ? authState.users[0] || null
+      : authState.users.find((user) => user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase()) || null;
+  const loginAttemptKey = buildLoginAttemptKey(request, enteredName, candidateUser?.name || null);
   const currentAttempt = await getLoginAttempt(env.DB, loginAttemptKey);
 
   if (isLoginAttemptLocked(currentAttempt, now)) {
     return { status: "rate_limited" };
   }
-
-  const candidateUser =
-    authState.users.length === 1 && !enteredName
-      ? authState.users[0] || null
-      : authState.users.find((user) => user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase()) || null;
 
   let passwordVerified = false;
   try {
@@ -88,8 +87,10 @@ type LoginVerificationResult =
   | { status: "authenticated"; user: SessionUser }
   | { status: "invalid" | "password_reset" | "rate_limited" };
 
-function buildLoginAttemptKey(request: Request): string {
-  return `ip:${readClientIpAddress(request)}`;
+function buildLoginAttemptKey(request: Request, enteredName: string, resolvedUserName: string | null): string {
+  const ipAddress = readClientIpAddress(request);
+  const loginName = normalizeLoginAttemptName(resolvedUserName || enteredName);
+  return `ip:${ipAddress}|user:${loginName}`;
 }
 
 function readClientIpAddress(request: Request): string {
@@ -112,6 +113,11 @@ function readClientIpAddress(request: Request): string {
 function normalizeIpAddress(value: string | null | undefined): string | null {
   const normalized = (value || "").trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeLoginAttemptName(value: string | null | undefined): string {
+  const normalized = (value || "").trim().toLocaleLowerCase();
+  return normalized || "anonymous";
 }
 
 function isLoginAttemptLocked(attempt: LoginAttempt | null, now: Date): boolean {

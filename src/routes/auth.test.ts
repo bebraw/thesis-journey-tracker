@@ -342,6 +342,7 @@ describe("multi-user access control", () => {
     expect(lockoutResponse.headers.get("location")).toBe("/login?error=rate_limit");
     expect(env.DB.loginAttempts[0]?.failure_count).toBe(5);
     expect(env.DB.loginAttempts[0]?.locked_until).toBeTruthy();
+    expect(env.DB.loginAttempts[0]?.attempt_key).toBe("ip:203.0.113.10|user:advisor");
 
     const blockedValidLoginResponse = await fetchHandler(
       new Request("http://localhost/login", {
@@ -377,6 +378,50 @@ describe("multi-user access control", () => {
     expect(recoveredResponse.headers.get("location")).toBe("/");
     expect(recoveredResponse.headers.get("set-cookie")).toContain("thesis_session=");
     expect(env.DB.loginAttempts).toHaveLength(0);
+  });
+
+  it("does not lock out a different user from the same shared IP address", async () => {
+    const loginHeaders = {
+      "cf-connecting-ip": "203.0.113.10",
+      "content-type": "application/x-www-form-urlencoded",
+    };
+
+    for (let attemptIndex = 0; attemptIndex < 5; attemptIndex += 1) {
+      const failedResponse = await fetchHandler(
+        new Request("http://localhost/login", {
+          method: "POST",
+          headers: loginHeaders,
+          body: new URLSearchParams({
+            name: "Advisor",
+            password: "wrong-password",
+          }),
+        }),
+        env,
+      );
+
+      expect(failedResponse.status).toBe(302);
+    }
+
+    expect(env.DB.loginAttempts).toHaveLength(1);
+    expect(env.DB.loginAttempts[0]?.attempt_key).toBe("ip:203.0.113.10|user:advisor");
+
+    const differentUserResponse = await fetchHandler(
+      new Request("http://localhost/login", {
+        method: "POST",
+        headers: loginHeaders,
+        body: new URLSearchParams({
+          name: "Professor",
+          password: "readonly-password",
+        }),
+      }),
+      env,
+    );
+
+    expect(differentUserResponse.status).toBe(302);
+    expect(differentUserResponse.headers.get("location")).toBe("/");
+    expect(differentUserResponse.headers.get("set-cookie")).toContain("thesis_session=");
+    expect(env.DB.loginAttempts).toHaveLength(1);
+    expect(env.DB.loginAttempts[0]?.attempt_key).toBe("ip:203.0.113.10|user:advisor");
   });
 
   it("shows the style guide only on local development hosts", async () => {
