@@ -25,6 +25,7 @@ This document gives a technical overview of how the project is put together.
 - [`src/forms/normalize.ts`](../src/forms/normalize.ts): shared form and payload normalization helpers
 - [`src/formatting.ts`](../src/formatting.ts): shared escaping and date-formatting helpers for views and HTMLisp rendering
 - [`src/routes/dashboard/`](../src/routes/dashboard): the dashboard slice, split into render handlers, actions, and filter/path helpers
+- [`src/routes/schedule/`](../src/routes/schedule): the scheduling slice, split into render handlers, actions, and schedule path helpers
 - [`src/routes/data-tools/`](../src/routes/data-tools): the data-tools slice, including route handlers and co-located tests
 - [`src/backup.ts`](../src/backup.ts): scheduled R2 backup generation and object layout
 - [`src/htmlisp/`](../src/htmlisp): shared HTMLisp rendering, types, and attribute helper utilities
