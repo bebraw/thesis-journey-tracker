@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { loginWithPassword, seedTestUsers } from "./helpers/auth";
-import { MockD1Database } from "./helpers/mock-d1";
+import { loginWithPassword, seedTestUsers } from "../../tests/helpers/auth";
+import { MockD1Database } from "../../tests/helpers/mock-d1";
 
-vi.mock("../.generated/styles.css", () => ({ default: "" }));
-vi.mock("../src/favicon.ico", () => ({ default: new ArrayBuffer(0) }));
+vi.mock("../../.generated/styles.css", () => ({ default: "" }));
+vi.mock("../favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 
-type WorkerFetch = (typeof import("../src/worker"))["default"]["fetch"];
+type WorkerFetch = (typeof import("../worker"))["default"]["fetch"];
 
 interface TestEnv {
   DB: MockD1Database;
@@ -19,7 +19,7 @@ describe("google calendar scheduling", () => {
 
   beforeEach(async () => {
     vi.resetModules();
-    const workerModule = await import("../src/worker");
+    const workerModule = await import("../worker");
     fetchHandler = workerModule.default.fetch;
     env = {
       DB: new MockD1Database(),

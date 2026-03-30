@@ -24,7 +24,8 @@ This document gives a technical overview of how the project is put together.
 - [`src/ui/`](../src/ui): reusable UI components and styling helpers
 - [`src/db.ts`](../src/db.ts): database access helpers
 - [`migrations/`](../migrations): schema changes for D1
-- [`tests/`](../tests): end-to-end and security-oriented automated tests
+- [`tests/`](../tests): end-to-end tests plus shared test helpers and broader integration/security coverage
+- [`src/routes/*.test.ts`](../src/routes): co-located Vitest coverage for route modules such as auth, scheduling, and data tools
 
 ## Architecture Diagram
 
@@ -43,7 +44,7 @@ graph TD
     D1[(Cloudflare D1)]
     R2[(Cloudflare R2 backups)]
     Migrations[migrations/<br/>Schema changes]
-    Tests[tests/<br/>Vitest and Playwright]
+    Tests[tests/ + src/**/*.test.ts<br/>Vitest and Playwright]
     CSS[src/tailwind-input.css + .generated/styles.css]
     Cron[Cloudflare Cron Trigger]
 

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { seedTestUsers, loginWithPassword } from "./helpers/auth";
-import { MockD1Database } from "./helpers/mock-d1";
+import { seedTestUsers, loginWithPassword } from "../../tests/helpers/auth";
+import { MockD1Database } from "../../tests/helpers/mock-d1";
 
-vi.mock("../.generated/styles.css", () => ({ default: "" }));
-vi.mock("../src/favicon.ico", () => ({ default: new ArrayBuffer(0) }));
+vi.mock("../../.generated/styles.css", () => ({ default: "" }));
+vi.mock("../favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 
-type WorkerFetch = (typeof import("../src/worker"))["default"]["fetch"];
+type WorkerFetch = (typeof import("../worker"))["default"]["fetch"];
 
 describe("multi-user access control", () => {
   let env: { DB: MockD1Database; SESSION_SECRET: string; APP_USERS_JSON?: string };
@@ -13,7 +13,7 @@ describe("multi-user access control", () => {
 
   beforeEach(async () => {
     vi.resetModules();
-    const workerModule = await import("../src/worker");
+    const workerModule = await import("../worker");
     fetchHandler = workerModule.default.fetch;
     env = {
       DB: new MockD1Database(),
