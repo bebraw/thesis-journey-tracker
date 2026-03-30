@@ -3,6 +3,7 @@ node_modules
 .npm
 .dev.vars
 .DS_Store
+Library
 playwright-report
 test-results
 .generated
