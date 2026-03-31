@@ -9,16 +9,9 @@ export function buildProfessorReportFilename(timestamp = new Date()): string {
 
 export function createProfessorStatusReport(studentBundles: StatusReportStudentBundle[], generatedAt = new Date()): string {
   const today = generatedAt.toISOString().slice(0, 10);
-  const overdueMeetings = studentBundles.filter(({ student }) => student.nextMeetingAt && new Date(student.nextMeetingAt) < generatedAt);
-  const upcomingSoon = studentBundles.filter(({ student }) => {
-    if (!student.nextMeetingAt) {
-      return false;
-    }
-    const nextMeeting = new Date(student.nextMeetingAt);
-    const diff = nextMeeting.getTime() - generatedAt.getTime();
-    return diff >= 0 && diff <= 14 * 24 * 60 * 60 * 1000;
-  });
-  const noMeetingBooked = studentBundles.filter(({ student }) => !student.nextMeetingAt);
+  const overdueMeetings = studentBundles.filter(({ student }) => meetingStatusText(student, generatedAt) === "Overdue");
+  const upcomingSoon = studentBundles.filter(({ student }) => meetingStatusText(student, generatedAt) === "Meeting soon");
+  const noMeetingBooked = studentBundles.filter(({ student }) => meetingStatusText(student, generatedAt) === "Not booked");
   const pastTarget = studentBundles.filter(({ student }) => {
     const targetSubmissionDate = getTargetSubmissionDate(student);
     return Boolean(targetSubmissionDate && targetSubmissionDate < today && student.currentPhase !== "submitted");
@@ -31,17 +24,18 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
 
   const needsAttention = studentBundles
     .filter(({ student }) => {
-      const meetingStatus = meetingStatusText(student);
+      const meetingStatus = meetingStatusText(student, generatedAt);
       const targetSubmissionDate = getTargetSubmissionDate(student);
       return meetingStatus === "Overdue" || meetingStatus === "Not booked" || Boolean(targetSubmissionDate && targetSubmissionDate < today);
     })
     .map(({ student, latestLog }) => {
       const targetSubmissionDate = getTargetSubmissionDate(student);
+      const meetingStatus = meetingStatusText(student, generatedAt);
       const parts = [
         `${student.name} (${getDegreeLabel(student.degreeType, DEGREE_TYPES)})`,
         `phase ${getPhaseLabel(student.currentPhase, PHASES)}`,
         targetSubmissionDate ? `target ${targetSubmissionDate}` : "target not set",
-        `meeting ${meetingStatusText(student).toLowerCase()}`,
+        `meeting ${meetingStatus.toLowerCase()}`,
       ];
 
       if (latestLog) {
@@ -53,11 +47,12 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
 
   const studentLines = studentBundles.map(({ student, latestLog }) => {
     const targetSubmissionDate = getTargetSubmissionDate(student);
+    const meetingStatus = meetingStatusText(student, generatedAt);
     const parts = [
       `${student.name} (${getDegreeLabel(student.degreeType, DEGREE_TYPES)})`,
       `phase ${getPhaseLabel(student.currentPhase, PHASES)}`,
       targetSubmissionDate ? `target ${targetSubmissionDate}` : "target not set",
-      `meeting ${meetingStatusText(student).toLowerCase()}`,
+      `meeting ${meetingStatus.toLowerCase()}`,
     ];
 
     if (student.thesisTopic) {

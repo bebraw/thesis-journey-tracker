@@ -1,7 +1,7 @@
 import type { SessionUser } from "../../auth";
 import type { Env } from "../../app-env";
 import { htmlFragmentResponse, htmlResponse } from "../../http/response";
-import { isPastTargetSubmissionDate } from "../../students";
+import { isPastTargetSubmissionDate, meetingStatusId } from "../../students";
 import { getStudentById, listLogsForStudent, listPhaseAuditEntriesForStudent, listStudents } from "../../students/store";
 import { renderAddStudentPage, renderDashboardPage, renderEmptySelectedPanel, renderSelectedStudentPanel } from "../../views";
 import { getDashboardFilters } from "./filters";
@@ -23,7 +23,7 @@ export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUs
   const today = new Date().toISOString().slice(0, 10);
   const metrics = {
     total: allStudents.length,
-    noMeeting: students.filter((student) => !student.nextMeetingAt).length,
+    noMeeting: students.filter((student) => meetingStatusId(student) === "not_booked").length,
     pastTarget: students.filter((student) => isPastTargetSubmissionDate(student, today)).length,
     submitted: students.filter((student) => student.currentPhase === "submitted").length,
   };

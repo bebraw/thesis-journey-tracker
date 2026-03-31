@@ -1,6 +1,8 @@
 import type { DegreeId, Student } from "./store";
 import type { DegreeDefinition, PhaseDefinition } from "./reference-data";
 
+const TWO_WEEKS_IN_MS = 14 * 24 * 60 * 60 * 1000;
+
 export function addSixMonths(dateText: string | null): string | null {
   if (!dateText) {
     return null;
@@ -35,32 +37,35 @@ export function getDegreeLabel(degreeId: DegreeId, degrees: readonly DegreeDefin
   return degree ? degree.label : degreeId;
 }
 
-export function meetingStatusText(student: Student): string {
-  if (!student.nextMeetingAt) {
-    return "Not booked";
-  }
-  const nextMeeting = new Date(student.nextMeetingAt);
-  const now = new Date();
-  if (nextMeeting < now) {
-    return "Overdue";
-  }
-  if (nextMeeting.getTime() - now.getTime() <= 14 * 24 * 60 * 60 * 1000) {
-    return "Meeting soon";
-  }
-  return "Scheduled";
+function startsInFuture(student: Pick<Student, "startDate">, now: Date): boolean {
+  const today = now.toISOString().slice(0, 10);
+  return Boolean(student.startDate && student.startDate > today);
 }
 
-export function meetingStatusId(student: Student): string {
+export function meetingStatusId(student: Pick<Student, "startDate" | "nextMeetingAt">, now = new Date()): string {
   if (!student.nextMeetingAt) {
     return "not_booked";
   }
   const nextMeeting = new Date(student.nextMeetingAt);
-  const now = new Date();
-  if (nextMeeting < now) {
-    return "overdue";
+  if (Number.isNaN(nextMeeting.getTime())) {
+    return "not_booked";
   }
-  if (nextMeeting.getTime() - now.getTime() <= 14 * 24 * 60 * 60 * 1000) {
+  if (nextMeeting < now) {
+    return startsInFuture(student, now) ? "not_booked" : "overdue";
+  }
+  if (nextMeeting.getTime() - now.getTime() <= TWO_WEEKS_IN_MS) {
     return "within_2_weeks";
   }
   return "scheduled";
+}
+
+export function meetingStatusText(student: Pick<Student, "startDate" | "nextMeetingAt">, now = new Date()): string {
+  const statusId = meetingStatusId(student, now);
+  return statusId === "overdue"
+    ? "Overdue"
+    : statusId === "not_booked"
+      ? "Not booked"
+      : statusId === "within_2_weeks"
+        ? "Meeting soon"
+        : "Scheduled";
 }

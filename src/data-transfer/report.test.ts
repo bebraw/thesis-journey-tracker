@@ -39,4 +39,24 @@ describe("professor status report", () => {
     expect(report).toContain("- Past target date and not yet submitted: 0");
     expect(report).toContain("target not set");
   });
+
+  it("does not count future-start students with stale next meetings as overdue", () => {
+    const report = createProfessorStatusReport(
+      [
+        {
+          student: buildStudent({
+            startDate: "2026-04-10",
+            nextMeetingAt: "2026-03-25T09:00:00.000Z",
+          }),
+          latestLog: null,
+        },
+      ],
+      new Date("2026-03-31T10:00:00.000Z"),
+    );
+
+    expect(report).toContain("- Overdue meetings: 0");
+    expect(report).toContain("- No meeting booked: 1");
+    expect(report).toContain("meeting not booked");
+    expect(report).not.toContain("meeting overdue");
+  });
 });
