@@ -176,6 +176,17 @@ export class MockD1Database {
       return { success: true, meta: { changes: 1 } };
     }
 
+    if (q === "UPDATE students SET next_meeting_at = ? WHERE id = ?") {
+      const nextMeetingAt = values[0] === null ? null : String(values[0]);
+      const id = Number(values[1]);
+      const row = this.students.find((student) => student.id === id);
+      if (!row) {
+        return { success: true, meta: { changes: 0 } };
+      }
+      row.next_meeting_at = nextMeetingAt;
+      return { success: true, meta: { changes: 1 } };
+    }
+
     if (q.startsWith("UPDATE students")) {
       const [name, email, degreeType, thesisTopic, studentNotes, startDate, phase, nextMeetingAt, studentId] = values;
       const id = Number(studentId);

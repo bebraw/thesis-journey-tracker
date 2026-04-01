@@ -221,13 +221,11 @@ export async function deleteAllStudents(db: D1Database): Promise<void> {
 }
 
 export async function createMeetingLog(db: D1Database, input: CreateLogInput): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO meeting_logs (student_id, happened_at, discussed, agreed_plan, next_step_deadline)
-       VALUES (?, ?, ?, ?, ?)`,
-    )
-    .bind(input.studentId, input.happenedAt, input.discussed, input.agreedPlan, input.nextStepDeadline)
-    .run();
+  await buildCreateMeetingLogStatement(db, input).run();
+}
+
+export async function createMeetingLogWithNextMeeting(db: D1Database, input: CreateLogInput, nextMeetingAt: string): Promise<void> {
+  await db.batch([buildCreateMeetingLogStatement(db, input), buildUpdateStudentNextMeetingStatement(db, input.studentId, nextMeetingAt)]);
 }
 
 export async function createPhaseAuditEntry(db: D1Database, input: CreatePhaseAuditInput): Promise<void> {
@@ -273,6 +271,23 @@ function buildCreatePhaseAuditStatement(db: D1Database, input: CreatePhaseAuditI
        VALUES (?, ?, ?, ?)`,
     )
     .bind(input.studentId, input.changedAt, input.fromPhase, input.toPhase);
+}
+
+function buildCreateMeetingLogStatement(db: D1Database, input: CreateLogInput): D1PreparedStatement {
+  return db
+    .prepare(
+      `INSERT INTO meeting_logs (student_id, happened_at, discussed, agreed_plan, next_step_deadline)
+       VALUES (?, ?, ?, ?, ?)`,
+    )
+    .bind(input.studentId, input.happenedAt, input.discussed, input.agreedPlan, input.nextStepDeadline);
+}
+
+function buildUpdateStudentNextMeetingStatement(
+  db: D1Database,
+  studentId: number,
+  nextMeetingAt: string | null,
+): D1PreparedStatement {
+  return db.prepare("UPDATE students SET next_meeting_at = ? WHERE id = ?").bind(nextMeetingAt, studentId);
 }
 
 function studentMutationValues(input: StudentMutationInput): Array<string | number | null> {

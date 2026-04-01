@@ -5,6 +5,7 @@ import { parseStudentFormSubmission } from "../../students";
 import {
   archiveStudent,
   createMeetingLog,
+  createMeetingLogWithNextMeeting,
   createStudent,
   getStudentById,
   studentExists,
@@ -75,8 +76,11 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
   const nextStepDeadlineValue = formData.get("nextStepDeadline");
   const nextStepDeadline =
     nextStepDeadlineValue === null ? null : normalizeDate(nextStepDeadlineValue, true);
+  const nextMeetingAtValue = formData.get("nextMeetingAt");
+  const nextMeetingAtText = typeof nextMeetingAtValue === "string" ? nextMeetingAtValue.trim() : "";
+  const nextMeetingAt = nextMeetingAtText ? normalizeDateTime(nextMeetingAtText, true) : null;
 
-  if (!discussed || !agreedPlan || nextStepDeadline === undefined) {
+  if (!discussed || !agreedPlan || nextStepDeadline === undefined || nextMeetingAt === undefined) {
     return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Invalid log input" }));
   }
 
@@ -85,13 +89,19 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
   }
 
   try {
-    await createMeetingLog(env.DB, {
+    const logInput = {
       studentId,
       happenedAt,
       discussed,
       agreedPlan,
       nextStepDeadline,
-    });
+    };
+
+    if (nextMeetingAt) {
+      await createMeetingLogWithNextMeeting(env.DB, logInput, nextMeetingAt);
+    } else {
+      await createMeetingLog(env.DB, logInput);
+    }
   } catch (error) {
     console.error("Failed to save meeting log", error);
     return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Failed to save log" }));

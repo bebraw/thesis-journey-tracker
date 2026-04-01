@@ -263,6 +263,7 @@ export function renderSelectedStudentPanel(
     `<form &action="(get props action)" method="post" &class="(get props formStack)">
       <input type="hidden" name="returnTo" &value="(get props returnTo)" />
       <noop &children="(get props happenedAtField)"></noop>
+      <noop &children="(get props nextMeetingField)"></noop>
       <noop &children="(get props discussedField)"></noop>
       <noop &children="(get props agreedPlanField)"></noop>
       <noop &children="(get props submitButton)"></noop>
@@ -274,6 +275,13 @@ export function renderSelectedStudentPanel(
       happenedAtField: renderInputField({
         label: "Meeting date/time",
         name: "happenedAt",
+        type: "datetime-local",
+        className: FIELD_CONTROL,
+        attributes: 'step="3600"',
+      }),
+      nextMeetingField: renderInputField({
+        label: "Possible next meeting (optional)",
+        name: "nextMeetingAt",
         type: "datetime-local",
         className: FIELD_CONTROL,
         attributes: 'step="3600"',

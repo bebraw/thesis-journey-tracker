@@ -336,6 +336,35 @@ describe("multi-user access control", () => {
     expect(env.DB.students[0]?.next_meeting_at).toBeNull();
   });
 
+  it("can save a possible next meeting time together with a meeting log", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+
+    const response = await fetchHandler(
+      new Request("http://localhost/actions/add-log/1", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams({
+          returnTo: "/?selected=1",
+          happenedAt: "2026-04-01T10:00",
+          nextMeetingAt: "2026-04-08T12:00",
+          discussed: "Reviewed current draft",
+          agreedPlan: "Send revised introduction",
+          nextStepDeadline: "",
+        }),
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/?selected=1&notice=Log+saved");
+    expect(env.DB.meetingLogs).toHaveLength(1);
+    expect(env.DB.students[0]?.next_meeting_at).toBe("2026-04-08T09:00:00.000Z");
+  });
+
   it("returns user-facing errors when dashboard mutations fail", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
@@ -386,6 +415,31 @@ describe("multi-user access control", () => {
     expect(addLogResponse.status).toBe(302);
     expect(addLogResponse.headers.get("location")).toBe("/?selected=1&error=Failed+to+save+log");
     expect(env.DB.meetingLogs).toHaveLength(0);
+    expect(env.DB.students[0]?.next_meeting_at).toBeNull();
+
+    env.DB.failQueries = ["UPDATE students SET next_meeting_at = ? WHERE id = ?"];
+    const addLogWithMeetingUpdateResponse = await fetchHandler(
+      new Request("http://localhost/actions/add-log/1", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams({
+          returnTo: "/?selected=1",
+          happenedAt: "",
+          nextMeetingAt: "2026-04-08T12:00",
+          discussed: "Review progress",
+          agreedPlan: "Finish chapter 2",
+          nextStepDeadline: "",
+        }),
+      }),
+      env,
+    );
+    expect(addLogWithMeetingUpdateResponse.status).toBe(302);
+    expect(addLogWithMeetingUpdateResponse.headers.get("location")).toBe("/?selected=1&error=Failed+to+save+log");
+    expect(env.DB.meetingLogs).toHaveLength(0);
+    expect(env.DB.students[0]?.next_meeting_at).toBeNull();
 
     env.DB.failQueries = ["UPDATE students SET archived_at = ? WHERE id = ? AND archived_at IS NULL"];
     const archiveResponse = await fetchHandler(
