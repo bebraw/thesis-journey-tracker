@@ -275,6 +275,11 @@ function setPanelVisibility(visible) {
   }
 }
 
+function focusSelectedStudentSummary() {
+  if (!selectedStudentHeading || !selectedStudentPanelShell || selectedStudentPanelShell.classList.contains("hidden")) return;
+  selectedStudentHeading.focus({ preventScroll: true });
+}
+
 function getActiveSelectedStudentTool() {
   var activeButton = selectedStudentToolButtons.find(function (button) {
     return button.getAttribute("aria-pressed") === "true";
@@ -323,6 +328,7 @@ function applyDashboardHtml(htmlText, nextUrl, options) {
   var selectedId = options && options.selectedId ? options.selectedId : getSelectedStudentIdFromLocation();
   var panelWasVisible = options && options.panelWasVisible ? true : false;
   var activeTool = (options && options.activeTool) || "";
+  var focusSummary = options && options.focusSummary ? true : false;
 
   replaceDashboardSection(nextDocument, "dashboardFlashMessages");
   replaceDashboardSection(nextDocument, "dashboardWorkspace");
@@ -343,4 +349,7 @@ function applyDashboardHtml(htmlText, nextUrl, options) {
   applySelectedLaneState(selectedId);
   setActiveSelectedStudentTool(activeTool);
   rebindDashboardUi();
+  if (focusSummary) {
+    focusSelectedStudentSummary();
+  }
 }`;

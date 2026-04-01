@@ -38,7 +38,7 @@ async function showStudentPanel(page: Page) {
   await expect(panelShell).toBeVisible();
 }
 
-async function openSelectedStudentTool(page: Page, label: "Edit" | "Add log" | "History" | "Archive") {
+async function openSelectedStudentTool(page: Page, label: "Edit" | "Add log" | "History") {
   await page.locator("#selectedStudentPanel").getByRole("button", { name: label }).click();
 }
 
@@ -403,6 +403,15 @@ test.describe("dashboard e2e", () => {
     await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
     await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("desc");
     await showStudentPanel(page);
+    await expect(page.locator("#selectedStudentPanel").getByRole("button", { name: "Edit" })).toHaveAttribute("aria-pressed", "false");
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.activeElement?.getAttribute("data-selected-student-heading") || "",
+        ),
+      )
+      .toBe("1");
+    await openSelectedStudentTool(page, "Edit");
     await expect(page.locator("#selectedStudentPanel").getByLabel("Name")).toHaveValue(updatedStudentName);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Email")).toHaveValue(updatedEmail);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Degree type")).toHaveValue("msc");
@@ -435,6 +444,14 @@ test.describe("dashboard e2e", () => {
     await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
     await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("desc");
     await showStudentPanel(page);
+    await expect(page.locator("#selectedStudentPanel").getByRole("button", { name: "Add log" })).toHaveAttribute("aria-pressed", "false");
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.activeElement?.getAttribute("data-selected-student-heading") || "",
+        ),
+      )
+      .toBe("1");
     await openSelectedStudentTool(page, "History");
     await expect(page.locator("#selectedStudentPanel")).toContainText(discussedText);
     await expect(page.locator("#selectedStudentPanel")).toContainText(agreedPlanText);
@@ -458,6 +475,15 @@ test.describe("dashboard e2e", () => {
       )
       .toBe(2);
     await showStudentPanel(page);
+    await expect(page.locator("#selectedStudentPanel").getByRole("button", { name: "Edit" })).toHaveAttribute("aria-pressed", "false");
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.activeElement?.getAttribute("data-selected-student-heading") || "",
+        ),
+      )
+      .toBe("1");
+    await openSelectedStudentTool(page, "Edit");
     await expect(page.locator("#selectedStudentPanel").getByLabel("Phase")).toHaveValue("submitted");
     await openSelectedStudentTool(page, "History");
     await expect(page.locator("#selectedStudentPanel")).toContainText(finalPhaseTransitionText);
@@ -473,8 +499,6 @@ test.describe("dashboard e2e", () => {
 
     await selectStudentFromTable(page, secondaryStudentName);
     await showStudentPanel(page);
-
-    await openSelectedStudentTool(page, "Archive");
 
     const dialogPromise = page.waitForEvent("dialog");
     await page

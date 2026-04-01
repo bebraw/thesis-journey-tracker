@@ -17,6 +17,7 @@ var studentResultsMeta = null;
 var activeDashboardFilters = null;
 var selectedStudentPanelShell = null;
 var selectedStudentPanel = null;
+var selectedStudentHeading = null;
 var emptySelectedStudentPanelTemplate = null;
 var selectedStudentToolButtons = [];
 var selectedStudentToolPanels = [];
@@ -46,6 +47,9 @@ function syncDashboardDom() {
   activeDashboardFilters = document.getElementById("activeDashboardFilters");
   selectedStudentPanelShell = document.getElementById("selectedStudentPanelShell");
   selectedStudentPanel = document.getElementById("selectedStudentPanel");
+  selectedStudentHeading = selectedStudentPanel
+    ? selectedStudentPanel.querySelector("[data-selected-student-heading='1']")
+    : null;
   emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");
   selectedStudentToolButtons = selectedStudentPanel
     ? Array.prototype.slice.call(selectedStudentPanel.querySelectorAll("[data-selected-tool-button='1']"))

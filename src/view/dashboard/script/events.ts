@@ -235,7 +235,6 @@ function bindInlineStudentUpdateForm() {
 
     var selectedId = getSelectedStudentIdFromLocation();
     var panelWasVisible = selectedStudentPanelShell ? !selectedStudentPanelShell.classList.contains("hidden") : false;
-    var activeTool = getActiveSelectedStudentTool();
     var submitButton = form.querySelector("button[type='submit']");
     var previousButtonState = setSubmitButtonBusy(submitButton, "Saving updates...");
     form.setAttribute("aria-busy", "true");
@@ -259,7 +258,8 @@ function bindInlineStudentUpdateForm() {
           applyDashboardHtml(htmlText, response.url, {
             selectedId: selectedId,
             panelWasVisible: panelWasVisible,
-            activeTool: activeTool
+            activeTool: "",
+            focusSummary: true
           });
         });
       })
@@ -292,7 +292,6 @@ function bindInlineLogEntryForm() {
 
     var selectedId = getSelectedStudentIdFromLocation();
     var panelWasVisible = selectedStudentPanelShell ? !selectedStudentPanelShell.classList.contains("hidden") : false;
-    var activeTool = getActiveSelectedStudentTool();
     var submitButton = form.querySelector("button[type='submit']");
     var previousButtonState = setSubmitButtonBusy(submitButton, "Saving log...");
     form.setAttribute("aria-busy", "true");
@@ -316,7 +315,8 @@ function bindInlineLogEntryForm() {
           applyDashboardHtml(htmlText, response.url, {
             selectedId: selectedId,
             panelWasVisible: panelWasVisible,
-            activeTool: activeTool
+            activeTool: "",
+            focusSummary: true
           });
         });
       })

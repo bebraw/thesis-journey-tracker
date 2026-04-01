@@ -3,9 +3,6 @@ import { type HtmlispComponents } from "../../htmlisp";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getStudentFormValues, getTargetSubmissionDate, PHASES } from "../../students";
 import type { MeetingLog, PhaseAuditEntry, Student } from "../../students/store";
 import {
-  DANGER_PANEL,
-  DANGER_TEXT,
-  DANGER_TITLE,
   EMPTY_STATE_CARD,
   FIELD_CONTROL,
   FORM_STACK,
@@ -138,7 +135,7 @@ function renderReadonlyStudentSummary(student: Student): string {
 
 function renderToolActions(actions: PreparedToolAction[]): string {
   return renderView(
-    `<div class="mt-3 flex flex-wrap gap-badge-y">
+    `<div class="flex flex-wrap gap-badge-y">
       <noop &foreach="(get props actions)">
         <button
           type="button"
@@ -385,7 +382,12 @@ export function renderSelectedStudentPanel(
       <section>
         <div class="flex items-start justify-between gap-stack-xs">
           <div class="min-w-0">
-            <h2 class="text-lg font-semibold" &children="(get props selectedHeadingText)"></h2>
+            <h2
+              data-selected-student-heading="1"
+              tabindex="-1"
+              class="text-lg font-semibold focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark"
+              &children="(get props selectedHeadingText)"
+            ></h2>
           </div>
           <noop &children="(get props closeButtonHtml)"></noop>
         </div>
@@ -393,7 +395,10 @@ export function renderSelectedStudentPanel(
         <div class="mt-3 flex flex-wrap gap-badge-y">
           <noop &children="(get props summaryBadgesHtml)"></noop>
         </div>
-        <noop &children="(get props toolActionsHtml)"></noop>
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-badge-y gap-stack-xs">
+          <noop &children="(get props toolActionsHtml)"></noop>
+          <noop &children="(get props archiveActionHtml)"></noop>
+        </div>
       </section>
 
       <section
@@ -472,35 +477,9 @@ export function renderSelectedStudentPanel(
         </div>
       </section>
 
-      <section
-        data-selected-tool-panel="1"
-        data-tool-key="more"
-        class="hidden rounded-card border border-app-line bg-app-surface-soft/60 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/30"
-      >
-        <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
-          <h3 class="text-base font-semibold">Archive</h3>
-          <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Occasional maintenance</p>
-        </div>
-        <section class="mt-stack-xs" &class="(get props dangerPanelClass)">
-          <h2 &class="(get props dangerTitleClass)">Archive Student</h2>
-          <p &class="(get props dangerTextClass)">This removes the student from the active dashboard while preserving meeting logs and phase history.</p>
-          <form
-            &action="(get props deleteAction)"
-            method="post"
-            class="mt-panel-sm"
-            &onsubmit="(get props deleteConfirm)"
-          >
-            <input type="hidden" name="returnTo" &value="(get props returnTo)" />
-            <noop &children="(get props deleteButtonHtml)"></noop>
-          </form>
-        </section>
-      </section>
     </article>`,
     {
       cardClass: escapeHtml(`${PANEL_STACK} ${SURFACE_CARD}`),
-      dangerPanelClass: escapeHtml(DANGER_PANEL),
-      dangerTextClass: escapeHtml(DANGER_TEXT),
-      dangerTitleClass: escapeHtml(DANGER_TITLE),
       emptyStateClass: escapeHtml(EMPTY_STATE_CARD),
       formStack: escapeHtml(FORM_STACK),
       historySummaryText: escapeHtml(historySummaryText),
@@ -521,8 +500,32 @@ export function renderSelectedStudentPanel(
         { key: "edit", label: "Edit" },
         { key: "log", label: "Add log" },
         { key: "history", label: "History", meta: historySummaryText },
-        { key: "more", label: "Archive" },
       ]),
+      archiveActionHtml: renderView(
+        `<form
+          &action="(get props deleteAction)"
+          method="post"
+          class="shrink-0"
+          &onsubmit="(get props deleteConfirm)"
+        >
+          <input type="hidden" name="returnTo" &value="(get props returnTo)" />
+          <noop &children="(get props deleteButtonHtml)"></noop>
+        </form>`,
+        {
+          deleteAction: escapeHtml(`/actions/archive-student/${student.id}`),
+          returnTo: escapeHtml(returnTo),
+          deleteConfirm: escapeHtml(
+            `return window.confirm('Archive ${escapeJsString(student.name)}? This will hide the student from the active dashboard but keep the history intact.');`,
+          ),
+          deleteButtonHtml: renderButton({
+            label: "Archive",
+            type: "submit",
+            variant: "inline",
+            className:
+              "border-app-danger-line bg-app-surface text-app-danger-text hover:bg-app-danger-soft/75 dark:border-app-danger-soft-dark/65 dark:bg-app-surface-dark dark:text-app-danger-text-dark dark:hover:bg-app-danger-soft-dark/35",
+          }),
+        },
+      ),
       closeButtonHtml: renderButton({
         label: "Close",
         type: "button",
@@ -537,16 +540,6 @@ export function renderSelectedStudentPanel(
       hasPhaseAudit: preparedPhaseAudit.length > 0,
       showNoPhaseAudit: preparedPhaseAudit.length === 0,
       phaseAuditEntries: preparedPhaseAudit,
-      deleteAction: escapeHtml(`/actions/archive-student/${student.id}`),
-      returnTo: escapeHtml(returnTo),
-      deleteConfirm: escapeHtml(
-        `return window.confirm('Archive ${escapeJsString(student.name)}? This will hide the student from the active dashboard but keep the history intact.');`,
-      ),
-      deleteButtonHtml: renderButton({
-        label: "Archive student",
-        type: "submit",
-        variant: "dangerBlock",
-      }),
     },
     components,
   );
