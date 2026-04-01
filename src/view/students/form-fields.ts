@@ -11,6 +11,7 @@ import {
 } from "../../ui";
 import { DEGREE_TYPES, PHASES, STUDENT_FORM_FIELDS, type StudentFormValues } from "../../students";
 import { renderView } from "../shared.htmlisp";
+import { DATETIME_LOCAL_HALF_HOUR_STEP } from "./date-time";
 
 export interface StudentFormFieldMap {
   nameField: string;
@@ -56,7 +57,7 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
     type: "datetime-local",
     value: values.nextMeetingAt,
     className: controlClass,
-    attributes: 'step="3600"',
+    attributes: DATETIME_LOCAL_HALF_HOUR_STEP,
   });
   const clearNextMeetingHint = values.nextMeetingAt
     ? renderView(

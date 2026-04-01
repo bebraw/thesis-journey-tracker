@@ -21,6 +21,7 @@ import {
 } from "../../ui";
 import type { DashboardFilters } from "../types";
 import { renderView } from "../shared.htmlisp";
+import { DATETIME_LOCAL_HALF_HOUR_STEP } from "./date-time";
 import { renderStudentFormFields } from "./form-fields";
 
 export function renderEmptySelectedPanel(
@@ -277,14 +278,14 @@ export function renderSelectedStudentPanel(
         name: "happenedAt",
         type: "datetime-local",
         className: FIELD_CONTROL,
-        attributes: 'step="3600"',
+        attributes: DATETIME_LOCAL_HALF_HOUR_STEP,
       }),
       nextMeetingField: renderInputField({
         label: "Possible next meeting (optional)",
         name: "nextMeetingAt",
         type: "datetime-local",
         className: FIELD_CONTROL,
-        attributes: 'step="3600"',
+        attributes: DATETIME_LOCAL_HALF_HOUR_STEP,
       }),
       discussedField: renderTextareaField({
         label: "What was discussed",
