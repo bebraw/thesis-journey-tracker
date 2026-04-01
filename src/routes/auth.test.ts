@@ -303,6 +303,39 @@ describe("multi-user access control", () => {
     expect(env.DB.students[1]?.start_date).toBeNull();
   });
 
+  it("allows clearing a saved next meeting time from the student update form", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+
+    env.DB.students[0].next_meeting_at = "2026-04-10T09:00:00.000Z";
+
+    const response = await fetchHandler(
+      new Request("http://localhost/actions/update-student/1", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams({
+          name: "Base Student",
+          studentEmail: "base@example.edu",
+          degreeType: "msc",
+          thesisTopic: "Baseline supervision topic",
+          studentNotes: "Baseline student note",
+          startDate: "2026-01-01",
+          currentPhase: "researching",
+          nextMeetingAt: "2026-04-10T12:00",
+          clearNextMeetingAt: "yes",
+        }),
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toContain("notice=Student+updated");
+    expect(env.DB.students[0]?.next_meeting_at).toBeNull();
+  });
+
   it("returns user-facing errors when dashboard mutations fail", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);

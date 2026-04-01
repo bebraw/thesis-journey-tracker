@@ -38,7 +38,7 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 - Add students with degree type, thesis topic, and timeline information.
 - Track each student through thesis phases from planning to submission.
 - Store supervision logs with discussion notes and action items.
-- Follow upcoming meetings from the dashboard.
+- Follow upcoming meetings from the dashboard, and clear a cancelled meeting until a new time is booked.
 - Use quick stats on the dashboard to jump straight into filtered student views that need attention.
 - Filter students by phase, degree type, and meeting status, switch between list and phase views, and clear active filters quickly.
 - Archive completed or inactive students without deleting their supervision history.

@@ -1,5 +1,16 @@
-import { FIELD_CONTROL, FIELD_CONTROL_SM, FORM_LABEL, renderInputField, renderSelectField, renderTextareaField, type SelectOption } from "../../ui";
+import { escapeHtml } from "../../formatting";
+import {
+  FIELD_CONTROL,
+  FIELD_CONTROL_SM,
+  FORM_LABEL,
+  MUTED_TEXT_XS,
+  renderInputField,
+  renderSelectField,
+  renderTextareaField,
+  type SelectOption,
+} from "../../ui";
 import { DEGREE_TYPES, PHASES, STUDENT_FORM_FIELDS, type StudentFormValues } from "../../students";
+import { renderView } from "../shared.htmlisp";
 
 export interface StudentFormFieldMap {
   nameField: string;
@@ -39,6 +50,30 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
     label: phase.label,
     value: phase.id,
   }));
+  const nextMeetingInput = renderInputField({
+    label: controlSize === "compact" ? "Next meeting (optional)" : "Next meeting",
+    name: STUDENT_FORM_FIELDS.nextMeetingAt,
+    type: "datetime-local",
+    value: values.nextMeetingAt,
+    className: controlClass,
+    attributes: 'step="3600"',
+  });
+  const clearNextMeetingHint = values.nextMeetingAt
+    ? renderView(
+        `<label class="mt-2 flex items-start gap-badge-x text-xs leading-5 text-app-text-muted dark:text-app-text-muted-dark">
+          <input
+            type="checkbox"
+            &name="(get props fieldName)"
+            value="yes"
+            class="mt-0.5 h-4 w-4 rounded-sm border-app-field text-app-brand focus:ring-app-brand dark:border-app-field-dark"
+          />
+          <span>Remove the saved meeting time if this meeting was cancelled or is not booked yet.</span>
+        </label>`,
+        {
+          fieldName: escapeHtml(STUDENT_FORM_FIELDS.clearNextMeetingAt),
+        },
+      )
+    : `<p class="${escapeHtml(`mt-2 ${MUTED_TEXT_XS}`)}">Leave this blank until the next meeting is confirmed.</p>`;
 
   return {
     nameField: renderInputField({
@@ -92,13 +127,15 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
       value: values.startDate,
       className: controlClass,
     }),
-    nextMeetingField: renderInputField({
-      label: controlSize === "compact" ? "Next meeting (optional)" : "Next meeting",
-      name: STUDENT_FORM_FIELDS.nextMeetingAt,
-      type: "datetime-local",
-      value: values.nextMeetingAt,
-      className: controlClass,
-      attributes: 'step="3600"',
-    }),
+    nextMeetingField: renderView(
+      `<div class="block min-w-0 text-sm">
+        <noop &children="(get props inputHtml)"></noop>
+        <noop &children="(get props hintHtml)"></noop>
+      </div>`,
+      {
+        inputHtml: nextMeetingInput,
+        hintHtml: clearNextMeetingHint,
+      },
+    ),
   };
 }

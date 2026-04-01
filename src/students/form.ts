@@ -14,6 +14,7 @@ export const STUDENT_FORM_FIELDS = {
   startDate: "startDate",
   currentPhase: "currentPhase",
   nextMeetingAt: "nextMeetingAt",
+  clearNextMeetingAt: "clearNextMeetingAt",
 } as const;
 
 export type StudentFormMode = "create" | "update";
@@ -82,10 +83,10 @@ export function parseStudentFormSubmission(formData: FormData, options: ParseStu
       existingStudent?.currentPhase ?? (mode === "create" ? "research_plan" : null),
     ),
   );
-  const nextMeetingAt = normalizeDateTime(
-    readOptionalField(formData, STUDENT_FORM_FIELDS.nextMeetingAt, existingStudent?.nextMeetingAt ?? null),
-    true,
-  );
+  const clearNextMeetingAt = normalizeString(formData.get(STUDENT_FORM_FIELDS.clearNextMeetingAt)) === "yes";
+  const nextMeetingAt = clearNextMeetingAt
+    ? null
+    : normalizeDateTime(readOptionalField(formData, STUDENT_FORM_FIELDS.nextMeetingAt, existingStudent?.nextMeetingAt ?? null), true);
 
   if (!name || startDate === undefined || !degreeType || !currentPhase || nextMeetingAt === undefined) {
     return null;
