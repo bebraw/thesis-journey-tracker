@@ -4,9 +4,7 @@ This note collects feature ideas that feel like a natural next step for the proj
 
 ## Current Priority Items
 
-### Final Shared UI Sweep
-
-Review the remaining small pockets of per-view class duplication in schedule/dashboard views, then remove this priority section once the shared UI cleanup no longer has a meaningful next slice.
+Nothing is currently pinned here. The recent shared UI cleanup is largely complete, and any remaining view-specific duplication looks small enough to address opportunistically with future feature work.
 
 ## Highest-Value Next Steps
 
