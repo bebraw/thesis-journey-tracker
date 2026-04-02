@@ -1,5 +1,5 @@
 import { escapeJsString, formatDateTime } from "../../formatting";
-import { raw, rawProps } from "../../htmlisp";
+import { raw } from "../../htmlisp";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getStudentFormValues, getTargetSubmissionDate, PHASES } from "../../students";
 import type { MeetingLog, PhaseAuditEntry, Student } from "../../students/store";
 import {
@@ -236,7 +236,7 @@ export function renderSelectedStudentPanel(
       action: `/actions/update-student/${student.id}`,
       formStack: FORM_STACK,
       returnTo,
-      ...rawProps(fields),
+      ...Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, raw(value)])),
       submitButton: raw(renderButton({
         label: "Save student updates",
         type: "submit",

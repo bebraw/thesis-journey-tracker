@@ -1,2 +1,2 @@
 export type { HtmlispAttributeMap, HtmlispComponent, HtmlispComponents, HtmlispProps } from "./types";
-export { mergeHtmlispAttributeMaps, raw, rawProps, renderEscapedHTMLisp } from "./render";
+export { mergeHtmlispAttributeMaps, raw, renderEscapedHTMLisp } from "./render";

@@ -12,12 +12,6 @@ export function renderEscapedHTMLisp(
   return htmlispToHTMLSync({ htmlInput, props, components, renderOptions: { escapeByDefault: true } });
 }
 
-export function rawProps<T extends object>(props: T & Record<keyof T, string>): Record<keyof T, unknown> {
-  return Object.fromEntries(
-    Object.entries(props as Record<string, string>).map(([key, value]) => [key, raw(value)]),
-  ) as Record<keyof T, unknown>;
-}
-
 export function mergeHtmlispAttributeMaps(...maps: Array<HtmlispAttributeMap | undefined>): HtmlispAttributeMap {
   return Object.fromEntries(
     maps

@@ -1,4 +1,4 @@
-import { raw, rawProps } from "../../htmlisp";
+import { raw } from "../../htmlisp";
 import { getDefaultStudentFormValues } from "../../students";
 import { PAGE_WRAP_NARROW, SUBTLE_TEXT, renderButton, renderCard } from "../../ui";
 import type { AddStudentPageData } from "../types";
@@ -31,7 +31,7 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
       <fragment &children="submitButton"></fragment>
     </form>`,
     {
-      ...rawProps(fields),
+      ...Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, raw(value)])),
       submitButton: raw(renderButton({
         label: "Add student",
         type: "submit",
