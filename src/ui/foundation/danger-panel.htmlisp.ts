@@ -1,7 +1,7 @@
-import { mergeHtmlispAttributeMaps, raw, renderEscapedHTMLisp } from "../htmlisp";
-import { mergeClasses } from "./helpers";
-import { DANGER_PANEL, DANGER_TEXT, DANGER_TITLE } from "./styles";
-import type { DangerPanelOptions } from "./types";
+import { mergeHtmlispAttributeMaps, raw, renderEscapedHTMLisp } from "../../htmlisp";
+import { mergeClasses } from "../helpers";
+import { DANGER_PANEL, DANGER_TEXT, DANGER_TITLE } from "../styles";
+import type { DangerPanelOptions } from "../types";
 
 export function renderDangerPanel(options: DangerPanelOptions): string {
   const {

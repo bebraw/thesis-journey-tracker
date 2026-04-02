@@ -1,7 +1,7 @@
-import type { HtmlispAttributeMap } from "../htmlisp";
-import { mergeHtmlispAttributeMaps, raw, renderEscapedHTMLisp } from "../htmlisp";
-import { mergeClasses } from "./helpers";
-import { INSET_SURFACE_CARD, SURFACE_CARD, SURFACE_CARD_SM } from "./styles";
+import type { HtmlispAttributeMap } from "../../htmlisp";
+import { mergeHtmlispAttributeMaps, raw, renderEscapedHTMLisp } from "../../htmlisp";
+import { mergeClasses } from "../helpers";
+import { INSET_SURFACE_CARD, SURFACE_CARD, SURFACE_CARD_SM } from "../styles";
 
 export function renderCard(content: string, className?: string): string {
   return renderEscapedHTMLisp(

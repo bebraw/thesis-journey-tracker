@@ -1,7 +1,7 @@
-import { mergeHtmlispAttributeMaps, renderEscapedHTMLisp } from "../htmlisp";
+import { mergeHtmlispAttributeMaps, renderEscapedHTMLisp } from "../../htmlisp";
 import { renderFieldShell } from "./field-shell.htmlisp";
-import { FIELD_CONTROL, FORM_LABEL } from "./styles";
-import type { SelectFieldOptions } from "./types";
+import { FIELD_CONTROL, FORM_LABEL } from "../styles";
+import type { SelectFieldOptions } from "../types";
 
 interface RenderableSelectOption {
   label: string;

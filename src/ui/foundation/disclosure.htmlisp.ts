@@ -1,7 +1,7 @@
-import { mergeHtmlispAttributeMaps, raw, renderEscapedHTMLisp } from "../htmlisp";
-import { mergeClasses } from "./helpers";
-import { DISCLOSURE, DISCLOSURE_CONTENT, DISCLOSURE_SUMMARY } from "./styles";
-import type { DisclosureOptions } from "./types";
+import { mergeHtmlispAttributeMaps, raw, renderEscapedHTMLisp } from "../../htmlisp";
+import { mergeClasses } from "../helpers";
+import { DISCLOSURE, DISCLOSURE_CONTENT, DISCLOSURE_SUMMARY } from "../styles";
+import type { DisclosureOptions } from "../types";
 
 export function renderDisclosure(options: DisclosureOptions): string {
   const {

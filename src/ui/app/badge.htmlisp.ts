@@ -1,7 +1,7 @@
-import { renderEscapedHTMLisp } from "../htmlisp";
-import { mergeClasses } from "./helpers";
-import { BADGE_CLASS_MAP } from "./styles";
-import type { BadgeOptions } from "./types";
+import { renderEscapedHTMLisp } from "../../htmlisp";
+import { mergeClasses } from "../helpers";
+import { BADGE_CLASS_MAP } from "../styles";
+import type { BadgeOptions } from "../types";
 
 export function renderBadge(options: BadgeOptions): string {
   const { label, variant = "neutral", className } = options;

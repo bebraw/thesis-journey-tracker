@@ -34,9 +34,9 @@ This document gives a technical overview of how the project is put together.
 - [`src/view/schedule/`](../src/view/schedule): scheduling page composition for controls, availability grid, and invitation state
 - [`src/view/students/`](../src/view/students): shared student add/edit/panel view helpers
 - [`src/view/data-tools/`](../src/view/data-tools): data-tools page composition for backup import/export and calendar settings
-- [`src/ui/`](../src/ui): compatibility barrel for the UI layer plus the implementation files that back it
-- [`src/ui/foundation/`](../src/ui/foundation): reusable button, card, disclosure, metadata, toggle, and field primitives intended to be extractable across projects
-- [`src/ui/app/`](../src/ui/app): app-shaped UI exports such as page shells, badges, status treatments, and other Thesis Journey Tracker-specific conventions
+- [`src/ui/`](../src/ui): compatibility barrel plus shared UI tokens, helper utilities, and cross-surface types
+- [`src/ui/foundation/`](../src/ui/foundation): reusable button, card, disclosure, metadata, toggle, and field primitive implementations intended to be extractable across projects
+- [`src/ui/app/`](../src/ui/app): app-shaped UI implementations and exports such as page shells, badges, status treatments, and other Thesis Journey Tracker-specific conventions
 - [`migrations/`](../migrations): schema changes for D1
 - [`tests/`](../tests): end-to-end tests plus shared test helpers and broader integration/security coverage
 - [`src/routes/*.test.ts`](../src/routes): co-located Vitest coverage for route modules such as auth, scheduling, and data tools

@@ -1,5 +1,5 @@
-import { raw, renderEscapedHTMLisp } from "../htmlisp";
-import { FIELD_LABEL, FORM_LABEL } from "./styles";
+import { raw, renderEscapedHTMLisp } from "../../htmlisp";
+import { FIELD_LABEL, FORM_LABEL } from "../styles";
 
 export function renderFieldShell(label: string, controlHtml: string, wrapperClassName = FORM_LABEL): string {
   return renderEscapedHTMLisp(

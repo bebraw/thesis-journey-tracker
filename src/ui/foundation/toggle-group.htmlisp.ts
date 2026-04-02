@@ -1,7 +1,7 @@
-import { mergeHtmlispAttributeMaps, renderEscapedHTMLisp } from "../htmlisp";
-import { mergeClasses } from "./helpers";
-import { FOCUS_RING, TOGGLE_BUTTON_META, TOGGLE_BUTTON_SEGMENTED } from "./styles";
-import type { ToggleGroupOptions } from "./types";
+import { mergeHtmlispAttributeMaps, renderEscapedHTMLisp } from "../../htmlisp";
+import { mergeClasses } from "../helpers";
+import { FOCUS_RING, TOGGLE_BUTTON_META, TOGGLE_BUTTON_SEGMENTED } from "../styles";
+import type { ToggleGroupOptions } from "../types";
 
 export function renderToggleGroup(options: ToggleGroupOptions): string {
   const {

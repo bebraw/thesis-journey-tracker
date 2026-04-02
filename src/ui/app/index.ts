@@ -20,4 +20,4 @@ export {
   getMeetingStatusBadgeClass,
 } from "../styles";
 
-export { renderBadge } from "../badge.htmlisp";
+export { renderBadge } from "./badge.htmlisp";

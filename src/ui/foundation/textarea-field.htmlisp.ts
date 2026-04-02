@@ -1,7 +1,7 @@
-import { mergeHtmlispAttributeMaps, renderEscapedHTMLisp } from "../htmlisp";
+import { mergeHtmlispAttributeMaps, renderEscapedHTMLisp } from "../../htmlisp";
 import { renderFieldShell } from "./field-shell.htmlisp";
-import { FIELD_CONTROL, FORM_LABEL } from "./styles";
-import type { TextareaFieldOptions } from "./types";
+import { FIELD_CONTROL, FORM_LABEL } from "../styles";
+import type { TextareaFieldOptions } from "../types";
 
 export function renderTextareaField(options: TextareaFieldOptions): string {
   const {
