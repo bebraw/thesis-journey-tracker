@@ -104,6 +104,8 @@ The Worker is now intentionally thin: it handles request/session setup, authenti
 
 The UI layer now has an explicit boundary for reuse work. [`src/ui/foundation/`](../src/ui/foundation) is the intended extraction target and contains the generic public surface for controls, cards, disclosures, metadata presentation, and form wrappers. [`src/ui/app/`](../src/ui/app) keeps the product-specific shell and status conventions local to this repository. [`src/ui/index.ts`](../src/ui/index.ts) still re-exports both surfaces so existing imports can migrate incrementally.
 
+Style-guide examples now live next to the UI code they document through sibling `*.examples.ts` files under [`src/ui/foundation/`](../src/ui/foundation) and [`src/ui/app/`](../src/ui/app). The page renderer in [`src/view/style-guide.htmlisp.ts`](../src/view/style-guide.htmlisp.ts) assembles those colocated examples into the in-app guide without exposing them through the public UI barrels.
+
 Authentication remains intentionally lightweight: accounts are stored in the `app_users` D1 table with hashed passwords, and the Worker stores the signed session together with the viewer role (`editor` or `readonly`) in an `HttpOnly` cookie.
 
 ## Repository Map
