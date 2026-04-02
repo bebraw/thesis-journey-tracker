@@ -1,7 +1,4 @@
 import {
-  DISCLOSURE,
-  DISCLOSURE_CONTENT,
-  DISCLOSURE_SUMMARY,
   EMPTY_STATE_CARD,
   FIELD_CONTROL_SM,
   FORM_LABEL,
@@ -14,6 +11,7 @@ import {
   renderButton,
   renderCard,
   renderCompactCard,
+  renderDisclosure,
   renderInsetCard,
   renderInputField,
   renderSectionHeader,
@@ -193,14 +191,7 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
           <fragment &children="sectionHeader"></fragment>
           <p &class="emptyStateClass">Use the shared empty-state treatment when a section has no content yet.</p>
         </div>
-        <details &class="disclosureClass">
-          <summary &class="disclosureSummaryClass">Disclosure pattern</summary>
-          <div &class="disclosureContentClass">
-            <p class="text-sm text-app-text-muted dark:text-app-text-muted-dark">
-              Use disclosures for help text and secondary explanations that should stay available without dominating the page.
-            </p>
-          </div>
-        </details>
+        <fragment &children="disclosureHtml"></fragment>
       </div>`,
       {
         subtleText: `mt-1 ${SUBTLE_TEXT}`,
@@ -224,9 +215,11 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
           meta: "Use concise metadata labels",
         })),
         emptyStateClass: EMPTY_STATE_CARD,
-        disclosureClass: DISCLOSURE,
-        disclosureSummaryClass: DISCLOSURE_SUMMARY,
-        disclosureContentClass: `pt-stack-xs ${DISCLOSURE_CONTENT}`,
+        disclosureHtml: raw(renderDisclosure({
+          summary: "Disclosure pattern",
+          content:
+            '<p class="text-sm text-app-text-muted dark:text-app-text-muted-dark">Use disclosures for help text and secondary explanations that should stay available without dominating the page.</p>',
+        })),
       },
     ),
   );

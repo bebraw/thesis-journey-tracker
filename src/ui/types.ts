@@ -28,6 +28,15 @@ export interface SectionHeaderOptions {
   metaClassName?: string;
 }
 
+export interface DisclosureOptions {
+  summary: string;
+  content: string;
+  className?: string;
+  summaryClassName?: string;
+  contentClassName?: string;
+  attrs?: HtmlispAttributeMap;
+}
+
 export interface SelectOption {
   label: string;
   value: string;
