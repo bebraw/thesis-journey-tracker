@@ -1,4 +1,4 @@
-import type { CreateStudentInput, DegreeId, MeetingLog, PhaseAuditEntry, PhaseId, Student } from "../students/store";
+import type { CreateStudentInput, DegreeId, MeetingLog, PhaseId, Student } from "../students/store";
 
 export const DATA_EXPORT_SCHEMA_VERSION = 1;
 

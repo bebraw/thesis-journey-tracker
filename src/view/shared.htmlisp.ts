@@ -1,4 +1,4 @@
-import { ALERT_CLASS_MAP, BODY_CLASS, BUTTON_CLASS_MAP, HEADER_CARD, SUBTLE_TEXT, THEME_TOGGLE_BUTTON, renderButton } from "../ui";
+import { ALERT_CLASS_MAP, BODY_CLASS, BUTTON_CLASS_MAP, HEADER_CARD, THEME_TOGGLE_BUTTON, renderButton } from "../ui";
 import { type HtmlispComponents, renderHTMLisp } from "../htmlisp";
 import { escapeHtml } from "../formatting";
 import type { ViewerContext } from "./types";
