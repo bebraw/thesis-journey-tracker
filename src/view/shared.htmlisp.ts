@@ -1,5 +1,5 @@
 import { ALERT_CLASS_MAP, BODY_CLASS, BUTTON_CLASS_MAP, HEADER_CARD, THEME_TOGGLE_BUTTON, renderButton } from "../ui";
-import { type HtmlispComponents, type HtmlispRenderOptions, raw, renderEscapedHTMLisp, renderHTMLisp } from "../htmlisp";
+import { type HtmlispComponents, raw, renderEscapedHTMLisp } from "../htmlisp";
 import type { ViewerContext } from "./types";
 
 const THEME_BOOTSTRAP_SCRIPT = `<script>
@@ -35,9 +35,8 @@ export function renderView(
   htmlInput: string,
   props: Record<string, unknown> = {},
   components: HtmlispComponents = {},
-  renderOptions?: HtmlispRenderOptions,
 ): string {
-  return renderOptions ? renderHTMLisp(htmlInput, props, components, renderOptions) : renderEscapedHTMLisp(htmlInput, props, components);
+  return renderEscapedHTMLisp(htmlInput, props, components);
 }
 
 export function renderDocument(title: string, bodyContent: string, bodyClass = BODY_CLASS): string {
@@ -72,7 +71,6 @@ export function renderDocument(title: string, bodyContent: string, bodyClass = B
       themeBootstrapScript: raw(THEME_BOOTSTRAP_SCRIPT),
     },
     components,
-    { escapeByDefault: true },
   );
 }
 
@@ -116,7 +114,6 @@ export function renderFlashMessages(notice: string | null, error: string | null)
       errorMessage: error || "",
     },
     components,
-    { escapeByDefault: true },
   );
 }
 
@@ -192,11 +189,9 @@ export function renderDashboardToastMessages(notice: string | null, error: strin
           dismissButtonClass: `shrink-0 ${BUTTON_CLASS_MAP.inline}`,
         },
         components,
-        { escapeByDefault: true },
       )),
     },
     components,
-    { escapeByDefault: true },
   );
 }
 
@@ -297,8 +292,6 @@ export function renderPageHeaderNavigation(currentPage: HeaderPageId, viewer: Vi
         currentAttr: link.current ? "page" : null,
       })),
     },
-    undefined,
-    { escapeByDefault: true },
   );
 
   return `${primaryNavHtml}${moreMenuHtml}`;
@@ -378,7 +371,6 @@ export function renderAuthedPageHeader(title: string, description: string, navig
       })),
     },
     components,
-    { escapeByDefault: true },
   );
 }
 

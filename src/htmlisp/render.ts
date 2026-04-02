@@ -1,24 +1,15 @@
 import { htmlispToHTMLSync, raw } from "htmlisp";
 
-import type { HtmlispAttributeMap, HtmlispComponents, HtmlispProps, HtmlispRenderOptions } from "./types";
+import type { HtmlispAttributeMap, HtmlispComponents, HtmlispProps } from "./types";
 
 const SAFE_ATTRIBUTE_NAME = /^[A-Za-z_:][-A-Za-z0-9_:.]*$/;
-
-export function renderHTMLisp(
-  htmlInput: string,
-  props: HtmlispProps = {},
-  components?: HtmlispComponents,
-  renderOptions?: HtmlispRenderOptions,
-): string {
-  return htmlispToHTMLSync({ htmlInput, props, components, renderOptions });
-}
 
 export function renderEscapedHTMLisp(
   htmlInput: string,
   props: HtmlispProps = {},
   components?: HtmlispComponents,
 ): string {
-  return renderHTMLisp(htmlInput, props, components, { escapeByDefault: true });
+  return htmlispToHTMLSync({ htmlInput, props, components, renderOptions: { escapeByDefault: true } });
 }
 
 export function rawProps<T extends object>(props: T & Record<keyof T, string>): Record<keyof T, unknown> {
