@@ -1,5 +1,6 @@
-import { EMPTY_DASHED_CARD, MUTED_TEXT, SUBTLE_TEXT, SURFACE_CARD_SM, TEXT_LINK, renderCard } from "../../ui";
+import { EMPTY_DASHED_CARD, MUTED_TEXT, SOFT_SURFACE_CARD, SUBTLE_TEXT, SURFACE_CARD_SM, TEXT_LINK, renderCard, renderSectionHeader } from "../../ui";
 import type { SchedulePageData } from "../types";
+import { raw } from "../../htmlisp";
 import { renderView } from "../shared.htmlisp";
 
 export function renderScheduleCalendarCard(data: SchedulePageData): string {
@@ -17,18 +18,13 @@ export function renderScheduleCalendarCard(data: SchedulePageData): string {
       <div class="mt-panel-sm grid grid-cols-1 gap-panel-sm lg:grid-cols-5">
         <fragment &foreach="days as day">
           <section &class="day.cardClass">
-            <div class="flex items-center justify-between gap-stack-xs">
-              <h3 class="text-sm font-semibold" &children="day.label"></h3>
-              <span class="text-xs text-app-text-muted dark:text-app-text-muted-dark">
-                <span &children="day.slotCountText"></span>
-              </span>
-            </div>
+            <fragment &children="day.headerHtml"></fragment>
             <div class="mt-stack-xs space-y-stack-xs">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-app-text-muted dark:text-app-text-muted-dark">Existing events</p>
                 <div class="mt-badge-y space-y-badge-y" &visibleIf="day.hasEvents">
                   <fragment &foreach="day.events as event">
-                    <article class="rounded-control border border-app-line bg-app-surface-soft px-control-x py-badge-pill-y text-xs dark:border-app-line-dark dark:bg-app-surface-soft-dark/60">
+                    <article &class="eventCardClass">
                       <p class="font-semibold" &children="event.summary"></p>
                       <p class="mt-1 text-app-text-soft dark:text-app-text-soft-dark" &children="event.timeText"></p>
                       <p class="mt-1 text-app-text-muted dark:text-app-text-muted-dark" &visibleIf="event.descriptionVisible" &children="event.description"></p>
@@ -72,6 +68,13 @@ export function renderScheduleCalendarCard(data: SchedulePageData): string {
         days: days.map((day) => ({
           label: day.label,
           slotCountText: `${day.slots.length} open`,
+          headerHtml: raw(renderSectionHeader({
+            title: day.label,
+            meta: `${day.slots.length} open`,
+            headingLevel: 3,
+            headingClassName: "text-sm font-semibold",
+            className: "items-center",
+          })),
           cardClass: SURFACE_CARD_SM,
           hasEvents: day.hasEvents,
           showNoEvents: !day.hasEvents,
@@ -93,6 +96,7 @@ export function renderScheduleCalendarCard(data: SchedulePageData): string {
             currentAttr: slot.selected ? "step" : null,
           })),
         })),
+        eventCardClass: `${SOFT_SURFACE_CARD} px-control-x py-badge-pill-y text-xs dark:bg-app-surface-soft-dark/60`,
       },
     ),
   );

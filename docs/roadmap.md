@@ -4,13 +4,9 @@ This note collects feature ideas that feel like a natural next step for the proj
 
 ## Current Priority Items
 
-### Schedule Calendar Card Consistency
-
-Do a final cleanup pass on the week-grid rendering so the schedule page's calendar/event cards use the same shared surface and section patterns as the rest of the app where it meaningfully reduces duplication.
-
 ### Final Shared UI Sweep
 
-Do one last pass for any remaining low-value class duplication in schedule/dashboard views, then trim this roadmap section back down once the shared UI cleanup is effectively complete.
+Review the remaining small pockets of per-view class duplication in schedule/dashboard views, then remove this priority section once the shared UI cleanup no longer has a meaningful next slice.
 
 ## Highest-Value Next Steps
 
