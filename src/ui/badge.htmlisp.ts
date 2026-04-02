@@ -1,4 +1,4 @@
-import { renderHTMLisp } from "../htmlisp";
+import { renderEscapedHTMLisp } from "../htmlisp";
 import { mergeClasses } from "./helpers";
 import { BADGE_CLASS_MAP } from "./styles";
 import type { BadgeOptions } from "./types";
@@ -6,7 +6,7 @@ import type { BadgeOptions } from "./types";
 export function renderBadge(options: BadgeOptions): string {
   const { label, variant = "neutral", className } = options;
 
-  return renderHTMLisp(
+  return renderEscapedHTMLisp(
     `<span
       &class="className"
       &children="label"
@@ -15,7 +15,5 @@ export function renderBadge(options: BadgeOptions): string {
       className: mergeClasses(BADGE_CLASS_MAP[variant], className),
       label,
     },
-    undefined,
-    { escapeByDefault: true },
   );
 }

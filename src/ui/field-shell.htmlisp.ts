@@ -1,8 +1,8 @@
-import { raw, renderHTMLisp } from "../htmlisp";
+import { raw, renderEscapedHTMLisp } from "../htmlisp";
 import { FIELD_LABEL, FORM_LABEL } from "./styles";
 
 export function renderFieldShell(label: string, controlHtml: string, wrapperClassName = FORM_LABEL): string {
-  return renderHTMLisp(
+  return renderEscapedHTMLisp(
     `<label &class="wrapperClassName">
       <span &class="labelClassName" &children="label"></span>
       <fragment &children="controlHtml"></fragment>
@@ -13,7 +13,5 @@ export function renderFieldShell(label: string, controlHtml: string, wrapperClas
       controlHtml: raw(controlHtml),
       wrapperClassName,
     },
-    undefined,
-    { escapeByDefault: true },
   );
 }

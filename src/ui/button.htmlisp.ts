@@ -1,42 +1,44 @@
-import { htmlispAttributesToMap, parseHtmlispAttributes, renderHTMLisp } from "../htmlisp";
+import { buildHtmlispAttributeMap, mergeHtmlispAttributeMaps, renderEscapedHTMLisp } from "../htmlisp";
 import { mergeClasses } from "./helpers";
 import { BUTTON_CLASS_MAP } from "./styles";
 import type { ButtonOptions } from "./types";
 
 export function renderButton(options: ButtonOptions): string {
-  const { label, href, type = "button", variant = "neutral", className, attributes } = options;
+  const { label, href, type = "button", variant = "neutral", className, attrs } = options;
 
   const mergedClassName = mergeClasses(BUTTON_CLASS_MAP[variant], className);
-  const extraAttributes = htmlispAttributesToMap(parseHtmlispAttributes(attributes));
 
   if (href) {
-    return renderHTMLisp(
+    const attributesMap = mergeHtmlispAttributeMaps(
+      attrs,
+      buildHtmlispAttributeMap([
+        { name: "href", value: href },
+        { name: "class", value: mergedClassName },
+      ]),
+    );
+
+    return renderEscapedHTMLisp(
       `<a
-        &href="href"
-        &class="className"
-        &attrs="extraAttributes"
+        &attrs="attributesMap"
         &children="label"
       ></a>`,
-      { className: mergedClassName, extraAttributes, href, label },
-      undefined,
-      { escapeByDefault: true },
+      { attributesMap, label },
     );
   }
 
-  return renderHTMLisp(
+  const attributesMap = mergeHtmlispAttributeMaps(
+    attrs,
+    buildHtmlispAttributeMap([
+      { name: "type", value: type },
+      { name: "class", value: mergedClassName },
+    ]),
+  );
+
+  return renderEscapedHTMLisp(
     `<button
-      &type="type"
-      &class="className"
-      &attrs="extraAttributes"
+      &attrs="attributesMap"
       &children="label"
     ></button>`,
-    {
-      className: mergedClassName,
-      extraAttributes,
-      label,
-      type,
-    },
-    undefined,
-    { escapeByDefault: true },
+    { attributesMap, label },
   );
 }

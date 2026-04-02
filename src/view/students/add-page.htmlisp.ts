@@ -1,13 +1,9 @@
-import { raw } from "../../htmlisp";
+import { raw, rawProps } from "../../htmlisp";
 import { getDefaultStudentFormValues } from "../../students";
 import { PAGE_WRAP_NARROW, SUBTLE_TEXT, renderButton, renderCard } from "../../ui";
 import type { AddStudentPageData } from "../types";
 import {
-  THEME_TOGGLE_SCRIPT,
-  renderAuthedPageHeader,
-  renderDocument,
-  renderFlashMessages,
-  renderPageHeaderNavigation,
+  renderAuthedPageDocument,
   renderView,
 } from "../shared.htmlisp";
 import { renderStudentFormFields } from "./form-fields";
@@ -35,7 +31,7 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
       <fragment &children="submitButton"></fragment>
     </form>`,
     {
-      ...Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, raw(value)])),
+      ...rawProps(fields),
       submitButton: raw(renderButton({
         label: "Add student",
         type: "submit",
@@ -45,23 +41,18 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
     },
   );
 
-  const bodyContent = renderView(
-    `<div &class="pageWrap">
-      <fragment &children="headerHtml"></fragment>
-      <fragment &children="flashHtml"></fragment>
-      <fragment &children="cardHtml"></fragment>
-    </div>
-    <fragment &children="themeToggleScript"></fragment>`,
-    {
-      pageWrap: PAGE_WRAP_NARROW,
-      headerHtml: raw(renderAuthedPageHeader(
-        "Add Student",
-        "Create a new thesis supervision entry.",
-        renderPageHeaderNavigation("add-student", viewer, showStyleGuide),
-        viewer,
-      )),
-      flashHtml: raw(renderFlashMessages(notice, error)),
-      cardHtml: raw(renderCard(
+  return renderAuthedPageDocument({
+    documentTitle: "Thesis Journey Tracker - Add Student",
+    headerTitle: "Add Student",
+    headerDescription: "Create a new thesis supervision entry.",
+    currentPage: "add-student",
+    viewer,
+    pageWrapClass: PAGE_WRAP_NARROW,
+    notice,
+    error,
+    showStyleGuide,
+    sections: [
+      renderCard(
         renderView(
           `<h2 class="text-lg font-semibold">Student Details</h2>
           <p &class="subtleText" &children="description"></p>
@@ -73,10 +64,7 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
             formHtml: raw(formHtml),
           },
         ),
-      )),
-      themeToggleScript: raw(THEME_TOGGLE_SCRIPT),
-    },
-  );
-
-  return renderDocument("Thesis Journey Tracker - Add Student", bodyContent);
+      ),
+    ],
+  });
 }

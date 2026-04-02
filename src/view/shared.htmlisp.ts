@@ -1,5 +1,5 @@
 import { ALERT_CLASS_MAP, BODY_CLASS, BUTTON_CLASS_MAP, HEADER_CARD, THEME_TOGGLE_BUTTON, renderButton } from "../ui";
-import { type HtmlispComponents, type HtmlispRenderOptions, raw, renderHTMLisp } from "../htmlisp";
+import { type HtmlispComponents, type HtmlispRenderOptions, raw, renderEscapedHTMLisp, renderHTMLisp } from "../htmlisp";
 import type { ViewerContext } from "./types";
 
 const THEME_BOOTSTRAP_SCRIPT = `<script>
@@ -37,7 +37,7 @@ export function renderView(
   components: HtmlispComponents = {},
   renderOptions?: HtmlispRenderOptions,
 ): string {
-  return renderHTMLisp(htmlInput, props, components, renderOptions || { escapeByDefault: true });
+  return renderOptions ? renderHTMLisp(htmlInput, props, components, renderOptions) : renderEscapedHTMLisp(htmlInput, props, components);
 }
 
 export function renderDocument(title: string, bodyContent: string, bodyClass = BODY_CLASS): string {
@@ -202,6 +202,21 @@ export function renderDashboardToastMessages(notice: string | null, error: strin
 
 export type HeaderPageId = "dashboard" | "schedule" | "data-tools" | "add-student" | "style-guide";
 
+interface RenderAuthedPageDocumentOptions {
+  documentTitle: string;
+  headerTitle: string;
+  headerDescription: string;
+  currentPage: HeaderPageId;
+  viewer: ViewerContext;
+  pageWrapClass: string;
+  sections: string[];
+  notice?: string | null;
+  error?: string | null;
+  flashKind?: "inline" | "toast" | "none";
+  scripts?: string[];
+  showStyleGuide?: boolean;
+}
+
 interface HeaderLink {
   label: string;
   href: string;
@@ -216,7 +231,7 @@ function renderHeaderNavLink(link: HeaderLink): string {
     className: link.current
       ? "border-app-brand bg-app-brand-soft px-badge-pill-x py-badge-pill-y text-xs font-semibold text-app-brand-strong dark:border-app-brand-ring dark:bg-app-brand-soft-dark/30 dark:text-app-brand-ring sm:text-sm"
       : "bg-transparent px-badge-pill-x py-badge-pill-y text-xs shadow-none hover:bg-app-surface-soft dark:bg-transparent dark:hover:bg-app-surface-soft-dark/55 sm:text-sm",
-    attributes: link.current ? 'aria-current="page"' : "",
+    attrs: link.current ? { "aria-current": "page" } : undefined,
   });
 }
 
@@ -365,4 +380,54 @@ export function renderAuthedPageHeader(title: string, description: string, navig
     components,
     { escapeByDefault: true },
   );
+}
+
+export function renderAuthedPageDocument(options: RenderAuthedPageDocumentOptions): string {
+  const {
+    documentTitle,
+    headerTitle,
+    headerDescription,
+    currentPage,
+    viewer,
+    pageWrapClass,
+    sections,
+    notice = null,
+    error = null,
+    flashKind = "inline",
+    scripts = [],
+    showStyleGuide = false,
+  } = options;
+
+  const flashHtml =
+    flashKind === "toast"
+      ? renderDashboardToastMessages(notice, error)
+      : flashKind === "inline"
+        ? renderFlashMessages(notice, error)
+        : "";
+  const bodyContent = renderView(
+    `<div &class="pageWrap">
+      <fragment &children="headerHtml"></fragment>
+      <fragment &children="flashHtml"></fragment>
+      <fragment &foreach="sections as section">
+        <fragment &children="section"></fragment>
+      </fragment>
+    </div>
+    <fragment &foreach="scripts as script">
+      <fragment &children="script"></fragment>
+    </fragment>`,
+    {
+      pageWrap: pageWrapClass,
+      headerHtml: raw(renderAuthedPageHeader(
+        headerTitle,
+        headerDescription,
+        renderPageHeaderNavigation(currentPage, viewer, showStyleGuide),
+        viewer,
+      )),
+      flashHtml: raw(flashHtml),
+      sections: sections.map((section) => raw(section)),
+      scripts: [...scripts, THEME_TOGGLE_SCRIPT].map((script) => raw(script)),
+    },
+  );
+
+  return renderDocument(documentTitle, bodyContent);
 }

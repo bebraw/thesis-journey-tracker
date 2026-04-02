@@ -1,13 +1,7 @@
-import { raw } from "../../htmlisp";
 import { PAGE_WRAP } from "../../ui";
 import { renderEmptySelectedPanel, renderSelectedStudentPanel } from "../students";
 import {
-  THEME_TOGGLE_SCRIPT,
-  renderAuthedPageHeader,
-  renderDashboardToastMessages,
-  renderDocument,
-  renderPageHeaderNavigation,
-  renderView,
+  renderAuthedPageDocument,
 } from "../shared.htmlisp";
 import type { DashboardPageData } from "../types";
 import { renderDashboardScriptTag } from "./interaction-script";
@@ -26,26 +20,21 @@ export function renderDashboardPage(data: DashboardPageData): string {
           : "Select a student from the table to view details, supervision logs, and phase history.",
       );
 
-  const bodyContent = renderView(
-    `<div &class="pageWrap">
-      <fragment &children="headerHtml"></fragment>
-      <fragment &children="toastHtml"></fragment>
-      <fragment &children="studentsTableHtml"></fragment>
-    </div>
-    <fragment &children="dashboardScript"></fragment>
-    <fragment &children="themeToggleScript"></fragment>`,
-    {
-      pageWrap: PAGE_WRAP,
-      headerHtml: raw(renderAuthedPageHeader(
-        "Thesis Journey Tracker",
-        canEdit
-          ? "A clean overview for tracking thesis progress, supervision follow-ups, and the students who need attention next."
-          : "Read-only access for reviewing student progress, meetings, and supervision history without changing records.",
-        renderPageHeaderNavigation("dashboard", viewer, showStyleGuide),
-        viewer,
-      )),
-      toastHtml: raw(renderDashboardToastMessages(notice, error)),
-      studentsTableHtml: raw(renderStudentsTable(
+  return renderAuthedPageDocument({
+    documentTitle: "Thesis Journey Tracker",
+    headerTitle: "Thesis Journey Tracker",
+    headerDescription: canEdit
+      ? "A clean overview for tracking thesis progress, supervision follow-ups, and the students who need attention next."
+      : "Read-only access for reviewing student progress, meetings, and supervision history without changing records.",
+    currentPage: "dashboard",
+    viewer,
+    pageWrapClass: PAGE_WRAP,
+    notice,
+    error,
+    flashKind: "toast",
+    showStyleGuide,
+    sections: [
+      renderStudentsTable(
         students,
         selectedStudent,
         filters,
@@ -58,11 +47,8 @@ export function renderDashboardPage(data: DashboardPageData): string {
             : "Select a student from the table to view details, supervision logs, and phase history.",
         ),
         { canEdit },
-      )),
-      dashboardScript: raw(renderDashboardScriptTag()),
-      themeToggleScript: raw(THEME_TOGGLE_SCRIPT),
-    },
-  );
-
-  return renderDocument("Thesis Journey Tracker", bodyContent);
+      ),
+    ],
+    scripts: [renderDashboardScriptTag()],
+  });
 }

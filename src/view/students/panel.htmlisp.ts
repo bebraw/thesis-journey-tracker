@@ -1,5 +1,5 @@
 import { escapeJsString, formatDateTime } from "../../formatting";
-import { raw } from "../../htmlisp";
+import { raw, rawProps } from "../../htmlisp";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getStudentFormValues, getTargetSubmissionDate, PHASES } from "../../students";
 import type { MeetingLog, PhaseAuditEntry, Student } from "../../students/store";
 import {
@@ -236,7 +236,7 @@ export function renderSelectedStudentPanel(
       action: `/actions/update-student/${student.id}`,
       formStack: FORM_STACK,
       returnTo,
-      ...Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, raw(value)])),
+      ...rawProps(fields),
       submitButton: raw(renderButton({
         label: "Save student updates",
         type: "submit",
@@ -263,14 +263,14 @@ export function renderSelectedStudentPanel(
         name: "happenedAt",
         type: "datetime-local",
         className: FIELD_CONTROL,
-        attributes: DATETIME_LOCAL_HALF_HOUR_STEP,
+        attrs: DATETIME_LOCAL_HALF_HOUR_STEP,
       })),
       nextMeetingField: raw(renderInputField({
         label: "Possible next meeting (optional)",
         name: "nextMeetingAt",
         type: "datetime-local",
         className: FIELD_CONTROL,
-        attributes: DATETIME_LOCAL_HALF_HOUR_STEP,
+        attrs: DATETIME_LOCAL_HALF_HOUR_STEP,
       })),
       discussedField: raw(renderTextareaField({
         label: "What was discussed",
@@ -499,7 +499,10 @@ export function renderSelectedStudentPanel(
         label: "Close",
         type: "button",
         variant: "inline",
-        attributes: 'id="closeSelectedStudentPanelButton" aria-label="Close student workspace"',
+        attrs: {
+          id: "closeSelectedStudentPanelButton",
+          "aria-label": "Close student workspace",
+        },
       })),
       editFormHtml: raw(editFormHtml),
       addLogFormHtml: raw(addLogFormHtml),

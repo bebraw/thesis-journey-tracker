@@ -57,7 +57,7 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
     type: "datetime-local",
     value: values.nextMeetingAt,
     className: controlClass,
-    attributes: DATETIME_LOCAL_HALF_HOUR_STEP,
+    attrs: DATETIME_LOCAL_HALF_HOUR_STEP,
   });
   const clearNextMeetingHint = values.nextMeetingAt
     ? renderView(
@@ -89,8 +89,16 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
       name: STUDENT_FORM_FIELDS.email,
       value: values.email,
       className: controlClass,
-      attributes:
-        'type="text" inputmode="email" autocomplete="off" autocapitalize="off" spellcheck="false" data-bwignore="true" data-lpignore="true" data-1p-ignore="true"',
+      attrs: {
+        type: "text",
+        inputmode: "email",
+        autocomplete: "off",
+        autocapitalize: "off",
+        spellcheck: "false",
+        "data-bwignore": "true",
+        "data-lpignore": "true",
+        "data-1p-ignore": "true",
+      },
     }),
     degreeField: renderSelectField({
       label: "Degree type",

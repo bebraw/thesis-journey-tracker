@@ -16,7 +16,7 @@ import {
   type SelectOption,
 } from "../ui";
 import { raw } from "../htmlisp";
-import { THEME_TOGGLE_SCRIPT, renderAuthedPageHeader, renderDocument, renderPageHeaderNavigation, renderView } from "./shared.htmlisp";
+import { renderAuthedPageDocument, renderView } from "./shared.htmlisp";
 import { DEGREE_TYPES } from "../students";
 import type { ViewerContext } from "./types";
 
@@ -177,34 +177,24 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
     ),
   );
 
-  const bodyContent = renderView(
-    `<div &class="pageWrap">
-      <fragment &children="headerHtml"></fragment>
-      <section class="grid grid-cols-1 gap-stack xl:grid-cols-2">
-        <fragment &children="buttonsCard"></fragment>
-        <fragment &children="badgesCard"></fragment>
-      </section>
-      <section class="grid grid-cols-1 gap-stack xl:grid-cols-2">
-        <fragment &children="formFieldsCard"></fragment>
-        <fragment &children="surfacesCard"></fragment>
-      </section>
-    </div>
-    <fragment &children="themeToggleScript"></fragment>`,
-    {
-      pageWrap: PAGE_WRAP,
-      headerHtml: raw(renderAuthedPageHeader(
-        "Style Guide",
-        "Reusable UI patterns for buttons, badges, fields, and surfaces.",
-        renderPageHeaderNavigation("style-guide", viewer, true),
-        viewer,
-      )),
-      buttonsCard: raw(buttonsCard),
-      badgesCard: raw(badgesCard),
-      formFieldsCard: raw(formFieldsCard),
-      surfacesCard: raw(surfacesCard),
-      themeToggleScript: raw(THEME_TOGGLE_SCRIPT),
-    },
-  );
-
-  return renderDocument("Thesis Journey Tracker - Style Guide", bodyContent);
+  return renderAuthedPageDocument({
+    documentTitle: "Thesis Journey Tracker - Style Guide",
+    headerTitle: "Style Guide",
+    headerDescription: "Reusable UI patterns for buttons, badges, fields, and surfaces.",
+    currentPage: "style-guide",
+    viewer,
+    pageWrapClass: PAGE_WRAP,
+    showStyleGuide: true,
+    flashKind: "none",
+    sections: [
+      `<section class="grid grid-cols-1 gap-stack xl:grid-cols-2">
+        ${buttonsCard}
+        ${badgesCard}
+      </section>`,
+      `<section class="grid grid-cols-1 gap-stack xl:grid-cols-2">
+        ${formFieldsCard}
+        ${surfacesCard}
+      </section>`,
+    ],
+  });
 }

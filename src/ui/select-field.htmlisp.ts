@@ -1,9 +1,7 @@
 import {
   buildHtmlispAttributeMap,
-  htmlispAttributesToMap,
-  omitHtmlispAttributes,
-  parseHtmlispAttributes,
-  renderHTMLisp,
+  mergeHtmlispAttributeMaps,
+  renderEscapedHTMLisp,
 } from "../htmlisp";
 import { renderFieldShell } from "./field-shell.htmlisp";
 import { FIELD_CONTROL, FORM_LABEL } from "./styles";
@@ -16,23 +14,23 @@ interface RenderableSelectOption {
 }
 
 export function renderSelectField(options: SelectFieldOptions): string {
-  const { label, name, id, options: selectOptions, value, className = FIELD_CONTROL, wrapperClassName = FORM_LABEL, attributes } = options;
+  const { label, name, id, options: selectOptions, value, className = FIELD_CONTROL, wrapperClassName = FORM_LABEL, attrs } = options;
 
-  const parsedAttributes = parseHtmlispAttributes(attributes);
-  const extraAttributes = htmlispAttributesToMap(omitHtmlispAttributes(parsedAttributes, ["name", "id", "class"]));
   const normalizedOptions: RenderableSelectOption[] = selectOptions.map((option) => ({
     label: option.label,
     optionValue: option.value,
     selected: option.value === value,
   }));
-  const baseAttributes = buildHtmlispAttributeMap([
-    { name: "name", value: name },
-    { name: "id", value: id },
-    { name: "class", value: className },
-  ]);
-  const attributesMap = { ...extraAttributes, ...baseAttributes };
+  const attributesMap = mergeHtmlispAttributeMaps(
+    attrs,
+    buildHtmlispAttributeMap([
+      { name: "name", value: name },
+      { name: "id", value: id },
+      { name: "class", value: className },
+    ]),
+  );
 
-  const controlHtml = renderHTMLisp(
+  const controlHtml = renderEscapedHTMLisp(
     `<select &attrs="attributesMap">
         <fragment &foreach="options as option">
           <option
@@ -43,8 +41,6 @@ export function renderSelectField(options: SelectFieldOptions): string {
         </fragment>
       </select>`,
     { attributesMap, options: normalizedOptions },
-    undefined,
-    { escapeByDefault: true },
   );
 
   return renderFieldShell(label, controlHtml, wrapperClassName);

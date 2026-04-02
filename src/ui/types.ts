@@ -1,3 +1,5 @@
+import type { HtmlispAttributeMap } from "../htmlisp";
+
 export type ButtonVariant = "neutral" | "primary" | "primaryBlock" | "successBlock" | "dangerBlock" | "inline";
 
 export type BadgeVariant = "neutral" | "mock" | "count";
@@ -8,7 +10,7 @@ export interface ButtonOptions {
   type?: "button" | "submit" | "reset";
   variant?: ButtonVariant;
   className?: string;
-  attributes?: string;
+  attrs?: HtmlispAttributeMap;
 }
 
 export interface BadgeOptions {
@@ -32,7 +34,7 @@ export interface FieldOptions {
   placeholder?: string;
   className?: string;
   wrapperClassName?: string;
-  attributes?: string;
+  attrs?: HtmlispAttributeMap;
 }
 
 export interface SelectFieldOptions {
@@ -43,7 +45,7 @@ export interface SelectFieldOptions {
   value?: string;
   className?: string;
   wrapperClassName?: string;
-  attributes?: string;
+  attrs?: HtmlispAttributeMap;
 }
 
 export interface TextareaFieldOptions {
@@ -55,5 +57,5 @@ export interface TextareaFieldOptions {
   className?: string;
   wrapperClassName?: string;
   required?: boolean;
-  attributes?: string;
+  attrs?: HtmlispAttributeMap;
 }

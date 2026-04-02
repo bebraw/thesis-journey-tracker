@@ -457,7 +457,10 @@ export function renderStudentsTable(
         type: "button",
         variant: "neutral",
         className: "xl:hidden",
-        attributes: `id="toggleStudentPanelButton" aria-expanded="${selectedStudent ? "true" : "false"}"`,
+        attrs: {
+          id: "toggleStudentPanelButton",
+          "aria-expanded": selectedStudent ? "true" : "false",
+        },
       })),
       selectedPanelShellClass: `${selectedStudent ? "" : "hidden "}mb-panel-sm`,
       showEmptyRow: studentRows.length === 0,

@@ -1,11 +1,7 @@
 import {
   buildHtmlispAttributeMap,
-  getHtmlispAttributeValue,
-  hasHtmlispBooleanAttribute,
-  htmlispAttributesToMap,
-  omitHtmlispAttributes,
-  parseHtmlispAttributes,
-  renderHTMLisp,
+  mergeHtmlispAttributeMaps,
+  renderEscapedHTMLisp,
 } from "../htmlisp";
 import { renderFieldShell } from "./field-shell.htmlisp";
 import { FIELD_CONTROL, FORM_LABEL } from "./styles";
@@ -21,30 +17,26 @@ export function renderTextareaField(options: TextareaFieldOptions): string {
     className = FIELD_CONTROL,
     wrapperClassName = FORM_LABEL,
     required = false,
-    attributes,
+    attrs,
   } = options;
 
-  const parsedAttributes = parseHtmlispAttributes(attributes);
-  const resolvedRequired = required || hasHtmlispBooleanAttribute(parsedAttributes, "required");
-  const resolvedRows = getHtmlispAttributeValue(parsedAttributes, "rows") ?? String(rows);
-  const extraAttributes = htmlispAttributesToMap(omitHtmlispAttributes(parsedAttributes, ["name", "id", "rows", "required", "class"]));
-  const baseAttributes = buildHtmlispAttributeMap([
-    { name: "name", value: name },
-    { name: "id", value: id },
-    { name: "rows", value: resolvedRows },
-    { name: "class", value: className },
-    { name: "required", value: resolvedRequired },
-  ]);
-  const attributesMap = { ...extraAttributes, ...baseAttributes };
+  const attributesMap = mergeHtmlispAttributeMaps(
+    attrs,
+    buildHtmlispAttributeMap([
+      { name: "name", value: name },
+      { name: "id", value: id },
+      { name: "rows", value: String(rows) },
+      { name: "class", value: className },
+      { name: "required", value: required },
+    ]),
+  );
 
-  const controlHtml = renderHTMLisp(
+  const controlHtml = renderEscapedHTMLisp(
     `<textarea
         &attrs="attributesMap"
         &children="value"
       ></textarea>`,
     { attributesMap, value: value || "" },
-    undefined,
-    { escapeByDefault: true },
   );
 
   return renderFieldShell(label, controlHtml, wrapperClassName);
