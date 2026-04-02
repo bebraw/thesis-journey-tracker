@@ -1,24 +1,32 @@
 import { raw } from "../../htmlisp";
-import { FIELD_CONTROL_SM, FORM_LABEL, SUBTLE_TEXT, renderButton, renderCard } from "../../ui";
+import { FIELD_CONTROL_SM, SUBTLE_TEXT, renderButton, renderCard, renderSelectField } from "../../ui";
 import type { SchedulePageData } from "../types";
 import { renderView } from "../shared.htmlisp";
 
 export function renderScheduleControlsCard(data: SchedulePageData): string {
   const { currentWeekHref, nextWeekHref, prevWeekHref, selectedStudentId, selectedStudentName, selectedWeek, sourceMode, students, timeZone } = data;
+  const studentFieldHtml = renderSelectField({
+    label: "Student",
+    name: "student",
+    className: FIELD_CONTROL_SM,
+    attrs: {
+      onchange: "this.form.requestSubmit()",
+    },
+    options: [
+      { label: "Choose a student", value: "" },
+      ...students.map((student) => ({
+        label: student.label,
+        value: student.value,
+      })),
+    ],
+    value: students.find((student) => student.selected)?.value || "",
+  });
 
   return renderCard(
     renderView(
       `<div class="flex flex-col gap-stack-xs xl:flex-row xl:items-end xl:justify-between">
         <form action="/schedule" method="get" class="grid flex-1 grid-cols-1 gap-stack-xs sm:grid-cols-[minmax(0,20rem)_auto]">
-          <label &class="formLabelClass">
-            <span>Student</span>
-            <select name="student" onchange="this.form.requestSubmit()" &class="fieldClass">
-              <option value="">Choose a student</option>
-              <fragment &foreach="studentOptions as option">
-                <option &value="option.value" &selected="option.selectedAttr" &children="option.label"></option>
-              </fragment>
-            </select>
-          </label>
+          <fragment &children="studentFieldHtml"></fragment>
           <input type="hidden" name="week" &value="selectedWeek" />
           <fragment &children="applyButton"></fragment>
         </form>
@@ -30,14 +38,8 @@ export function renderScheduleControlsCard(data: SchedulePageData): string {
       </div>
       <p &class="subtleText" &children="helperText"></p>`,
       {
-        formLabelClass: FORM_LABEL,
-        fieldClass: `mt-1 ${FIELD_CONTROL_SM}`,
+        studentFieldHtml: raw(studentFieldHtml),
         selectedWeek,
-        studentOptions: students.map((student) => ({
-          value: student.value,
-          label: student.label,
-          selectedAttr: student.selected ? "selected" : null,
-        })),
         applyButton: raw(renderButton({
           label: "Show schedule",
           type: "submit",

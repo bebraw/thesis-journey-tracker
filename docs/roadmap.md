@@ -4,28 +4,13 @@ This note collects feature ideas that feel like a natural next step for the proj
 
 ## Current Priority Items
 
-### UI Style Guide Patterns
+### Schedule Calendar Card Consistency
 
-Expand the local `/style-guide` surface so it documents not only base primitives but also the higher-level UI patterns already used in the app, especially:
+Do a final cleanup pass on the week-grid rendering so the schedule page's calendar/event cards use the same shared surface and section patterns as the rest of the app where it meaningfully reduces duplication.
 
-- inset secondary panels inside cards
-- section headers with muted metadata
-- segmented/toggle controls
-- readonly key/value grids
-- disclosures and empty states
+### Final Shared UI Sweep
 
-### Shared UI Extraction
-
-Reduce repeated class recipes across the dashboard, student panel, and data tools by extracting shared UI helpers for patterns such as:
-
-- inset panel/card shells
-- standard section headers
-- stateful toggle buttons or button groups
-- readonly metadata tiles
-
-### View Cleanup Around Shared UI
-
-Refactor the student workspace and neighboring views to consume the shared helpers instead of hand-rolled markup and per-view class strings, so the style guide reflects the real component surface.
+Do one last pass for any remaining low-value class duplication in schedule/dashboard views, then trim this roadmap section back down once the shared UI cleanup is effectively complete.
 
 ## Highest-Value Next Steps
 

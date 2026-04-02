@@ -1,5 +1,5 @@
 import { raw } from "../../htmlisp";
-import { FIELD_CONTROL_SM, FORM_LABEL, SUBTLE_TEXT, renderButton, renderCard } from "../../ui";
+import { FIELD_CONTROL_SM, SUBTLE_TEXT, renderButton, renderCard, renderInputField, renderTextareaField } from "../../ui";
 import type { SchedulePageData } from "../types";
 import { renderView } from "../shared.htmlisp";
 
@@ -20,6 +20,32 @@ export function renderSelectedSlotCard(data: SchedulePageData): string {
     syncFailed,
   } = data;
 
+  const titleFieldHtml = renderInputField({
+    label: "Google Calendar title",
+    name: "title",
+    required: true,
+    value: defaultTitle,
+    className: FIELD_CONTROL_SM,
+  });
+  const emailFieldHtml = renderInputField({
+    label: "Invite email",
+    name: "meetingEmail",
+    type: "email",
+    required: true,
+    value: selectedStudentEmail,
+    className: FIELD_CONTROL_SM,
+    attrs: {
+      inputmode: "email",
+    },
+  });
+  const descriptionFieldHtml = renderTextareaField({
+    label: "Description (optional)",
+    name: "description",
+    rows: 4,
+    value: defaultDescription,
+    className: FIELD_CONTROL_SM,
+  });
+
   return configured && sourceMode === "api" && !syncFailed && selectedSlotStart && selectedSlotEnd && selectedStudentId
     ? renderCard(
         renderView(
@@ -31,25 +57,9 @@ export function renderSelectedSlotCard(data: SchedulePageData): string {
             <input type="hidden" name="week" &value="selectedWeek" />
             <input type="hidden" name="slotStart" &value="slotStart" />
             <input type="hidden" name="slotEnd" &value="slotEnd" />
-            <label &class="formLabelClass">
-              <span>Google Calendar title</span>
-              <input name="title" required="required" &class="fieldClass" &value="defaultTitle" />
-            </label>
-            <label &class="formLabelClass">
-              <span>Invite email</span>
-              <input
-                name="meetingEmail"
-                type="email"
-                inputmode="email"
-                required="required"
-                &class="fieldClass"
-                &value="emailValue"
-              />
-            </label>
-            <label &class="formLabelClass">
-              <span>Description (optional)</span>
-              <textarea name="description" rows="4" &class="fieldClass" &children="defaultDescription"></textarea>
-            </label>
+            <fragment &children="titleFieldHtml"></fragment>
+            <fragment &children="emailFieldHtml"></fragment>
+            <fragment &children="descriptionFieldHtml"></fragment>
             <fragment &children="submitButton"></fragment>
           </form>`,
           {
@@ -60,11 +70,9 @@ export function renderSelectedSlotCard(data: SchedulePageData): string {
             selectedWeek,
             slotStart: selectedSlotStart,
             slotEnd: selectedSlotEnd,
-            formLabelClass: FORM_LABEL,
-            fieldClass: `mt-1 ${FIELD_CONTROL_SM}`,
-            defaultTitle,
-            emailValue: selectedStudentEmail,
-            defaultDescription,
+            titleFieldHtml: raw(titleFieldHtml),
+            emailFieldHtml: raw(emailFieldHtml),
+            descriptionFieldHtml: raw(descriptionFieldHtml),
             submitButton: raw(renderButton({
               label: "Create Google Calendar event",
               type: "submit",
