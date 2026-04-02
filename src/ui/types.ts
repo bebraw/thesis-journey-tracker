@@ -37,6 +37,20 @@ export interface DisclosureOptions {
   attrs?: HtmlispAttributeMap;
 }
 
+export interface MetadataItem {
+  label: string;
+  value: string;
+}
+
+export interface MetadataListOptions {
+  items: MetadataItem[];
+  className?: string;
+  itemClassName?: string;
+  termClassName?: string;
+  valueClassName?: string;
+  attrs?: HtmlispAttributeMap;
+}
+
 export interface SelectOption {
   label: string;
   value: string;

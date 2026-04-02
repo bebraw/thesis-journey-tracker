@@ -14,6 +14,7 @@ import {
   renderDisclosure,
   renderInsetCard,
   renderInputField,
+  renderMetadataList,
   renderSectionHeader,
   renderSelectField,
   renderTextareaField,
@@ -191,6 +192,7 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
           <fragment &children="sectionHeader"></fragment>
           <p &class="emptyStateClass">Use the shared empty-state treatment when a section has no content yet.</p>
         </div>
+        <fragment &children="metadataListHtml"></fragment>
         <fragment &children="disclosureHtml"></fragment>
       </div>`,
       {
@@ -213,6 +215,14 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
         sectionHeader: raw(renderSectionHeader({
           title: "Section Header",
           meta: "Use concise metadata labels",
+        })),
+        metadataListHtml: raw(renderMetadataList({
+          items: [
+            { label: "Target submission", value: "2026-06-30" },
+            { label: "Next meeting", value: "Not booked" },
+            { label: "Saved logs", value: "12" },
+            { label: "Status", value: "Meeting soon" },
+          ],
         })),
         emptyStateClass: EMPTY_STATE_CARD,
         disclosureHtml: raw(renderDisclosure({

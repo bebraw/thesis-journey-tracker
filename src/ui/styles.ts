@@ -49,6 +49,12 @@ export const PANEL_STACK = "space-y-stack";
 export const SECTION_STACK_SM = "space-y-stack-xs";
 export const SECTION_HEADER_ROW = "flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between";
 export const SECTION_META_TEXT = "text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark";
+export const METADATA_GRID = "grid grid-cols-1 gap-stack-xs sm:grid-cols-2";
+export const METADATA_TILE =
+  "rounded-card border border-app-line bg-app-surface-soft/70 px-panel-sm py-stack-xs text-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/40";
+export const METADATA_TERM =
+  "text-xs font-medium uppercase tracking-wide text-app-text-muted dark:text-app-text-muted-dark";
+export const METADATA_VALUE = "mt-1 font-medium";
 export const DISCLOSURE =
   "rounded-card border border-app-line bg-app-surface-soft/70 dark:border-app-line-dark dark:bg-app-surface-soft-dark/40";
 export const DISCLOSURE_SUMMARY = `flex cursor-pointer list-none items-center justify-between gap-stack-xs rounded-card px-panel-sm py-stack-xs text-base font-semibold marker:content-[''] hover:bg-app-surface-soft dark:hover:bg-app-surface-soft-dark/50 ${FOCUS_RING}`;

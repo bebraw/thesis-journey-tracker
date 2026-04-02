@@ -12,6 +12,7 @@ import {
   renderBadge,
   renderButton,
   renderInsetCard,
+  renderMetadataList,
 } from "../../ui";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusId, PHASES } from "../../students";
 import { formatDateTime } from "../../formatting";
@@ -43,6 +44,7 @@ interface PreparedStudentRow {
   dataNextMeetingDate: string;
   dataLogCount: string;
   summaryHtml: unknown;
+  mobileDetailsHtml: unknown;
   degreeBadgeHtml: unknown;
   phaseBadgeHtml: unknown;
   degreeLabel: string;
@@ -159,6 +161,28 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
       dataNextMeetingDate: student.nextMeetingAt || "",
       dataLogCount: String(student.logCount),
       summaryHtml: raw(summaryHtml),
+      mobileDetailsHtml: raw(renderMetadataList({
+        items: [
+          { label: "Target", value: targetSubmissionDate || "Not set" },
+          { label: "Next meeting", value: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked" },
+          { label: "Logs", value: String(student.logCount) },
+          {
+            label: "Status",
+            value:
+              statusId === "overdue"
+                ? "Overdue"
+                : statusId === "not_booked"
+                  ? "Not booked"
+                  : statusId === "within_2_weeks"
+                    ? "Meeting soon"
+                    : "Scheduled",
+          },
+        ],
+        className: "mt-stack-xs grid-cols-2 gap-x-stack-xs gap-y-badge-y text-xs sm:grid-cols-2",
+        itemClassName: "",
+        termClassName: "text-app-text-muted dark:text-app-text-muted-dark",
+        valueClassName: "mt-1 font-medium",
+      })),
       degreeBadgeHtml: raw(renderBadge({
         label: degreeLabel,
       })),
@@ -351,24 +375,7 @@ export function renderStudentsTable(
                       <fragment &children="row.phaseBadgeHtml"></fragment>
                     </div>
                   </div>
-                  <dl class="mt-stack-xs grid grid-cols-2 gap-x-stack-xs gap-y-badge-y text-xs">
-                    <div>
-                      <dt class="text-app-text-muted dark:text-app-text-muted-dark">Target</dt>
-                      <dd class="mt-1 font-medium" &children="row.targetDate"></dd>
-                    </div>
-                    <div>
-                      <dt class="text-app-text-muted dark:text-app-text-muted-dark">Next meeting</dt>
-                      <dd class="mt-1 font-medium" &children="row.nextMeetingText"></dd>
-                    </div>
-                    <div>
-                      <dt class="text-app-text-muted dark:text-app-text-muted-dark">Logs</dt>
-                      <dd class="mt-1 font-medium" &children="row.logCountText"></dd>
-                    </div>
-                    <div>
-                      <dt class="text-app-text-muted dark:text-app-text-muted-dark">Status</dt>
-                      <dd class="mt-1 font-medium" &children="row.statusLabel"></dd>
-                    </div>
-                  </dl>
+                  <fragment &children="row.mobileDetailsHtml"></fragment>
                 </article>
               </fragment>
             </fragment>

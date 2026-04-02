@@ -15,6 +15,7 @@ import {
   renderButton,
   renderInsetCard,
   renderInputField,
+  renderMetadataList,
   renderSectionHeader,
   renderTextareaField,
 } from "../../ui";
@@ -59,7 +60,7 @@ interface StudentPanelOptions {
 
 interface PreparedReadonlyField {
   label: string;
-  text: string;
+  value: string;
 }
 
 interface PreparedToolAction {
@@ -100,7 +101,7 @@ function prepareReadonlyFields(student: Student): PreparedReadonlyField[] {
     { label: "Saved meeting logs", value: String(student.logCount) },
   ].map((field) => ({
     label: field.label,
-    text: field.value,
+    value: field.value,
   }));
 }
 
@@ -113,23 +114,19 @@ function renderReadonlyStudentSummary(student: Student): string {
       <p &class="currentStudentLineClass" &children="currentlyViewingText"></p>
       <p &visibleIf="topicVisible" &class="topicTextClass" &children="topic"></p>
       <p &class="readonlyNoticeClass">Read-only access to details, supervision logs, and the phase timeline.</p>
-      <dl class="mt-stack-xs grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
-        <fragment &foreach="readonlyFields as field">
-          <div class="rounded-card border border-app-line bg-app-surface-soft/70 px-panel-sm py-stack-xs text-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/40">
-            <dt class="text-xs font-medium uppercase tracking-wide text-app-text-muted dark:text-app-text-muted-dark" &children="field.label"></dt>
-            <dd class="mt-1 font-medium" &children="field.text"></dd>
-          </div>
-        </fragment>
-      </dl>
+      <fragment &children="metadataListHtml"></fragment>
     </section>`,
     {
       currentStudentLineClass: `mt-1 truncate ${SUBTLE_TEXT}`,
       topicTextClass: TOPIC_TEXT,
       readonlyNoticeClass: `mt-3 ${SUBTLE_TEXT}`,
+      metadataListHtml: raw(renderMetadataList({
+        items: readonlyFields,
+        className: "mt-stack-xs",
+      })),
       currentlyViewingText: `Currently viewing: ${student.name}`,
       topicVisible: Boolean(student.thesisTopic),
       topic: student.thesisTopic || "",
-      readonlyFields,
     },
   );
 }
