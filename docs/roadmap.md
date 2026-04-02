@@ -4,7 +4,28 @@ This note collects feature ideas that feel like a natural next step for the proj
 
 ## Current Priority Items
 
-These are the most immediate follow-up items to address next. Nothing is currently pinned here; the next likely areas are listed below.
+### UI Style Guide Patterns
+
+Expand the local `/style-guide` surface so it documents not only base primitives but also the higher-level UI patterns already used in the app, especially:
+
+- inset secondary panels inside cards
+- section headers with muted metadata
+- segmented/toggle controls
+- readonly key/value grids
+- disclosures and empty states
+
+### Shared UI Extraction
+
+Reduce repeated class recipes across the dashboard, student panel, and data tools by extracting shared UI helpers for patterns such as:
+
+- inset panel/card shells
+- standard section headers
+- stateful toggle buttons or button groups
+- readonly metadata tiles
+
+### View Cleanup Around Shared UI
+
+Refactor the student workspace and neighboring views to consume the shared helpers instead of hand-rolled markup and per-view class strings, so the style guide reflects the real component surface.
 
 ## Highest-Value Next Steps
 
