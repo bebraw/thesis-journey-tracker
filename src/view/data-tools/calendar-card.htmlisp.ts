@@ -4,13 +4,13 @@ import {
   DANGER_TEXT,
   DANGER_TITLE,
   FIELD_CONTROL_SM,
-  FORM_LABEL,
   MUTED_TEXT,
   SUBTLE_TEXT,
   TEXT_LINK,
   renderButton,
   renderCard,
   renderDisclosure,
+  renderInputField,
   renderInsetCard,
   renderSectionHeader,
 } from "../../ui";
@@ -102,50 +102,78 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
     }),
   );
 
+  const clientIdFieldHtml = renderInputField({
+    label: "Google client ID",
+    name: "clientId",
+    required: true,
+    value: googleCalendarClientId,
+    className: FIELD_CONTROL_SM,
+    attrs: {
+      autocomplete: "off",
+    },
+  });
+  const clientSecretFieldHtml = renderInputField({
+    label: "Google client secret",
+    name: "clientSecret",
+    type: "password",
+    required: true,
+    value: googleCalendarClientSecret,
+    className: FIELD_CONTROL_SM,
+    attrs: {
+      autocomplete: "off",
+    },
+  });
+  const refreshTokenFieldHtml = renderInputField({
+    label: "Google refresh token",
+    name: "refreshToken",
+    type: "password",
+    required: true,
+    value: googleCalendarRefreshToken,
+    className: FIELD_CONTROL_SM,
+    attrs: {
+      autocomplete: "off",
+    },
+  });
+  const calendarIdFieldHtml = renderInputField({
+    label: "Google Calendar ID",
+    name: "calendarId",
+    required: true,
+    value: googleCalendarCalendarId,
+    className: FIELD_CONTROL_SM,
+    attrs: {
+      autocomplete: "off",
+    },
+  });
+  const timeZoneFieldHtml = renderInputField({
+    label: "Timezone (optional)",
+    name: "timeZone",
+    value: googleCalendarTimeZone,
+    placeholder: "Europe/Helsinki",
+    className: FIELD_CONTROL_SM,
+    attrs: {
+      autocomplete: "off",
+    },
+  });
+  const icalUrlFieldHtml = renderInputField({
+    label: "Google Calendar iCal URL",
+    name: "iCalUrl",
+    required: true,
+    value: googleCalendarIcalUrl,
+    className: FIELD_CONTROL_SM,
+    attrs: {
+      autocomplete: "off",
+    },
+  });
+
   const fullModeSectionHtml = renderInsetCard(
     renderView(
       `<fragment &children="headerHtml"></fragment>
       <form action="/actions/save-google-calendar-settings" method="post" class="mt-panel-sm space-y-stack-xs">
-        <label &class="formLabelClass">
-          <span>Google client ID</span>
-          <input name="clientId" required="required" autocomplete="off" &class="fieldClass" &value="clientIdValue" />
-        </label>
-        <label &class="formLabelClass">
-          <span>Google client secret</span>
-          <input
-            name="clientSecret"
-            type="password"
-            required="required"
-            autocomplete="off"
-            &class="fieldClass"
-            &value="clientSecretValue"
-          />
-        </label>
-        <label &class="formLabelClass">
-          <span>Google refresh token</span>
-          <input
-            name="refreshToken"
-            type="password"
-            required="required"
-            autocomplete="off"
-            &class="fieldClass"
-            &value="refreshTokenValue"
-          />
-        </label>
-        <label &class="formLabelClass">
-          <span>Google Calendar ID</span>
-          <input name="calendarId" required="required" autocomplete="off" &class="fieldClass" &value="calendarIdValue" />
-        </label>
-        <label &class="formLabelClass">
-          <span>Timezone (optional)</span>
-          <input
-            name="timeZone"
-            placeholder="Europe/Helsinki"
-            autocomplete="off"
-            &class="fieldClass"
-            &value="timeZoneValue"
-          />
-        </label>
+        <fragment &children="clientIdFieldHtml"></fragment>
+        <fragment &children="clientSecretFieldHtml"></fragment>
+        <fragment &children="refreshTokenFieldHtml"></fragment>
+        <fragment &children="calendarIdFieldHtml"></fragment>
+        <fragment &children="timeZoneFieldHtml"></fragment>
         <fragment &children="saveButton"></fragment>
       </form>
       <div &class="scopedDangerPanelClass">
@@ -162,13 +190,11 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
           title: "Full scheduling mode",
           meta: "Create Google Calendar events from the schedule page",
         })),
-        formLabelClass: FORM_LABEL,
-        fieldClass: `mt-1 ${FIELD_CONTROL_SM}`,
-        clientIdValue: googleCalendarClientId,
-        clientSecretValue: googleCalendarClientSecret,
-        refreshTokenValue: googleCalendarRefreshToken,
-        calendarIdValue: googleCalendarCalendarId,
-        timeZoneValue: googleCalendarTimeZone,
+        clientIdFieldHtml: raw(clientIdFieldHtml),
+        clientSecretFieldHtml: raw(clientSecretFieldHtml),
+        refreshTokenFieldHtml: raw(refreshTokenFieldHtml),
+        calendarIdFieldHtml: raw(calendarIdFieldHtml),
+        timeZoneFieldHtml: raw(timeZoneFieldHtml),
         saveButton: raw(renderButton({
           label: "Save encrypted credentials",
           type: "submit",
@@ -193,26 +219,8 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
     renderView(
       `<fragment &children="headerHtml"></fragment>
       <form action="/actions/save-google-calendar-ical-settings" method="post" class="mt-panel-sm space-y-stack-xs">
-        <label &class="formLabelClass">
-          <span>Google Calendar iCal URL</span>
-          <input
-            name="iCalUrl"
-            required="required"
-            autocomplete="off"
-            &class="fieldClass"
-            &value="iCalUrlValue"
-          />
-        </label>
-        <label &class="formLabelClass">
-          <span>Timezone (optional)</span>
-          <input
-            name="timeZone"
-            placeholder="Europe/Helsinki"
-            autocomplete="off"
-            &class="fieldClass"
-            &value="timeZoneValue"
-          />
-        </label>
+        <fragment &children="icalUrlFieldHtml"></fragment>
+        <fragment &children="timeZoneFieldHtml"></fragment>
         <fragment &children="saveIcalButton"></fragment>
       </form>
       <div &class="scopedDangerPanelClass">
@@ -229,10 +237,8 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
           title: "iCal fallback mode",
           meta: "Read-only availability with the lightest setup",
         })),
-        formLabelClass: FORM_LABEL,
-        fieldClass: `mt-1 ${FIELD_CONTROL_SM}`,
-        iCalUrlValue: googleCalendarIcalUrl,
-        timeZoneValue: googleCalendarTimeZone,
+        icalUrlFieldHtml: raw(icalUrlFieldHtml),
+        timeZoneFieldHtml: raw(timeZoneFieldHtml),
         saveIcalButton: raw(renderButton({
           label: "Save iCal fallback",
           type: "submit",

@@ -4,37 +4,43 @@ import {
   DANGER_TEXT,
   DANGER_TITLE,
   FIELD_CONTROL_SM,
-  FORM_LABEL,
   MUTED_TEXT,
   SUBTLE_TEXT,
   renderButton,
   renderCard,
+  renderInputField,
+  renderSelectField,
 } from "../../ui";
 import { renderView } from "../shared.htmlisp";
 
 export function renderImportCard(replaceImportEnabled: boolean): string {
+  const fileFieldHtml = renderInputField({
+    label: "JSON file",
+    name: "importFile",
+    type: "file",
+    required: true,
+    className: FIELD_CONTROL_SM,
+    attrs: {
+      accept: "application/json,.json",
+    },
+  });
+  const modeFieldHtml = renderSelectField({
+    label: "Import mode",
+    name: "mode",
+    className: FIELD_CONTROL_SM,
+    options: [
+      { label: "Append imported students and logs", value: "append" },
+      ...(replaceImportEnabled ? [{ label: "Replace all current students and logs", value: "replace" }] : []),
+    ],
+  });
+
   return renderCard(
     renderView(
       `<h2 class="text-lg font-semibold">Import backup</h2>
       <p &class="subtleText" &children="description"></p>
       <form action="/actions/import-json" method="post" enctype="multipart/form-data" class="mt-panel-sm space-y-stack-xs">
-        <label &class="formLabelClass">
-          <span>JSON file</span>
-          <input
-            type="file"
-            name="importFile"
-            accept="application/json,.json"
-            required="required"
-            &class="fieldClass"
-          />
-        </label>
-        <label &class="formLabelClass">
-          <span>Import mode</span>
-          <select name="mode" &class="fieldClass">
-            <option value="append">Append imported students and logs</option>
-            <fragment &children="replaceOptionHtml"></fragment>
-          </select>
-        </label>
+        <fragment &children="fileFieldHtml"></fragment>
+        <fragment &children="modeFieldHtml"></fragment>
         <fragment &children="replacementControlsHtml"></fragment>
         <fragment &children="replacementStateHtml"></fragment>
         <fragment &children="submitButton"></fragment>
@@ -45,9 +51,8 @@ export function renderImportCard(replaceImportEnabled: boolean): string {
           replaceImportEnabled
             ? "Import a JSON file previously exported from Thesis Journey Tracker. Append mode is the safe default, while replacement mode is meant for deliberate full restores."
             : "Import a JSON file previously exported from Thesis Journey Tracker. Append mode is the safe default for bringing records into an existing dataset.",
-        formLabelClass: FORM_LABEL,
-        fieldClass: `mt-1 ${FIELD_CONTROL_SM}`,
-        replaceOptionHtml: raw(replaceImportEnabled ? '<option value="replace">Replace all current students and logs</option>' : ""),
+        fileFieldHtml: raw(fileFieldHtml),
+        modeFieldHtml: raw(modeFieldHtml),
         replacementControlsHtml: raw(
           replaceImportEnabled
             ? `<label class="flex items-start gap-badge-x rounded-control border border-app-line p-control-y text-sm dark:border-app-line-dark">
