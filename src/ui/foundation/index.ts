@@ -1,18 +1,24 @@
 export type {
   ButtonOptions,
   ButtonVariant,
-  DangerPanelOptions,
-  DisclosureOptions,
+} from "./button.types";
+export type { DangerPanelOptions } from "./danger-panel.types";
+export type { DisclosureOptions } from "./disclosure.types";
+export type {
   FieldOptions,
-  MetadataItem,
-  MetadataListOptions,
-  SectionHeaderOptions,
   SelectFieldOptions,
   SelectOption,
   TextareaFieldOptions,
+} from "./field.types";
+export type {
+  MetadataItem,
+  MetadataListOptions,
+} from "./metadata-list.types";
+export type { SectionHeaderOptions } from "./section-header.types";
+export type {
   ToggleGroupOptions,
   ToggleItem,
-} from "../types";
+} from "./toggle-group.types";
 
 export {
   BUTTON_CLASS_MAP,

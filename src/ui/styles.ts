@@ -1,4 +1,5 @@
-import type { BadgeVariant, ButtonVariant } from "./types";
+import type { BadgeVariant } from "./app/badge.types";
+import type { ButtonVariant } from "./foundation/button.types";
 
 export const BODY_CLASS = "min-h-full bg-app-canvas text-app-text antialiased dark:bg-app-canvas-dark dark:text-app-text-dark";
 export const BODY_CLASS_LOGIN = "h-full bg-app-canvas text-app-text antialiased dark:bg-app-canvas-dark dark:text-app-text-dark";

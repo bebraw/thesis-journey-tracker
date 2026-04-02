@@ -1,7 +1,7 @@
 import { mergeHtmlispAttributeMaps, renderEscapedHTMLisp } from "../../htmlisp";
 import { mergeClasses } from "../helpers";
 import { METADATA_GRID, METADATA_TERM, METADATA_TILE, METADATA_VALUE } from "../styles";
-import type { MetadataListOptions } from "../types";
+import type { MetadataListOptions } from "./metadata-list.types";
 
 export function renderMetadataList(options: MetadataListOptions): string {
   const {

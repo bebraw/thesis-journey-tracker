@@ -1,7 +1,7 @@
 import { raw, renderEscapedHTMLisp } from "../../htmlisp";
 import { mergeClasses } from "../helpers";
 import { SECTION_HEADER_ROW, SECTION_META_TEXT } from "../styles";
-import type { SectionHeaderOptions } from "../types";
+import type { SectionHeaderOptions } from "./section-header.types";
 
 export function renderSectionHeader(options: SectionHeaderOptions): string {
   const {

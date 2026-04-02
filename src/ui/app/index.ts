@@ -1,4 +1,4 @@
-export type { BadgeOptions, BadgeVariant } from "../types";
+export type { BadgeOptions, BadgeVariant } from "./badge.types";
 
 export {
   ALERT_CLASS_MAP,

@@ -1,7 +1,7 @@
 import { mergeHtmlispAttributeMaps, renderEscapedHTMLisp } from "../../htmlisp";
 import { mergeClasses } from "../helpers";
 import { BUTTON_CLASS_MAP } from "../styles";
-import type { ButtonOptions } from "../types";
+import type { ButtonOptions } from "./button.types";
 
 export function renderButton(options: ButtonOptions): string {
   const { label, href, type = "button", variant = "neutral", className, attrs } = options;
