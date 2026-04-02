@@ -11,6 +11,7 @@ import {
   TOPIC_TEXT_SM,
   renderBadge,
   renderButton,
+  renderInsetCard,
 } from "../../ui";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusId, PHASES } from "../../students";
 import { formatDateTime } from "../../formatting";
@@ -231,6 +232,61 @@ export function renderStudentsTable(
     { key: "nextMeeting", label: "Next meeting (local)" },
     { key: "logs", label: "Logs" },
   ];
+  const filtersPanelHtml = renderInsetCard(
+    renderView(
+      `<div class="grid grid-cols-1 gap-stack-xs sm:grid-cols-2 xl:grid-cols-4">
+        <label &class="filterLabelClass">
+          Search
+          <input
+            id="studentSearch"
+            type="search"
+            placeholder="Name, email, topic, or notes"
+            aria-describedby="studentResultsMeta"
+            &class="filterControlClass"
+            &value="searchValue"
+          />
+        </label>
+        <label &class="filterLabelClass">
+          Degree type
+          <select id="degreeFilter" &class="filterControlClass">
+            <fragment &foreach="degreeFilterOptions as option">
+              <option &value="option.optionValue" &selected="option.selectedAttr" &children="option.label"></option>
+            </fragment>
+          </select>
+        </label>
+        <label &class="filterLabelClass">
+          Phase
+          <select id="phaseFilter" &class="filterControlClass">
+            <fragment &foreach="phaseFilterOptions as option">
+              <option &value="option.optionValue" &selected="option.selectedAttr" &children="option.label"></option>
+            </fragment>
+          </select>
+        </label>
+        <label &class="filterLabelClass">
+          Meeting status
+          <select id="statusFilter" &class="filterControlClass">
+            <fragment &foreach="statusFilterOptions as option">
+              <option &value="option.optionValue" &selected="option.selectedAttr" &children="option.label"></option>
+            </fragment>
+          </select>
+        </label>
+      </div>`,
+      {
+        filterLabelClass: FILTER_LABEL,
+        filterControlClass: FIELD_CONTROL_WITH_MARGIN,
+        searchValue: filters.search,
+        degreeFilterOptions,
+        phaseFilterOptions,
+        statusFilterOptions,
+      },
+    ),
+    "mb-panel-sm",
+  );
+  const activeFiltersPanelHtml = renderInsetCard(
+    "",
+    "mb-panel-sm hidden bg-app-surface-soft/55 dark:bg-app-surface-soft-dark/25",
+    { id: "activeDashboardFilters" },
+  );
 
   return renderView(
     `<section id="dashboardWorkspace">
@@ -238,46 +294,8 @@ export function renderStudentsTable(
         <div class="mb-panel-sm">
           <div id="workspaceMetricStrip"><fragment &children="metricsHtml"></fragment></div>
         </div>
-        <div class="mb-panel-sm rounded-card border border-app-line bg-app-surface-soft/75 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/35">
-          <div class="grid grid-cols-1 gap-stack-xs sm:grid-cols-2 xl:grid-cols-4">
-            <label &class="filterLabelClass">
-              Search
-              <input
-                id="studentSearch"
-                type="search"
-                placeholder="Name, email, topic, or notes"
-                aria-describedby="studentResultsMeta"
-                &class="filterControlClass"
-                &value="searchValue"
-              />
-            </label>
-            <label &class="filterLabelClass">
-              Degree type
-              <select id="degreeFilter" &class="filterControlClass">
-                <fragment &foreach="degreeFilterOptions as option">
-                  <option &value="option.optionValue" &selected="option.selectedAttr" &children="option.label"></option>
-                </fragment>
-              </select>
-            </label>
-            <label &class="filterLabelClass">
-              Phase
-              <select id="phaseFilter" &class="filterControlClass">
-                <fragment &foreach="phaseFilterOptions as option">
-                  <option &value="option.optionValue" &selected="option.selectedAttr" &children="option.label"></option>
-                </fragment>
-              </select>
-            </label>
-            <label &class="filterLabelClass">
-              Meeting status
-              <select id="statusFilter" &class="filterControlClass">
-                <fragment &foreach="statusFilterOptions as option">
-                  <option &value="option.optionValue" &selected="option.selectedAttr" &children="option.label"></option>
-                </fragment>
-              </select>
-            </label>
-          </div>
-        </div>
-        <div id="activeDashboardFilters" class="mb-panel-sm hidden rounded-card border border-app-line bg-app-surface-soft/55 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/25"></div>
+        <fragment &children="filtersPanelHtml"></fragment>
+        <fragment &children="activeFiltersPanelHtml"></fragment>
         <div class="mb-badge-pill-y flex flex-col gap-badge-y lg:flex-row lg:items-center lg:justify-between">
           <p id="studentResultsMeta" class="min-w-0 text-sm font-medium text-app-text-muted dark:text-app-text-muted-dark"></p>
           <div class="flex flex-wrap items-center gap-badge-y self-start lg:justify-end">
@@ -427,19 +445,15 @@ export function renderStudentsTable(
       cellClass: TABLE_CELL,
       studentCellClass: `${TABLE_CELL} w-[30%] min-w-[18rem] max-w-[22rem] align-top pr-panel-sm`,
       mutedTextXs: MUTED_TEXT_XS,
-      filterLabelClass: FILTER_LABEL,
-      filterControlClass: FIELD_CONTROL_WITH_MARGIN,
       workspaceViewButtonClass:
         "rounded-control border border-transparent px-badge-pill-x py-badge-pill-y text-xs font-medium text-app-text transition hover:bg-app-surface hover:text-app-text aria-[pressed='true']:border-app-brand aria-[pressed='true']:bg-app-surface aria-[pressed='true']:text-app-brand-strong aria-[pressed='true']:shadow-sm dark:text-app-text-dark dark:hover:bg-app-surface-dark dark:hover:text-app-text-dark dark:aria-[pressed='true']:border-app-brand-ring dark:aria-[pressed='true']:bg-app-surface-dark dark:aria-[pressed='true']:text-app-brand-ring sm:text-sm",
       listViewPressed: filters.viewMode === "list" ? "true" : "false",
       phasesViewPressed: filters.viewMode === "phases" ? "true" : "false",
       listViewClass: `${filters.viewMode === "list" ? "" : "hidden "}space-y-stack-xs`,
       phaseViewClass: filters.viewMode === "phases" ? "" : "hidden ",
-      searchValue: filters.search,
       tableHeaderClass: TABLE_HEADER_ROW,
-      degreeFilterOptions,
-      phaseFilterOptions,
-      statusFilterOptions,
+      filtersPanelHtml: raw(filtersPanelHtml),
+      activeFiltersPanelHtml: raw(activeFiltersPanelHtml),
       sortHeaders,
       hasStudentRows: studentRows.length > 0,
       addStudentButtonHtml: raw(

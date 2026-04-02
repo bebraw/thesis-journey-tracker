@@ -13,7 +13,9 @@ import {
   TOPIC_TEXT,
   renderBadge,
   renderButton,
+  renderInsetCard,
   renderInputField,
+  renderSectionHeader,
   renderTextareaField,
 } from "../../ui";
 import type { DashboardFilters } from "../types";
@@ -173,16 +175,10 @@ function renderStudentHistoryContent(
   phaseAuditEntries: PreparedPhaseAuditEntry[],
 ): string {
   return renderView(
-    `<div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
-      <h3 class="text-base font-semibold">History</h3>
-      <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="historySummaryText"></p>
-    </div>
+    `<fragment &children="historyHeaderHtml"></fragment>
     <div class="mt-stack-xs grid grid-cols-1 gap-stack-xs xl:grid-cols-2">
       <section class="space-y-stack-xs">
-        <div class="flex items-baseline justify-between gap-badge-y">
-          <h4 class="text-sm font-semibold">Meeting log history</h4>
-          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="logSummaryText"></span>
-        </div>
+        <fragment &children="logHeaderHtml"></fragment>
         <div &class="formStack" &visibleIf="hasLogs">
           <fragment &foreach="logs as log">
             <article &class="logEntryClass">
@@ -196,10 +192,7 @@ function renderStudentHistoryContent(
         <p &visibleIf="showNoLogs" &class="emptyStateClass">No entries yet.</p>
       </section>
       <section class="space-y-stack-xs">
-        <div class="flex items-baseline justify-between gap-badge-y">
-          <h4 class="text-sm font-semibold">Phase timeline</h4>
-          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="auditSummaryText"></span>
-        </div>
+        <fragment &children="auditHeaderHtml"></fragment>
         <div &class="formStack" &visibleIf="hasPhaseAudit">
           <fragment &foreach="phaseAuditEntries as entry">
             <article &class="logEntryClass">
@@ -214,9 +207,22 @@ function renderStudentHistoryContent(
     {
       emptyStateClass: EMPTY_STATE_CARD,
       formStack: FORM_STACK,
-      historySummaryText,
-      logSummaryText,
-      auditSummaryText,
+      historyHeaderHtml: raw(renderSectionHeader({
+        title: "History",
+        meta: historySummaryText,
+      })),
+      logHeaderHtml: raw(renderSectionHeader({
+        title: "Meeting log history",
+        meta: logSummaryText,
+        headingLevel: 4,
+        headingClassName: "text-sm font-semibold",
+      })),
+      auditHeaderHtml: raw(renderSectionHeader({
+        title: "Phase timeline",
+        meta: auditSummaryText,
+        headingLevel: 4,
+        headingClassName: "text-sm font-semibold",
+      })),
       logEntryClass: SOFT_SURFACE_CARD,
       hasLogs: logs.length > 0,
       showNoLogs: logs.length === 0,
@@ -355,27 +361,81 @@ export function renderSelectedStudentPanel(
     },
   );
 
+  const historyContentHtml = renderStudentHistoryContent(
+    historySummaryText,
+    logSummaryText,
+    auditSummaryText,
+    preparedLogs,
+    preparedPhaseAudit,
+  );
+
   if (!canEdit) {
     return renderView(
       `<article &class="cardClass">
         <fragment &children="summaryHtml"></fragment>
-        <section class="rounded-card border border-app-line bg-app-surface-soft/60 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/30">
-          <fragment &children="historyContentHtml"></fragment>
-        </section>
+        <fragment &children="historyPanelHtml"></fragment>
       </article>`,
       {
         cardClass: `${PANEL_STACK} ${SURFACE_CARD}`,
         summaryHtml: raw(renderReadonlyStudentSummary(student)),
-        historyContentHtml: raw(renderStudentHistoryContent(
-          historySummaryText,
-          logSummaryText,
-          auditSummaryText,
-          preparedLogs,
-          preparedPhaseAudit,
+        historyPanelHtml: raw(renderInsetCard(
+          historyContentHtml,
+          "bg-app-surface-soft/60 dark:bg-app-surface-soft-dark/30",
         )),
       },
     );
   }
+
+  const editPanelHtml = renderInsetCard(
+    renderView(
+      `<fragment &children="headerHtml"></fragment>
+      <div class="mt-stack-xs">
+        <fragment &children="editFormHtml"></fragment>
+      </div>`,
+      {
+        headerHtml: raw(renderSectionHeader({
+          title: "Edit student",
+          meta: "Core details",
+        })),
+        editFormHtml: raw(editFormHtml),
+      },
+    ),
+    "hidden bg-app-surface-soft/60 dark:bg-app-surface-soft-dark/30",
+    {
+      "data-selected-tool-panel": "1",
+      "data-tool-key": "edit",
+    },
+  );
+
+  const logPanelHtml = renderInsetCard(
+    renderView(
+      `<fragment &children="headerHtml"></fragment>
+      <div class="mt-stack-xs">
+        <fragment &children="addLogFormHtml"></fragment>
+      </div>`,
+      {
+        headerHtml: raw(renderSectionHeader({
+          title: "Add log entry",
+          meta: "Meeting notes",
+        })),
+        addLogFormHtml: raw(addLogFormHtml),
+      },
+    ),
+    "hidden bg-app-surface-soft/60 dark:bg-app-surface-soft-dark/30",
+    {
+      "data-selected-tool-panel": "1",
+      "data-tool-key": "log",
+    },
+  );
+
+  const historyPanelHtml = renderInsetCard(
+    historyContentHtml,
+    "hidden bg-app-surface-soft/60 dark:bg-app-surface-soft-dark/30",
+    {
+      "data-selected-tool-panel": "1",
+      "data-tool-key": "history",
+    },
+  );
 
   return renderView(
     `<article &class="cardClass">
@@ -400,42 +460,9 @@ export function renderSelectedStudentPanel(
           <fragment &children="archiveActionHtml"></fragment>
         </div>
       </section>
-
-      <section
-        data-selected-tool-panel="1"
-        data-tool-key="edit"
-        class="hidden rounded-card border border-app-line bg-app-surface-soft/60 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/30"
-      >
-        <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
-          <h3 class="text-base font-semibold">Edit student</h3>
-          <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Core details</p>
-        </div>
-        <div class="mt-stack-xs">
-          <fragment &children="editFormHtml"></fragment>
-        </div>
-      </section>
-
-      <section
-        data-selected-tool-panel="1"
-        data-tool-key="log"
-        class="hidden rounded-card border border-app-line bg-app-surface-soft/60 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/30"
-      >
-        <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
-          <h3 class="text-base font-semibold">Add log entry</h3>
-          <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Meeting notes</p>
-        </div>
-        <div class="mt-stack-xs">
-          <fragment &children="addLogFormHtml"></fragment>
-        </div>
-      </section>
-
-      <section
-        data-selected-tool-panel="1"
-        data-tool-key="history"
-        class="hidden rounded-card border border-app-line bg-app-surface-soft/60 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/30"
-      >
-        <fragment &children="historyContentHtml"></fragment>
-      </section>
+      <fragment &children="editPanelHtml"></fragment>
+      <fragment &children="logPanelHtml"></fragment>
+      <fragment &children="historyPanelHtml"></fragment>
     </article>`,
     {
       cardClass: `${PANEL_STACK} ${SURFACE_CARD}`,
@@ -481,15 +508,9 @@ export function renderSelectedStudentPanel(
           "aria-label": "Close student workspace",
         },
       })),
-      editFormHtml: raw(editFormHtml),
-      addLogFormHtml: raw(addLogFormHtml),
-      historyContentHtml: raw(renderStudentHistoryContent(
-        historySummaryText,
-        logSummaryText,
-        auditSummaryText,
-        preparedLogs,
-        preparedPhaseAudit,
-      )),
+      editPanelHtml: raw(editPanelHtml),
+      logPanelHtml: raw(logPanelHtml),
+      historyPanelHtml: raw(historyPanelHtml),
     },
   );
 }

@@ -1,4 +1,5 @@
-import { raw, renderEscapedHTMLisp } from "../htmlisp";
+import type { HtmlispAttributeMap } from "../htmlisp";
+import { mergeHtmlispAttributeMaps, raw, renderEscapedHTMLisp } from "../htmlisp";
 import { mergeClasses } from "./helpers";
 import { INSET_SURFACE_CARD, SURFACE_CARD, SURFACE_CARD_SM } from "./styles";
 
@@ -26,13 +27,18 @@ export function renderCompactCard(content: string, className?: string): string {
   );
 }
 
-export function renderInsetCard(content: string, className?: string): string {
+export function renderInsetCard(content: string, className?: string, attrs?: HtmlispAttributeMap): string {
+  const attributesMap = mergeHtmlispAttributeMaps(
+    attrs,
+    { class: mergeClasses(INSET_SURFACE_CARD, className) },
+  );
+
   return renderEscapedHTMLisp(
-    `<section &class="className">
+    `<section &attrs="attributesMap">
       <fragment &children="content"></fragment>
     </section>`,
     {
-      className: mergeClasses(INSET_SURFACE_CARD, className),
+      attributesMap,
       content: raw(content),
     },
   );
