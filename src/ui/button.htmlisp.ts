@@ -1,47 +1,42 @@
-import { escapeHtml } from "../formatting";
-import { parseHtmlispAttributes, renderHTMLisp, serializeHtmlispAttributes } from "../htmlisp";
-import { fillTemplate, mergeClasses } from "./helpers";
+import { htmlispAttributesToMap, parseHtmlispAttributes, renderHTMLisp } from "../htmlisp";
+import { mergeClasses } from "./helpers";
 import { BUTTON_CLASS_MAP } from "./styles";
 import type { ButtonOptions } from "./types";
 
 export function renderButton(options: ButtonOptions): string {
   const { label, href, type = "button", variant = "neutral", className, attributes } = options;
 
-  const mergedClassName = escapeHtml(mergeClasses(BUTTON_CLASS_MAP[variant], className));
-  const extraAttributes = serializeHtmlispAttributes(parseHtmlispAttributes(attributes));
-  const safeLabel = escapeHtml(label);
+  const mergedClassName = mergeClasses(BUTTON_CLASS_MAP[variant], className);
+  const extraAttributes = htmlispAttributesToMap(parseHtmlispAttributes(attributes));
 
   if (href) {
     return renderHTMLisp(
-      fillTemplate(
-        `<a
-          &href="(get props href)"
-          &class="(get props className)"__EXTRA_ATTRIBUTES__
-          &children="(get props label)"
-        ></a>`,
-        {
-          __EXTRA_ATTRIBUTES__: extraAttributes,
-        },
-      ),
-      { className: mergedClassName, href: escapeHtml(href), label: safeLabel },
+      `<a
+        &href="href"
+        &class="className"
+        &attrs="extraAttributes"
+        &children="label"
+      ></a>`,
+      { className: mergedClassName, extraAttributes, href, label },
+      undefined,
+      { escapeByDefault: true },
     );
   }
 
   return renderHTMLisp(
-    fillTemplate(
-      `<button
-        &type="(get props type)"
-        &class="(get props className)"__EXTRA_ATTRIBUTES__
-        &children="(get props label)"
-      ></button>`,
-      {
-        __EXTRA_ATTRIBUTES__: extraAttributes,
-      },
-    ),
+    `<button
+      &type="type"
+      &class="className"
+      &attrs="extraAttributes"
+      &children="label"
+    ></button>`,
     {
       className: mergedClassName,
-      label: safeLabel,
-      type: escapeHtml(type),
+      extraAttributes,
+      label,
+      type,
     },
+    undefined,
+    { escapeByDefault: true },
   );
 }

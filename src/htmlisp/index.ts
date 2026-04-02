@@ -1,10 +1,12 @@
-export type { AttributeValue, HtmlispComponents, HtmlispProps, ParsedAttribute } from "./types";
+export type { AttributeValue, HtmlispAttributeMap, HtmlispComponent, HtmlispComponents, HtmlispProps, HtmlispRenderOptions, ParsedAttribute } from "./types";
 export {
+  buildHtmlispAttributeMap,
   buildHtmlispAttributes,
   getHtmlispAttributeValue,
   hasHtmlispBooleanAttribute,
+  htmlispAttributesToMap,
   omitHtmlispAttributes,
   parseHtmlispAttributes,
   serializeHtmlispAttributes,
 } from "./attributes";
-export { renderHTMLisp } from "./render";
+export { raw, renderHTMLisp } from "./render";

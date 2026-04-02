@@ -1,5 +1,5 @@
 import { escapeHtml } from "../formatting";
-import type { AttributeValue, ParsedAttribute } from "./types";
+import type { AttributeValue, HtmlispAttributeMap, ParsedAttribute } from "./types";
 
 const ATTRIBUTE_PATTERN = /([^\s=]+)(?:=(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
 const SAFE_ATTRIBUTE_NAME = /^[A-Za-z_:][-A-Za-z0-9_:.]*$/;
@@ -35,6 +35,10 @@ export function serializeHtmlispAttributes(attributes: ParsedAttribute[]): strin
     .join("");
 }
 
+export function htmlispAttributesToMap(attributes: ParsedAttribute[]): HtmlispAttributeMap {
+  return Object.fromEntries(attributes.map((attribute) => [attribute.name, attribute.value]));
+}
+
 export function getHtmlispAttributeValue(attributes: ParsedAttribute[], name: string): string | undefined {
   const match = attributes.find((attribute) => attribute.name === name);
   return typeof match?.value === "string" ? match.value : undefined;
@@ -55,4 +59,12 @@ export function buildHtmlispAttributes(entries: Array<{ name: string; value: str
       name: entry.name,
       value: entry.value as AttributeValue,
     }));
+}
+
+export function buildHtmlispAttributeMap(entries: Array<{ name: string; value: string | boolean | null | undefined }>): HtmlispAttributeMap {
+  return Object.fromEntries(
+    entries
+      .filter((entry) => entry.value !== undefined && entry.value !== null && entry.value !== false && SAFE_ATTRIBUTE_NAME.test(entry.name))
+      .map((entry) => [entry.name, entry.value]),
+  );
 }

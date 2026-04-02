@@ -1,7 +1,14 @@
-import { htmlispToHTMLSync } from "htmlisp";
+import { htmlispToHTMLSync, raw } from "htmlisp";
 
-import type { HtmlispComponents, HtmlispProps } from "./types";
+import type { HtmlispComponents, HtmlispProps, HtmlispRenderOptions } from "./types";
 
-export function renderHTMLisp(htmlInput: string, props: HtmlispProps = {}, components?: HtmlispComponents): string {
-  return htmlispToHTMLSync({ htmlInput, props, components });
+export function renderHTMLisp(
+  htmlInput: string,
+  props: HtmlispProps = {},
+  components?: HtmlispComponents,
+  renderOptions?: HtmlispRenderOptions,
+): string {
+  return htmlispToHTMLSync({ htmlInput, props, components, renderOptions });
 }
+
+export { raw };

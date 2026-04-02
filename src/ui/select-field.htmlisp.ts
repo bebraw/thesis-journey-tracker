@@ -1,12 +1,10 @@
-import { escapeHtml } from "../formatting";
 import {
-  buildHtmlispAttributes,
+  buildHtmlispAttributeMap,
+  htmlispAttributesToMap,
   omitHtmlispAttributes,
   parseHtmlispAttributes,
   renderHTMLisp,
-  serializeHtmlispAttributes,
 } from "../htmlisp";
-import { escapeOptional, fillTemplate } from "./helpers";
 import { renderFieldShell } from "./field-shell.htmlisp";
 import { FIELD_CONTROL, FORM_LABEL } from "./styles";
 import type { SelectFieldOptions } from "./types";
@@ -14,44 +12,39 @@ import type { SelectFieldOptions } from "./types";
 interface RenderableSelectOption {
   label: string;
   optionValue: string;
-  selectedAttr?: string;
+  selected?: boolean;
 }
 
 export function renderSelectField(options: SelectFieldOptions): string {
   const { label, name, id, options: selectOptions, value, className = FIELD_CONTROL, wrapperClassName = FORM_LABEL, attributes } = options;
 
   const parsedAttributes = parseHtmlispAttributes(attributes);
-  const extraAttributes = omitHtmlispAttributes(parsedAttributes, ["name", "id", "class"]);
+  const extraAttributes = htmlispAttributesToMap(omitHtmlispAttributes(parsedAttributes, ["name", "id", "class"]));
   const normalizedOptions: RenderableSelectOption[] = selectOptions.map((option) => ({
-    label: escapeHtml(option.label),
-    optionValue: escapeHtml(option.value),
-    selectedAttr: option.value === value ? "selected" : undefined,
+    label: option.label,
+    optionValue: option.value,
+    selected: option.value === value,
   }));
-  const baseAttributes = serializeHtmlispAttributes(
-    buildHtmlispAttributes([
-      { name: "name", value: escapeOptional(name) },
-      { name: "id", value: escapeOptional(id) },
-      { name: "class", value: escapeHtml(className) },
-    ]),
-  );
+  const baseAttributes = buildHtmlispAttributeMap([
+    { name: "name", value: name },
+    { name: "id", value: id },
+    { name: "class", value: className },
+  ]);
+  const attributesMap = { ...extraAttributes, ...baseAttributes };
 
   const controlHtml = renderHTMLisp(
-    fillTemplate(
-      `<select__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__>
-        <noop &foreach="(get props options)">
+    `<select &attrs="attributesMap">
+        <fragment &foreach="options as option">
           <option
-            &value="(get props optionValue)"
-            &selected="(get props selectedAttr)"
-            &children="(get props label)"
+            &value="option.optionValue"
+            &selected="option.selected"
+            &children="option.label"
           ></option>
-        </noop>
+        </fragment>
       </select>`,
-      {
-        __BASE_ATTRIBUTES__: baseAttributes,
-        __EXTRA_ATTRIBUTES__: serializeHtmlispAttributes(extraAttributes),
-      },
-    ),
-    { options: normalizedOptions },
+    { attributesMap, options: normalizedOptions },
+    undefined,
+    { escapeByDefault: true },
   );
 
   return renderFieldShell(label, controlHtml, wrapperClassName);

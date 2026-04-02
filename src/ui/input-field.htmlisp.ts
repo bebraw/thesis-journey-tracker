@@ -1,14 +1,12 @@
-import { escapeHtml } from "../formatting";
 import {
-  buildHtmlispAttributes,
+  buildHtmlispAttributeMap,
   getHtmlispAttributeValue,
   hasHtmlispBooleanAttribute,
+  htmlispAttributesToMap,
   omitHtmlispAttributes,
   parseHtmlispAttributes,
   renderHTMLisp,
-  serializeHtmlispAttributes,
 } from "../htmlisp";
-import { escapeOptional, fillTemplate } from "./helpers";
 import { renderFieldShell } from "./field-shell.htmlisp";
 import { FIELD_CONTROL, FORM_LABEL } from "./styles";
 import type { FieldOptions } from "./types";
@@ -30,24 +28,23 @@ export function renderInputField(options: FieldOptions): string {
   const parsedAttributes = parseHtmlispAttributes(attributes);
   const resolvedType = getHtmlispAttributeValue(parsedAttributes, "type") ?? type;
   const resolvedRequired = required || hasHtmlispBooleanAttribute(parsedAttributes, "required");
-  const extraAttributes = omitHtmlispAttributes(parsedAttributes, ["type", "name", "id", "value", "placeholder", "required", "class"]);
-  const baseAttributes = serializeHtmlispAttributes(
-    buildHtmlispAttributes([
-      { name: "name", value: escapeOptional(name) },
-      { name: "id", value: escapeOptional(id) },
-      { name: "type", value: escapeHtml(resolvedType) },
-      { name: "value", value: escapeOptional(value) },
-      { name: "placeholder", value: escapeOptional(placeholder) },
-      { name: "class", value: escapeHtml(className) },
-      { name: "required", value: resolvedRequired ? true : undefined },
-    ]),
-  );
+  const extraAttributes = htmlispAttributesToMap(omitHtmlispAttributes(parsedAttributes, ["type", "name", "id", "value", "placeholder", "required", "class"]));
+  const baseAttributes = buildHtmlispAttributeMap([
+    { name: "name", value: name },
+    { name: "id", value: id },
+    { name: "type", value: resolvedType },
+    { name: "value", value },
+    { name: "placeholder", value: placeholder },
+    { name: "class", value: className },
+    { name: "required", value: resolvedRequired },
+  ]);
+  const attributesMap = { ...extraAttributes, ...baseAttributes };
 
   const controlHtml = renderHTMLisp(
-    fillTemplate("<input__BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__ />", {
-      __BASE_ATTRIBUTES__: baseAttributes,
-      __EXTRA_ATTRIBUTES__: serializeHtmlispAttributes(extraAttributes),
-    }),
+    "<input &attrs=\"attributesMap\" />",
+    { attributesMap },
+    undefined,
+    { escapeByDefault: true },
   );
 
   return renderFieldShell(label, controlHtml, wrapperClassName);

@@ -1,14 +1,12 @@
-import { escapeHtml } from "../formatting";
 import {
-  buildHtmlispAttributes,
+  buildHtmlispAttributeMap,
   getHtmlispAttributeValue,
   hasHtmlispBooleanAttribute,
+  htmlispAttributesToMap,
   omitHtmlispAttributes,
   parseHtmlispAttributes,
   renderHTMLisp,
-  serializeHtmlispAttributes,
 } from "../htmlisp";
-import { escapeOptional, fillTemplate } from "./helpers";
 import { renderFieldShell } from "./field-shell.htmlisp";
 import { FIELD_CONTROL, FORM_LABEL } from "./styles";
 import type { TextareaFieldOptions } from "./types";
@@ -29,29 +27,24 @@ export function renderTextareaField(options: TextareaFieldOptions): string {
   const parsedAttributes = parseHtmlispAttributes(attributes);
   const resolvedRequired = required || hasHtmlispBooleanAttribute(parsedAttributes, "required");
   const resolvedRows = getHtmlispAttributeValue(parsedAttributes, "rows") ?? String(rows);
-  const extraAttributes = omitHtmlispAttributes(parsedAttributes, ["name", "id", "rows", "required", "class"]);
-  const baseAttributes = serializeHtmlispAttributes(
-    buildHtmlispAttributes([
-      { name: "name", value: escapeOptional(name) },
-      { name: "id", value: escapeOptional(id) },
-      { name: "rows", value: escapeHtml(resolvedRows) },
-      { name: "class", value: escapeHtml(className) },
-      { name: "required", value: resolvedRequired ? true : undefined },
-    ]),
-  );
+  const extraAttributes = htmlispAttributesToMap(omitHtmlispAttributes(parsedAttributes, ["name", "id", "rows", "required", "class"]));
+  const baseAttributes = buildHtmlispAttributeMap([
+    { name: "name", value: name },
+    { name: "id", value: id },
+    { name: "rows", value: resolvedRows },
+    { name: "class", value: className },
+    { name: "required", value: resolvedRequired },
+  ]);
+  const attributesMap = { ...extraAttributes, ...baseAttributes };
 
   const controlHtml = renderHTMLisp(
-    fillTemplate(
-      `<textarea
-        __BASE_ATTRIBUTES____EXTRA_ATTRIBUTES__
-        &children="(get props value)"
+    `<textarea
+        &attrs="attributesMap"
+        &children="value"
       ></textarea>`,
-      {
-        __BASE_ATTRIBUTES__: baseAttributes,
-        __EXTRA_ATTRIBUTES__: serializeHtmlispAttributes(extraAttributes),
-      },
-    ),
-    { value: escapeHtml(value || "") },
+    { attributesMap, value: value || "" },
+    undefined,
+    { escapeByDefault: true },
   );
 
   return renderFieldShell(label, controlHtml, wrapperClassName);

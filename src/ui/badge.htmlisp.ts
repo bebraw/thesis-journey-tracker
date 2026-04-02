@@ -1,4 +1,3 @@
-import { escapeHtml } from "../formatting";
 import { renderHTMLisp } from "../htmlisp";
 import { mergeClasses } from "./helpers";
 import { BADGE_CLASS_MAP } from "./styles";
@@ -9,12 +8,14 @@ export function renderBadge(options: BadgeOptions): string {
 
   return renderHTMLisp(
     `<span
-      &class="(get props className)"
-      &children="(get props label)"
+      &class="className"
+      &children="label"
     ></span>`,
     {
-      className: escapeHtml(mergeClasses(BADGE_CLASS_MAP[variant], className)),
-      label: escapeHtml(label),
+      className: mergeClasses(BADGE_CLASS_MAP[variant], className),
+      label,
     },
+    undefined,
+    { escapeByDefault: true },
   );
 }
