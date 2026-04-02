@@ -1,8 +1,4 @@
-import {
-  buildHtmlispAttributeMap,
-  mergeHtmlispAttributeMaps,
-  renderEscapedHTMLisp,
-} from "../htmlisp";
+import { mergeHtmlispAttributeMaps, renderEscapedHTMLisp } from "../htmlisp";
 import { renderFieldShell } from "./field-shell.htmlisp";
 import { FIELD_CONTROL, FORM_LABEL } from "./styles";
 import type { TextareaFieldOptions } from "./types";
@@ -22,13 +18,13 @@ export function renderTextareaField(options: TextareaFieldOptions): string {
 
   const attributesMap = mergeHtmlispAttributeMaps(
     attrs,
-    buildHtmlispAttributeMap([
-      { name: "name", value: name },
-      { name: "id", value: id },
-      { name: "rows", value: String(rows) },
-      { name: "class", value: className },
-      { name: "required", value: required },
-    ]),
+    {
+      name,
+      id,
+      rows: String(rows),
+      class: className,
+      required,
+    },
   );
 
   const controlHtml = renderEscapedHTMLisp(

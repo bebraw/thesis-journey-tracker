@@ -1,4 +1,4 @@
-import { buildHtmlispAttributeMap, mergeHtmlispAttributeMaps, renderEscapedHTMLisp } from "../htmlisp";
+import { mergeHtmlispAttributeMaps, renderEscapedHTMLisp } from "../htmlisp";
 import { mergeClasses } from "./helpers";
 import { BUTTON_CLASS_MAP } from "./styles";
 import type { ButtonOptions } from "./types";
@@ -11,10 +11,7 @@ export function renderButton(options: ButtonOptions): string {
   if (href) {
     const attributesMap = mergeHtmlispAttributeMaps(
       attrs,
-      buildHtmlispAttributeMap([
-        { name: "href", value: href },
-        { name: "class", value: mergedClassName },
-      ]),
+      { href, class: mergedClassName },
     );
 
     return renderEscapedHTMLisp(
@@ -28,10 +25,7 @@ export function renderButton(options: ButtonOptions): string {
 
   const attributesMap = mergeHtmlispAttributeMaps(
     attrs,
-    buildHtmlispAttributeMap([
-      { name: "type", value: type },
-      { name: "class", value: mergedClassName },
-    ]),
+    { type, class: mergedClassName },
   );
 
   return renderEscapedHTMLisp(

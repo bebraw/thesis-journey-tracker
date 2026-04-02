@@ -1,8 +1,4 @@
-import {
-  buildHtmlispAttributeMap,
-  mergeHtmlispAttributeMaps,
-  renderEscapedHTMLisp,
-} from "../htmlisp";
+import { mergeHtmlispAttributeMaps, renderEscapedHTMLisp } from "../htmlisp";
 import { renderFieldShell } from "./field-shell.htmlisp";
 import { FIELD_CONTROL, FORM_LABEL } from "./styles";
 import type { SelectFieldOptions } from "./types";
@@ -23,11 +19,7 @@ export function renderSelectField(options: SelectFieldOptions): string {
   }));
   const attributesMap = mergeHtmlispAttributeMaps(
     attrs,
-    buildHtmlispAttributeMap([
-      { name: "name", value: name },
-      { name: "id", value: id },
-      { name: "class", value: className },
-    ]),
+    { name, id, class: className },
   );
 
   const controlHtml = renderEscapedHTMLisp(
