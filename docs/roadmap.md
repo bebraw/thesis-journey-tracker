@@ -77,3 +77,7 @@ Let advisors save common filter combinations such as:
 - my MSc students
 - students needing attention this week
 - students close to submission
+
+### Optional Passkey Auth
+
+Investigate passkeys as an optional sign-in upgrade rather than a replacement for the current password flow. See [passkey-auth-plan.md](./passkey-auth-plan.md) for the stored assessment and phased implementation plan.
