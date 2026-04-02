@@ -35,7 +35,7 @@ export const FIELD_CONTROL_WITH_MARGIN = `mt-1 ${FIELD_CONTROL_SM}`;
 export const FOCUS_RING =
   "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark";
 export const TEXT_LINK = `underline-offset-2 hover:underline ${FOCUS_RING}`;
-export const STATUS_BADGE = "rounded-control px-badge-pill-x py-badge-pill-y text-xs";
+export const STATUS_BADGE = "inline-flex items-center justify-center align-middle rounded-control px-badge-pill-x py-badge-pill-y text-xs leading-none";
 export const THEME_TOGGLE_BUTTON = `inline-flex h-8 w-8 items-center justify-center rounded-full border border-app-field bg-app-surface text-sm font-medium text-app-text shadow-sm hover:bg-app-surface-soft dark:border-app-field-dark dark:bg-app-surface-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark sm:h-9 sm:w-9 ${FOCUS_RING}`;
 export const TOGGLE_GROUP_SEGMENTED =
   "inline-flex items-center gap-1 rounded-control bg-app-surface-soft/45 p-0.5 dark:bg-app-surface-soft-dark/25";
@@ -113,8 +113,9 @@ export const BUTTON_CLASS_MAP: Record<ButtonVariant, string> = {
 
 export const BADGE_CLASS_MAP: Record<BadgeVariant, string> = {
   neutral:
-    "rounded-control bg-app-line px-badge-x py-badge-y text-xs text-app-text-soft dark:bg-app-line-dark dark:text-app-text-soft-dark",
-  mock: "rounded-control bg-app-mock-soft px-badge-x py-badge-y text-xs text-app-mock-text dark:bg-app-mock-soft-dark/50 dark:text-app-mock-text-dark",
+    "inline-flex items-center justify-center align-middle rounded-control bg-app-line px-badge-x py-badge-y text-xs leading-none text-app-text-soft dark:bg-app-line-dark dark:text-app-text-soft-dark",
+  mock:
+    "inline-flex items-center justify-center align-middle rounded-control bg-app-mock-soft px-badge-x py-badge-y text-xs leading-none text-app-mock-text dark:bg-app-mock-soft-dark/50 dark:text-app-mock-text-dark",
   count:
-    "shrink-0 rounded-full bg-app-surface-soft px-badge-pill-x py-badge-pill-y text-xs font-semibold text-app-text-soft dark:bg-app-line-dark dark:text-app-text-soft-dark",
+    "inline-flex shrink-0 items-center justify-center align-middle rounded-full bg-app-surface-soft px-badge-pill-x py-badge-pill-y text-xs font-semibold leading-none text-app-text-soft dark:bg-app-line-dark dark:text-app-text-soft-dark",
 };
