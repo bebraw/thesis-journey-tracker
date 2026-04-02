@@ -5,8 +5,12 @@ import { renderBadge } from "./badge.htmlisp";
 
 export function getBadgeExamplesSection(): UIExampleSection {
   return {
+    id: "badges",
+    scope: "app",
     title: "Badges",
     description: "Badges keep metadata visually consistent across tables, cards, and logs.",
+    whenToUse: "Use badges for short categorical metadata such as degree type, counts, or meeting state.",
+    avoidFor: "Avoid using badges for long sentences or primary actions. They should stay compact and glanceable.",
     contentHtml: renderEscapedHTMLisp(
       `<div class="mt-panel-sm flex flex-wrap gap-stack-xs">
         <fragment &children="degreeBadge"></fragment>

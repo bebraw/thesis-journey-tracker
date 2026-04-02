@@ -17,8 +17,12 @@ function renderHeaderNavButton(label: string, href: string, current = false): st
 
 export function getHeaderExamplesSection(): UIExampleSection {
   return {
+    id: "app-header-shell",
+    scope: "app",
     title: "App Header Shell",
     description: "The app shell keeps page context, navigation, viewer identity, theme switching, and sign-out in one compact sticky header.",
+    whenToUse: "Use this shell at the top of authenticated app pages where navigation, account context, and workspace actions need to stay reachable.",
+    avoidFor: "Avoid reusing the full shell inside nested cards or feature panels. It is page-level chrome, not a local section header.",
     contentHtml: renderEscapedHTMLisp(
       `<div class="mt-panel-sm">
         <header &class="headerClass">

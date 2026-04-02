@@ -5,8 +5,12 @@ import { ALERT_CLASS_MAP, ALERT_TOAST_ERROR, ALERT_TOAST_SUCCESS } from "../styl
 
 export function getAlertExamplesSection(): UIExampleSection {
   return {
+    id: "alerts",
+    scope: "app",
     title: "Alerts & Flash Messages",
     description: "Inline notices and dashboard toasts share the same semantic success and error palette, but use different density and emphasis.",
+    whenToUse: "Use inline alerts for page-level feedback near the content flow, and toast treatments for transient dashboard events.",
+    avoidFor: "Avoid stacking too many alerts at once or using toast styling for information that users need to reread later.",
     contentHtml: renderEscapedHTMLisp(
       `<div class="mt-panel-sm grid gap-panel-sm lg:grid-cols-2">
         <div class="space-y-stack-xs">

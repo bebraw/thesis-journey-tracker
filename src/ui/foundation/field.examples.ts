@@ -7,9 +7,13 @@ import { renderTextareaField } from "./textarea-field.htmlisp";
 
 export function getFieldExamplesSection(): UIExampleSection {
   return {
+    id: "form-fields",
+    scope: "foundation",
     title: "Form Fields",
     description:
       "Inputs, selects, and textareas are rendered from small wrapper functions so labels and spacing stay aligned.",
+    whenToUse: "Use the field helpers for normal editable forms so labels, spacing, and control density stay consistent.",
+    avoidFor: "Avoid custom one-off label and input wrappers unless the control is not a standard input/select/textarea.",
     contentHtml: renderEscapedHTMLisp(
       `<form class="mt-panel-sm grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
         <fragment &children="studentNameField"></fragment>

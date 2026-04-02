@@ -5,8 +5,12 @@ import { renderCard, renderCompactCard } from "./card.htmlisp";
 
 export function getCardExamplesSection(): UIExampleSection {
   return {
+    id: "surfaces",
+    scope: "foundation",
     title: "Surfaces",
     description: "Cards help sections feel consistent while still allowing different densities.",
+    whenToUse: "Use compact cards for small summary modules and standard cards for heavier editing or reading contexts.",
+    avoidFor: "Avoid nesting multiple full cards when an inset or softer surface would communicate hierarchy more clearly.",
     contentHtml: renderEscapedHTMLisp(
       `<div class="mt-panel-sm grid gap-panel-sm">
         <fragment &children="compactCard"></fragment>

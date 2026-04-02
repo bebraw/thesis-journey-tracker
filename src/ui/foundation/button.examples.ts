@@ -4,8 +4,12 @@ import { renderButton } from "./button.htmlisp";
 
 export function getButtonExamplesSection(): UIExampleSection {
   return {
+    id: "buttons",
+    scope: "foundation",
     title: "Buttons",
     description: "Primary actions, supporting actions, and destructive actions all come from the same helper.",
+    whenToUse: "Use these for explicit actions with clear hierarchy: neutral for secondary tasks, primary for the main action, and block variants for form submissions.",
+    avoidFor: "Avoid using button variants as navigation chrome or status labels. Use badges or app-shell navigation patterns instead.",
     contentHtml: renderEscapedHTMLisp(
       `<div>
         <div class="mt-panel-sm flex flex-wrap gap-stack-xs">

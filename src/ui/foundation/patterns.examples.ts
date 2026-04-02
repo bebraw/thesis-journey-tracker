@@ -17,8 +17,12 @@ import { renderToggleGroup } from "./toggle-group.htmlisp";
 
 export function getPatternExamplesSection(): UIExampleSection {
   return {
+    id: "application-patterns",
+    scope: "foundation",
     title: "Application Patterns",
     description: "These higher-level patterns are the preferred building blocks for dashboard sections and tool panels.",
+    whenToUse: "Use these patterns to compose real screens from the lower-level primitives instead of inventing new one-off panel layouts.",
+    avoidFor: "Avoid bypassing these patterns with ad hoc spacing and border recipes when the screen is expressing the same hierarchy.",
     contentHtml: renderEscapedHTMLisp(
       `<div class="mt-panel-sm grid gap-panel-sm">
         <fragment &children="insetCard"></fragment>
@@ -88,8 +92,10 @@ export function getPatternExamplesSection(): UIExampleSection {
         })),
         disclosureHtml: raw(renderDisclosure({
           summary: "Disclosure pattern",
+          summaryClassName: "cursor-default",
           content:
             '<p class="text-sm text-app-text-muted dark:text-app-text-muted-dark">Use disclosures for help text and secondary explanations that should stay available without dominating the page.</p>',
+          attrs: { open: true },
         })),
       },
     ),

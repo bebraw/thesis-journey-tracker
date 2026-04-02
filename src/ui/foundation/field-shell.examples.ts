@@ -4,8 +4,12 @@ import { renderFieldShell } from "./field-shell.htmlisp";
 
 export function getFieldShellExamplesSection(): UIExampleSection {
   return {
+    id: "field-shell",
+    scope: "foundation",
     title: "Field Shell",
     description: "Use the shared field shell when a control needs the standard label and spacing treatment without being a plain input element.",
+    whenToUse: "Use field shell for readonly values, composite controls, token groups, or inline helper actions that still need form-like labeling.",
+    avoidFor: "Avoid wrapping normal inputs with field shell directly when the dedicated field helpers already cover the use case.",
     contentHtml: renderEscapedHTMLisp(
       `<div class="mt-panel-sm grid gap-stack-xs sm:grid-cols-2">
         <fragment &children="readonlySummaryField"></fragment>
