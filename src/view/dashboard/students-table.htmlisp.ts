@@ -8,11 +8,13 @@ import {
   TABLE_CELL,
   TABLE_HEADER_ROW,
   TEXT_LINK,
+  TOGGLE_GROUP_SEGMENTED,
   TOPIC_TEXT_SM,
   renderBadge,
   renderButton,
   renderInsetCard,
   renderMetadataList,
+  renderToggleGroup,
 } from "../../ui";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusId, PHASES } from "../../students";
 import { formatDateTime } from "../../formatting";
@@ -311,6 +313,25 @@ export function renderStudentsTable(
     "mb-panel-sm hidden bg-app-surface-soft/55 dark:bg-app-surface-soft-dark/25",
     { id: "activeDashboardFilters" },
   );
+  const workspaceViewToggleHtml = renderToggleGroup({
+    className: TOGGLE_GROUP_SEGMENTED,
+    items: [
+      {
+        label: "List",
+        pressed: filters.viewMode === "list",
+        attrs: {
+          "data-workspace-view-button": "list",
+        },
+      },
+      {
+        label: "Phases",
+        pressed: filters.viewMode === "phases",
+        attrs: {
+          "data-workspace-view-button": "phases",
+        },
+      },
+    ],
+  });
 
   return renderView(
     `<section id="dashboardWorkspace">
@@ -323,20 +344,7 @@ export function renderStudentsTable(
         <div class="mb-badge-pill-y flex flex-col gap-badge-y lg:flex-row lg:items-center lg:justify-between">
           <p id="studentResultsMeta" class="min-w-0 text-sm font-medium text-app-text-muted dark:text-app-text-muted-dark"></p>
           <div class="flex flex-wrap items-center gap-badge-y self-start lg:justify-end">
-            <div class="inline-flex items-center gap-1 rounded-control bg-app-surface-soft/45 p-0.5 dark:bg-app-surface-soft-dark/25">
-              <button
-                type="button"
-                data-workspace-view-button="list"
-                &class="workspaceViewButtonClass"
-                &aria-pressed="listViewPressed"
-              >List</button>
-              <button
-                type="button"
-                data-workspace-view-button="phases"
-                &class="workspaceViewButtonClass"
-                &aria-pressed="phasesViewPressed"
-              >Phases</button>
-            </div>
+            <fragment &children="workspaceViewToggleHtml"></fragment>
             <fragment &children="addStudentButtonHtml"></fragment>
             <fragment &children="panelToggleButtonHtml"></fragment>
           </div>
@@ -452,10 +460,7 @@ export function renderStudentsTable(
       cellClass: TABLE_CELL,
       studentCellClass: `${TABLE_CELL} w-[30%] min-w-[18rem] max-w-[22rem] align-top pr-panel-sm`,
       mutedTextXs: MUTED_TEXT_XS,
-      workspaceViewButtonClass:
-        "rounded-control border border-transparent px-badge-pill-x py-badge-pill-y text-xs font-medium text-app-text transition hover:bg-app-surface hover:text-app-text aria-[pressed='true']:border-app-brand aria-[pressed='true']:bg-app-surface aria-[pressed='true']:text-app-brand-strong aria-[pressed='true']:shadow-sm dark:text-app-text-dark dark:hover:bg-app-surface-dark dark:hover:text-app-text-dark dark:aria-[pressed='true']:border-app-brand-ring dark:aria-[pressed='true']:bg-app-surface-dark dark:aria-[pressed='true']:text-app-brand-ring sm:text-sm",
-      listViewPressed: filters.viewMode === "list" ? "true" : "false",
-      phasesViewPressed: filters.viewMode === "phases" ? "true" : "false",
+      workspaceViewToggleHtml: raw(workspaceViewToggleHtml),
       listViewClass: `${filters.viewMode === "list" ? "" : "hidden "}space-y-stack-xs`,
       phaseViewClass: filters.viewMode === "phases" ? "" : "hidden ",
       tableHeaderClass: TABLE_HEADER_ROW,

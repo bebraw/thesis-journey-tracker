@@ -6,6 +6,7 @@ export * from "./card.htmlisp";
 export * from "./disclosure.htmlisp";
 export * from "./metadata-list.htmlisp";
 export * from "./section-header.htmlisp";
+export * from "./toggle-group.htmlisp";
 export * from "./field-shell.htmlisp";
 export * from "./input-field.htmlisp";
 export * from "./select-field.htmlisp";

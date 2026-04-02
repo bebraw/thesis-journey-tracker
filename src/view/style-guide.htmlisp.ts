@@ -7,6 +7,8 @@ import {
   PAGE_WRAP,
   STATUS_BADGE,
   SUBTLE_TEXT,
+  TOGGLE_BUTTON_PANEL,
+  TOGGLE_GROUP_SEGMENTED,
   renderBadge,
   renderButton,
   renderCard,
@@ -17,6 +19,7 @@ import {
   renderMetadataList,
   renderSectionHeader,
   renderSelectField,
+  renderToggleGroup,
   renderTextareaField,
   type SelectOption,
 } from "../ui";
@@ -192,6 +195,10 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
           <fragment &children="sectionHeader"></fragment>
           <p &class="emptyStateClass">Use the shared empty-state treatment when a section has no content yet.</p>
         </div>
+        <div class="space-y-stack-xs">
+          <fragment &children="segmentedToggleHtml"></fragment>
+          <fragment &children="panelToggleHtml"></fragment>
+        </div>
         <fragment &children="metadataListHtml"></fragment>
         <fragment &children="disclosureHtml"></fragment>
       </div>`,
@@ -215,6 +222,21 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
         sectionHeader: raw(renderSectionHeader({
           title: "Section Header",
           meta: "Use concise metadata labels",
+        })),
+        segmentedToggleHtml: raw(renderToggleGroup({
+          className: TOGGLE_GROUP_SEGMENTED,
+          items: [
+            { label: "List", pressed: true },
+            { label: "Phases" },
+          ],
+        })),
+        panelToggleHtml: raw(renderToggleGroup({
+          className: "flex flex-wrap gap-badge-y",
+          buttonClassName: TOGGLE_BUTTON_PANEL,
+          items: [
+            { label: "Edit" },
+            { label: "History", meta: "12 entries", pressed: true },
+          ],
         })),
         metadataListHtml: raw(renderMetadataList({
           items: [

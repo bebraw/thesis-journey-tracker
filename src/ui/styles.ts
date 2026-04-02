@@ -36,6 +36,13 @@ export const FOCUS_RING =
 export const TEXT_LINK = `underline-offset-2 hover:underline ${FOCUS_RING}`;
 export const STATUS_BADGE = "rounded-control px-badge-pill-x py-badge-pill-y text-xs";
 export const THEME_TOGGLE_BUTTON = `inline-flex h-8 w-8 items-center justify-center rounded-full border border-app-field bg-app-surface text-sm font-medium text-app-text shadow-sm hover:bg-app-surface-soft dark:border-app-field-dark dark:bg-app-surface-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark sm:h-9 sm:w-9 ${FOCUS_RING}`;
+export const TOGGLE_GROUP_SEGMENTED =
+  "inline-flex items-center gap-1 rounded-control bg-app-surface-soft/45 p-0.5 dark:bg-app-surface-soft-dark/25";
+export const TOGGLE_BUTTON_SEGMENTED =
+  "rounded-control border border-transparent px-badge-pill-x py-badge-pill-y text-xs font-medium text-app-text transition hover:bg-app-surface hover:text-app-text aria-[pressed='true']:border-app-brand aria-[pressed='true']:bg-app-surface aria-[pressed='true']:text-app-brand-strong aria-[pressed='true']:shadow-sm dark:text-app-text-dark dark:hover:bg-app-surface-dark dark:hover:text-app-text-dark dark:aria-[pressed='true']:border-app-brand-ring dark:aria-[pressed='true']:bg-app-surface-dark dark:aria-[pressed='true']:text-app-brand-ring sm:text-sm";
+export const TOGGLE_BUTTON_PANEL =
+  "inline-flex min-w-[8.25rem] flex-col items-start rounded-control border border-app-field bg-app-surface px-control-x py-badge-pill-y text-left text-sm font-medium text-app-text shadow-sm transition hover:bg-app-surface-soft aria-[pressed='true']:border-app-brand aria-[pressed='true']:bg-app-brand-soft/70 dark:border-app-field-dark dark:bg-app-surface-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark dark:aria-[pressed='true']:border-app-brand-ring dark:aria-[pressed='true']:bg-app-brand-soft-dark/25";
+export const TOGGLE_BUTTON_META = "mt-0.5 text-[11px] leading-tight font-medium text-app-text-muted dark:text-app-text-muted-dark";
 export const DANGER_PANEL =
   "rounded-panel border border-app-danger-line bg-app-danger-soft/70 p-panel-sm dark:border-app-danger-soft-dark/60 dark:bg-app-danger-soft-dark/35";
 export const DANGER_TITLE = "text-lg font-semibold text-app-danger-text dark:text-app-danger-text-dark";

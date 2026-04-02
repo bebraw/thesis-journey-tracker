@@ -10,6 +10,7 @@ import {
   SOFT_SURFACE_CARD,
   SUBTLE_TEXT,
   SURFACE_CARD,
+  TOGGLE_BUTTON_PANEL,
   TOPIC_TEXT,
   renderBadge,
   renderButton,
@@ -17,6 +18,7 @@ import {
   renderInputField,
   renderMetadataList,
   renderSectionHeader,
+  renderToggleGroup,
   renderTextareaField,
 } from "../../ui";
 import type { DashboardFilters } from "../types";
@@ -132,36 +134,18 @@ function renderReadonlyStudentSummary(student: Student): string {
 }
 
 function renderToolActions(actions: PreparedToolAction[]): string {
-  return renderView(
-    `<div class="flex flex-wrap gap-badge-y">
-      <fragment &foreach="actions as action">
-        <button
-          type="button"
-          data-selected-tool-button="1"
-          &data-tool-key="action.key"
-          aria-pressed="false"
-          &class="buttonClass"
-        >
-          <span class="leading-tight" &children="action.label"></span>
-          <span
-            &visibleIf="action.metaVisible"
-            class="mt-0.5 text-[11px] leading-tight font-medium text-app-text-muted dark:text-app-text-muted-dark"
-            &children="action.meta"
-          ></span>
-        </button>
-      </fragment>
-    </div>`,
-    {
-      buttonClass:
-        "inline-flex min-w-[8.25rem] flex-col items-start rounded-control border border-app-field bg-app-surface px-control-x py-badge-pill-y text-left text-sm font-medium text-app-text shadow-sm transition hover:bg-app-surface-soft aria-[pressed='true']:border-app-brand aria-[pressed='true']:bg-app-brand-soft/70 dark:border-app-field-dark dark:bg-app-surface-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark dark:aria-[pressed='true']:border-app-brand-ring dark:aria-[pressed='true']:bg-app-brand-soft-dark/25 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark",
-      actions: actions.map((action) => ({
-        key: action.key,
-        label: action.label,
-        metaVisible: Boolean(action.meta),
-        meta: action.meta || "",
-      })),
-    },
-  );
+  return renderToggleGroup({
+    className: "flex flex-wrap gap-badge-y",
+    buttonClassName: TOGGLE_BUTTON_PANEL,
+    items: actions.map((action) => ({
+      label: action.label,
+      meta: action.meta,
+      attrs: {
+        "data-selected-tool-button": "1",
+        "data-tool-key": action.key,
+      },
+    })),
+  });
 }
 
 function renderStudentHistoryContent(
