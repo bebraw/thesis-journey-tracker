@@ -165,6 +165,69 @@ function renderToolActions(actions: PreparedToolAction[]): string {
   );
 }
 
+function renderStudentHistoryContent(
+  historySummaryText: string,
+  logSummaryText: string,
+  auditSummaryText: string,
+  logs: PreparedLogEntry[],
+  phaseAuditEntries: PreparedPhaseAuditEntry[],
+): string {
+  return renderView(
+    `<div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
+      <h3 class="text-base font-semibold">History</h3>
+      <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="historySummaryText"></p>
+    </div>
+    <div class="mt-stack-xs grid grid-cols-1 gap-stack-xs xl:grid-cols-2">
+      <section class="space-y-stack-xs">
+        <div class="flex items-baseline justify-between gap-badge-y">
+          <h4 class="text-sm font-semibold">Meeting log history</h4>
+          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="logSummaryText"></span>
+        </div>
+        <div &class="formStack" &visibleIf="hasLogs">
+          <fragment &foreach="logs as log">
+            <article &class="logEntryClass">
+              <p class="font-medium"><span &children="log.timestampText"></span></p>
+              <p class="mt-1"><span class="font-medium">Discussed:</span> <span &children="log.discussed"></span></p>
+              <p class="mt-1"><span class="font-medium">Agreed:</span> <span &children="log.agreedPlan"></span></p>
+              <p &visibleIf="log.hasDeadline" class="mt-1"><span class="font-medium">Next-step deadline:</span> <span &children="log.deadlineText"></span></p>
+            </article>
+          </fragment>
+        </div>
+        <p &visibleIf="showNoLogs" &class="emptyStateClass">No entries yet.</p>
+      </section>
+      <section class="space-y-stack-xs">
+        <div class="flex items-baseline justify-between gap-badge-y">
+          <h4 class="text-sm font-semibold">Phase timeline</h4>
+          <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="auditSummaryText"></span>
+        </div>
+        <div &class="formStack" &visibleIf="hasPhaseAudit">
+          <fragment &foreach="phaseAuditEntries as entry">
+            <article &class="logEntryClass">
+              <p class="font-medium"><span &children="entry.timestampText"></span></p>
+              <p class="mt-1"><span class="font-medium">Phase change:</span> <span &children="entry.transitionText"></span></p>
+            </article>
+          </fragment>
+        </div>
+        <p &visibleIf="showNoPhaseAudit" &class="emptyStateClass">No phase changes recorded yet.</p>
+      </section>
+    </div>`,
+    {
+      emptyStateClass: EMPTY_STATE_CARD,
+      formStack: FORM_STACK,
+      historySummaryText,
+      logSummaryText,
+      auditSummaryText,
+      logEntryClass: SOFT_SURFACE_CARD,
+      hasLogs: logs.length > 0,
+      showNoLogs: logs.length === 0,
+      logs,
+      hasPhaseAudit: phaseAuditEntries.length > 0,
+      showNoPhaseAudit: phaseAuditEntries.length === 0,
+      phaseAuditEntries,
+    },
+  );
+}
+
 export function renderSelectedStudentPanel(
   student: Student,
   logs: MeetingLog[],
@@ -296,63 +359,20 @@ export function renderSelectedStudentPanel(
     return renderView(
       `<article &class="cardClass">
         <fragment &children="summaryHtml"></fragment>
-
         <section class="rounded-card border border-app-line bg-app-surface-soft/60 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/30">
-          <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
-            <h3 class="text-base font-semibold">History</h3>
-            <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="historySummaryText"></p>
-          </div>
-          <div class="mt-stack-xs grid grid-cols-1 gap-stack-xs xl:grid-cols-2">
-            <section class="space-y-stack-xs">
-              <div class="flex items-baseline justify-between gap-badge-y">
-                <h4 class="text-sm font-semibold">Meeting log history</h4>
-                <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="logSummaryText"></span>
-              </div>
-              <div &class="formStack" &visibleIf="hasLogs">
-                <fragment &foreach="logs as log">
-                  <article &class="logEntryClass">
-                    <p class="font-medium"><span &children="log.timestampText"></span></p>
-                    <p class="mt-1"><span class="font-medium">Discussed:</span> <span &children="log.discussed"></span></p>
-                    <p class="mt-1"><span class="font-medium">Agreed:</span> <span &children="log.agreedPlan"></span></p>
-                    <p &visibleIf="log.hasDeadline" class="mt-1"><span class="font-medium">Next-step deadline:</span> <span &children="log.deadlineText"></span></p>
-                  </article>
-                </fragment>
-              </div>
-              <p &visibleIf="showNoLogs" &class="emptyStateClass">No entries yet.</p>
-            </section>
-            <section class="space-y-stack-xs">
-              <div class="flex items-baseline justify-between gap-badge-y">
-                <h4 class="text-sm font-semibold">Phase timeline</h4>
-                <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="auditSummaryText"></span>
-              </div>
-              <div &class="formStack" &visibleIf="hasPhaseAudit">
-                <fragment &foreach="phaseAuditEntries as entry">
-                  <article &class="logEntryClass">
-                    <p class="font-medium"><span &children="entry.timestampText"></span></p>
-                    <p class="mt-1"><span class="font-medium">Phase change:</span> <span &children="entry.transitionText"></span></p>
-                  </article>
-                </fragment>
-              </div>
-              <p &visibleIf="showNoPhaseAudit" &class="emptyStateClass">No phase changes recorded yet.</p>
-            </section>
-          </div>
+          <fragment &children="historyContentHtml"></fragment>
         </section>
       </article>`,
       {
         cardClass: `${PANEL_STACK} ${SURFACE_CARD}`,
-        emptyStateClass: EMPTY_STATE_CARD,
-        formStack: FORM_STACK,
-        historySummaryText,
-        logSummaryText,
-        auditSummaryText,
-        logEntryClass: SOFT_SURFACE_CARD,
         summaryHtml: raw(renderReadonlyStudentSummary(student)),
-        hasLogs: preparedLogs.length > 0,
-        showNoLogs: preparedLogs.length === 0,
-        logs: preparedLogs,
-        hasPhaseAudit: preparedPhaseAudit.length > 0,
-        showNoPhaseAudit: preparedPhaseAudit.length === 0,
-        phaseAuditEntries: preparedPhaseAudit,
+        historyContentHtml: raw(renderStudentHistoryContent(
+          historySummaryText,
+          logSummaryText,
+          auditSummaryText,
+          preparedLogs,
+          preparedPhaseAudit,
+        )),
       },
     );
   }
@@ -414,54 +434,11 @@ export function renderSelectedStudentPanel(
         data-tool-key="history"
         class="hidden rounded-card border border-app-line bg-app-surface-soft/60 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/30"
       >
-        <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
-          <h3 class="text-base font-semibold">History</h3>
-          <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="historySummaryText"></p>
-        </div>
-        <div class="mt-stack-xs grid grid-cols-1 gap-stack-xs xl:grid-cols-2">
-          <section class="space-y-stack-xs">
-            <div class="flex items-baseline justify-between gap-badge-y">
-              <h4 class="text-sm font-semibold">Meeting log history</h4>
-              <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="logSummaryText"></span>
-            </div>
-            <div &class="formStack" &visibleIf="hasLogs">
-              <fragment &foreach="logs as log">
-                <article &class="logEntryClass">
-                  <p class="font-medium"><span &children="log.timestampText"></span></p>
-                  <p class="mt-1"><span class="font-medium">Discussed:</span> <span &children="log.discussed"></span></p>
-                  <p class="mt-1"><span class="font-medium">Agreed:</span> <span &children="log.agreedPlan"></span></p>
-                  <p &visibleIf="log.hasDeadline" class="mt-1"><span class="font-medium">Next-step deadline:</span> <span &children="log.deadlineText"></span></p>
-                </article>
-              </fragment>
-            </div>
-            <p &visibleIf="showNoLogs" &class="emptyStateClass">No entries yet.</p>
-          </section>
-          <section class="space-y-stack-xs">
-            <div class="flex items-baseline justify-between gap-badge-y">
-              <h4 class="text-sm font-semibold">Phase timeline</h4>
-              <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="auditSummaryText"></span>
-            </div>
-            <div &class="formStack" &visibleIf="hasPhaseAudit">
-              <fragment &foreach="phaseAuditEntries as entry">
-                <article &class="logEntryClass">
-                  <p class="font-medium"><span &children="entry.timestampText"></span></p>
-                  <p class="mt-1"><span class="font-medium">Phase change:</span> <span &children="entry.transitionText"></span></p>
-                </article>
-              </fragment>
-            </div>
-            <p &visibleIf="showNoPhaseAudit" &class="emptyStateClass">No phase changes recorded yet.</p>
-          </section>
-        </div>
+        <fragment &children="historyContentHtml"></fragment>
       </section>
     </article>`,
     {
       cardClass: `${PANEL_STACK} ${SURFACE_CARD}`,
-      emptyStateClass: EMPTY_STATE_CARD,
-      formStack: FORM_STACK,
-      historySummaryText,
-      logSummaryText,
-      auditSummaryText,
-      logEntryClass: SOFT_SURFACE_CARD,
       topicTextClass: TOPIC_TEXT,
       selectedHeadingText: `Selected student: ${student.name}`,
       topicVisible: Boolean(student.thesisTopic),
@@ -506,12 +483,13 @@ export function renderSelectedStudentPanel(
       })),
       editFormHtml: raw(editFormHtml),
       addLogFormHtml: raw(addLogFormHtml),
-      hasLogs: preparedLogs.length > 0,
-      showNoLogs: preparedLogs.length === 0,
-      logs: preparedLogs,
-      hasPhaseAudit: preparedPhaseAudit.length > 0,
-      showNoPhaseAudit: preparedPhaseAudit.length === 0,
-      phaseAuditEntries: preparedPhaseAudit,
+      historyContentHtml: raw(renderStudentHistoryContent(
+        historySummaryText,
+        logSummaryText,
+        auditSummaryText,
+        preparedLogs,
+        preparedPhaseAudit,
+      )),
     },
   );
 }
