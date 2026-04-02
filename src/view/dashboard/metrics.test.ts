@@ -11,7 +11,7 @@ describe("dashboard metrics", () => {
     });
 
     expect(html).toContain('href="/?status=not_booked"');
-    expect(html).toContain('href="/?degree=msc&sort=target&dir=asc"');
+    expect(html).toContain('href="/?degree=msc&amp;sort=target&amp;dir=asc"');
     expect(html).toContain('href="/?phase=submitted"');
     expect(html).not.toContain("Review students");
     expect(html).not.toContain("Review timeline");

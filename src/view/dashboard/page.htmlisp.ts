@@ -1,5 +1,5 @@
+import { raw } from "../../htmlisp";
 import { PAGE_WRAP } from "../../ui";
-import { escapeHtml } from "../../formatting";
 import { renderEmptySelectedPanel, renderSelectedStudentPanel } from "../students";
 import {
   THEME_TOGGLE_SCRIPT,
@@ -27,25 +27,25 @@ export function renderDashboardPage(data: DashboardPageData): string {
       );
 
   const bodyContent = renderView(
-    `<div &class="(get props pageWrap)">
-      <noop &children="(get props headerHtml)"></noop>
-      <noop &children="(get props toastHtml)"></noop>
-      <noop &children="(get props studentsTableHtml)"></noop>
+    `<div &class="pageWrap">
+      <fragment &children="headerHtml"></fragment>
+      <fragment &children="toastHtml"></fragment>
+      <fragment &children="studentsTableHtml"></fragment>
     </div>
-    <noop &children="(get props dashboardScript)"></noop>
-    <noop &children="(get props themeToggleScript)"></noop>`,
+    <fragment &children="dashboardScript"></fragment>
+    <fragment &children="themeToggleScript"></fragment>`,
     {
-      pageWrap: escapeHtml(PAGE_WRAP),
-      headerHtml: renderAuthedPageHeader(
+      pageWrap: PAGE_WRAP,
+      headerHtml: raw(renderAuthedPageHeader(
         "Thesis Journey Tracker",
         canEdit
           ? "A clean overview for tracking thesis progress, supervision follow-ups, and the students who need attention next."
           : "Read-only access for reviewing student progress, meetings, and supervision history without changing records.",
         renderPageHeaderNavigation("dashboard", viewer, showStyleGuide),
         viewer,
-      ),
-      toastHtml: renderDashboardToastMessages(notice, error),
-      studentsTableHtml: renderStudentsTable(
+      )),
+      toastHtml: raw(renderDashboardToastMessages(notice, error)),
+      studentsTableHtml: raw(renderStudentsTable(
         students,
         selectedStudent,
         filters,
@@ -58,9 +58,9 @@ export function renderDashboardPage(data: DashboardPageData): string {
             : "Select a student from the table to view details, supervision logs, and phase history.",
         ),
         { canEdit },
-      ),
-      dashboardScript: renderDashboardScriptTag(),
-      themeToggleScript: THEME_TOGGLE_SCRIPT,
+      )),
+      dashboardScript: raw(renderDashboardScriptTag()),
+      themeToggleScript: raw(THEME_TOGGLE_SCRIPT),
     },
   );
 

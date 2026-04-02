@@ -1,6 +1,5 @@
 import { SURFACE_CARD_SM } from "../../ui";
 import { type HtmlispComponents } from "../../htmlisp";
-import { escapeHtml } from "../../formatting";
 import { renderView } from "../shared.htmlisp";
 import type { Metrics } from "../types";
 
@@ -38,33 +37,34 @@ export function renderMetricCards(metrics: Metrics): string {
       href: "/?phase=submitted",
     },
   ];
+
   const components: HtmlispComponents = {
-    MetricCard: `<a &href="(get props href)" &class="(get props cardClass)">
-    <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-text-muted dark:text-app-text-muted-dark" &children="(get props label)"></p>
+    MetricCard: `<a &href="href" &class="cardClass">
+    <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-app-text-muted dark:text-app-text-muted-dark" &children="label"></p>
     <div class="mt-2 flex items-end justify-between gap-stack-xs">
-      <p class="text-2xl font-semibold leading-none sm:text-[1.8rem]" &children="(get props metricValue)"></p>
-      <p &class="(get props detailClass)" &children="(get props detail)"></p>
+      <p class="text-2xl font-semibold leading-none sm:text-[1.8rem]" &children="metricValue"></p>
+      <p &class="detailClass" &children="detail"></p>
     </div>
   </a>`,
   };
 
   return renderView(
     `<div class="grid grid-cols-1 gap-badge-y sm:grid-cols-2 xl:grid-cols-4">
-      <noop &foreach="(get props metrics)">
+      <fragment &foreach="metrics as metric">
         <MetricCard
-          &cardClass="(get props cardClass)"
-          &href="(get props href)"
-          &label="(get props label)"
-          &metricValue="(get props metricValue)"
-          &detailClass="(get props detailClass)"
-          &detail="(get props detail)"
+          &cardClass="cardClass"
+          &href="metric.href"
+          &label="metric.label"
+          &metricValue="metric.metricValue"
+          &detailClass="detailClass"
+          &detail="metric.detail"
         ></MetricCard>
-      </noop>
+      </fragment>
     </div>`,
     {
       metrics: preparedMetrics,
-      cardClass: escapeHtml(`${SURFACE_CARD_SM} block p-panel-sm transition hover:-translate-y-px hover:border-app-line-strong hover:shadow-elevated dark:hover:border-app-line-dark-strong`),
-      detailClass: escapeHtml("max-w-[10rem] text-right text-[11px] leading-5 text-app-text-soft dark:text-app-text-soft-dark"),
+      cardClass: `${SURFACE_CARD_SM} block p-panel-sm transition hover:-translate-y-px hover:border-app-line-strong hover:shadow-elevated dark:hover:border-app-line-dark-strong`,
+      detailClass: "max-w-[10rem] text-right text-[11px] leading-5 text-app-text-soft dark:text-app-text-soft-dark",
     },
     components,
   );

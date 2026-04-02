@@ -1,5 +1,4 @@
-import { escapeHtml } from "../formatting";
-import type { AttributeValue, HtmlispAttributeMap, ParsedAttribute } from "./types";
+import type { HtmlispAttributeMap, ParsedAttribute } from "./types";
 
 const ATTRIBUTE_PATTERN = /([^\s=]+)(?:=(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
 const SAFE_ATTRIBUTE_NAME = /^[A-Za-z_:][-A-Za-z0-9_:.]*$/;
@@ -25,16 +24,6 @@ export function parseHtmlispAttributes(attributes?: string): ParsedAttribute[] {
   return parsed;
 }
 
-export function serializeHtmlispAttributes(attributes: ParsedAttribute[]): string {
-  if (attributes.length === 0) {
-    return "";
-  }
-
-  return attributes
-    .map((attribute) => (attribute.value === true ? ` ${attribute.name}` : ` ${attribute.name}="${escapeHtml(attribute.value)}"`))
-    .join("");
-}
-
 export function htmlispAttributesToMap(attributes: ParsedAttribute[]): HtmlispAttributeMap {
   return Object.fromEntries(attributes.map((attribute) => [attribute.name, attribute.value]));
 }
@@ -50,15 +39,6 @@ export function hasHtmlispBooleanAttribute(attributes: ParsedAttribute[], name: 
 
 export function omitHtmlispAttributes(attributes: ParsedAttribute[], names: string[]): ParsedAttribute[] {
   return attributes.filter((attribute) => !names.includes(attribute.name));
-}
-
-export function buildHtmlispAttributes(entries: Array<{ name: string; value: string | true | undefined }>): ParsedAttribute[] {
-  return entries
-    .filter((entry) => entry.value !== undefined && SAFE_ATTRIBUTE_NAME.test(entry.name))
-    .map((entry) => ({
-      name: entry.name,
-      value: entry.value as AttributeValue,
-    }));
 }
 
 export function buildHtmlispAttributeMap(entries: Array<{ name: string; value: string | boolean | null | undefined }>): HtmlispAttributeMap {

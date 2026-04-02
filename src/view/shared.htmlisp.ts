@@ -37,7 +37,7 @@ export function renderView(
   components: HtmlispComponents = {},
   renderOptions?: HtmlispRenderOptions,
 ): string {
-  return renderHTMLisp(htmlInput, props, components, renderOptions);
+  return renderHTMLisp(htmlInput, props, components, renderOptions || { escapeByDefault: true });
 }
 
 export function renderDocument(title: string, bodyContent: string, bodyClass = BODY_CLASS): string {

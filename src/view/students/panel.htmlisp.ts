@@ -1,5 +1,5 @@
-import { escapeHtml, escapeJsString, formatDateTime } from "../../formatting";
-import { type HtmlispComponents } from "../../htmlisp";
+import { escapeJsString, formatDateTime } from "../../formatting";
+import { raw } from "../../htmlisp";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getStudentFormValues, getTargetSubmissionDate, PHASES } from "../../students";
 import type { MeetingLog, PhaseAuditEntry, Student } from "../../students/store";
 import {
@@ -25,14 +25,14 @@ export function renderEmptySelectedPanel(
   message = "Select a student from the table to edit details and view/add supervision logs.",
 ): string {
   return renderView(
-    `<article &class="(get props cardClass)">
+    `<article &class="cardClass">
       <h2 class="text-lg font-semibold">Student Details & Logs</h2>
-      <p &class="(get props subtleText)" &children="(get props message)"></p>
+      <p &class="subtleText" &children="message"></p>
     </article>`,
     {
-      cardClass: escapeHtml(SURFACE_CARD),
-      subtleText: escapeHtml(`mt-2 ${SUBTLE_TEXT}`),
-      message: escapeHtml(message),
+      cardClass: SURFACE_CARD,
+      subtleText: `mt-2 ${SUBTLE_TEXT}`,
+      message,
     },
   );
 }
@@ -68,18 +68,18 @@ interface PreparedToolAction {
 
 function prepareLogEntries(logs: MeetingLog[]): PreparedLogEntry[] {
   return logs.map((log) => ({
-    timestampText: escapeHtml(formatDateTime(log.happenedAt)),
-    discussed: escapeHtml(log.discussed),
-    agreedPlan: escapeHtml(log.agreedPlan),
+    timestampText: formatDateTime(log.happenedAt),
+    discussed: log.discussed,
+    agreedPlan: log.agreedPlan,
     hasDeadline: Boolean(log.nextStepDeadline),
-    deadlineText: escapeHtml(log.nextStepDeadline || ""),
+    deadlineText: log.nextStepDeadline || "",
   }));
 }
 
 function preparePhaseAuditEntries(entries: PhaseAuditEntry[]): PreparedPhaseAuditEntry[] {
   return entries.map((entry) => ({
-    timestampText: escapeHtml(formatDateTime(entry.changedAt)),
-    transitionText: escapeHtml(`${getPhaseLabel(entry.fromPhase, PHASES)} -> ${getPhaseLabel(entry.toPhase, PHASES)}`),
+    timestampText: formatDateTime(entry.changedAt),
+    transitionText: `${getPhaseLabel(entry.fromPhase, PHASES)} -> ${getPhaseLabel(entry.toPhase, PHASES)}`,
   }));
 }
 
@@ -97,8 +97,8 @@ function prepareReadonlyFields(student: Student): PreparedReadonlyField[] {
     { label: "Next meeting", value: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked" },
     { label: "Saved meeting logs", value: String(student.logCount) },
   ].map((field) => ({
-    label: escapeHtml(field.label),
-    text: escapeHtml(field.value),
+    label: field.label,
+    text: field.value,
   }));
 }
 
@@ -108,26 +108,25 @@ function renderReadonlyStudentSummary(student: Student): string {
   return renderView(
     `<section>
       <h2 class="text-lg font-semibold">Student Overview</h2>
-      <p &class="(get props currentStudentLineClass)" &children="(get props currentlyViewingText)"></p>
-      <p &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></p>
-      <p &class="(get props readonlyNoticeClass)">Read-only access to details, supervision logs, and the phase timeline.</p>
+      <p &class="currentStudentLineClass" &children="currentlyViewingText"></p>
+      <p &visibleIf="topicVisible" &class="topicTextClass" &children="topic"></p>
+      <p &class="readonlyNoticeClass">Read-only access to details, supervision logs, and the phase timeline.</p>
       <dl class="mt-stack-xs grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
-        <noop &foreach="(get props readonlyFields)">
+        <fragment &foreach="readonlyFields as field">
           <div class="rounded-card border border-app-line bg-app-surface-soft/70 px-panel-sm py-stack-xs text-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/40">
-            <dt class="text-xs font-medium uppercase tracking-wide text-app-text-muted dark:text-app-text-muted-dark" &children="(get props label)"></dt>
-            <dd class="mt-1 font-medium" &children="(get props text)"></dd>
+            <dt class="text-xs font-medium uppercase tracking-wide text-app-text-muted dark:text-app-text-muted-dark" &children="field.label"></dt>
+            <dd class="mt-1 font-medium" &children="field.text"></dd>
           </div>
-        </noop>
+        </fragment>
       </dl>
     </section>`,
     {
-      subtleText: escapeHtml(SUBTLE_TEXT),
-      currentStudentLineClass: escapeHtml(`mt-1 truncate ${SUBTLE_TEXT}`),
-      topicTextClass: escapeHtml(TOPIC_TEXT),
-      readonlyNoticeClass: escapeHtml(`mt-3 ${SUBTLE_TEXT}`),
-      currentlyViewingText: escapeHtml(`Currently viewing: ${student.name}`),
+      currentStudentLineClass: `mt-1 truncate ${SUBTLE_TEXT}`,
+      topicTextClass: TOPIC_TEXT,
+      readonlyNoticeClass: `mt-3 ${SUBTLE_TEXT}`,
+      currentlyViewingText: `Currently viewing: ${student.name}`,
       topicVisible: Boolean(student.thesisTopic),
-      topic: escapeHtml(student.thesisTopic || ""),
+      topic: student.thesisTopic || "",
       readonlyFields,
     },
   );
@@ -136,32 +135,31 @@ function renderReadonlyStudentSummary(student: Student): string {
 function renderToolActions(actions: PreparedToolAction[]): string {
   return renderView(
     `<div class="flex flex-wrap gap-badge-y">
-      <noop &foreach="(get props actions)">
+      <fragment &foreach="actions as action">
         <button
           type="button"
           data-selected-tool-button="1"
-          &data-tool-key="(get props key)"
+          &data-tool-key="action.key"
           aria-pressed="false"
-          &class="(get props buttonClass)"
+          &class="buttonClass"
         >
-          <span class="leading-tight" &children="(get props label)"></span>
+          <span class="leading-tight" &children="action.label"></span>
           <span
-            &visibleIf="(get props metaVisible)"
+            &visibleIf="action.metaVisible"
             class="mt-0.5 text-[11px] leading-tight font-medium text-app-text-muted dark:text-app-text-muted-dark"
-            &children="(get props meta)"
+            &children="action.meta"
           ></span>
         </button>
-      </noop>
+      </fragment>
     </div>`,
     {
-      buttonClass: escapeHtml(
+      buttonClass:
         "inline-flex min-w-[8.25rem] flex-col items-start rounded-control border border-app-field bg-app-surface px-control-x py-badge-pill-y text-left text-sm font-medium text-app-text shadow-sm transition hover:bg-app-surface-soft aria-[pressed='true']:border-app-brand aria-[pressed='true']:bg-app-brand-soft/70 dark:border-app-field-dark dark:bg-app-surface-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark dark:aria-[pressed='true']:border-app-brand-ring dark:aria-[pressed='true']:bg-app-brand-soft-dark/25 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark",
-      ),
       actions: actions.map((action) => ({
-        key: escapeHtml(action.key),
-        label: escapeHtml(action.label),
+        key: action.key,
+        label: action.label,
         metaVisible: Boolean(action.meta),
-        meta: escapeHtml(action.meta || ""),
+        meta: action.meta || "",
       })),
     },
   );
@@ -193,18 +191,6 @@ export function renderSelectedStudentPanel(
     returnSearchParams.set("dir", filters.sortDirection);
   }
   const returnTo = `/?${returnSearchParams.toString()}`;
-  const components: HtmlispComponents = {
-    MeetingLogEntry: `<article &class="(get props cardClass)">
-    <p class="font-medium"><span &children="(get props timestampText)"></span></p>
-    <p class="mt-1"><span class="font-medium">Discussed:</span> <span &children="(get props discussed)"></span></p>
-    <p class="mt-1"><span class="font-medium">Agreed:</span> <span &children="(get props agreedPlan)"></span></p>
-    <p &visibleIf="(get props hasDeadline)" class="mt-1"><span class="font-medium">Next-step deadline:</span> <span &children="(get props deadlineText)"></span></p>
-  </article>`,
-    PhaseAuditLogEntry: `<article &class="(get props cardClass)">
-    <p class="font-medium"><span &children="(get props timestampText)"></span></p>
-    <p class="mt-1"><span class="font-medium">Phase change:</span> <span &children="(get props transitionText)"></span></p>
-  </article>`,
-  };
 
   const preparedLogs = prepareLogEntries(logs);
   const preparedPhaseAudit = preparePhaseAuditEntries(phaseAudit);
@@ -213,159 +199,154 @@ export function renderSelectedStudentPanel(
   });
   const targetSubmissionDate = getTargetSubmissionDate(student) || "Not set";
   const nextMeetingText = student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked";
-  const summaryBadgesHtml = [
+  const summaryBadgesHtml = raw([
     renderBadge({ label: getDegreeLabel(student.degreeType, DEGREE_TYPES) }),
     renderBadge({ label: getPhaseLabel(student.currentPhase, PHASES) }),
     renderBadge({ label: `Target ${targetSubmissionDate}` }),
     renderBadge({ label: `Next ${nextMeetingText}` }),
-  ].join("");
+  ].join(""));
   const historySummaryText = `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"} · ${preparedPhaseAudit.length} change${preparedPhaseAudit.length === 1 ? "" : "s"}`;
+  const logSummaryText = preparedLogs.length > 0 ? `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"}` : "Empty";
+  const auditSummaryText = preparedPhaseAudit.length > 0 ? `${preparedPhaseAudit.length} change${preparedPhaseAudit.length === 1 ? "" : "s"}` : "Empty";
 
   const editFormHtml = renderView(
-    `<form &action="(get props action)" method="post" &class="(get props formStack)">
-      <input type="hidden" name="returnTo" &value="(get props returnTo)" />
+    `<form &action="action" method="post" &class="formStack">
+      <input type="hidden" name="returnTo" &value="returnTo" />
       <p class="text-xs text-app-text-muted dark:text-app-text-muted-dark">
         Update student details directly here without opening extra sections.
       </p>
       <div class="grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
-        <noop &children="(get props nameField)"></noop>
-        <noop &children="(get props emailField)"></noop>
-        <noop &children="(get props degreeField)"></noop>
-        <noop &children="(get props phaseField)"></noop>
-        <noop &children="(get props topicField)"></noop>
-        <noop &children="(get props startDateField)"></noop>
-        <noop &children="(get props nextMeetingField)"></noop>
+        <fragment &children="nameField"></fragment>
+        <fragment &children="emailField"></fragment>
+        <fragment &children="degreeField"></fragment>
+        <fragment &children="phaseField"></fragment>
+        <fragment &children="topicField"></fragment>
+        <fragment &children="startDateField"></fragment>
+        <fragment &children="nextMeetingField"></fragment>
       </div>
       <div>
-        <noop &children="(get props notesField)"></noop>
+        <fragment &children="notesField"></fragment>
       </div>
       <p class="text-xs text-app-text-muted dark:text-app-text-muted-dark">
-          MSc target submission is calculated automatically as six months from the start date.
+        MSc target submission is calculated automatically as six months from the start date.
       </p>
-      <noop &children="(get props submitButton)"></noop>
+      <fragment &children="submitButton"></fragment>
     </form>`,
     {
-      action: escapeHtml(`/actions/update-student/${student.id}`),
-      formStack: escapeHtml(FORM_STACK),
-      returnTo: escapeHtml(returnTo),
-      ...fields,
-      submitButton: renderButton({
+      action: `/actions/update-student/${student.id}`,
+      formStack: FORM_STACK,
+      returnTo,
+      ...Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, raw(value)])),
+      submitButton: raw(renderButton({
         label: "Save student updates",
         type: "submit",
         variant: "primaryBlock",
-      }),
+      })),
     },
   );
 
   const addLogFormHtml = renderView(
-    `<form &action="(get props action)" method="post" &class="(get props formStack)">
-      <input type="hidden" name="returnTo" &value="(get props returnTo)" />
-      <noop &children="(get props happenedAtField)"></noop>
-      <noop &children="(get props nextMeetingField)"></noop>
-      <noop &children="(get props discussedField)"></noop>
-      <noop &children="(get props agreedPlanField)"></noop>
-      <noop &children="(get props submitButton)"></noop>
+    `<form &action="action" method="post" &class="formStack">
+      <input type="hidden" name="returnTo" &value="returnTo" />
+      <fragment &children="happenedAtField"></fragment>
+      <fragment &children="nextMeetingField"></fragment>
+      <fragment &children="discussedField"></fragment>
+      <fragment &children="agreedPlanField"></fragment>
+      <fragment &children="submitButton"></fragment>
     </form>`,
     {
-      action: escapeHtml(`/actions/add-log/${student.id}`),
-      formStack: escapeHtml(FORM_STACK),
-      returnTo: escapeHtml(returnTo),
-      happenedAtField: renderInputField({
+      action: `/actions/add-log/${student.id}`,
+      formStack: FORM_STACK,
+      returnTo,
+      happenedAtField: raw(renderInputField({
         label: "Meeting date/time",
         name: "happenedAt",
         type: "datetime-local",
         className: FIELD_CONTROL,
         attributes: DATETIME_LOCAL_HALF_HOUR_STEP,
-      }),
-      nextMeetingField: renderInputField({
+      })),
+      nextMeetingField: raw(renderInputField({
         label: "Possible next meeting (optional)",
         name: "nextMeetingAt",
         type: "datetime-local",
         className: FIELD_CONTROL,
         attributes: DATETIME_LOCAL_HALF_HOUR_STEP,
-      }),
-      discussedField: renderTextareaField({
+      })),
+      discussedField: raw(renderTextareaField({
         label: "What was discussed",
         name: "discussed",
         required: true,
         className: FIELD_CONTROL,
-      }),
-      agreedPlanField: renderTextareaField({
+      })),
+      agreedPlanField: raw(renderTextareaField({
         label: "Agreed plan / next actions",
         name: "agreedPlan",
         required: true,
         className: FIELD_CONTROL,
-      }),
-      submitButton: renderButton({
+      })),
+      submitButton: raw(renderButton({
         label: "Save log entry",
         type: "submit",
         variant: "successBlock",
-      }),
+      })),
     },
   );
 
   if (!canEdit) {
     return renderView(
-      `<article &class="(get props cardClass)">
-        <noop &children="(get props summaryHtml)"></noop>
+      `<article &class="cardClass">
+        <fragment &children="summaryHtml"></fragment>
 
         <section class="rounded-card border border-app-line bg-app-surface-soft/60 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/30">
           <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
             <h3 class="text-base font-semibold">History</h3>
-            <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props historySummaryText)"></p>
+            <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="historySummaryText"></p>
           </div>
           <div class="mt-stack-xs grid grid-cols-1 gap-stack-xs xl:grid-cols-2">
             <section class="space-y-stack-xs">
               <div class="flex items-baseline justify-between gap-badge-y">
                 <h4 class="text-sm font-semibold">Meeting log history</h4>
-                <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props logSummaryText)"></span>
+                <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="logSummaryText"></span>
               </div>
-              <div &class="(get props formStack)" &visibleIf="(get props hasLogs)">
-                <noop &foreach="(get props logs)">
-                  <MeetingLogEntry
-                    &cardClass="(get props logEntryClass)"
-                    &timestampText="(get props timestampText)"
-                    &discussed="(get props discussed)"
-                    &agreedPlan="(get props agreedPlan)"
-                    &hasDeadline="(get props hasDeadline)"
-                    &deadlineText="(get props deadlineText)"
-                  ></MeetingLogEntry>
-                </noop>
+              <div &class="formStack" &visibleIf="hasLogs">
+                <fragment &foreach="logs as log">
+                  <article &class="logEntryClass">
+                    <p class="font-medium"><span &children="log.timestampText"></span></p>
+                    <p class="mt-1"><span class="font-medium">Discussed:</span> <span &children="log.discussed"></span></p>
+                    <p class="mt-1"><span class="font-medium">Agreed:</span> <span &children="log.agreedPlan"></span></p>
+                    <p &visibleIf="log.hasDeadline" class="mt-1"><span class="font-medium">Next-step deadline:</span> <span &children="log.deadlineText"></span></p>
+                  </article>
+                </fragment>
               </div>
-              <p &visibleIf="(get props showNoLogs)" &class="(get props emptyStateClass)">No entries yet.</p>
+              <p &visibleIf="showNoLogs" &class="emptyStateClass">No entries yet.</p>
             </section>
             <section class="space-y-stack-xs">
               <div class="flex items-baseline justify-between gap-badge-y">
                 <h4 class="text-sm font-semibold">Phase timeline</h4>
-                <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props auditSummaryText)"></span>
+                <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="auditSummaryText"></span>
               </div>
-              <div &class="(get props formStack)" &visibleIf="(get props hasPhaseAudit)">
-                <noop &foreach="(get props phaseAuditEntries)">
-                  <PhaseAuditLogEntry
-                    &cardClass="(get props logEntryClass)"
-                    &timestampText="(get props timestampText)"
-                    &transitionText="(get props transitionText)"
-                  ></PhaseAuditLogEntry>
-                </noop>
+              <div &class="formStack" &visibleIf="hasPhaseAudit">
+                <fragment &foreach="phaseAuditEntries as entry">
+                  <article &class="logEntryClass">
+                    <p class="font-medium"><span &children="entry.timestampText"></span></p>
+                    <p class="mt-1"><span class="font-medium">Phase change:</span> <span &children="entry.transitionText"></span></p>
+                  </article>
+                </fragment>
               </div>
-              <p &visibleIf="(get props showNoPhaseAudit)" &class="(get props emptyStateClass)">No phase changes recorded yet.</p>
+              <p &visibleIf="showNoPhaseAudit" &class="emptyStateClass">No phase changes recorded yet.</p>
             </section>
           </div>
         </section>
       </article>`,
       {
-        cardClass: escapeHtml(`${PANEL_STACK} ${SURFACE_CARD}`),
-        emptyStateClass: escapeHtml(EMPTY_STATE_CARD),
-        formStack: escapeHtml(FORM_STACK),
-        historySummaryText: escapeHtml(historySummaryText),
-        logSummaryText: escapeHtml(
-          preparedLogs.length > 0 ? `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"}` : "Empty",
-        ),
-        auditSummaryText: escapeHtml(
-          preparedPhaseAudit.length > 0 ? `${preparedPhaseAudit.length} change${preparedPhaseAudit.length === 1 ? "" : "s"}` : "Empty",
-        ),
-        logEntryClass: escapeHtml(SOFT_SURFACE_CARD),
-        summaryHtml: renderReadonlyStudentSummary(student),
+        cardClass: `${PANEL_STACK} ${SURFACE_CARD}`,
+        emptyStateClass: EMPTY_STATE_CARD,
+        formStack: FORM_STACK,
+        historySummaryText,
+        logSummaryText,
+        auditSummaryText,
+        logEntryClass: SOFT_SURFACE_CARD,
+        summaryHtml: raw(renderReadonlyStudentSummary(student)),
         hasLogs: preparedLogs.length > 0,
         showNoLogs: preparedLogs.length === 0,
         logs: preparedLogs,
@@ -373,12 +354,11 @@ export function renderSelectedStudentPanel(
         showNoPhaseAudit: preparedPhaseAudit.length === 0,
         phaseAuditEntries: preparedPhaseAudit,
       },
-      components,
     );
   }
 
   return renderView(
-      `<article &class="(get props cardClass)">
+    `<article &class="cardClass">
       <section>
         <div class="flex items-start justify-between gap-stack-xs">
           <div class="min-w-0">
@@ -386,18 +366,18 @@ export function renderSelectedStudentPanel(
               data-selected-student-heading="1"
               tabindex="-1"
               class="text-lg font-semibold focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark"
-              &children="(get props selectedHeadingText)"
+              &children="selectedHeadingText"
             ></h2>
           </div>
-          <noop &children="(get props closeButtonHtml)"></noop>
+          <fragment &children="closeButtonHtml"></fragment>
         </div>
-        <p &visibleIf="(get props topicVisible)" &class="(get props topicTextClass)" &children="(get props topic)"></p>
+        <p &visibleIf="topicVisible" &class="topicTextClass" &children="topic"></p>
         <div class="mt-3 flex flex-wrap gap-badge-y">
-          <noop &children="(get props summaryBadgesHtml)"></noop>
+          <fragment &children="summaryBadgesHtml"></fragment>
         </div>
         <div class="mt-3 flex flex-wrap items-center justify-between gap-badge-y gap-stack-xs">
-          <noop &children="(get props toolActionsHtml)"></noop>
-          <noop &children="(get props archiveActionHtml)"></noop>
+          <fragment &children="toolActionsHtml"></fragment>
+          <fragment &children="archiveActionHtml"></fragment>
         </div>
       </section>
 
@@ -411,7 +391,7 @@ export function renderSelectedStudentPanel(
           <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Core details</p>
         </div>
         <div class="mt-stack-xs">
-          <noop &children="(get props editFormHtml)"></noop>
+          <fragment &children="editFormHtml"></fragment>
         </div>
       </section>
 
@@ -425,7 +405,7 @@ export function renderSelectedStudentPanel(
           <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark">Meeting notes</p>
         </div>
         <div class="mt-stack-xs">
-          <noop &children="(get props addLogFormHtml)"></noop>
+          <fragment &children="addLogFormHtml"></fragment>
         </div>
       </section>
 
@@ -436,104 +416,93 @@ export function renderSelectedStudentPanel(
       >
         <div class="flex flex-col gap-badge-y sm:flex-row sm:items-baseline sm:justify-between">
           <h3 class="text-base font-semibold">History</h3>
-          <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props historySummaryText)"></p>
+          <p class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="historySummaryText"></p>
         </div>
         <div class="mt-stack-xs grid grid-cols-1 gap-stack-xs xl:grid-cols-2">
           <section class="space-y-stack-xs">
             <div class="flex items-baseline justify-between gap-badge-y">
               <h4 class="text-sm font-semibold">Meeting log history</h4>
-              <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props logSummaryText)"></span>
+              <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="logSummaryText"></span>
             </div>
-            <div &class="(get props formStack)" &visibleIf="(get props hasLogs)">
-              <noop &foreach="(get props logs)">
-                <MeetingLogEntry
-                  &cardClass="(get props logEntryClass)"
-                  &timestampText="(get props timestampText)"
-                  &discussed="(get props discussed)"
-                  &agreedPlan="(get props agreedPlan)"
-                  &hasDeadline="(get props hasDeadline)"
-                  &deadlineText="(get props deadlineText)"
-                ></MeetingLogEntry>
-              </noop>
+            <div &class="formStack" &visibleIf="hasLogs">
+              <fragment &foreach="logs as log">
+                <article &class="logEntryClass">
+                  <p class="font-medium"><span &children="log.timestampText"></span></p>
+                  <p class="mt-1"><span class="font-medium">Discussed:</span> <span &children="log.discussed"></span></p>
+                  <p class="mt-1"><span class="font-medium">Agreed:</span> <span &children="log.agreedPlan"></span></p>
+                  <p &visibleIf="log.hasDeadline" class="mt-1"><span class="font-medium">Next-step deadline:</span> <span &children="log.deadlineText"></span></p>
+                </article>
+              </fragment>
             </div>
-            <p &visibleIf="(get props showNoLogs)" &class="(get props emptyStateClass)">No entries yet.</p>
+            <p &visibleIf="showNoLogs" &class="emptyStateClass">No entries yet.</p>
           </section>
           <section class="space-y-stack-xs">
             <div class="flex items-baseline justify-between gap-badge-y">
               <h4 class="text-sm font-semibold">Phase timeline</h4>
-              <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="(get props auditSummaryText)"></span>
+              <span class="text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark" &children="auditSummaryText"></span>
             </div>
-            <div &class="(get props formStack)" &visibleIf="(get props hasPhaseAudit)">
-              <noop &foreach="(get props phaseAuditEntries)">
-                <PhaseAuditLogEntry
-                  &cardClass="(get props logEntryClass)"
-                  &timestampText="(get props timestampText)"
-                  &transitionText="(get props transitionText)"
-                ></PhaseAuditLogEntry>
-              </noop>
+            <div &class="formStack" &visibleIf="hasPhaseAudit">
+              <fragment &foreach="phaseAuditEntries as entry">
+                <article &class="logEntryClass">
+                  <p class="font-medium"><span &children="entry.timestampText"></span></p>
+                  <p class="mt-1"><span class="font-medium">Phase change:</span> <span &children="entry.transitionText"></span></p>
+                </article>
+              </fragment>
             </div>
-            <p &visibleIf="(get props showNoPhaseAudit)" &class="(get props emptyStateClass)">No phase changes recorded yet.</p>
+            <p &visibleIf="showNoPhaseAudit" &class="emptyStateClass">No phase changes recorded yet.</p>
           </section>
         </div>
       </section>
-
     </article>`,
     {
-      cardClass: escapeHtml(`${PANEL_STACK} ${SURFACE_CARD}`),
-      emptyStateClass: escapeHtml(EMPTY_STATE_CARD),
-      formStack: escapeHtml(FORM_STACK),
-      historySummaryText: escapeHtml(historySummaryText),
-      logSummaryText: escapeHtml(
-        preparedLogs.length > 0 ? `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"}` : "Empty",
-      ),
-      auditSummaryText: escapeHtml(
-        preparedPhaseAudit.length > 0 ? `${preparedPhaseAudit.length} change${preparedPhaseAudit.length === 1 ? "" : "s"}` : "Empty",
-      ),
-      logEntryClass: escapeHtml(SOFT_SURFACE_CARD),
-      subtleText: escapeHtml(SUBTLE_TEXT),
-      topicTextClass: escapeHtml(TOPIC_TEXT),
-      selectedHeadingText: escapeHtml(`Selected student: ${student.name}`),
+      cardClass: `${PANEL_STACK} ${SURFACE_CARD}`,
+      emptyStateClass: EMPTY_STATE_CARD,
+      formStack: FORM_STACK,
+      historySummaryText,
+      logSummaryText,
+      auditSummaryText,
+      logEntryClass: SOFT_SURFACE_CARD,
+      topicTextClass: TOPIC_TEXT,
+      selectedHeadingText: `Selected student: ${student.name}`,
       topicVisible: Boolean(student.thesisTopic),
-      topic: escapeHtml(student.thesisTopic || ""),
+      topic: student.thesisTopic || "",
       summaryBadgesHtml,
-      toolActionsHtml: renderToolActions([
+      toolActionsHtml: raw(renderToolActions([
         { key: "edit", label: "Edit" },
         { key: "log", label: "Add log" },
         { key: "history", label: "History", meta: historySummaryText },
-      ]),
-      archiveActionHtml: renderView(
+      ])),
+      archiveActionHtml: raw(renderView(
         `<form
-          &action="(get props deleteAction)"
+          &action="deleteAction"
           method="post"
           class="shrink-0"
-          &onsubmit="(get props deleteConfirm)"
+          &onsubmit="deleteConfirm"
         >
-          <input type="hidden" name="returnTo" &value="(get props returnTo)" />
-          <noop &children="(get props deleteButtonHtml)"></noop>
+          <input type="hidden" name="returnTo" &value="returnTo" />
+          <fragment &children="deleteButtonHtml"></fragment>
         </form>`,
         {
-          deleteAction: escapeHtml(`/actions/archive-student/${student.id}`),
-          returnTo: escapeHtml(returnTo),
-          deleteConfirm: escapeHtml(
-            `return window.confirm('Archive ${escapeJsString(student.name)}? This will hide the student from the active dashboard but keep the history intact.');`,
-          ),
-          deleteButtonHtml: renderButton({
+          deleteAction: `/actions/archive-student/${student.id}`,
+          returnTo,
+          deleteConfirm: `return window.confirm('Archive ${escapeJsString(student.name)}? This will hide the student from the active dashboard but keep the history intact.');`,
+          deleteButtonHtml: raw(renderButton({
             label: "Archive",
             type: "submit",
             variant: "inline",
             className:
               "border-app-danger-line bg-app-surface text-app-danger-text hover:bg-app-danger-soft/75 dark:border-app-danger-soft-dark/65 dark:bg-app-surface-dark dark:text-app-danger-text-dark dark:hover:bg-app-danger-soft-dark/35",
-          }),
+          })),
         },
-      ),
-      closeButtonHtml: renderButton({
+      )),
+      closeButtonHtml: raw(renderButton({
         label: "Close",
         type: "button",
         variant: "inline",
         attributes: 'id="closeSelectedStudentPanelButton" aria-label="Close student workspace"',
-      }),
-      editFormHtml,
-      addLogFormHtml,
+      })),
+      editFormHtml: raw(editFormHtml),
+      addLogFormHtml: raw(addLogFormHtml),
       hasLogs: preparedLogs.length > 0,
       showNoLogs: preparedLogs.length === 0,
       logs: preparedLogs,
@@ -541,6 +510,5 @@ export function renderSelectedStudentPanel(
       showNoPhaseAudit: preparedPhaseAudit.length === 0,
       phaseAuditEntries: preparedPhaseAudit,
     },
-    components,
   );
 }

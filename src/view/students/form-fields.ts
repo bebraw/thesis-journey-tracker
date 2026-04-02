@@ -1,4 +1,3 @@
-import { escapeHtml } from "../../formatting";
 import {
   FIELD_CONTROL,
   FIELD_CONTROL_SM,
@@ -9,6 +8,7 @@ import {
   renderTextareaField,
   type SelectOption,
 } from "../../ui";
+import { raw } from "../../htmlisp";
 import { DEGREE_TYPES, PHASES, STUDENT_FORM_FIELDS, type StudentFormValues } from "../../students";
 import { renderView } from "../shared.htmlisp";
 import { DATETIME_LOCAL_HALF_HOUR_STEP } from "./date-time";
@@ -64,17 +64,17 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
         `<label class="mt-2 flex items-start gap-badge-x text-xs leading-5 text-app-text-muted dark:text-app-text-muted-dark">
           <input
             type="checkbox"
-            &name="(get props fieldName)"
+            &name="fieldName"
             value="yes"
             class="mt-0.5 h-4 w-4 rounded-sm border-app-field text-app-brand focus:ring-app-brand dark:border-app-field-dark"
           />
           <span>Remove the saved meeting time if this meeting was cancelled or is not booked yet.</span>
         </label>`,
         {
-          fieldName: escapeHtml(STUDENT_FORM_FIELDS.clearNextMeetingAt),
+          fieldName: STUDENT_FORM_FIELDS.clearNextMeetingAt,
         },
       )
-    : `<p class="${escapeHtml(`mt-2 ${MUTED_TEXT_XS}`)}">Leave this blank until the next meeting is confirmed.</p>`;
+    : `<p class="mt-2 ${MUTED_TEXT_XS}">Leave this blank until the next meeting is confirmed.</p>`;
 
   return {
     nameField: renderInputField({
@@ -130,12 +130,12 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
     }),
     nextMeetingField: renderView(
       `<div class="block min-w-0 text-sm">
-        <noop &children="(get props inputHtml)"></noop>
-        <noop &children="(get props hintHtml)"></noop>
+        <fragment &children="inputHtml"></fragment>
+        <fragment &children="hintHtml"></fragment>
       </div>`,
       {
-        inputHtml: nextMeetingInput,
-        hintHtml: clearNextMeetingHint,
+        inputHtml: raw(nextMeetingInput),
+        hintHtml: raw(clearNextMeetingHint),
       },
     ),
   };

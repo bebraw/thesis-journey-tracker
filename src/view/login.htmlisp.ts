@@ -1,6 +1,5 @@
 import { ALERT_CLASS_MAP, BODY_CLASS_LOGIN, FIELD_CONTROL_SM, LOGIN_CARD, renderButton, SUBTLE_TEXT } from "../ui";
-import { type HtmlispComponents } from "../htmlisp";
-import { escapeHtml } from "../formatting";
+import { raw, type HtmlispComponents } from "../htmlisp";
 import { renderDocument, renderView } from "./shared.htmlisp";
 
 export function renderLoginPage(errorState: "invalid" | "rate_limit" | "password_reset" | null, supportsMultipleAccounts = false): string {
@@ -9,64 +8,63 @@ export function renderLoginPage(errorState: "invalid" | "rate_limit" | "password
       ? "Too many failed sign-in attempts. Please wait 15 minutes and try again."
       : errorState === "password_reset"
         ? "This account needs a password reset before it can be used on Cloudflare. Re-create the account with the latest account:create command."
-      : supportsMultipleAccounts
-        ? "Invalid name or password. Please try again."
-        : "Invalid password. Please try again.";
+        : supportsMultipleAccounts
+          ? "Invalid name or password. Please try again."
+          : "Invalid password. Please try again.";
 
   const components: HtmlispComponents = {
     ErrorFlash: `<p
-      &visibleIf="(get props visible)"
+      &visibleIf="visible"
       role="alert"
       aria-live="assertive"
-      &class="(get props errorClass)"
-      &children="(get props message)"
+      &class="errorClass"
+      &children="message"
     ></p>`,
   };
 
   const bodyContent = renderView(
     `<main class="mx-auto flex h-full max-w-auth items-center px-page-x-sm">
-      <section &class="(get props cardClass)">
+      <section &class="cardClass">
         <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-app-text-muted dark:text-app-text-muted-dark">Private Thesis Supervision</p>
         <h1 class="mt-3 text-3xl font-semibold">Thesis Journey Tracker</h1>
-        <p &class="(get props subtleText)" &children="(get props subtitle)"></p>
-        <ErrorFlash &visible="(get props showError)" &message="(get props errorMessage)"></ErrorFlash>
+        <p &class="subtleText" &children="subtitle"></p>
+        <ErrorFlash &visible="showError" &message="errorMessage" &errorClass="errorClass"></ErrorFlash>
         <form action="/login" method="post" class="mt-stack space-y-panel-sm">
-          <label &visibleIf="(get props showNameField)" class="block text-sm font-medium" for="name">Name</label>
+          <label &visibleIf="showNameField" class="block text-sm font-medium" for="name">Name</label>
           <input
-            &visibleIf="(get props showNameField)"
+            &visibleIf="showNameField"
             id="name"
             name="name"
             type="text"
             autocomplete="username"
             autocapitalize="words"
             required
-            &class="(get props passwordFieldClass)"
+            &class="passwordFieldClass"
           />
           <label class="block text-sm font-medium" for="password">Password</label>
-          <input id="password" name="password" type="password" autocomplete="current-password" required &class="(get props passwordFieldClass)" />
-          <noop &children="(get props signInButtonHtml)"></noop>
+          <input id="password" name="password" type="password" autocomplete="current-password" required &class="passwordFieldClass" />
+          <fragment &children="signInButtonHtml"></fragment>
         </form>
       </section>
     </main>`,
     {
-      cardClass: escapeHtml(LOGIN_CARD),
-      errorClass: escapeHtml(ALERT_CLASS_MAP.error),
-      passwordFieldClass: escapeHtml(`${FIELD_CONTROL_SM} outline-hidden ring-app-brand focus:ring-2`),
-      subtleText: escapeHtml(`mt-2 max-w-sm ${SUBTLE_TEXT}`),
+      cardClass: LOGIN_CARD,
+      errorClass: ALERT_CLASS_MAP.error,
+      passwordFieldClass: `${FIELD_CONTROL_SM} outline-hidden ring-app-brand focus:ring-2`,
+      subtleText: `mt-2 max-w-sm ${SUBTLE_TEXT}`,
       showNameField: supportsMultipleAccounts,
       showError: Boolean(errorState),
-      errorMessage: escapeHtml(errorMessage),
-      signInButtonHtml: renderButton({
+      errorMessage,
+      signInButtonHtml: raw(renderButton({
         label: "Sign in",
         type: "submit",
         variant: "primaryBlock",
         className: "transition",
-      }),
-      subtitle: escapeHtml(
+      })),
+      subtitle:
         supportsMultipleAccounts
           ? "Sign in with your assigned account to review students, meetings, and supervision history."
           : "Sign in to open the supervision dashboard for your current thesis cohort.",
-      ),
     },
     components,
   );

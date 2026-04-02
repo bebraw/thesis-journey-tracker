@@ -1,4 +1,4 @@
-import { escapeHtml } from "../../formatting";
+import { raw } from "../../htmlisp";
 import { getDefaultStudentFormValues } from "../../students";
 import { PAGE_WRAP_NARROW, SUBTLE_TEXT, renderButton, renderCard } from "../../ui";
 import type { AddStudentPageData } from "../types";
@@ -24,58 +24,57 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
 
   const formHtml = renderView(
     `<form action="/actions/add-student" method="post" class="mt-panel-sm grid grid-cols-1 gap-stack-xs sm:grid-cols-2 lg:grid-cols-3">
-      <noop &children="(get props nameField)"></noop>
-      <noop &children="(get props emailField)"></noop>
-      <noop &children="(get props degreeField)"></noop>
-      <noop &children="(get props topicField)"></noop>
-      <noop &children="(get props notesField)"></noop>
-      <noop &children="(get props phaseField)"></noop>
-      <noop &children="(get props startDateField)"></noop>
-      <noop &children="(get props nextMeetingField)"></noop>
-      <noop &children="(get props submitButton)"></noop>
+      <fragment &children="nameField"></fragment>
+      <fragment &children="emailField"></fragment>
+      <fragment &children="degreeField"></fragment>
+      <fragment &children="topicField"></fragment>
+      <fragment &children="notesField"></fragment>
+      <fragment &children="phaseField"></fragment>
+      <fragment &children="startDateField"></fragment>
+      <fragment &children="nextMeetingField"></fragment>
+      <fragment &children="submitButton"></fragment>
     </form>`,
     {
-      ...fields,
-      submitButton: renderButton({
+      ...Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, raw(value)])),
+      submitButton: raw(renderButton({
         label: "Add student",
         type: "submit",
         variant: "primaryBlock",
         className: "sm:col-span-2 lg:col-span-3",
-      }),
+      })),
     },
   );
 
   const bodyContent = renderView(
-    `<div &class="(get props pageWrap)">
-      <noop &children="(get props headerHtml)"></noop>
-      <noop &children="(get props flashHtml)"></noop>
-      <noop &children="(get props cardHtml)"></noop>
+    `<div &class="pageWrap">
+      <fragment &children="headerHtml"></fragment>
+      <fragment &children="flashHtml"></fragment>
+      <fragment &children="cardHtml"></fragment>
     </div>
-    <noop &children="(get props themeToggleScript)"></noop>`,
+    <fragment &children="themeToggleScript"></fragment>`,
     {
-      pageWrap: escapeHtml(PAGE_WRAP_NARROW),
-      headerHtml: renderAuthedPageHeader(
+      pageWrap: PAGE_WRAP_NARROW,
+      headerHtml: raw(renderAuthedPageHeader(
         "Add Student",
         "Create a new thesis supervision entry.",
         renderPageHeaderNavigation("add-student", viewer, showStyleGuide),
         viewer,
-      ),
-      flashHtml: renderFlashMessages(notice, error),
-      cardHtml: renderCard(
+      )),
+      flashHtml: raw(renderFlashMessages(notice, error)),
+      cardHtml: raw(renderCard(
         renderView(
           `<h2 class="text-lg font-semibold">Student Details</h2>
-          <p &class="(get props subtleText)" &children="(get props description)"></p>
-          <noop &children="(get props formHtml)"></noop>`,
+          <p &class="subtleText" &children="description"></p>
+          <fragment &children="formHtml"></fragment>`,
           {
-            subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
-            description: escapeHtml(
+            subtleText: `mt-1 ${SUBTLE_TEXT}`,
+            description:
               "For MSc students, target submission is calculated automatically as six months from the start date. If start date is blank, no target date is shown until one is set.",
-            ),
-            formHtml,
+            formHtml: raw(formHtml),
           },
         ),
-      ),
-      themeToggleScript: THEME_TOGGLE_SCRIPT,
+      )),
+      themeToggleScript: raw(THEME_TOGGLE_SCRIPT),
     },
   );
 

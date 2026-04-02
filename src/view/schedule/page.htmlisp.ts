@@ -1,4 +1,4 @@
-import { escapeHtml } from "../../formatting";
+import { raw } from "../../htmlisp";
 import { PAGE_WRAP } from "../../ui";
 import {
   renderAuthedPageHeader,
@@ -18,27 +18,27 @@ export function renderSchedulePage(data: SchedulePageData): string {
   const { configured, error, notice, showStyleGuide, syncFailed, viewer } = data;
 
   const bodyContent = renderView(
-    `<div &class="(get props pageWrap)">
-      <noop &children="(get props headerHtml)"></noop>
-      <noop &children="(get props flashHtml)"></noop>
-      <noop &children="(get props controlsCard)"></noop>
-      <noop &children="(get props mainCard)"></noop>
-      <noop &children="(get props selectedSlotCard)"></noop>
+    `<div &class="pageWrap">
+      <fragment &children="headerHtml"></fragment>
+      <fragment &children="flashHtml"></fragment>
+      <fragment &children="controlsCard"></fragment>
+      <fragment &children="mainCard"></fragment>
+      <fragment &children="selectedSlotCard"></fragment>
     </div>
-    <noop &children="(get props themeToggleScript)"></noop>`,
+    <fragment &children="themeToggleScript"></fragment>`,
     {
-      pageWrap: escapeHtml(PAGE_WRAP),
-      headerHtml: renderAuthedPageHeader(
+      pageWrap: PAGE_WRAP,
+      headerHtml: raw(renderAuthedPageHeader(
         "Google Calendar Scheduling",
         "See existing Google Calendar events, find open slots, and send student meeting invitations.",
         renderPageHeaderNavigation("schedule", viewer, showStyleGuide),
         viewer,
-      ),
-      flashHtml: renderFlashMessages(notice, error),
-      controlsCard: renderScheduleControlsCard(data),
-      mainCard: !configured ? renderScheduleSetupCard() : syncFailed ? renderScheduleSyncFailureCard() : renderScheduleCalendarCard(data),
-      selectedSlotCard: configured && !syncFailed ? renderSelectedSlotCard(data) : "",
-      themeToggleScript: THEME_TOGGLE_SCRIPT,
+      )),
+      flashHtml: raw(renderFlashMessages(notice, error)),
+      controlsCard: raw(renderScheduleControlsCard(data)),
+      mainCard: raw(!configured ? renderScheduleSetupCard() : syncFailed ? renderScheduleSyncFailureCard() : renderScheduleCalendarCard(data)),
+      selectedSlotCard: configured && !syncFailed ? raw(renderSelectedSlotCard(data)) : raw(""),
+      themeToggleScript: raw(THEME_TOGGLE_SCRIPT),
     },
   );
 

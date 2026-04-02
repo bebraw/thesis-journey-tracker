@@ -1,4 +1,4 @@
-import { escapeHtml } from "../../formatting";
+import { raw } from "../../htmlisp";
 import { FIELD_CONTROL_SM, FORM_LABEL, SUBTLE_TEXT, renderButton, renderCard } from "../../ui";
 import type { SchedulePageData } from "../types";
 import { renderView } from "../shared.htmlisp";
@@ -24,62 +24,62 @@ export function renderSelectedSlotCard(data: SchedulePageData): string {
     ? renderCard(
         renderView(
           `<h2 class="text-lg font-semibold">Schedule Selected Slot</h2>
-          <p &class="(get props subtleText)" &children="(get props description)"></p>
+          <p &class="subtleText" &children="description"></p>
           <form action="/actions/schedule-meeting" method="post" class="mt-panel-sm space-y-stack-xs">
-            <input type="hidden" name="returnTo" &value="(get props returnTo)" />
-            <input type="hidden" name="studentId" &value="(get props studentId)" />
-            <input type="hidden" name="week" &value="(get props selectedWeek)" />
-            <input type="hidden" name="slotStart" &value="(get props slotStart)" />
-            <input type="hidden" name="slotEnd" &value="(get props slotEnd)" />
-            <label &class="(get props formLabelClass)">
+            <input type="hidden" name="returnTo" &value="returnTo" />
+            <input type="hidden" name="studentId" &value="studentId" />
+            <input type="hidden" name="week" &value="selectedWeek" />
+            <input type="hidden" name="slotStart" &value="slotStart" />
+            <input type="hidden" name="slotEnd" &value="slotEnd" />
+            <label &class="formLabelClass">
               <span>Google Calendar title</span>
-              <input name="title" required="required" &class="(get props fieldClass)" &value="(get props defaultTitle)" />
+              <input name="title" required="required" &class="fieldClass" &value="defaultTitle" />
             </label>
-            <label &class="(get props formLabelClass)">
+            <label &class="formLabelClass">
               <span>Invite email</span>
               <input
                 name="meetingEmail"
                 type="email"
                 inputmode="email"
                 required="required"
-                &class="(get props fieldClass)"
-                &value="(get props emailValue)"
+                &class="fieldClass"
+                &value="emailValue"
               />
             </label>
-            <label &class="(get props formLabelClass)">
+            <label &class="formLabelClass">
               <span>Description (optional)</span>
-              <textarea name="description" rows="4" &class="(get props fieldClass)" &children="(get props defaultDescription)"></textarea>
+              <textarea name="description" rows="4" &class="fieldClass" &children="defaultDescription"></textarea>
             </label>
-            <noop &children="(get props submitButton)"></noop>
+            <fragment &children="submitButton"></fragment>
           </form>`,
           {
-            subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
-            description: escapeHtml(`Create a Google Calendar event for ${selectedStudentName || "the selected student"} at ${selectedSlotLabel}.`),
-            returnTo: escapeHtml(selectedSlotHref || `/schedule?week=${selectedWeek}`),
-            studentId: escapeHtml(selectedStudentId),
-            selectedWeek: escapeHtml(selectedWeek),
-            slotStart: escapeHtml(selectedSlotStart),
-            slotEnd: escapeHtml(selectedSlotEnd),
-            formLabelClass: escapeHtml(FORM_LABEL),
-            fieldClass: escapeHtml(`mt-1 ${FIELD_CONTROL_SM}`),
-            defaultTitle: escapeHtml(defaultTitle),
-            emailValue: escapeHtml(selectedStudentEmail),
-            defaultDescription: escapeHtml(defaultDescription),
-            submitButton: renderButton({
+            subtleText: `mt-1 ${SUBTLE_TEXT}`,
+            description: `Create a Google Calendar event for ${selectedStudentName || "the selected student"} at ${selectedSlotLabel}.`,
+            returnTo: selectedSlotHref || `/schedule?week=${selectedWeek}`,
+            studentId: selectedStudentId,
+            selectedWeek,
+            slotStart: selectedSlotStart,
+            slotEnd: selectedSlotEnd,
+            formLabelClass: FORM_LABEL,
+            fieldClass: `mt-1 ${FIELD_CONTROL_SM}`,
+            defaultTitle,
+            emailValue: selectedStudentEmail,
+            defaultDescription,
+            submitButton: raw(renderButton({
               label: "Create Google Calendar event",
               type: "submit",
               variant: "primaryBlock",
-            }),
+            })),
           },
         ),
       )
     : renderCard(
         renderView(
           `<h2 class="text-lg font-semibold">Schedule Selected Slot</h2>
-          <p &class="(get props subtleText)" &children="(get props message)"></p>`,
+          <p &class="subtleText" &children="message"></p>`,
           {
-            subtleText: escapeHtml(`mt-1 ${SUBTLE_TEXT}`),
-            message: escapeHtml(
+            subtleText: `mt-1 ${SUBTLE_TEXT}`,
+            message:
               configured && syncFailed
                 ? "Calendar availability is unavailable until Google Calendar sync starts working again."
                 : sourceMode === "ical"
@@ -89,7 +89,6 @@ export function renderSelectedSlotCard(data: SchedulePageData): string {
                     : configured
                       ? "Choose an available slot from the week view to prepare a Google Calendar invitation."
                       : "Google Calendar must be configured before meetings can be scheduled.",
-            ),
           },
         ),
       );
