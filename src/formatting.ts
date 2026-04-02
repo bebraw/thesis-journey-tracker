@@ -1,3 +1,5 @@
+import { DEFAULT_SCHEDULE_TIMEZONE } from "./calendar/scheduling";
+
 export function formatDateTime(isoValue: string): string {
   const date = new Date(isoValue);
   if (Number.isNaN(date.getTime())) {
@@ -13,7 +15,7 @@ export function formatDateTime(isoValue: string): string {
   }).format(date);
 }
 
-export function toDateTimeLocalInput(isoValue: string | null): string {
+export function toDateTimeLocalInput(isoValue: string | null, timeZone = DEFAULT_SCHEDULE_TIMEZONE): string {
   if (!isoValue) {
     return "";
   }
@@ -21,9 +23,18 @@ export function toDateTimeLocalInput(isoValue: string | null): string {
   if (Number.isNaN(date.getTime())) {
     return "";
   }
-  const offset = date.getTimezoneOffset();
-  const localDate = new Date(date.getTime() - offset * 60000);
-  return localDate.toISOString().slice(0, 16);
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone,
+  }).formatToParts(date);
+
+  return `${findPart(parts, "year")}-${findPart(parts, "month")}-${findPart(parts, "day")}T${findPart(parts, "hour")}:${findPart(parts, "minute")}`;
 }
 
 export function escapeHtml(value: string | number): string {
@@ -37,4 +48,8 @@ export function escapeHtml(value: string | number): string {
 
 export function escapeJsString(value: string): string {
   return value.replaceAll("\\", "\\\\").replaceAll("'", "\\'").replaceAll("\r", "\\r").replaceAll("\n", "\\n");
+}
+
+function findPart(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes): string {
+  return parts.find((part) => part.type === type)?.value || "";
 }

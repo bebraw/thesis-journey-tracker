@@ -1,5 +1,6 @@
 import type { DegreeId, PhaseId } from "../students/store";
 import type { DegreeDefinition, PhaseDefinition } from "../students/reference-data";
+import { DEFAULT_SCHEDULE_TIMEZONE, localDateTimeToUtcIso } from "../calendar/scheduling";
 
 export function normalizeString(value: FormDataEntryValue | string | null | undefined): string | null {
   if (value === null || value === undefined) {
@@ -24,7 +25,12 @@ export function normalizeDateTime(value: FormDataEntryValue | string | null | un
   if (value === null || value === undefined || value === "") {
     return allowNull ? null : null;
   }
-  const date = new Date(String(value));
+  const text = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text)) {
+    return localDateTimeToUtcIso(text, DEFAULT_SCHEDULE_TIMEZONE);
+  }
+
+  const date = new Date(text);
   if (Number.isNaN(date.getTime())) {
     return allowNull ? undefined : null;
   }
