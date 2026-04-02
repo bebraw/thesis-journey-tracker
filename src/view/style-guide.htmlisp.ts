@@ -3,6 +3,7 @@ import { renderCard, SUBTLE_TEXT } from "../ui/foundation";
 import type { UIExampleSection } from "../ui/examples";
 import { getAlertExamplesSection } from "../ui/app/alert.examples";
 import { getBadgeExamplesSection } from "../ui/app/badge.examples";
+import { getHeaderExamplesSection } from "../ui/app/header.examples";
 import { getButtonExamplesSection } from "../ui/foundation/button.examples";
 import { getCardExamplesSection } from "../ui/foundation/card.examples";
 import { getFieldExamplesSection } from "../ui/foundation/field.examples";
@@ -32,6 +33,7 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
   const buttonsCard = renderStyleGuideSection(getButtonExamplesSection());
   const badgesCard = renderStyleGuideSection(getBadgeExamplesSection());
   const alertsCard = renderStyleGuideSection(getAlertExamplesSection());
+  const headerShellCard = renderStyleGuideSection(getHeaderExamplesSection());
   const formFieldsCard = renderStyleGuideSection(getFieldExamplesSection());
   const fieldShellCard = renderStyleGuideSection(getFieldShellExamplesSection());
   const surfacesCard = renderStyleGuideSection(getCardExamplesSection());
@@ -40,7 +42,7 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
   return renderAuthedPageDocument({
     documentTitle: "Thesis Journey Tracker - Style Guide",
     headerTitle: "Style Guide",
-    headerDescription: "Reusable UI patterns for buttons, badges, fields, and surfaces.",
+    headerDescription: "Reusable UI patterns for buttons, badges, fields, surfaces, alerts, and app chrome.",
     currentPage: "style-guide",
     viewer,
     pageWrapClass: PAGE_WRAP,
@@ -59,6 +61,7 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
         ${surfacesCard}
         ${alertsCard}
       </section>`,
+      `<section>${headerShellCard}</section>`,
       `<section>${patternsCard}</section>`,
     ],
   });
