@@ -5,6 +5,7 @@ import { getBadgeExamplesSection } from "../ui/app/badge.examples";
 import { getButtonExamplesSection } from "../ui/foundation/button.examples";
 import { getCardExamplesSection } from "../ui/foundation/card.examples";
 import { getFieldExamplesSection } from "../ui/foundation/field.examples";
+import { getFieldShellExamplesSection } from "../ui/foundation/field-shell.examples";
 import { getPatternExamplesSection } from "../ui/foundation/patterns.examples";
 import { raw } from "../htmlisp";
 import { renderAuthedPageDocument, renderView } from "./shared.htmlisp";
@@ -30,6 +31,7 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
   const buttonsCard = renderStyleGuideSection(getButtonExamplesSection());
   const badgesCard = renderStyleGuideSection(getBadgeExamplesSection());
   const formFieldsCard = renderStyleGuideSection(getFieldExamplesSection());
+  const fieldShellCard = renderStyleGuideSection(getFieldShellExamplesSection());
   const surfacesCard = renderStyleGuideSection(getCardExamplesSection());
   const patternsCard = renderStyleGuideSection(getPatternExamplesSection());
 
@@ -49,6 +51,9 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
       </section>`,
       `<section class="grid grid-cols-1 gap-stack xl:grid-cols-2">
         ${formFieldsCard}
+        ${fieldShellCard}
+      </section>`,
+      `<section class="grid grid-cols-1 gap-stack xl:grid-cols-2">
         ${surfacesCard}
       </section>`,
       `<section>${patternsCard}</section>`,
