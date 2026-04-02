@@ -1,4 +1,4 @@
-import { ALERT_CLASS_MAP, BODY_CLASS, HEADER_CARD, THEME_TOGGLE_BUTTON } from "../ui/app";
+import { ALERT_CLASS_MAP, ALERT_TOAST_ERROR, ALERT_TOAST_SUCCESS, BODY_CLASS, HEADER_CARD, THEME_TOGGLE_BUTTON } from "../ui/app";
 import { BUTTON_CLASS_MAP, renderButton } from "../ui/foundation";
 import { type HtmlispComponents, raw, renderEscapedHTMLisp } from "../htmlisp";
 import type { ViewerContext } from "./types";
@@ -180,12 +180,10 @@ export function renderDashboardToastMessages(notice: string | null, error: strin
         </fragment>`,
         {
           noticeVisible: Boolean(notice),
-          noticeClass:
-            "pointer-events-auto flex items-start gap-badge-y rounded-panel border border-app-success-line bg-app-success-soft/96 px-panel-sm py-stack-xs text-sm text-app-success-text opacity-100 shadow-elevated transition duration-200 ease-out supports-[backdrop-filter]:bg-app-success-soft/86 dark:border-app-success-line-dark/45 dark:bg-app-success-soft-dark/88 dark:text-app-success-text-dark dark:supports-[backdrop-filter]:bg-app-success-soft-dark/78",
+          noticeClass: ALERT_TOAST_SUCCESS,
           noticeMessage: notice || "",
           errorVisible: Boolean(error),
-          errorClass:
-            "pointer-events-auto flex items-start gap-badge-y rounded-panel border border-app-danger-line bg-app-danger-soft/96 px-panel-sm py-stack-xs text-sm text-app-danger-text opacity-100 shadow-elevated transition duration-200 ease-out supports-[backdrop-filter]:bg-app-danger-soft/86 dark:border-app-danger-line-dark/45 dark:bg-app-danger-soft-dark/88 dark:text-app-danger-text-dark dark:supports-[backdrop-filter]:bg-app-danger-soft-dark/78",
+          errorClass: ALERT_TOAST_ERROR,
           errorMessage: error || "",
           dismissButtonClass: `shrink-0 ${BUTTON_CLASS_MAP.inline}`,
         },

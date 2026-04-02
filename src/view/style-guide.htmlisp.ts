@@ -1,6 +1,7 @@
 import { PAGE_WRAP } from "../ui/app";
 import { renderCard, SUBTLE_TEXT } from "../ui/foundation";
 import type { UIExampleSection } from "../ui/examples";
+import { getAlertExamplesSection } from "../ui/app/alert.examples";
 import { getBadgeExamplesSection } from "../ui/app/badge.examples";
 import { getButtonExamplesSection } from "../ui/foundation/button.examples";
 import { getCardExamplesSection } from "../ui/foundation/card.examples";
@@ -30,6 +31,7 @@ function renderStyleGuideSection(section: UIExampleSection): string {
 export function renderStyleGuidePage(viewer: ViewerContext): string {
   const buttonsCard = renderStyleGuideSection(getButtonExamplesSection());
   const badgesCard = renderStyleGuideSection(getBadgeExamplesSection());
+  const alertsCard = renderStyleGuideSection(getAlertExamplesSection());
   const formFieldsCard = renderStyleGuideSection(getFieldExamplesSection());
   const fieldShellCard = renderStyleGuideSection(getFieldShellExamplesSection());
   const surfacesCard = renderStyleGuideSection(getCardExamplesSection());
@@ -55,6 +57,7 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
       </section>`,
       `<section class="grid grid-cols-1 gap-stack xl:grid-cols-2">
         ${surfacesCard}
+        ${alertsCard}
       </section>`,
       `<section>${patternsCard}</section>`,
     ],

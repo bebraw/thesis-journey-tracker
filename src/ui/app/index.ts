@@ -2,6 +2,8 @@ export type { BadgeOptions, BadgeVariant } from "./badge.types";
 
 export {
   ALERT_CLASS_MAP,
+  ALERT_TOAST_ERROR,
+  ALERT_TOAST_SUCCESS,
   BADGE_CLASS_MAP,
   BODY_CLASS,
   BODY_CLASS_LOGIN,

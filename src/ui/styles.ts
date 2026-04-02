@@ -79,6 +79,11 @@ export const ALERT_CLASS_MAP = {
     "rounded-control border border-app-danger-line bg-app-danger-soft px-control-x py-control-y text-sm text-app-danger-text dark:border-app-danger-line-dark/40 dark:bg-app-danger-soft-dark/30 dark:text-app-danger-text-dark",
 } as const;
 
+export const ALERT_TOAST_SUCCESS =
+  "pointer-events-auto flex items-start gap-badge-y rounded-panel border border-app-success-line bg-app-success-soft/96 px-panel-sm py-stack-xs text-sm text-app-success-text opacity-100 shadow-elevated transition duration-200 ease-out supports-[backdrop-filter]:bg-app-success-soft/86 dark:border-app-success-line-dark/45 dark:bg-app-success-soft-dark/88 dark:text-app-success-text-dark dark:supports-[backdrop-filter]:bg-app-success-soft-dark/78";
+export const ALERT_TOAST_ERROR =
+  "pointer-events-auto flex items-start gap-badge-y rounded-panel border border-app-danger-line bg-app-danger-soft/96 px-panel-sm py-stack-xs text-sm text-app-danger-text opacity-100 shadow-elevated transition duration-200 ease-out supports-[backdrop-filter]:bg-app-danger-soft/86 dark:border-app-danger-line-dark/45 dark:bg-app-danger-soft-dark/88 dark:text-app-danger-text-dark dark:supports-[backdrop-filter]:bg-app-danger-soft-dark/78";
+
 export const MEETING_STATUS_BADGE_CLASS_MAP = {
   not_booked: "bg-app-line px-badge-pill-x py-badge-pill-y text-app-text-soft dark:bg-app-line-dark dark:text-app-text-soft-dark",
   overdue:
