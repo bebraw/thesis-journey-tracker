@@ -19,6 +19,15 @@ export interface BadgeOptions {
   className?: string;
 }
 
+export interface SectionHeaderOptions {
+  title: string;
+  meta?: string;
+  headingLevel?: 2 | 3 | 4;
+  className?: string;
+  headingClassName?: string;
+  metaClassName?: string;
+}
+
 export interface SelectOption {
   label: string;
   value: string;

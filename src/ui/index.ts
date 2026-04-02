@@ -3,6 +3,7 @@ export * from "./styles";
 export * from "./button.htmlisp";
 export * from "./badge.htmlisp";
 export * from "./card.htmlisp";
+export * from "./section-header.htmlisp";
 export * from "./field-shell.htmlisp";
 export * from "./input-field.htmlisp";
 export * from "./select-field.htmlisp";

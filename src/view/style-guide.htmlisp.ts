@@ -1,4 +1,8 @@
 import {
+  DISCLOSURE,
+  DISCLOSURE_CONTENT,
+  DISCLOSURE_SUMMARY,
+  EMPTY_STATE_CARD,
   FIELD_CONTROL_SM,
   FORM_LABEL,
   MEETING_STATUS_BADGE_CLASS_MAP,
@@ -10,7 +14,9 @@ import {
   renderButton,
   renderCard,
   renderCompactCard,
+  renderInsetCard,
   renderInputField,
+  renderSectionHeader,
   renderSelectField,
   renderTextareaField,
   type SelectOption,
@@ -177,6 +183,54 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
     ),
   );
 
+  const patternsCard = renderCard(
+    renderView(
+      `<h2 class="text-lg font-semibold">Application Patterns</h2>
+      <p &class="subtleText" &children="description"></p>
+      <div class="mt-panel-sm grid gap-panel-sm">
+        <fragment &children="insetCard"></fragment>
+        <div class="space-y-stack-xs">
+          <fragment &children="sectionHeader"></fragment>
+          <p &class="emptyStateClass">Use the shared empty-state treatment when a section has no content yet.</p>
+        </div>
+        <details &class="disclosureClass">
+          <summary &class="disclosureSummaryClass">Disclosure pattern</summary>
+          <div &class="disclosureContentClass">
+            <p class="text-sm text-app-text-muted dark:text-app-text-muted-dark">
+              Use disclosures for help text and secondary explanations that should stay available without dominating the page.
+            </p>
+          </div>
+        </details>
+      </div>`,
+      {
+        subtleText: `mt-1 ${SUBTLE_TEXT}`,
+        description: "These higher-level patterns are the preferred building blocks for dashboard sections and tool panels.",
+        insetCard: raw(renderInsetCard(
+          renderView(
+            `<fragment &children="sectionHeader"></fragment>
+            <p class="mt-stack-xs text-sm text-app-text-soft dark:text-app-text-soft-dark">
+              Inset cards sit inside larger surfaces to separate tools, filters, or secondary workflows.
+            </p>`,
+            {
+              sectionHeader: raw(renderSectionHeader({
+                title: "Inset Card",
+                meta: "Secondary surface",
+              })),
+            },
+          ),
+        )),
+        sectionHeader: raw(renderSectionHeader({
+          title: "Section Header",
+          meta: "Use concise metadata labels",
+        })),
+        emptyStateClass: EMPTY_STATE_CARD,
+        disclosureClass: DISCLOSURE,
+        disclosureSummaryClass: DISCLOSURE_SUMMARY,
+        disclosureContentClass: `pt-stack-xs ${DISCLOSURE_CONTENT}`,
+      },
+    ),
+  );
+
   return renderAuthedPageDocument({
     documentTitle: "Thesis Journey Tracker - Style Guide",
     headerTitle: "Style Guide",
@@ -195,6 +249,7 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
         ${formFieldsCard}
         ${surfacesCard}
       </section>`,
+      `<section>${patternsCard}</section>`,
     ],
   });
 }
