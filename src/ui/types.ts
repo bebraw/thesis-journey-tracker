@@ -65,6 +65,16 @@ export interface ToggleGroupOptions {
   metaClassName?: string;
 }
 
+export interface DangerPanelOptions {
+  title: string;
+  text: string;
+  content?: string;
+  className?: string;
+  titleClassName?: string;
+  textClassName?: string;
+  attrs?: HtmlispAttributeMap;
+}
+
 export interface SelectOption {
   label: string;
   value: string;

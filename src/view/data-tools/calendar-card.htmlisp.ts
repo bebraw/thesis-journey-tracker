@@ -1,7 +1,10 @@
 import { raw } from "../../htmlisp";
 import {
+  DANGER_PANEL_COMPACT,
   DANGER_PANEL,
+  DANGER_TEXT_SM,
   DANGER_TEXT,
+  DANGER_TITLE_SM,
   DANGER_TITLE,
   FIELD_CONTROL_SM,
   MUTED_TEXT,
@@ -9,6 +12,7 @@ import {
   TEXT_LINK,
   renderButton,
   renderCard,
+  renderDangerPanel,
   renderDisclosure,
   renderInputField,
   renderInsetCard,
@@ -177,13 +181,7 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
         <fragment &children="saveButton"></fragment>
       </form>
       <div &class="scopedDangerPanelClass">
-        <h4 &class="scopedDangerTitleClass">Remove full scheduling credentials</h4>
-        <p &class="scopedDangerTextClass">
-          Use this if you want to disable invitation creation but keep any iCal fallback settings untouched.
-        </p>
-        <form action="/actions/clear-google-calendar-oauth-settings" method="post" class="mt-stack-xs">
-          <fragment &children="clearOAuthButton"></fragment>
-        </form>
+        <fragment &children="scopedDangerPanelHtml"></fragment>
       </div>`,
       {
         headerHtml: raw(renderSectionHeader({
@@ -200,15 +198,26 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
           type: "submit",
           variant: "primaryBlock",
         })),
-        clearOAuthButton: raw(renderButton({
-          label: "Remove full scheduling credentials",
-          type: "submit",
-          variant: "neutral",
+        scopedDangerPanelHtml: raw(renderDangerPanel({
+          title: "Remove full scheduling credentials",
+          text: "Use this if you want to disable invitation creation but keep any iCal fallback settings untouched.",
+          content: renderView(
+            `<form action="/actions/clear-google-calendar-oauth-settings" method="post" class="mt-stack-xs">
+              <fragment &children="clearOAuthButton"></fragment>
+            </form>`,
+            {
+              clearOAuthButton: raw(renderButton({
+                label: "Remove full scheduling credentials",
+                type: "submit",
+                variant: "neutral",
+              })),
+            },
+          ),
+          className: DANGER_PANEL_COMPACT,
+          titleClassName: DANGER_TITLE_SM,
+          textClassName: DANGER_TEXT_SM,
         })),
-        scopedDangerPanelClass:
-          "mt-panel-sm rounded-control border border-app-danger-line/70 bg-app-danger-soft/45 p-panel-sm dark:border-app-danger-line-dark/40 dark:bg-app-danger-soft-dark/20",
-        scopedDangerTitleClass: "text-sm font-semibold text-app-danger-text dark:text-app-danger-text-dark",
-        scopedDangerTextClass: "mt-1 text-sm text-app-danger-text dark:text-app-danger-text-dark",
+        scopedDangerPanelClass: "mt-panel-sm",
       },
     ),
     undefined,
@@ -224,13 +233,7 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
         <fragment &children="saveIcalButton"></fragment>
       </form>
       <div &class="scopedDangerPanelClass">
-        <h4 &class="scopedDangerTitleClass">Remove iCal fallback</h4>
-        <p &class="scopedDangerTextClass">
-          Use this if you no longer want the app to read availability from the fallback iCal link.
-        </p>
-        <form action="/actions/clear-google-calendar-ical-settings" method="post" class="mt-stack-xs">
-          <fragment &children="clearIcalButton"></fragment>
-        </form>
+        <fragment &children="scopedDangerPanelHtml"></fragment>
       </div>`,
       {
         headerHtml: raw(renderSectionHeader({
@@ -244,15 +247,26 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
           type: "submit",
           variant: "primaryBlock",
         })),
-        clearIcalButton: raw(renderButton({
-          label: "Remove iCal fallback",
-          type: "submit",
-          variant: "neutral",
+        scopedDangerPanelHtml: raw(renderDangerPanel({
+          title: "Remove iCal fallback",
+          text: "Use this if you no longer want the app to read availability from the fallback iCal link.",
+          content: renderView(
+            `<form action="/actions/clear-google-calendar-ical-settings" method="post" class="mt-stack-xs">
+              <fragment &children="clearIcalButton"></fragment>
+            </form>`,
+            {
+              clearIcalButton: raw(renderButton({
+                label: "Remove iCal fallback",
+                type: "submit",
+                variant: "neutral",
+              })),
+            },
+          ),
+          className: DANGER_PANEL_COMPACT,
+          titleClassName: DANGER_TITLE_SM,
+          textClassName: DANGER_TEXT_SM,
         })),
-        scopedDangerPanelClass:
-          "mt-panel-sm rounded-control border border-app-danger-line/70 bg-app-danger-soft/45 p-panel-sm dark:border-app-danger-line-dark/40 dark:bg-app-danger-soft-dark/20",
-        scopedDangerTitleClass: "text-sm font-semibold text-app-danger-text dark:text-app-danger-text-dark",
-        scopedDangerTextClass: "mt-1 text-sm text-app-danger-text dark:text-app-danger-text-dark",
+        scopedDangerPanelClass: "mt-panel-sm",
       },
     ),
     undefined,
@@ -303,20 +317,9 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
       </div>
       <fragment &children="oauthHelpDisclosureHtml"></fragment>
       <fragment &children="icalHelpDisclosureHtml"></fragment>
-      <section &class="dangerPanelClass">
-        <h3 &class="dangerTitleClass">Clear all saved calendar settings</h3>
-        <p &class="dangerTextClass">
-          This removes both full scheduling credentials and the iCal fallback at once, leaving scheduling unconfigured.
-        </p>
-        <form action="/actions/clear-google-calendar-settings" method="post" class="mt-panel-sm">
-          <fragment &children="clearButton"></fragment>
-        </form>
-      </section>
+      <fragment &children="clearSettingsDangerPanelHtml"></fragment>
       <p &class="metaText" &children="encryptionNote"></p>`,
       {
-        dangerPanelClass: `${DANGER_PANEL} mt-panel-sm`,
-        dangerTitleClass: DANGER_TITLE,
-        dangerTextClass: DANGER_TEXT,
         subtleText: `mt-1 ${SUBTLE_TEXT}`,
         metaText: `mt-panel-sm ${MUTED_TEXT}`,
         description:
@@ -339,10 +342,24 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
         icalModeSectionHtml: raw(icalModeSectionHtml),
         oauthHelpDisclosureHtml: raw(oauthHelpDisclosureHtml),
         icalHelpDisclosureHtml: raw(icalHelpDisclosureHtml),
-        clearButton: raw(renderButton({
-          label: "Clear stored calendar settings",
-          type: "submit",
-          variant: "dangerBlock",
+        clearSettingsDangerPanelHtml: raw(renderDangerPanel({
+          title: "Clear all saved calendar settings",
+          text: "This removes both full scheduling credentials and the iCal fallback at once, leaving scheduling unconfigured.",
+          content: renderView(
+            `<form action="/actions/clear-google-calendar-settings" method="post" class="mt-panel-sm">
+              <fragment &children="clearButton"></fragment>
+            </form>`,
+            {
+              clearButton: raw(renderButton({
+                label: "Clear stored calendar settings",
+                type: "submit",
+                variant: "dangerBlock",
+              })),
+            },
+          ),
+          className: `${DANGER_PANEL} mt-panel-sm`,
+          titleClassName: DANGER_TITLE,
+          textClassName: DANGER_TEXT,
         })),
         encryptionNote:
           "Saved calendar settings are encrypted before they are written to the database. Set APP_ENCRYPTION_SECRET in the Worker environment if you want that encryption key to be separate from SESSION_SECRET.",

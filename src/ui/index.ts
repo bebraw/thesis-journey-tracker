@@ -3,6 +3,7 @@ export * from "./styles";
 export * from "./button.htmlisp";
 export * from "./badge.htmlisp";
 export * from "./card.htmlisp";
+export * from "./danger-panel.htmlisp";
 export * from "./disclosure.htmlisp";
 export * from "./metadata-list.htmlisp";
 export * from "./section-header.htmlisp";

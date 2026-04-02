@@ -47,6 +47,10 @@ export const DANGER_PANEL =
   "rounded-panel border border-app-danger-line bg-app-danger-soft/70 p-panel-sm dark:border-app-danger-soft-dark/60 dark:bg-app-danger-soft-dark/35";
 export const DANGER_TITLE = "text-lg font-semibold text-app-danger-text dark:text-app-danger-text-dark";
 export const DANGER_TEXT = "mt-1 text-sm text-app-danger-text dark:text-app-danger-text-dark";
+export const DANGER_PANEL_COMPACT =
+  "rounded-control border border-app-danger-line/70 bg-app-danger-soft/45 p-panel-sm dark:border-app-danger-line-dark/40 dark:bg-app-danger-soft-dark/20";
+export const DANGER_TITLE_SM = "text-sm font-semibold text-app-danger-text dark:text-app-danger-text-dark";
+export const DANGER_TEXT_SM = "mt-1 text-sm text-app-danger-text dark:text-app-danger-text-dark";
 export const EMPTY_DASHED_CARD =
   "rounded-card border border-dashed border-app-line-strong bg-app-surface-soft/75 px-control-x py-panel-sm text-xs text-app-text-muted dark:border-app-line-dark-strong dark:bg-app-surface-soft-dark/25 dark:text-app-text-muted-dark";
 export const TABLE_HEADER_ROW = "text-left text-[11px] uppercase tracking-[0.16em] text-app-text-muted dark:text-app-text-muted-dark";

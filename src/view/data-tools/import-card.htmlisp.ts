@@ -1,13 +1,14 @@
 import { raw } from "../../htmlisp";
 import {
-  DANGER_PANEL,
-  DANGER_TEXT,
-  DANGER_TITLE,
+  DANGER_PANEL_COMPACT,
+  DANGER_TEXT_SM,
+  DANGER_TITLE_SM,
   FIELD_CONTROL_SM,
   MUTED_TEXT,
   SUBTLE_TEXT,
   renderButton,
   renderCard,
+  renderDangerPanel,
   renderInputField,
   renderSelectField,
 } from "../../ui";
@@ -59,12 +60,13 @@ export function renderImportCard(replaceImportEnabled: boolean): string {
                 <input type="checkbox" name="confirmReplace" value="yes" class="mt-1 h-4 w-4 rounded-sm border-app-field text-app-brand focus:ring-app-brand dark:border-app-field-dark" />
                 <span>Allow replacement mode to delete the current dataset before importing.</span>
               </label>
-              <div class="${DANGER_PANEL}">
-                <h3 class="${DANGER_TITLE}">Replacement warning</h3>
-                <p class="${DANGER_TEXT}">
-                  Replacement mode is intended for deliberate recovery work. The import now runs as a single batch so a failed restore leaves existing data untouched.
-                </p>
-              </div>`
+              ${renderDangerPanel({
+                title: "Replacement warning",
+                text: "Replacement mode is intended for deliberate recovery work. The import now runs as a single batch so a failed restore leaves existing data untouched.",
+                className: DANGER_PANEL_COMPACT,
+                titleClassName: DANGER_TITLE_SM,
+                textClassName: DANGER_TEXT_SM,
+              })}`
             : "",
         ),
         replacementStateHtml: raw(

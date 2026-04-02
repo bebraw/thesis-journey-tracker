@@ -1,4 +1,7 @@
 import {
+  DANGER_PANEL_COMPACT,
+  DANGER_TEXT_SM,
+  DANGER_TITLE_SM,
   EMPTY_STATE_CARD,
   FIELD_CONTROL_SM,
   FORM_LABEL,
@@ -13,6 +16,7 @@ import {
   renderButton,
   renderCard,
   renderCompactCard,
+  renderDangerPanel,
   renderDisclosure,
   renderInsetCard,
   renderInputField,
@@ -200,6 +204,7 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
           <fragment &children="panelToggleHtml"></fragment>
         </div>
         <fragment &children="metadataListHtml"></fragment>
+        <fragment &children="dangerPanelHtml"></fragment>
         <fragment &children="disclosureHtml"></fragment>
       </div>`,
       {
@@ -245,6 +250,13 @@ export function renderStyleGuidePage(viewer: ViewerContext): string {
             { label: "Saved logs", value: "12" },
             { label: "Status", value: "Meeting soon" },
           ],
+        })),
+        dangerPanelHtml: raw(renderDangerPanel({
+          title: "Compact Danger Panel",
+          text: "Use the compact danger treatment for destructive secondary actions inside larger cards.",
+          className: DANGER_PANEL_COMPACT,
+          titleClassName: DANGER_TITLE_SM,
+          textClassName: DANGER_TEXT_SM,
         })),
         emptyStateClass: EMPTY_STATE_CARD,
         disclosureHtml: raw(renderDisclosure({
