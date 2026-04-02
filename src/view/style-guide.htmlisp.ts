@@ -1,18 +1,20 @@
 import {
+  MEETING_STATUS_BADGE_CLASS_MAP,
+  PAGE_WRAP,
+  STATUS_BADGE,
+  renderBadge,
+} from "../ui/app";
+import {
   DANGER_PANEL_COMPACT,
   DANGER_TEXT_SM,
   DANGER_TITLE_SM,
   EMPTY_STATE_CARD,
   FIELD_CONTROL_SM,
   FORM_LABEL,
-  MEETING_STATUS_BADGE_CLASS_MAP,
   MUTED_TEXT_XS,
-  PAGE_WRAP,
-  STATUS_BADGE,
   SUBTLE_TEXT,
   TOGGLE_BUTTON_PANEL,
   TOGGLE_GROUP_SEGMENTED,
-  renderBadge,
   renderButton,
   renderCard,
   renderCompactCard,
@@ -26,7 +28,7 @@ import {
   renderToggleGroup,
   renderTextareaField,
   type SelectOption,
-} from "../ui";
+} from "../ui/foundation";
 import { raw } from "../htmlisp";
 import { renderAuthedPageDocument, renderView } from "./shared.htmlisp";
 import { DEGREE_TYPES } from "../students";

@@ -4,7 +4,7 @@ This note collects feature ideas that feel like a natural next step for the proj
 
 ## Current Priority Items
 
-Nothing is currently pinned here. The recent shared UI cleanup is largely complete, and any remaining view-specific duplication looks small enough to address opportunistically with future feature work.
+- Validate [`src/ui/foundation/`](../src/ui/foundation) against a second real consumer before moving it into a separate repository or package. The in-repo foundation/app split is now in place, so the remaining gap is proving the API outside this app.
 
 ## Highest-Value Next Steps
 

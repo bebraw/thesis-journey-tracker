@@ -1,4 +1,4 @@
-import { PAGE_WRAP } from "../../ui";
+import { PAGE_WRAP } from "../../ui/app";
 import {
   renderAuthedPageDocument,
 } from "../shared.htmlisp";

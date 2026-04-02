@@ -1,4 +1,5 @@
-import { ALERT_CLASS_MAP, BODY_CLASS_LOGIN, FIELD_CONTROL_SM, LOGIN_CARD, renderButton, SUBTLE_TEXT } from "../ui";
+import { ALERT_CLASS_MAP, BODY_CLASS_LOGIN, LOGIN_CARD } from "../ui/app";
+import { FIELD_CONTROL_SM, SUBTLE_TEXT, renderButton } from "../ui/foundation";
 import { raw, type HtmlispComponents } from "../htmlisp";
 import { renderDocument, renderView } from "./shared.htmlisp";
 

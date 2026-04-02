@@ -34,7 +34,9 @@ This document gives a technical overview of how the project is put together.
 - [`src/view/schedule/`](../src/view/schedule): scheduling page composition for controls, availability grid, and invitation state
 - [`src/view/students/`](../src/view/students): shared student add/edit/panel view helpers
 - [`src/view/data-tools/`](../src/view/data-tools): data-tools page composition for backup import/export and calendar settings
-- [`src/ui/`](../src/ui): reusable UI components and styling helpers
+- [`src/ui/`](../src/ui): compatibility barrel for the UI layer plus the implementation files that back it
+- [`src/ui/foundation/`](../src/ui/foundation): reusable button, card, disclosure, metadata, toggle, and field primitives intended to be extractable across projects
+- [`src/ui/app/`](../src/ui/app): app-shaped UI exports such as page shells, badges, status treatments, and other Thesis Journey Tracker-specific conventions
 - [`migrations/`](../migrations): schema changes for D1
 - [`tests/`](../tests): end-to-end tests plus shared test helpers and broader integration/security coverage
 - [`src/routes/*.test.ts`](../src/routes): co-located Vitest coverage for route modules such as auth, scheduling, and data tools
@@ -99,6 +101,8 @@ graph TD
 ```
 
 The Worker is now intentionally thin: it handles request/session setup, authentication, and route dispatch. Feature-specific page rendering and form-action behavior live under [`src/routes/`](../src/routes), where handlers talk to D1 through feature-owned store modules, render server-side HTML through the shared view/UI layers, and rely on shared feature modules such as [`src/auth/`](../src/auth) for reusable authentication concerns, [`src/calendar/`](../src/calendar) for Google Calendar access and schedule-building logic, [`src/students/`](../src/students) for shared student forms and status rules, and [`src/data-transfer/`](../src/data-transfer) for import/export/report generation shared with automated backups. Shared D1 interfaces now live in [`src/db-core.ts`](../src/db-core.ts), while focused support code is split between [`src/http/response.ts`](../src/http/response.ts), [`src/forms/normalize.ts`](../src/forms/normalize.ts), and [`src/formatting.ts`](../src/formatting.ts).
+
+The UI layer now has an explicit boundary for reuse work. [`src/ui/foundation/`](../src/ui/foundation) is the intended extraction target and contains the generic public surface for controls, cards, disclosures, metadata presentation, and form wrappers. [`src/ui/app/`](../src/ui/app) keeps the product-specific shell and status conventions local to this repository. [`src/ui/index.ts`](../src/ui/index.ts) still re-exports both surfaces so existing imports can migrate incrementally.
 
 Authentication remains intentionally lightweight: accounts are stored in the `app_users` D1 table with hashed passwords, and the Worker stores the signed session together with the viewer role (`editor` or `readonly`) in an `HttpOnly` cookie.
 

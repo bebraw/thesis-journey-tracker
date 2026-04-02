@@ -1,4 +1,4 @@
-import { PAGE_WRAP_NARROW } from "../../ui";
+import { PAGE_WRAP_NARROW } from "../../ui/app";
 import type { DataToolsPageData } from "../types";
 import {
   renderAuthedPageDocument,

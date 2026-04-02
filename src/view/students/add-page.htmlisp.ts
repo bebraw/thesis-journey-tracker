@@ -1,6 +1,7 @@
 import { raw } from "../../htmlisp";
 import { getDefaultStudentFormValues } from "../../students";
-import { PAGE_WRAP_NARROW, SUBTLE_TEXT, renderButton, renderCard } from "../../ui";
+import { PAGE_WRAP_NARROW } from "../../ui/app";
+import { SUBTLE_TEXT, renderButton, renderCard } from "../../ui/foundation";
 import type { AddStudentPageData } from "../types";
 import {
   renderAuthedPageDocument,
