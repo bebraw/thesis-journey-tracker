@@ -1,4 +1,4 @@
-import { escapeJsString, formatDateTime } from "../../formatting";
+import { escapeJsString, formatDateTime, toDateTimeLocalInput } from "../../formatting";
 import { raw } from "../../htmlisp";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getStudentFormValues, getTargetSubmissionDate, PHASES } from "../../students";
 import type { MeetingLog, PhaseAuditEntry, Student } from "../../students/store";
@@ -249,6 +249,7 @@ export function renderSelectedStudentPanel(
   });
   const targetSubmissionDate = getTargetSubmissionDate(student) || "Not set";
   const nextMeetingText = student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked";
+  const defaultMeetingDateTimeValue = toDateTimeLocalInput(student.nextMeetingAt);
   const summaryBadgesHtml = raw([
     renderBadge({ label: getDegreeLabel(student.degreeType, DEGREE_TYPES) }),
     renderBadge({ label: getPhaseLabel(student.currentPhase, PHASES) }),
@@ -312,6 +313,7 @@ export function renderSelectedStudentPanel(
         label: "Meeting date/time",
         name: "happenedAt",
         type: "datetime-local",
+        value: defaultMeetingDateTimeValue,
         className: FIELD_CONTROL,
         attrs: DATETIME_LOCAL_HALF_HOUR_STEP,
       })),
