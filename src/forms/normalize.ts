@@ -21,13 +21,17 @@ export function normalizeDate(value: FormDataEntryValue | string | null | undefi
   return text;
 }
 
-export function normalizeDateTime(value: FormDataEntryValue | string | null | undefined, allowNull = false): string | null | undefined {
+export function normalizeDateTime(
+  value: FormDataEntryValue | string | null | undefined,
+  allowNull = false,
+  timeZone = DEFAULT_SCHEDULE_TIMEZONE,
+): string | null | undefined {
   if (value === null || value === undefined || value === "") {
     return allowNull ? null : null;
   }
   const text = String(value).trim();
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text)) {
-    return localDateTimeToUtcIso(text, DEFAULT_SCHEDULE_TIMEZONE);
+    return localDateTimeToUtcIso(text, timeZone);
   }
 
   const date = new Date(text);

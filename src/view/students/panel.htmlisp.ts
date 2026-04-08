@@ -58,6 +58,7 @@ interface PreparedPhaseAuditEntry {
 interface StudentPanelOptions {
   canEdit?: boolean;
   filters?: DashboardFilters;
+  timeZone?: string;
 }
 
 interface PreparedReadonlyField {
@@ -71,9 +72,9 @@ interface PreparedToolAction {
   meta?: string;
 }
 
-function prepareLogEntries(logs: MeetingLog[]): PreparedLogEntry[] {
+function prepareLogEntries(logs: MeetingLog[], timeZone?: string): PreparedLogEntry[] {
   return logs.map((log) => ({
-    timestampText: formatDateTime(log.happenedAt),
+    timestampText: formatDateTime(log.happenedAt, timeZone),
     discussed: log.discussed,
     agreedPlan: log.agreedPlan,
     hasDeadline: Boolean(log.nextStepDeadline),
@@ -81,14 +82,14 @@ function prepareLogEntries(logs: MeetingLog[]): PreparedLogEntry[] {
   }));
 }
 
-function preparePhaseAuditEntries(entries: PhaseAuditEntry[]): PreparedPhaseAuditEntry[] {
+function preparePhaseAuditEntries(entries: PhaseAuditEntry[], timeZone?: string): PreparedPhaseAuditEntry[] {
   return entries.map((entry) => ({
-    timestampText: formatDateTime(entry.changedAt),
+    timestampText: formatDateTime(entry.changedAt, timeZone),
     transitionText: `${getPhaseLabel(entry.fromPhase, PHASES)} -> ${getPhaseLabel(entry.toPhase, PHASES)}`,
   }));
 }
 
-function prepareReadonlyFields(student: Student): PreparedReadonlyField[] {
+function prepareReadonlyFields(student: Student, timeZone?: string): PreparedReadonlyField[] {
   const targetSubmissionDate = getTargetSubmissionDate(student);
   return [
     { label: "Name", value: student.name },
@@ -99,7 +100,7 @@ function prepareReadonlyFields(student: Student): PreparedReadonlyField[] {
     { label: "Student notes", value: student.studentNotes || "Not set" },
     { label: "Start date", value: student.startDate || "Not set" },
     { label: "Target submission", value: targetSubmissionDate || "Not set" },
-    { label: "Next meeting", value: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked" },
+    { label: "Next meeting", value: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked" },
     { label: "Saved meeting logs", value: String(student.logCount) },
   ].map((field) => ({
     label: field.label,
@@ -107,8 +108,8 @@ function prepareReadonlyFields(student: Student): PreparedReadonlyField[] {
   }));
 }
 
-function renderReadonlyStudentSummary(student: Student): string {
-  const readonlyFields = prepareReadonlyFields(student);
+function renderReadonlyStudentSummary(student: Student, timeZone?: string): string {
+  const readonlyFields = prepareReadonlyFields(student, timeZone);
 
   return renderView(
     `<section>
@@ -221,7 +222,7 @@ export function renderSelectedStudentPanel(
   phaseAudit: PhaseAuditEntry[],
   options: StudentPanelOptions = {},
 ): string {
-  const { canEdit = true, filters } = options;
+  const { canEdit = true, filters, timeZone } = options;
   const returnSearchParams = new URLSearchParams();
   returnSearchParams.set("selected", String(student.id));
   if (filters?.search) {
@@ -242,14 +243,14 @@ export function renderSelectedStudentPanel(
   }
   const returnTo = `/?${returnSearchParams.toString()}`;
 
-  const preparedLogs = prepareLogEntries(logs);
-  const preparedPhaseAudit = preparePhaseAuditEntries(phaseAudit);
+  const preparedLogs = prepareLogEntries(logs, timeZone);
+  const preparedPhaseAudit = preparePhaseAuditEntries(phaseAudit, timeZone);
   const fields = renderStudentFormFields({
-    values: getStudentFormValues(student),
+    values: getStudentFormValues(student, timeZone),
   });
   const targetSubmissionDate = getTargetSubmissionDate(student) || "Not set";
-  const nextMeetingText = student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked";
-  const defaultMeetingDateTimeValue = toDateTimeLocalInput(student.nextMeetingAt);
+  const nextMeetingText = student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked";
+  const defaultMeetingDateTimeValue = toDateTimeLocalInput(student.nextMeetingAt, timeZone);
   const summaryBadgesHtml = raw([
     renderBadge({ label: getDegreeLabel(student.degreeType, DEGREE_TYPES) }),
     renderBadge({ label: getPhaseLabel(student.currentPhase, PHASES) }),
@@ -360,7 +361,7 @@ export function renderSelectedStudentPanel(
       </article>`,
       {
         cardClass: `${PANEL_STACK} ${SURFACE_CARD}`,
-        summaryHtml: raw(renderReadonlyStudentSummary(student)),
+        summaryHtml: raw(renderReadonlyStudentSummary(student, timeZone)),
         historyPanelHtml: raw(renderInsetCard(
           historyContentHtml,
           "bg-app-surface-soft/60 dark:bg-app-surface-soft-dark/30",

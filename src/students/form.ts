@@ -33,6 +33,7 @@ export interface StudentFormValues {
 interface ParseStudentFormOptions {
   mode: StudentFormMode;
   existingStudent?: Student;
+  timeZone?: string;
 }
 
 export function getDefaultStudentFormValues(): StudentFormValues {
@@ -48,7 +49,7 @@ export function getDefaultStudentFormValues(): StudentFormValues {
   };
 }
 
-export function getStudentFormValues(student: Student): StudentFormValues {
+export function getStudentFormValues(student: Student, timeZone?: string): StudentFormValues {
   return {
     name: student.name,
     email: student.email || "",
@@ -57,12 +58,12 @@ export function getStudentFormValues(student: Student): StudentFormValues {
     studentNotes: student.studentNotes || "",
     startDate: student.startDate || "",
     currentPhase: student.currentPhase,
-    nextMeetingAt: toDateTimeLocalInput(student.nextMeetingAt),
+    nextMeetingAt: toDateTimeLocalInput(student.nextMeetingAt, timeZone),
   };
 }
 
 export function parseStudentFormSubmission(formData: FormData, options: ParseStudentFormOptions): StudentMutationInput | null {
-  const { mode, existingStudent } = options;
+  const { mode, existingStudent, timeZone } = options;
 
   const name = normalizeString(readRequiredField(formData, STUDENT_FORM_FIELDS.name, existingStudent?.name));
   const email = normalizeString(readOptionalField(formData, STUDENT_FORM_FIELDS.email, existingStudent?.email ?? null));
@@ -86,7 +87,7 @@ export function parseStudentFormSubmission(formData: FormData, options: ParseStu
   const clearNextMeetingAt = normalizeString(formData.get(STUDENT_FORM_FIELDS.clearNextMeetingAt)) === "yes";
   const nextMeetingAt = clearNextMeetingAt
     ? null
-    : normalizeDateTime(readOptionalField(formData, STUDENT_FORM_FIELDS.nextMeetingAt, existingStudent?.nextMeetingAt ?? null), true);
+    : normalizeDateTime(readOptionalField(formData, STUDENT_FORM_FIELDS.nextMeetingAt, existingStudent?.nextMeetingAt ?? null), true, timeZone);
 
   if (!name || startDate === undefined || !degreeType || !currentPhase || nextMeetingAt === undefined) {
     return null;

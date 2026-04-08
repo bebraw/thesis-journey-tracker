@@ -1,5 +1,6 @@
 import type { SessionUser } from "../../auth";
 import type { Env } from "../../app-env";
+import { resolveGoogleCalendarSourceForApp, resolveScheduleTimeZone } from "../../calendar";
 import { htmlFragmentResponse, htmlResponse } from "../../http/response";
 import { isPastTargetSubmissionDate, meetingStatusId } from "../../students";
 import { getStudentById, listLogsForStudent, listPhaseAuditEntriesForStudent, listStudents } from "../../students/store";
@@ -7,8 +8,13 @@ import { renderAddStudentPage, renderDashboardPage, renderEmptySelectedPanel, re
 import { getDashboardFilters } from "./filters";
 
 export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser, showStyleGuide: boolean): Promise<Response> {
-  const [students, allStudents] = await Promise.all([listStudents(env.DB), listStudents(env.DB, { includeArchived: true })]);
+  const [students, allStudents, calendarSource] = await Promise.all([
+    listStudents(env.DB),
+    listStudents(env.DB, { includeArchived: true }),
+    resolveGoogleCalendarSourceForApp(env),
+  ]);
   const filters = getDashboardFilters(url.searchParams);
+  const timeZone = resolveScheduleTimeZone(calendarSource?.timeZone);
 
   const selectedIdParam = url.searchParams.get("selected");
   const parsedSelectedId = selectedIdParam ? Number.parseInt(selectedIdParam, 10) : 0;
@@ -42,6 +48,7 @@ export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUs
       notice,
       error,
       metrics,
+      timeZone,
       showStyleGuide,
     }),
   );
@@ -65,7 +72,10 @@ export function renderAddStudent(url: URL, sessionUser: SessionUser, showStyleGu
 }
 
 export async function renderStudentPanelPartial(env: Env, url: URL, studentId: number, sessionUser: SessionUser): Promise<Response> {
-  const selectedStudent = await getStudentById(env.DB, studentId);
+  const [selectedStudent, calendarSource] = await Promise.all([
+    getStudentById(env.DB, studentId),
+    resolveGoogleCalendarSourceForApp(env),
+  ]);
 
   if (!selectedStudent) {
     return htmlFragmentResponse(renderEmptySelectedPanel("Student not found."), 404);
@@ -77,6 +87,7 @@ export async function renderStudentPanelPartial(env: Env, url: URL, studentId: n
     renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, {
       canEdit: sessionUser.role !== "readonly",
       filters: getDashboardFilters(url.searchParams),
+      timeZone: resolveScheduleTimeZone(calendarSource?.timeZone),
     }),
   );
 }

@@ -56,4 +56,22 @@ describe("students table", () => {
     expect(selectedRowClass).not.toContain("bg-app-brand-soft/90");
     expect(selectedRowClass).not.toContain("dark:bg-app-brand-soft-dark/25");
   });
+
+  it("formats next meetings using the explicit table timezone", () => {
+    const html = renderStudentsTable(
+      [
+        buildStudent({ id: 13, name: "Selected Student", nextMeetingAt: "2026-04-10T09:00:00.000Z" }),
+      ],
+      null,
+      DEFAULT_FILTERS,
+      "<div>Metrics</div>",
+      "<div>Phases</div>",
+      "<div>Panel</div>",
+      "<div>Empty</div>",
+      { timeZone: "UTC" },
+    );
+
+    expect(html).toContain("10 Apr 2026, 09:00 UTC");
+    expect(html).not.toContain("10 Apr 2026, 12:00 EEST");
+  });
 });

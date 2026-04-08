@@ -1,4 +1,5 @@
 import type { Env } from "../../app-env";
+import { resolveGoogleCalendarSourceForApp, resolveScheduleTimeZone } from "../../calendar";
 import { normalizeDate, normalizeDateTime, normalizeString } from "../../forms/normalize";
 import { redirect } from "../../http/response";
 import { parseStudentFormSubmission } from "../../students";
@@ -16,7 +17,8 @@ import { appendDashboardMessage, getDashboardReturnPath } from "./filters";
 
 export async function handleAddStudent(request: Request, env: Env): Promise<Response> {
   const formData = await request.formData();
-  const studentInput = parseStudentFormSubmission(formData, { mode: "create" });
+  const timeZone = await resolveDashboardTimeZone(env);
+  const studentInput = parseStudentFormSubmission(formData, { mode: "create", timeZone });
   if (!studentInput) {
     return redirect("/students/new?error=Invalid+student+input");
   }
@@ -38,9 +40,11 @@ export async function handleUpdateStudent(request: Request, env: Env, studentId:
   }
 
   const formData = await request.formData();
+  const timeZone = await resolveDashboardTimeZone(env);
   const studentInput = parseStudentFormSubmission(formData, {
     mode: "update",
     existingStudent,
+    timeZone,
   });
 
   if (!studentInput) {
@@ -69,8 +73,9 @@ export async function handleUpdateStudent(request: Request, env: Env, studentId:
 export async function handleAddLog(request: Request, env: Env, studentId: number): Promise<Response> {
   const returnPath = await getDashboardReturnPath(request, { selectedId: studentId });
   const formData = await request.formData();
+  const timeZone = await resolveDashboardTimeZone(env);
 
-  const happenedAt = normalizeDateTime(formData.get("happenedAt"), true) || new Date().toISOString();
+  const happenedAt = normalizeDateTime(formData.get("happenedAt"), true, timeZone) || new Date().toISOString();
   const discussed = normalizeString(formData.get("discussed"));
   const agreedPlan = normalizeString(formData.get("agreedPlan"));
   const nextStepDeadlineValue = formData.get("nextStepDeadline");
@@ -78,7 +83,7 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
     nextStepDeadlineValue === null ? null : normalizeDate(nextStepDeadlineValue, true);
   const nextMeetingAtValue = formData.get("nextMeetingAt");
   const nextMeetingAtText = typeof nextMeetingAtValue === "string" ? nextMeetingAtValue.trim() : "";
-  const nextMeetingAt = nextMeetingAtText ? normalizeDateTime(nextMeetingAtText, true) : null;
+  const nextMeetingAt = nextMeetingAtText ? normalizeDateTime(nextMeetingAtText, true, timeZone) : null;
 
   if (!discussed || !agreedPlan || nextStepDeadline === undefined || nextMeetingAt === undefined) {
     return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Invalid log input" }));
@@ -124,4 +129,9 @@ export async function handleArchiveStudent(request: Request, env: Env, studentId
   }
 
   return redirect(appendDashboardMessage(returnPath, { notice: "Student archived" }));
+}
+
+async function resolveDashboardTimeZone(env: Env): Promise<string> {
+  const calendarSource = await resolveGoogleCalendarSourceForApp(env);
+  return resolveScheduleTimeZone(calendarSource?.timeZone);
 }

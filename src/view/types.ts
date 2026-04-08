@@ -32,6 +32,7 @@ export interface DashboardPageData {
   notice: string | null;
   error: string | null;
   metrics: Metrics;
+  timeZone: string;
   showStyleGuide: boolean;
 }
 

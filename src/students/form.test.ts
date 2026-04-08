@@ -68,4 +68,23 @@ describe("parseStudentFormSubmission", () => {
   it("renders stored next meetings back into a deterministic datetime-local value", () => {
     expect(getStudentFormValues(EXISTING_STUDENT).nextMeetingAt).toBe("2026-04-10T12:00");
   });
+
+  it("supports rendering and parsing datetime-local values in an explicit timezone", () => {
+    expect(getStudentFormValues(EXISTING_STUDENT, "UTC").nextMeetingAt).toBe("2026-04-10T09:00");
+
+    const formData = new FormData();
+    formData.set(STUDENT_FORM_FIELDS.name, EXISTING_STUDENT.name);
+    formData.set(STUDENT_FORM_FIELDS.email, EXISTING_STUDENT.email || "");
+    formData.set(STUDENT_FORM_FIELDS.degreeType, EXISTING_STUDENT.degreeType);
+    formData.set(STUDENT_FORM_FIELDS.currentPhase, EXISTING_STUDENT.currentPhase);
+    formData.set(STUDENT_FORM_FIELDS.nextMeetingAt, "2026-04-10T09:00");
+
+    const parsed = parseStudentFormSubmission(formData, {
+      mode: "update",
+      existingStudent: EXISTING_STUDENT,
+      timeZone: "UTC",
+    });
+
+    expect(parsed?.nextMeetingAt).toBe("2026-04-10T09:00:00.000Z");
+  });
 });

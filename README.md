@@ -46,6 +46,8 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 - Export or restore the dataset as JSON backups, and download an email-ready Markdown status report.
 - Store automated Cloudflare backups in R2 when deployed with the scheduled backup setup.
 
+Meeting timestamps are stored internally in UTC. The dashboard, student workspace, and `datetime-local` form defaults render them using the configured Google Calendar timezone, or `Europe/Helsinki` when no app timezone is configured.
+
 ## Quick Start
 
 Prerequisites:

@@ -1,6 +1,6 @@
 import { DEFAULT_SCHEDULE_TIMEZONE } from "./calendar/scheduling";
 
-export function formatDateTime(isoValue: string): string {
+export function formatDateTime(isoValue: string, timeZone = DEFAULT_SCHEDULE_TIMEZONE): string {
   const date = new Date(isoValue);
   if (Number.isNaN(date.getTime())) {
     return isoValue;
@@ -12,6 +12,7 @@ export function formatDateTime(isoValue: string): string {
     hour: "2-digit",
     minute: "2-digit",
     timeZoneName: "short",
+    timeZone,
   }).format(date);
 }
 

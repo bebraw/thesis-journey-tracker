@@ -28,4 +28,14 @@ describe("renderSelectedStudentPanel", () => {
     expect(nextMeetingInputHtml).toBeDefined();
     expect(nextMeetingInputHtml).not.toContain(' value="');
   });
+
+  it("formats stored timestamps using the explicit panel timezone", () => {
+    const html = renderSelectedStudentPanel(BASE_STUDENT, [], [], {
+      canEdit: false,
+      timeZone: "UTC",
+    });
+
+    expect(html).toContain("10 Apr 2026, 09:00 UTC");
+    expect(html).not.toContain("10 Apr 2026, 12:00 EEST");
+  });
 });

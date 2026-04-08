@@ -123,6 +123,7 @@ If you want `/schedule` to read and create Google Calendar events, collect the v
 
 6. Optionally choose the display timezone.
    This is not provided by Google directly; choose an IANA timezone string such as `Europe/Helsinki` or `America/New_York`. If you leave it blank in the app, Thesis Journey Tracker defaults to `Europe/Helsinki`.
+   Thesis Journey Tracker stores meeting timestamps in UTC, then uses this configured timezone when rendering dashboard timestamps and when converting `datetime-local` form values back to UTC.
 
 ### Optional: Save Google Credentials Inside The App
 

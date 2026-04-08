@@ -10,10 +10,10 @@ import { renderPhaseLanes } from "./phase-lanes.htmlisp";
 import { renderStudentsTable } from "./students-table.htmlisp";
 
 export function renderDashboardPage(data: DashboardPageData): string {
-  const { viewer, students, selectedStudent, logs, phaseAudit, filters, notice, error, metrics, showStyleGuide } = data;
+  const { viewer, students, selectedStudent, logs, phaseAudit, filters, notice, error, metrics, timeZone, showStyleGuide } = data;
   const canEdit = viewer.role === "editor";
   const selectedPanel = selectedStudent
-    ? renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, { canEdit, filters })
+    ? renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, { canEdit, filters, timeZone })
     : renderEmptySelectedPanel(
         canEdit
           ? "Select a student from the table to edit details and view/add supervision logs."
@@ -46,7 +46,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
             ? "Select a student from the table to edit details and view/add supervision logs."
             : "Select a student from the table to view details, supervision logs, and phase history.",
         ),
-        { canEdit },
+        { canEdit, timeZone },
       ),
     ],
     scripts: [renderDashboardScriptTag()],

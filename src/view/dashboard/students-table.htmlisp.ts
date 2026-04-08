@@ -100,7 +100,12 @@ function buildDashboardHref(filters: DashboardFilters, selectedId?: number): str
   return query ? `/?${query}` : "/";
 }
 
-function prepareStudentRows(students: Student[], selectedStudent: Student | null, filters: DashboardFilters): PreparedStudentRow[] {
+function prepareStudentRows(
+  students: Student[],
+  selectedStudent: Student | null,
+  filters: DashboardFilters,
+  timeZone?: string,
+): PreparedStudentRow[] {
   return students.map((student) => {
     const statusId = meetingStatusId(student);
     const targetSubmissionDate = getTargetSubmissionDate(student);
@@ -166,7 +171,7 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
       mobileDetailsHtml: raw(renderMetadataList({
         items: [
           { label: "Target", value: targetSubmissionDate || "Not set" },
-          { label: "Next meeting", value: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked" },
+          { label: "Next meeting", value: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked" },
           { label: "Logs", value: String(student.logCount) },
           {
             label: "Status",
@@ -194,7 +199,7 @@ function prepareStudentRows(students: Student[], selectedStudent: Student | null
       degreeLabel,
       phaseLabel,
       targetDate: targetSubmissionDate || "Not set",
-      nextMeetingText: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt) : "Not booked",
+      nextMeetingText: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked",
       logCountText: String(student.logCount),
       statusLabel:
         statusId === "overdue"
@@ -216,9 +221,9 @@ export function renderStudentsTable(
   phaseLanesHtml: string,
   selectedPanel: string,
   emptySelectedPanel: string,
-  options: { canEdit?: boolean } = {},
+  options: { canEdit?: boolean; timeZone?: string } = {},
 ): string {
-  const { canEdit = false } = options;
+  const { canEdit = false, timeZone } = options;
   const degreeFilterOptions = prepareFilterOptions(
     [
       { value: "", label: "All degree types" },
@@ -249,7 +254,7 @@ export function renderStudentsTable(
     ],
     filters.status,
   );
-  const studentRows = prepareStudentRows(students, selectedStudent, filters);
+  const studentRows = prepareStudentRows(students, selectedStudent, filters, timeZone);
   const sortHeaders: PreparedSortHeader[] = [
     { key: "student", label: "Student" },
     { key: "degree", label: "Degree" },
