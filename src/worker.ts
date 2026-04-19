@@ -32,6 +32,7 @@ import { DASHBOARD_INTERACTION_SCRIPT } from "./view/dashboard/interaction-scrip
 import { renderStyleGuidePage } from "./views";
 
 const D1_BOOKMARK_COOKIE = "thesis_d1_bookmark";
+const EXPIRED_COOKIE_DATE = "Thu, 01 Jan 1970 00:00:00 GMT";
 
 interface D1SessionState {
   session: globalThis.D1DatabaseSession;
@@ -107,7 +108,7 @@ function buildBookmarkCookie(requestUrl: string, bookmark: string): string {
 
 function clearBookmarkCookie(requestUrl: string): string {
   const securePart = new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
-  return `${D1_BOOKMARK_COOKIE}=; HttpOnly;${securePart} Path=/; SameSite=Lax; Max-Age=0`;
+  return `${D1_BOOKMARK_COOKIE}=; HttpOnly;${securePart} Path=/; SameSite=Lax; Expires=${EXPIRED_COOKIE_DATE}; Max-Age=0`;
 }
 
 function readCookie(cookieHeader: string, name: string): string | null {

@@ -2,6 +2,7 @@ import type { SessionUser } from "./types";
 
 export const SESSION_COOKIE = "thesis_session";
 export const SESSION_TTL_SECONDS = 60 * 60 * 12;
+const EXPIRED_COOKIE_DATE = "Thu, 01 Jan 1970 00:00:00 GMT";
 
 export interface SessionConfig {
   cookieName: string;
@@ -15,7 +16,7 @@ export function buildSessionCookie(token: string, requestUrl: string, session: S
 
 export function clearSessionCookie(requestUrl: string, session: SessionConfig): string {
   const securePart = new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
-  return `${session.cookieName}=; HttpOnly;${securePart} Path=/; SameSite=Strict; Max-Age=0`;
+  return `${session.cookieName}=; HttpOnly;${securePart} Path=/; SameSite=Strict; Expires=${EXPIRED_COOKIE_DATE}; Max-Age=0`;
 }
 
 export async function createSessionToken(secret: string, ttlSeconds: number, user: SessionUser): Promise<string> {
