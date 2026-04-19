@@ -223,6 +223,7 @@ export function renderStudentsTable(
   filters: DashboardFilters,
   dashboardLanes: DashboardLaneDefinition[],
   metricsHtml: string,
+  ganttHtml: string,
   phaseLanesHtml: string,
   selectedPanel: string,
   emptySelectedPanel: string,
@@ -338,6 +339,13 @@ export function renderStudentsTable(
         pressed: filters.viewMode === "phases",
         attrs: {
           "data-workspace-view-button": "phases",
+        },
+      },
+      {
+        label: "Gantt",
+        pressed: filters.viewMode === "gantt",
+        attrs: {
+          "data-workspace-view-button": "gantt",
         },
       },
     ],
@@ -462,6 +470,9 @@ export function renderStudentsTable(
         <div id="workspacePhaseView" &class="phaseViewClass">
           <fragment &children="phaseLanesHtml"></fragment>
         </div>
+        <div id="workspaceGanttView" &class="ganttViewClass">
+          <fragment &children="ganttHtml"></fragment>
+        </div>
       </article>
       <template id="emptySelectedStudentPanelTemplate"><fragment &children="emptySelectedPanel"></fragment></template>
     </section>`,
@@ -473,6 +484,7 @@ export function renderStudentsTable(
       workspaceViewToggleHtml: raw(workspaceViewToggleHtml),
       listViewClass: `${filters.viewMode === "list" ? "" : "hidden "}space-y-stack-xs`,
       phaseViewClass: filters.viewMode === "phases" ? "" : "hidden ",
+      ganttViewClass: filters.viewMode === "gantt" ? "" : "hidden ",
       tableHeaderClass: TABLE_HEADER_ROW,
       filtersPanelHtml: raw(filtersPanelHtml),
       activeFiltersPanelHtml: raw(activeFiltersPanelHtml),
@@ -502,6 +514,7 @@ export function renderStudentsTable(
       showEmptyRow: studentRows.length === 0,
       studentRows,
       metricsHtml: raw(metricsHtml),
+      ganttHtml: raw(ganttHtml),
       phaseLanesHtml: raw(phaseLanesHtml),
       selectedPanel: raw(selectedPanel),
       emptySelectedPanel: raw(emptySelectedPanel),

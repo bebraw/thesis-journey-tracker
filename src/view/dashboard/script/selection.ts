@@ -59,6 +59,25 @@ function applySelectedLaneState(selectedId) {
   });
 }
 
+function applySelectedGanttState(selectedId) {
+  ganttStudentRows.forEach(function (row) {
+    var isSelected = selectedId > 0 && getRowStudentId(row) === selectedId;
+    row.classList.toggle("border-app-brand", isSelected);
+    row.classList.toggle("dark:border-app-brand-ring", isSelected);
+    row.classList.toggle("bg-app-brand-soft/80", isSelected);
+    row.classList.toggle("dark:bg-app-brand-soft-dark/20", isSelected);
+    row.classList.toggle("border-app-line", !isSelected);
+    row.classList.toggle("dark:border-app-line-dark", !isSelected);
+    row.classList.toggle("bg-app-surface", !isSelected);
+    row.classList.toggle("dark:bg-app-surface-dark", !isSelected);
+    row.classList.toggle("hover:border-app-line-strong", !isSelected);
+    row.classList.toggle("hover:bg-app-surface-soft", !isSelected);
+    row.classList.toggle("dark:hover:border-app-line-dark-strong", !isSelected);
+    row.classList.toggle("dark:hover:bg-app-surface-soft-dark/40", !isSelected);
+    row.setAttribute("aria-selected", isSelected ? "true" : "false");
+  });
+}
+
 function setEmptySelectedPanel() {
   if (!selectedStudentPanel || !emptySelectedStudentPanelTemplate) return;
   selectedStudentPanel.innerHTML = emptySelectedStudentPanelTemplate.innerHTML;
@@ -66,6 +85,7 @@ function setEmptySelectedPanel() {
   setActiveSelectedStudentTool("");
   applySelectedRowState(0);
   applySelectedLaneState(0);
+  applySelectedGanttState(0);
 }
 
 function clearSelectedStudentSelection(pushHistory) {
@@ -103,6 +123,7 @@ async function selectStudentWithoutRefresh(studentId, pushHistory) {
     syncDashboardDom();
     applySelectedRowState(studentId);
     applySelectedLaneState(studentId);
+    applySelectedGanttState(studentId);
     setActiveSelectedStudentTool("");
     revealSelectedPanel();
     syncInteractiveUrls();

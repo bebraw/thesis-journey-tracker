@@ -9,7 +9,7 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 <table>
   <tr>
     <td width="70%">
-      <img src="./docs/screenshots/dashboard-overview.png" alt="Dashboard overview with filters and list or phase views." />
+      <img src="./docs/screenshots/dashboard-overview.png" alt="Dashboard overview with filters plus list, phase, and Gantt views." />
     </td>
     <td width="30%">
       <img src="./docs/screenshots/student-panel.png" alt="Selected student area with editing controls, meeting log history, and phase audit." />
@@ -18,7 +18,7 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
   <tr>
     <td>
       <strong>Dashboard overview</strong><br />
-      Switch between list and phase views, scan upcoming supervision work, and open a focused workspace without leaving the main dashboard.
+      Switch between list, phase, and Gantt views, scan upcoming supervision work, and open a focused workspace without leaving the main dashboard.
     </td>
     <td>
       <strong>Student workspace</strong><br />
@@ -41,7 +41,8 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 - Store supervision logs with discussion notes, action items, and an optional follow-up meeting time in one save.
 - Follow upcoming meetings from the dashboard, and clear a cancelled meeting until a new time is booked.
 - Use quick stats on the dashboard to jump straight into filtered student views that need attention.
-- Filter students by phase, degree type, and meeting status, switch between list and phase views, and clear active filters quickly.
+- Filter students by phase, degree type, and meeting status, switch between list, phase, and Gantt views, and clear active filters quickly.
+- Use the Gantt view to estimate advisor workload visually from student start dates and degree-based thesis duration assumptions.
 - Archive completed or inactive students without deleting their supervision history.
 - Open a weekly Google Calendar scheduling view, choose a student to update the week immediately, and send meeting invites to students. If you want a lower-friction setup, the app also supports a read-only Google Calendar iCal fallback for availability.
 - Export or restore the dataset as JSON backups, and download an email-ready Markdown status report.

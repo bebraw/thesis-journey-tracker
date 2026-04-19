@@ -8,7 +8,10 @@ export {
   type StudentFormValues,
 } from "./form";
 export {
+  addMonths,
   addSixMonths,
+  getAssumedProjectDurationMonths,
+  getAssumedProjectEndDate,
   getDegreeLabel,
   getPhaseLabel,
   getTargetSubmissionDate,

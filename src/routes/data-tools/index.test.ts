@@ -145,6 +145,18 @@ describe("data import and export", () => {
       next_meeting_at: null,
       archived_at: null,
     });
+    env.DB.students.push({
+      id: 3,
+      name: "No Start Student",
+      email: "nostart@example.edu",
+      degree_type: "bsc",
+      thesis_topic: "Undefined timing",
+      student_notes: "Needs a start date",
+      start_date: null,
+      current_phase: "research_plan",
+      next_meeting_at: null,
+      archived_at: null,
+    });
 
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
@@ -254,6 +266,51 @@ describe("data import and export", () => {
     expect(dashboardBody).toContain("Planning research");
     expect(dashboardBody).toContain("Researching");
     expect(dashboardBody).not.toContain("Early work");
+  });
+
+  it("renders the gantt dashboard view with assumed project timelines", async () => {
+    env.DB.students.push({
+      id: 2,
+      name: "Editing Student",
+      email: "editing@example.edu",
+      degree_type: "msc",
+      thesis_topic: "Late-stage draft",
+      student_notes: "Needs review",
+      start_date: "2026-02-15",
+      current_phase: "editing",
+      next_meeting_at: null,
+      archived_at: null,
+    });
+    env.DB.students.push({
+      id: 3,
+      name: "No Start Student",
+      email: "nostart@example.edu",
+      degree_type: "bsc",
+      thesis_topic: "Undefined timing",
+      student_notes: "Needs a start date",
+      start_date: null,
+      current_phase: "research_plan",
+      next_meeting_at: null,
+      archived_at: null,
+    });
+
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+
+    const response = await fetchHandler(
+      new Request("http://localhost/?view=gantt", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    const body = await response.text();
+    expect(response.status).toBe(200);
+    expect(body).toContain("data-workspace-view-button=\"gantt\"");
+    expect(body).toContain("Advisor workload across assumed thesis timelines.");
+    expect(body).toContain("data-gantt-student-row");
+    expect(body).toContain("6 month assumption");
+    expect(body).toContain("Start date needed");
   });
 
   it("rolls back a phase change if writing the audit entry fails", async () => {

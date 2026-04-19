@@ -2,8 +2,17 @@ import type { DegreeId, Student } from "./store";
 import type { DegreeDefinition, PhaseDefinition } from "./reference-data";
 
 const TWO_WEEKS_IN_MS = 14 * 24 * 60 * 60 * 1000;
+const ASSUMED_PROJECT_DURATION_MONTHS: Record<DegreeId, number> = {
+  bsc: 4,
+  msc: 6,
+  dsc: 12,
+};
 
 export function addSixMonths(dateText: string | null): string | null {
+  return addMonths(dateText, 6);
+}
+
+export function addMonths(dateText: string | null, months: number): string | null {
   if (!dateText) {
     return null;
   }
@@ -11,7 +20,7 @@ export function addSixMonths(dateText: string | null): string | null {
   if (Number.isNaN(date.getTime())) {
     return null;
   }
-  date.setUTCMonth(date.getUTCMonth() + 6);
+  date.setUTCMonth(date.getUTCMonth() + months);
   return date.toISOString().slice(0, 10);
 }
 
@@ -20,6 +29,14 @@ export function getTargetSubmissionDate(student: Pick<Student, "degreeType" | "s
     return null;
   }
   return addSixMonths(student.startDate);
+}
+
+export function getAssumedProjectDurationMonths(degreeType: DegreeId): number {
+  return ASSUMED_PROJECT_DURATION_MONTHS[degreeType];
+}
+
+export function getAssumedProjectEndDate(student: Pick<Student, "degreeType" | "startDate">): string | null {
+  return addMonths(student.startDate, getAssumedProjectDurationMonths(student.degreeType));
 }
 
 export function isPastTargetSubmissionDate(student: Pick<Student, "degreeType" | "startDate" | "currentPhase">, today: string): boolean {

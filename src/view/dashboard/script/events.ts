@@ -98,6 +98,34 @@ function bindLaneSelection() {
   });
 }
 
+function bindGanttSelection() {
+  ganttStudentRows.forEach(function (row) {
+    row.addEventListener("click", function (event) {
+      var target = event.target;
+      if (isInlineSelectionTarget(target) || isInteractiveChild(target)) {
+        return;
+      }
+      var studentId = getRowStudentId(row);
+      if (studentId === getSelectedStudentIdFromLocation()) {
+        clearSelectedStudentSelection(true);
+        return;
+      }
+      void selectStudentWithoutRefresh(studentId, true);
+    });
+
+    row.addEventListener("keydown", function (event) {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      var studentId = getRowStudentId(row);
+      if (studentId === getSelectedStudentIdFromLocation()) {
+        clearSelectedStudentSelection(true);
+        return;
+      }
+      void selectStudentWithoutRefresh(studentId, true);
+    });
+  });
+}
+
 function bindHistorySelection() {
   window.addEventListener("popstate", function () {
     applyFiltersFromLocation();
@@ -123,6 +151,8 @@ function bindWorkspaceViewToggle() {
 
       if (nextView === "phases") {
         url.searchParams.set("view", "phases");
+      } else if (nextView === "gantt") {
+        url.searchParams.set("view", "gantt");
       } else {
         url.searchParams.delete("view");
       }

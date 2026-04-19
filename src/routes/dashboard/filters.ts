@@ -15,7 +15,12 @@ export function getDashboardFilters(searchParams: URLSearchParams): DashboardFil
     degree: searchParams.get("degree") || "",
     phase: searchParams.get("phase") || "",
     status: searchParams.get("status") || "",
-    viewMode: searchParams.get("view") === "phases" ? "phases" : DEFAULT_DASHBOARD_VIEW_MODE,
+    viewMode:
+      searchParams.get("view") === "phases"
+        ? "phases"
+        : searchParams.get("view") === "gantt"
+          ? "gantt"
+          : DEFAULT_DASHBOARD_VIEW_MODE,
     sortKey,
     sortDirection: rawSortDirection,
   };

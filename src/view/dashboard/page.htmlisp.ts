@@ -5,6 +5,7 @@ import {
 } from "../shared.htmlisp";
 import type { DashboardPageData } from "../types";
 import { renderDashboardScriptTag } from "./interaction-script";
+import { renderDashboardGantt } from "./gantt.htmlisp";
 import { renderMetricCards } from "./metrics.htmlisp";
 import { renderPhaseLanes } from "./phase-lanes.htmlisp";
 import { renderStudentsTable } from "./students-table.htmlisp";
@@ -40,6 +41,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
         filters,
         dashboardLanes,
         renderMetricCards(metrics),
+        renderDashboardGantt(students, selectedStudent, filters, dashboardLanes, { embedded: true }),
         renderPhaseLanes(students, selectedStudent, filters, dashboardLanes, { embedded: true }),
         selectedPanel,
         renderEmptySelectedPanel(

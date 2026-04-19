@@ -8,5 +8,6 @@ syncInteractiveUrls();
 setPanelVisibility(getSelectedStudentIdFromLocation() > 0);
 applySelectedRowState(getSelectedStudentIdFromLocation());
 applySelectedLaneState(getSelectedStudentIdFromLocation());
+applySelectedGanttState(getSelectedStudentIdFromLocation());
 bindHistorySelection();
 rebindDashboardUi();`;

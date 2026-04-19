@@ -43,6 +43,7 @@ describe("students table", () => {
       DEFAULT_FILTERS,
       getDefaultDashboardLanes(),
       "<div>Metrics</div>",
+      "<div>Gantt</div>",
       "<div>Phases</div>",
       "<div>Panel</div>",
       "<div>Empty</div>",
@@ -68,6 +69,7 @@ describe("students table", () => {
       DEFAULT_FILTERS,
       getDefaultDashboardLanes(),
       "<div>Metrics</div>",
+      "<div>Gantt</div>",
       "<div>Phases</div>",
       "<div>Panel</div>",
       "<div>Empty</div>",
@@ -92,6 +94,7 @@ describe("students table", () => {
         { label: "Submitted", phaseId: "submitted" },
       ],
       "<div>Metrics</div>",
+      "<div>Gantt</div>",
       "<div>Phases</div>",
       "<div>Panel</div>",
       "<div>Empty</div>",
@@ -100,5 +103,22 @@ describe("students table", () => {
     expect(html).toContain(">Deep work</td>");
     expect(html).toContain(">Deep work</option>");
     expect(html).not.toContain(">Researching</td>");
+  });
+
+  it("includes the gantt workspace toggle", () => {
+    const html = renderStudentsTable(
+      [buildStudent()],
+      null,
+      { ...DEFAULT_FILTERS, viewMode: "gantt" },
+      getDefaultDashboardLanes(),
+      "<div>Metrics</div>",
+      "<div>Gantt</div>",
+      "<div>Phases</div>",
+      "<div>Panel</div>",
+      "<div>Empty</div>",
+    );
+
+    expect(html).toContain('data-workspace-view-button="gantt"');
+    expect(html).toContain('aria-pressed="true"><span class="leading-tight">Gantt</span>');
   });
 });

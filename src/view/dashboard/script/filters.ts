@@ -98,6 +98,20 @@ function applyStudentSort() {
     });
   }
 
+  if (ganttStudentRowsContainer && ganttStudentRows.length > 0) {
+    ganttStudentRows.sort(function (a, b) {
+      var comparison = compareRowsByKey(a, b, currentSortKey, currentSortDirection);
+      if (comparison === 0) {
+        comparison = compareText(a.getAttribute("data-name"), b.getAttribute("data-name"));
+      }
+      return comparison;
+    });
+
+    ganttStudentRows.forEach(function (row) {
+      ganttStudentRowsContainer.appendChild(row);
+    });
+  }
+
   updateSortHeaders();
 }
 
@@ -132,6 +146,10 @@ function applyStudentFilters() {
     if (matchingCard) {
       matchingCard.style.display = visible ? "" : "none";
     }
+    ganttStudentRows.forEach(function (ganttRow) {
+      if (getRowStudentId(ganttRow) !== getRowStudentId(row)) return;
+      ganttRow.style.display = visible ? "" : "none";
+    });
     laneStudentCards.forEach(function (laneCard) {
       if (getLaneStudentId(laneCard) !== getRowStudentId(row)) return;
       laneCard.style.display = visible ? "" : "none";

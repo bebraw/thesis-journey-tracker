@@ -89,7 +89,8 @@ function applyFiltersFromLocation() {
 }
 
 function getWorkspaceViewFromLocation() {
-  return new URL(window.location.href).searchParams.get("view") === "phases" ? "phases" : "list";
+  var view = new URL(window.location.href).searchParams.get("view");
+  return view === "phases" || view === "gantt" ? view : "list";
 }
 
 function applyWorkspaceView() {
@@ -100,6 +101,9 @@ function applyWorkspaceView() {
   }
   if (workspacePhaseView) {
     workspacePhaseView.classList.toggle("hidden", currentView !== "phases");
+  }
+  if (workspaceGanttView) {
+    workspaceGanttView.classList.toggle("hidden", currentView !== "gantt");
   }
 
   workspaceViewButtons.forEach(function (button) {
@@ -311,6 +315,7 @@ function rebindDashboardUi() {
   bindStudentRowSelection();
   bindMobileStudentCardSelection();
   bindLaneSelection();
+  bindGanttSelection();
   bindWorkspaceViewToggle();
   bindDashboardFilters();
   bindStudentSort();
