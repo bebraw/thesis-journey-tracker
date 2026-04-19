@@ -102,6 +102,8 @@ npm run dev
 
 Wrangler will print the local URL, typically `http://127.0.0.1:8787`.
 
+For verification, use `npm run quality:gate:fast` during normal iteration and `npm run ci:local:quiet` for the full browser-inclusive workflow through Agent CI.
+
 To add more accounts later, run the same script again with a different `name` and `role`:
 
 ```bash
@@ -113,6 +115,8 @@ By default this writes to the local D1 database. Add `--remote` if you want to c
 If you created accounts earlier with the older `210000` PBKDF2 default, run the same `account:create` command again for each affected account to rewrite the stored hash with the Cloudflare-compatible `100000` iteration default.
 
 The sample-data seed is local-only and idempotent: running `npm run db:seed:sample` again will skip entries that already exist.
+
+If local Agent CI warns about `No such remote 'origin'`, copy `.env.agent-ci.example` to `.env.agent-ci` and set `GITHUB_REPO=owner/repo`. If your Docker setup does not use `/var/run/docker.sock`, set `DOCKER_HOST` there as well.
 
 For the full setup flow, see [docs/setup.md](./docs/setup.md).
 

@@ -6,6 +6,10 @@ This guide collects the commands and workflows you are likely to need while work
 
 - `npm run dev`: start the app locally with Wrangler
 - `npm run build:css`: rebuild the generated Tailwind stylesheet manually
+- `npm run ci:local`: run the checked-in GitHub Actions workflow locally through Agent CI
+- `npm run ci:local:quiet`: run the same workflow with quieter logs
+- `npm run ci:local:all`: run every workflow Agent CI detects in the repo
+- `npm run ci:local:retry -- --name <runner-name>`: resume a paused local Agent CI runner after fixing an issue
 - `npm run types:generate`: regenerate the checked-in Worker runtime and binding types
 - `npm run types:check`: verify that [`worker-configuration.d.ts`](../worker-configuration.d.ts) is up to date
 - `npm run typecheck`: run TypeScript without emitting files
@@ -13,7 +17,8 @@ This guide collects the commands and workflows you are likely to need while work
 - `npm run db:seed:sample`: populate the local D1 database with reusable sample students, logs, and phase history
 - `npm test`: run the Vitest suite
 - `npm run test:d1`: run the D1-backed integration tests against Wrangler's local platform proxy
-- `npm run e2e`: run Playwright end-to-end tests
+- `npm run quality:gate:fast`: run type maintenance, TypeScript, unit tests, and D1 integration tests
+- `npm run quality:gate`: run the full local verification workflow through Agent CI
 - `npm run lighthouse`: run the authenticated Lighthouse performance check
 - `npm run deploy`: deploy the Worker
 
@@ -35,21 +40,16 @@ npm run test:d1
 
 This uses Wrangler's local platform proxy and applies the checked-in migrations into an isolated local D1 state for the test run.
 
-### End-To-End Tests
+## Local CI With Agent CI
 
-Install the browser once if needed:
+Browser verification now runs through Agent CI rather than a separate local Playwright install flow.
 
-```bash
-npx playwright install chromium
-```
+- Start Docker before running `npm run ci:local` or `npm run ci:local:quiet`.
+- If your clone has no `origin` remote, copy `.env.agent-ci.example` to `.env.agent-ci` and set `GITHUB_REPO=owner/repo`.
+- If your Docker CLI uses a non-default socket or context, set `DOCKER_HOST=...` in `.env.agent-ci` so Agent CI reaches the same engine.
+- If local runs complain about a missing GitHub Actions runner image, pull `ghcr.io/actions/actions-runner:latest` once and rerun the workflow.
 
-Then run:
-
-```bash
-npm run e2e
-```
-
-The Playwright setup starts an isolated local app instance on port `8788` and seeds test data into a separate local D1 state.
+The browser job still uses the repo's Playwright tests and config under the hood, but the supported way to run them as part of verification is the checked-in Agent CI workflow in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 ### Lighthouse Audits
 

@@ -10,8 +10,8 @@ import desktopConfig from "lighthouse/core/config/desktop-config.js";
 const REPORT_DIR = resolve(process.cwd(), "reports/lighthouse");
 const BASE_URL = "http://127.0.0.1:8788";
 const DASHBOARD_URL = `${BASE_URL}/`;
-const SERVER_READY_PATTERN = /Ready on http:\/\/(?:localhost|127\.0\.0\.1):8788/;
 const SERVER_START_TIMEOUT_MS = 120_000;
+const SERVER_POLL_INTERVAL_MS = 500;
 const MIN_PERFORMANCE_SCORE = 90;
 const LOGIN_NAME = "Advisor";
 const LOGIN_PASSWORD = "e2e-password";
@@ -80,22 +80,40 @@ function startServer() {
         return;
       }
       settled = true;
+      clearInterval(poll);
       terminateServer(server, "SIGTERM");
       rejectPromise(new Error("Timed out waiting for Lighthouse test server."));
     }, SERVER_START_TIMEOUT_MS);
 
+    const resolveReady = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timeout);
+      clearInterval(poll);
+      resolvePromise(server);
+    };
+
     const handleChunk = (chunk, writer) => {
       const text = chunk.toString();
       writer(`[lighthouse-server] ${text}`);
-      if (!settled && SERVER_READY_PATTERN.test(text)) {
-        settled = true;
-        clearTimeout(timeout);
-        resolvePromise(server);
-      }
     };
 
     server.stdout.on("data", (chunk) => handleChunk(chunk, process.stdout.write.bind(process.stdout)));
     server.stderr.on("data", (chunk) => handleChunk(chunk, process.stderr.write.bind(process.stderr)));
+
+    const poll = setInterval(() => {
+      void probeServer()
+        .then((ready) => {
+          if (ready) {
+            resolveReady();
+          }
+        })
+        .catch(() => {
+          // Keep polling until the timeout or an exit event settles the promise.
+        });
+    }, SERVER_POLL_INTERVAL_MS);
 
     server.on("exit", (code) => {
       if (settled) {
@@ -103,6 +121,7 @@ function startServer() {
       }
       settled = true;
       clearTimeout(timeout);
+      clearInterval(poll);
       rejectPromise(new Error(`Lighthouse test server exited before ready (code ${code}).`));
     });
 
@@ -112,9 +131,19 @@ function startServer() {
       }
       settled = true;
       clearTimeout(timeout);
+      clearInterval(poll);
       rejectPromise(error);
     });
   });
+}
+
+async function probeServer() {
+  const response = await fetch(DASHBOARD_URL, {
+    redirect: "manual",
+    signal: AbortSignal.timeout(2_000),
+  });
+
+  return response.status >= 200 && response.status < 400;
 }
 
 async function stopServer(server) {

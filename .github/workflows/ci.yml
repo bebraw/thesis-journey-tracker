@@ -1,43 +1,65 @@
 name: CI
 
 on:
-  push:
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
   pull_request:
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
-  checks:
+  quality-fast:
     runs-on: ubuntu-latest
-
+    container:
+      image: node:25.8.1-bookworm
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
+      - name: Validate repository shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f README.md
+          test -f AGENTS.md
+          test -f package.json
+          test -f package-lock.json
+          test -f .dev.vars.example
+          test -f .env.agent-ci.example
+          test -f .nvmrc
+          git diff --check
 
-      - name: Install Dependencies
+      - name: Install dependencies
+        shell: bash
         run: npm ci
 
-      - name: Install Playwright Browser
-        run: npx playwright install --with-deps chromium
+      - name: Run fast quality gate
+        shell: bash
+        run: npm run quality:gate:fast
 
-      - name: Typecheck
-        run: npm run typecheck
+  quality-browser:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-noble
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Test
-        run: npm test
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 25.8.1
+          cache: npm
 
-      - name: E2E
-        run: npm run e2e
+      - name: Install dependencies
+        shell: bash
+        run: npm ci
 
-      - name: Lighthouse
-        run: npm run lighthouse
+      - name: Run browser quality gate
+        shell: bash
+        run: npm run e2e && npm run lighthouse

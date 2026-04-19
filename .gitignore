@@ -2,6 +2,7 @@ node_modules
 .wrangler
 .npm
 .dev.vars
+.env.agent-ci
 .DS_Store
 Library
 playwright-report

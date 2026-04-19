@@ -4,18 +4,17 @@ This guide covers CI, production deployment, automated backups, and the current 
 
 ## Continuous Integration
 
-GitHub Actions runs the workflow in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on pushes and pull requests, except for docs-only changes that match the workflow's `paths-ignore` rules.
+GitHub Actions runs the workflow in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on pushes to `main` and on pull requests. The same workflow can also be run locally with `npm run ci:local` or `npm run ci:local:quiet`.
 
-The workflow reads the Node.js version from [`.nvmrc`](../.nvmrc), so local `nvm use` and CI stay aligned.
+The workflow keeps Node.js `25.8.1` aligned with [`.nvmrc`](../.nvmrc) so local `nvm use` and CI stay aligned.
 
 The workflow runs:
 
 - `npm ci`
-- `npx playwright install --with-deps chromium`
-- `npm run typecheck`
-- `npm test`
-- `npm run e2e`
-- `npm run lighthouse`
+- `npm run quality:gate:fast`
+- `npm run e2e && npm run lighthouse`
+
+The fast job runs inside `node:25.8.1-bookworm`, and the browser job runs inside `mcr.microsoft.com/playwright:v1.58.2-noble`. That keeps the local Agent CI runner off the host's Node runtime while still matching the repo's pinned Node and Playwright versions.
 
 ## Deploying To Cloudflare
 
