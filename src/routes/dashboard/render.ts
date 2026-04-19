@@ -1,6 +1,7 @@
 import type { SessionUser } from "../../auth";
 import type { Env } from "../../app-env";
 import { resolveGoogleCalendarSourceForApp, resolveScheduleTimeZone } from "../../calendar";
+import { resolveDashboardLanesForApp } from "../../dashboard-lanes";
 import { htmlFragmentResponse, htmlResponse } from "../../http/response";
 import { isPastTargetSubmissionDate, meetingStatusId } from "../../students";
 import { getStudentById, listLogsForStudent, listPhaseAuditEntriesForStudent, listStudents } from "../../students/store";
@@ -8,10 +9,11 @@ import { renderAddStudentPage, renderDashboardPage, renderEmptySelectedPanel, re
 import { getDashboardFilters } from "./filters";
 
 export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser, showStyleGuide: boolean): Promise<Response> {
-  const [students, allStudents, calendarSource] = await Promise.all([
+  const [students, allStudents, calendarSource, dashboardLanes] = await Promise.all([
     listStudents(env.DB),
     listStudents(env.DB, { includeArchived: true }),
     resolveGoogleCalendarSourceForApp(env),
+    resolveDashboardLanesForApp(env),
   ]);
   const filters = getDashboardFilters(url.searchParams);
   const timeZone = resolveScheduleTimeZone(calendarSource?.timeZone);
@@ -44,6 +46,7 @@ export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUs
       selectedStudent,
       logs,
       phaseAudit,
+      dashboardLanes,
       filters,
       notice,
       error,

@@ -132,6 +132,117 @@ describe("data import and export", () => {
     expect(env.DB.phaseAuditEntries[1]?.to_phase).toBe("editing");
   });
 
+  it("can save an app-level dashboard lane layout and render it on the dashboard", async () => {
+    env.DB.students.push({
+      id: 2,
+      name: "Editing Student",
+      email: "editing@example.edu",
+      degree_type: "msc",
+      thesis_topic: "Late-stage draft",
+      student_notes: "Needs review",
+      start_date: "2026-02-15",
+      current_phase: "editing",
+      next_meeting_at: null,
+      archived_at: null,
+    });
+
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+
+    const saveResponse = await fetchHandler(
+      new Request("http://localhost/actions/save-dashboard-lane-settings", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams([
+          ["laneLabel0", "Early work"],
+          ["laneLabel2", "Writing"],
+        ]),
+      }),
+      env,
+    );
+
+    expect(saveResponse.status).toBe(302);
+    expect(saveResponse.headers.get("location")).toBe("/data-tools?notice=Dashboard+lane+settings+saved");
+    expect(env.DB.appSecrets).toHaveLength(1);
+
+    const dataToolsResponse = await fetchHandler(
+      new Request("http://localhost/data-tools", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    const dataToolsBody = await dataToolsResponse.text();
+    expect(dataToolsResponse.status).toBe(200);
+    expect(dataToolsBody).toContain("Dashboard Lane Layout");
+    expect(dataToolsBody).toContain("Current layout: saved custom app lanes.");
+    expect(dataToolsBody).toContain("Planning research -&gt; Early work");
+    expect(dataToolsBody).toContain("Editing -&gt; Writing");
+
+    const dashboardResponse = await fetchHandler(
+      new Request("http://localhost/?view=phases", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    const dashboardBody = await dashboardResponse.text();
+    expect(dashboardResponse.status).toBe(200);
+    expect(dashboardBody).toContain("Early work");
+    expect(dashboardBody).toContain("Writing");
+    expect(dashboardBody).not.toContain("Planning research + Researching");
+    expect(dashboardBody).not.toContain("Editing + Submitted");
+  });
+
+  it("can reset dashboard lane settings back to the defaults", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+
+    await fetchHandler(
+      new Request("http://localhost/actions/save-dashboard-lane-settings", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams([
+          ["laneLabel0", "Early work"],
+          ["laneLabel2", "Writing"],
+        ]),
+      }),
+      env,
+    );
+
+    expect(env.DB.appSecrets).toHaveLength(1);
+
+    const resetResponse = await fetchHandler(
+      new Request("http://localhost/actions/reset-dashboard-lane-settings", {
+        method: "POST",
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    expect(resetResponse.status).toBe(302);
+    expect(resetResponse.headers.get("location")).toBe("/data-tools?notice=Dashboard+lane+settings+reset+to+defaults");
+    expect(env.DB.appSecrets).toHaveLength(0);
+
+    const dashboardResponse = await fetchHandler(
+      new Request("http://localhost/?view=phases", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    const dashboardBody = await dashboardResponse.text();
+    expect(dashboardBody).toContain("Planning research");
+    expect(dashboardBody).toContain("Researching");
+    expect(dashboardBody).not.toContain("Early work");
+  });
+
   it("rolls back a phase change if writing the audit entry fails", async () => {
     env.DB.failQueries.push(/^INSERT INTO student_phase_audit/);
 

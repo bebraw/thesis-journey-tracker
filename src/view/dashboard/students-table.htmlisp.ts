@@ -1,4 +1,5 @@
 import { raw } from "../../htmlisp";
+import type { DashboardLaneDefinition } from "../../dashboard-lanes";
 import type { Student } from "../../students/store";
 import {
   FIELD_CONTROL_WITH_MARGIN,
@@ -104,13 +105,16 @@ function prepareStudentRows(
   students: Student[],
   selectedStudent: Student | null,
   filters: DashboardFilters,
+  dashboardLanes: DashboardLaneDefinition[],
   timeZone?: string,
 ): PreparedStudentRow[] {
+  const phaseLabelMap = new Map(dashboardLanes.map((lane) => [lane.phaseId, lane.label]));
+
   return students.map((student) => {
     const statusId = meetingStatusId(student);
     const targetSubmissionDate = getTargetSubmissionDate(student);
     const degreeLabel = getDegreeLabel(student.degreeType, DEGREE_TYPES);
-    const phaseLabel = getPhaseLabel(student.currentPhase, PHASES);
+    const phaseLabel = phaseLabelMap.get(student.currentPhase) || getPhaseLabel(student.currentPhase, PHASES);
     const isSelected = selectedStudent ? selectedStudent.id === student.id : false;
     const summaryHtml = renderView(
       `<div class="min-w-0 max-w-[21rem] space-y-1 pr-badge-y p-2">
@@ -217,6 +221,7 @@ export function renderStudentsTable(
   students: Student[],
   selectedStudent: Student | null,
   filters: DashboardFilters,
+  dashboardLanes: DashboardLaneDefinition[],
   metricsHtml: string,
   phaseLanesHtml: string,
   selectedPanel: string,
@@ -239,7 +244,7 @@ export function renderStudentsTable(
       { value: "", label: "All phases" },
       ...PHASES.map((phase) => ({
         value: phase.id,
-        label: phase.label,
+        label: dashboardLanes.find((lane) => lane.phaseId === phase.id)?.label || phase.label,
       })),
     ],
     filters.phase,
@@ -254,7 +259,7 @@ export function renderStudentsTable(
     ],
     filters.status,
   );
-  const studentRows = prepareStudentRows(students, selectedStudent, filters, timeZone);
+  const studentRows = prepareStudentRows(students, selectedStudent, filters, dashboardLanes, timeZone);
   const sortHeaders: PreparedSortHeader[] = [
     { key: "student", label: "Student" },
     { key: "degree", label: "Degree" },

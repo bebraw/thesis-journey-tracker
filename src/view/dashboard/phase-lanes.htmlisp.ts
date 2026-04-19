@@ -1,4 +1,5 @@
 import { raw } from "../../htmlisp";
+import type { DashboardLaneDefinition } from "../../dashboard-lanes";
 import type { Student } from "../../students/store";
 import {
   EMPTY_DASHED_CARD,
@@ -7,7 +8,7 @@ import {
   TOPIC_TEXT_SM,
   renderBadge,
 } from "../../ui";
-import { DEGREE_TYPES, getDegreeLabel, getTargetSubmissionDate, meetingStatusId, PHASES } from "../../students";
+import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusId, PHASES } from "../../students";
 import { renderView } from "../shared.htmlisp";
 import type { DashboardFilters } from "../types";
 
@@ -24,6 +25,7 @@ interface PreparedLaneStudent {
   dataDegreeLabel: string;
   dataPhase: string;
   dataPhaseLabel: string;
+  dataLaneId: string;
   dataStatusId: string;
   dataTargetDate: string;
   dataNextMeetingDate: string;
@@ -35,7 +37,7 @@ interface PreparedLaneStudent {
 }
 
 interface PreparedPhaseLane {
-  phaseIdAttr: string;
+  laneIdAttr: string;
   label: string;
   countBadgeHtml: unknown;
   cardClass: string;
@@ -74,10 +76,15 @@ function buildDashboardHref(filters: DashboardFilters, selectedId?: number): str
   return query ? `/?${query}` : "/";
 }
 
-function preparePhaseLanes(students: Student[], selectedStudent: Student | null, filters: DashboardFilters): PreparedPhaseLane[] {
-  return PHASES.map((phase) => {
+function preparePhaseLanes(
+  students: Student[],
+  selectedStudent: Student | null,
+  filters: DashboardFilters,
+  dashboardLanes: DashboardLaneDefinition[],
+): PreparedPhaseLane[] {
+  return dashboardLanes.map((lane) => {
     const laneStudents = students
-      .filter((student) => student.currentPhase === phase.id)
+      .filter((student) => student.currentPhase === lane.phaseId)
       .slice()
       .sort((a, b) => {
         const targetA = getTargetSubmissionDate(a) || "9999-12-31";
@@ -86,8 +93,8 @@ function preparePhaseLanes(students: Student[], selectedStudent: Student | null,
       });
 
     return {
-      phaseIdAttr: phase.id,
-      label: phase.label,
+      laneIdAttr: lane.phaseId,
+      label: lane.label,
       countBadgeHtml: raw(renderBadge({
         label: String(laneStudents.length),
         variant: "count",
@@ -118,11 +125,12 @@ function preparePhaseLanes(students: Student[], selectedStudent: Student | null,
           dataDegree: student.degreeType,
           dataDegreeLabel: degreeLabel.toLowerCase(),
           dataPhase: student.currentPhase,
-          dataPhaseLabel: phase.label.toLowerCase(),
+          dataPhaseLabel: getPhaseLabel(student.currentPhase, PHASES).toLowerCase(),
           dataStatusId: statusId,
           dataTargetDate: targetSubmissionDate || "",
           dataNextMeetingDate: student.nextMeetingAt || "",
           dataLogCount: String(student.logCount),
+          dataLaneId: lane.phaseId,
           name: student.name,
           badgesHtml: raw(renderBadge({
             label: degreeLabel,
@@ -139,6 +147,7 @@ export function renderPhaseLanes(
   students: Student[],
   selectedStudent: Student | null,
   filters: DashboardFilters,
+  dashboardLanes: DashboardLaneDefinition[],
   options: { embedded?: boolean } = {},
 ): string {
   const { embedded = false } = options;
@@ -151,10 +160,10 @@ export function renderPhaseLanes(
       </div>
       <div class="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-panel-sm">
         <fragment &foreach="lanes as lane">
-          <article &class="lane.cardClass" data-phase-lane &data-phase-id="lane.phaseIdAttr">
+          <article &class="lane.cardClass" data-phase-lane &data-lane-id="lane.laneIdAttr">
             <div class="flex items-start justify-between gap-stack-xs">
-              <h3 class="min-h-10 flex-1 text-sm font-semibold leading-5" &children="lane.label"></h3>
-              <span data-phase-lane-count &data-phase-id="lane.phaseIdAttr"><fragment &children="lane.countBadgeHtml"></fragment></span>
+              <h3 class="min-h-10 min-w-0 flex-1 text-sm font-semibold leading-5" &children="lane.label"></h3>
+              <span data-phase-lane-count &data-lane-id="lane.laneIdAttr"><fragment &children="lane.countBadgeHtml"></fragment></span>
             </div>
             <ul class="mt-stack-xs max-h-[28rem] space-y-stack-xs overflow-y-auto pr-badge-y" &visibleIf="lane.hasStudents">
               <fragment &foreach="lane.students as student">
@@ -170,6 +179,7 @@ export function renderPhaseLanes(
                   &data-degree-label="student.dataDegreeLabel"
                   &data-phase="student.dataPhase"
                   &data-phase-label="student.dataPhaseLabel"
+                  &data-lane-id="student.dataLaneId"
                   &data-status-id="student.dataStatusId"
                   &data-target-date="student.dataTargetDate"
                   &data-next-meeting-date="student.dataNextMeetingDate"
@@ -210,7 +220,7 @@ export function renderPhaseLanes(
       mutedTextXs: MUTED_TEXT_XS,
       emptyStateClass: EMPTY_DASHED_CARD,
       topicTextClass: `mt-badge-y ${TOPIC_TEXT_SM}`,
-      lanes: preparePhaseLanes(students, selectedStudent, filters),
+      lanes: preparePhaseLanes(students, selectedStudent, filters, dashboardLanes),
     },
   );
 }

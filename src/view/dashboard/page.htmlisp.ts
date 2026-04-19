@@ -10,7 +10,7 @@ import { renderPhaseLanes } from "./phase-lanes.htmlisp";
 import { renderStudentsTable } from "./students-table.htmlisp";
 
 export function renderDashboardPage(data: DashboardPageData): string {
-  const { viewer, students, selectedStudent, logs, phaseAudit, filters, notice, error, metrics, timeZone, showStyleGuide } = data;
+  const { viewer, students, selectedStudent, logs, phaseAudit, dashboardLanes, filters, notice, error, metrics, timeZone, showStyleGuide } = data;
   const canEdit = viewer.role === "editor";
   const selectedPanel = selectedStudent
     ? renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, { canEdit, filters, timeZone })
@@ -38,8 +38,9 @@ export function renderDashboardPage(data: DashboardPageData): string {
         students,
         selectedStudent,
         filters,
+        dashboardLanes,
         renderMetricCards(metrics),
-        renderPhaseLanes(students, selectedStudent, filters, { embedded: true }),
+        renderPhaseLanes(students, selectedStudent, filters, dashboardLanes, { embedded: true }),
         selectedPanel,
         renderEmptySelectedPanel(
           canEdit

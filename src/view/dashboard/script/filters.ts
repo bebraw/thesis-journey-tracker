@@ -136,16 +136,16 @@ function applyStudentFilters() {
       if (getLaneStudentId(laneCard) !== getRowStudentId(row)) return;
       laneCard.style.display = visible ? "" : "none";
       if (visible) {
-        var lanePhase = laneCard.getAttribute("data-phase") || "";
-        visibleLaneCounts[lanePhase] = (visibleLaneCounts[lanePhase] || 0) + 1;
+        var laneId = laneCard.getAttribute("data-lane-id") || "";
+        visibleLaneCounts[laneId] = (visibleLaneCounts[laneId] || 0) + 1;
       }
     });
     if (visible) visibleCount += 1;
   });
 
   phaseLanes.forEach(function (lane) {
-    var phaseId = lane.getAttribute("data-phase-id") || "";
-    var visibleLaneCount = visibleLaneCounts[phaseId] || 0;
+    var laneId = lane.getAttribute("data-lane-id") || "";
+    var visibleLaneCount = visibleLaneCounts[laneId] || 0;
     var countBadge = lane.querySelector("[data-phase-lane-count] > *");
     var emptyState = lane.querySelector("[data-lane-empty-state]");
     var studentList = lane.querySelector("ul");

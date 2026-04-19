@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderPhaseLanes } from "./phase-lanes.htmlisp";
+import { getDefaultDashboardLanes } from "../../dashboard-lanes";
 import type { Student } from "../../students/store";
 import type { DashboardFilters } from "../types";
 
@@ -40,6 +41,7 @@ describe("phase lanes", () => {
       ],
       buildStudent({ id: 13, name: "Selected Student" }),
       DEFAULT_FILTERS,
+      getDefaultDashboardLanes(),
     );
 
     const selectedCardMatch = html.match(/<li class="([^"]+)" data-lane-student-card data-student-id="13"[\s\S]*?aria-selected="true"/);
@@ -49,5 +51,26 @@ describe("phase lanes", () => {
     expect(selectedCardClass).toContain("border-app-brand");
     expect(selectedCardClass).toContain("bg-app-surface-soft");
     expect(selectedCardClass).not.toContain("bg-app-brand-soft");
+  });
+
+  it("renders custom dashboard lane labels and phase summaries", () => {
+    const html = renderPhaseLanes(
+      [
+        buildStudent({ id: 13, name: "Selected Student", currentPhase: "researching" }),
+        buildStudent({ id: 14, name: "Other Student", currentPhase: "editing" }),
+      ],
+      null,
+      DEFAULT_FILTERS,
+      [
+        { label: "Planning research", phaseId: "research_plan" },
+        { label: "Deep work", phaseId: "researching" },
+        { label: "Writing", phaseId: "editing" },
+        { label: "Delivered", phaseId: "submitted" },
+      ],
+    );
+
+    expect(html).toContain("Deep work");
+    expect(html).toContain("Writing");
+    expect(html).not.toContain("Planning research + Researching");
   });
 });

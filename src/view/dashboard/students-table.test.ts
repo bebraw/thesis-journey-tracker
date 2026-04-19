@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderStudentsTable } from "./students-table.htmlisp";
+import { getDefaultDashboardLanes } from "../../dashboard-lanes";
 import type { Student } from "../../students/store";
 import type { DashboardFilters } from "../types";
 
@@ -40,6 +41,7 @@ describe("students table", () => {
       ],
       buildStudent({ id: 13, name: "Selected Student" }),
       DEFAULT_FILTERS,
+      getDefaultDashboardLanes(),
       "<div>Metrics</div>",
       "<div>Phases</div>",
       "<div>Panel</div>",
@@ -64,6 +66,7 @@ describe("students table", () => {
       ],
       null,
       DEFAULT_FILTERS,
+      getDefaultDashboardLanes(),
       "<div>Metrics</div>",
       "<div>Phases</div>",
       "<div>Panel</div>",
@@ -73,5 +76,29 @@ describe("students table", () => {
 
     expect(html).toContain("10 Apr 2026, 09:00 UTC");
     expect(html).not.toContain("10 Apr 2026, 12:00 EEST");
+  });
+
+  it("uses customized phase labels in the list view and phase filter", () => {
+    const html = renderStudentsTable(
+      [
+        buildStudent({ id: 13, name: "Selected Student", currentPhase: "researching" }),
+      ],
+      null,
+      DEFAULT_FILTERS,
+      [
+        { label: "Planning research", phaseId: "research_plan" },
+        { label: "Deep work", phaseId: "researching" },
+        { label: "Editing", phaseId: "editing" },
+        { label: "Submitted", phaseId: "submitted" },
+      ],
+      "<div>Metrics</div>",
+      "<div>Phases</div>",
+      "<div>Panel</div>",
+      "<div>Empty</div>",
+    );
+
+    expect(html).toContain(">Deep work</td>");
+    expect(html).toContain(">Deep work</option>");
+    expect(html).not.toContain(">Researching</td>");
   });
 });

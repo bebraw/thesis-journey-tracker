@@ -198,6 +198,23 @@ describe("multi-user access control", () => {
     expect(saveCalendarIcalSettingsResponse.status).toBe(302);
     expect(saveCalendarIcalSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
 
+    const saveDashboardLaneSettingsResponse = await fetchHandler(
+      new Request("http://localhost/actions/save-dashboard-lane-settings", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body: new URLSearchParams({
+          laneLabel0: "Early work",
+        }),
+      }),
+      env,
+    );
+
+    expect(saveDashboardLaneSettingsResponse.status).toBe(302);
+    expect(saveDashboardLaneSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
+
     const clearCalendarSettingsResponse = await fetchHandler(
       new Request("http://localhost/actions/clear-google-calendar-settings", {
         method: "POST",
@@ -236,6 +253,19 @@ describe("multi-user access control", () => {
 
     expect(clearCalendarIcalResponse.status).toBe(302);
     expect(clearCalendarIcalResponse.headers.get("location")).toBe("/?error=Read-only+access");
+
+    const resetDashboardLaneSettingsResponse = await fetchHandler(
+      new Request("http://localhost/actions/reset-dashboard-lane-settings", {
+        method: "POST",
+        headers: {
+          cookie,
+        },
+      }),
+      env,
+    );
+
+    expect(resetDashboardLaneSettingsResponse.status).toBe(302);
+    expect(resetDashboardLaneSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
     expect(env.DB.students[0]?.name).toBe("Base Student");
     expect(env.DB.phaseAuditEntries).toHaveLength(0);
   });

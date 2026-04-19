@@ -23,6 +23,8 @@ import {
   handleExportJson,
   handleImportJson,
   handleProfessorReportExport,
+  handleResetDashboardLaneSettings,
+  handleSaveDashboardLaneSettings,
   handleSaveGoogleCalendarIcalSettings,
   handleSaveGoogleCalendarSettings,
   renderDataTools,
@@ -246,6 +248,12 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return await handleSaveGoogleCalendarSettings(request, env);
   }
 
+  if (pathname === "/actions/save-dashboard-lane-settings" && request.method === "POST") {
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
+    return await handleSaveDashboardLaneSettings(request, env);
+  }
+
   if (pathname === "/actions/save-google-calendar-ical-settings" && request.method === "POST") {
     const readonlyResponse = ensureEditor("/");
     if (readonlyResponse) return readonlyResponse;
@@ -268,6 +276,12 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const readonlyResponse = ensureEditor("/");
     if (readonlyResponse) return readonlyResponse;
     return await handleClearGoogleCalendarSettings(env);
+  }
+
+  if (pathname === "/actions/reset-dashboard-lane-settings" && request.method === "POST") {
+    const readonlyResponse = ensureEditor("/");
+    if (readonlyResponse) return readonlyResponse;
+    return await handleResetDashboardLaneSettings(env);
   }
 
   if (pathname === "/actions/schedule-meeting" && request.method === "POST") {

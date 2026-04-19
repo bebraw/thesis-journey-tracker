@@ -37,6 +37,7 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 
 - Add students with degree type, thesis topic, and timeline information.
 - Track each student through thesis phases from planning to submission.
+- Configure the dashboard lane labels at the app level while keeping the original four-phase board structure as the default.
 - Store supervision logs with discussion notes, action items, and an optional follow-up meeting time in one save.
 - Follow upcoming meetings from the dashboard, and clear a cancelled meeting until a new time is booked.
 - Use quick stats on the dashboard to jump straight into filtered student views that need attention.

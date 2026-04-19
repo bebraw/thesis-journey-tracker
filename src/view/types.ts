@@ -1,4 +1,5 @@
 import type { MeetingLog, PhaseAuditEntry, Student } from "../students/store";
+import type { DashboardLaneDefinition } from "../dashboard-lanes";
 
 export interface ViewerContext {
   name: string;
@@ -28,6 +29,7 @@ export interface DashboardPageData {
   selectedStudent: Student | null;
   logs: MeetingLog[];
   phaseAudit: PhaseAuditEntry[];
+  dashboardLanes: DashboardLaneDefinition[];
   filters: DashboardFilters;
   notice: string | null;
   error: string | null;
@@ -50,6 +52,9 @@ export interface DataToolsPageData {
   studentCount: number;
   logCount: number;
   replaceImportEnabled: boolean;
+  dashboardLanes: DashboardLaneDefinition[];
+  storedDashboardLanesUpdatedAt: string | null;
+  usingDefaultDashboardLanes: boolean;
   googleCalendarConfigSource: "stored_api" | "stored_ical" | "none";
   storedGoogleCalendarUpdatedAt: string | null;
   effectiveGoogleCalendarId: string | null;
