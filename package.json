@@ -25,6 +25,7 @@
     "e2e:server": "npm run e2e:prepare && npm run e2e:dev",
     "e2e": "playwright test",
     "lighthouse": "node ./scripts/run-lighthouse.mjs",
+    "readme:screenshots": "node ./scripts/capture-readme-screenshots.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "quality:gate:fast": "npm run types:check && npm run typecheck && npm test && npm run test:d1",

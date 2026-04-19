@@ -20,6 +20,7 @@ This guide collects the commands and workflows you are likely to need while work
 - `npm run quality:gate:fast`: run type maintenance, TypeScript, unit tests, and D1 integration tests
 - `npm run quality:gate`: run the full local verification workflow through Agent CI
 - `npm run lighthouse`: run the authenticated Lighthouse performance check
+- `npm run readme:screenshots`: refresh the checked-in README screenshots from the local app running on `127.0.0.1:8788`
 - `npm run deploy`: deploy the Worker
 
 ## Testing
