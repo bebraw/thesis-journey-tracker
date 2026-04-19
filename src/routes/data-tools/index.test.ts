@@ -182,6 +182,19 @@ describe("data import and export", () => {
     expect(dataToolsBody).toContain("Planning research -&gt; Early work");
     expect(dataToolsBody).toContain("Editing -&gt; Writing");
 
+    const listDashboardResponse = await fetchHandler(
+      new Request("http://localhost/", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    const listDashboardBody = await listDashboardResponse.text();
+    expect(listDashboardResponse.status).toBe(200);
+    expect(listDashboardBody).toContain(">Writing</td>");
+    expect(listDashboardBody).toContain(">Early work</option>");
+    expect(listDashboardBody).toContain(">Writing</option>");
+
     const dashboardResponse = await fetchHandler(
       new Request("http://localhost/?view=phases", {
         headers: { cookie },
