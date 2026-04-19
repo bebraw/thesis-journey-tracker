@@ -2,7 +2,7 @@
 
 Thesis Journey Tracker is a private advising dashboard for following students as they move through a thesis process. It is built for small supervision teams: you can keep track of thesis phases, upcoming meetings, thesis topics, and supervision notes in one place, with editor or readonly access per account.
 
-The project is intentionally small and server-rendered. It runs on Cloudflare Workers with D1 for storage, so it stays lightweight while still being easy to deploy.
+The project is intentionally small and server-rendered, with a focused workflow for thesis advising instead of a generic student information system.
 
 ## Screenshots
 
@@ -18,11 +18,11 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
   <tr>
     <td>
       <strong>Dashboard overview</strong><br />
-      Switch between list, phase, and Gantt views, scan upcoming supervision work, and open a focused workspace without leaving the main dashboard.
+      Switch between list, phase, and Gantt views, scan upcoming supervision work, and keep the selected student workspace open while browsing the cohort.
     </td>
     <td>
       <strong>Student workspace</strong><br />
-      Keep a compact selected-student summary visible, then open edit, logging, or history tools only when needed.
+      Review the current student state, add supervision notes, and inspect phase history without leaving the dashboard.
     </td>
   </tr>
 </table>
@@ -38,65 +38,47 @@ The project is intentionally small and server-rendered. It runs on Cloudflare Wo
 - Add students with degree type, thesis topic, and timeline information.
 - Track each student through thesis phases from planning to submission.
 - Configure the dashboard lane labels at the app level while keeping the original four-phase board structure as the default.
+- Switch between `List`, `Phases`, and `Gantt` views depending on whether you need detail, workflow stage, or workload shape.
 - Store supervision logs with discussion notes, action items, and an optional follow-up meeting time in one save.
 - Follow upcoming meetings from the dashboard, and clear a cancelled meeting until a new time is booked.
 - Use quick stats on the dashboard to jump straight into filtered student views that need attention.
-- Filter students by phase, degree type, and meeting status, switch between list, phase, and Gantt views, and clear active filters quickly.
 - Use the Gantt view to estimate advisor workload visually from student start dates and degree-based thesis duration assumptions.
 - Archive completed or inactive students without deleting their supervision history.
 - Open a weekly Google Calendar scheduling view, choose a student to update the week immediately, and send meeting invites to students. If you want a lower-friction setup, the app also supports a read-only Google Calendar iCal fallback for availability.
 - Export or restore the dataset as JSON backups, and download an email-ready Markdown status report.
 - Store automated Cloudflare backups in R2 when deployed with the scheduled backup setup.
 
-Meeting timestamps are stored internally in UTC. The dashboard, student workspace, and `datetime-local` form defaults render them using the configured Google Calendar timezone, or `Europe/Helsinki` when no app timezone is configured.
-
 ## Quick Start
 
-Prerequisites:
-
-- Node.js `25.8.1` via [`.nvmrc`](./.nvmrc) (`nvm install && nvm use`)
-- npm
-- A Cloudflare account with Wrangler access
-
-1. Install dependencies:
+1. Install dependencies and generate Worker types:
 
 ```bash
 npm install
 npm run types:generate
 ```
 
-`npm run types:generate` refreshes the checked-in Cloudflare Worker runtime and D1 binding types in [`worker-configuration.d.ts`](./worker-configuration.d.ts). Re-run it whenever [`wrangler.toml`](./wrangler.toml) changes.
-
-2. Create the D1 database:
-
-```bash
-npx wrangler d1 create thesis_tracker_db
-```
-
-This command returns a `database_id` for the Cloudflare D1 database. Put that value into [`wrangler.toml`](./wrangler.toml). Local development will then use Wrangler's local D1 state while pointing at the same database configuration.
-
-3. Create local secrets:
+2. Create your local environment file:
 
 ```bash
 cp .dev.vars.example .dev.vars
 ```
 
-Set `SESSION_SECRET` in `.dev.vars` to a long random string before starting the app. If you want the scheduling page to connect to Google Calendar, follow the Google credential walkthrough in [docs/setup.md#optional-get-google-calendar-integration-values](./docs/setup.md#optional-get-google-calendar-integration-values), then save those values from the app's Data Tools page, where they are encrypted before being written to D1.
+Set `SESSION_SECRET` before starting the app.
 
-4. Apply migrations and create your first account:
+3. Apply migrations and create your first account:
 
 ```bash
 npm run db:migrate
 npm run account:create -- --name "Advisor" --password "change-this-password" --role editor
 ```
 
-Optional: load a small sample dataset into your local D1 database:
+Optional: load sample data for a ready-made local dashboard:
 
 ```bash
 npm run db:seed:sample
 ```
 
-5. Start the app:
+4. Start the app:
 
 ```bash
 npm run dev
@@ -104,51 +86,18 @@ npm run dev
 
 Wrangler will print the local URL, typically `http://127.0.0.1:8787`.
 
-For verification, use `npm run quality:gate:fast` during normal iteration and `npm run ci:local:quiet` for the full browser-inclusive workflow through Agent CI.
-
-To add more accounts later, run the same script again with a different `name` and `role`:
-
-```bash
-npm run account:create -- --name "Professor" --password "change-this-password" --role readonly
-```
-
-By default this writes to the local D1 database. Add `--remote` if you want to create an account in the deployed database instead.
-
-If you created accounts earlier with the older `210000` PBKDF2 default, run the same `account:create` command again for each affected account to rewrite the stored hash with the Cloudflare-compatible `100000` iteration default.
-
-The sample-data seed is local-only and idempotent: running `npm run db:seed:sample` again will skip entries that already exist.
-
-If local Agent CI warns about `No such remote 'origin'`, copy `.env.agent-ci.example` to `.env.agent-ci` and set `GITHUB_REPO=owner/repo`. If your Docker setup does not use `/var/run/docker.sock`, set `DOCKER_HOST` there as well.
-
-For the full setup flow, see [docs/setup.md](./docs/setup.md).
+For the full setup flow, Google Calendar configuration, remote account management, and troubleshooting, see [docs/setup.md](./docs/setup.md).
 
 ## Documentation
 
+- [docs/setup.md](./docs/setup.md): local setup, environment variables, Google Calendar configuration, and first run
+- [docs/development.md](./docs/development.md): scripts, testing, local CI, and day-to-day engineering workflows
+- [docs/deployment.md](./docs/deployment.md): production deployment, security, and release notes
+- [docs/project-structure.md](./docs/project-structure.md): architecture, directory map, and codebase orientation
+- [docs/backups.md](./docs/backups.md): automated R2 backups and restore flow
+- [docs/performance-plan.md](./docs/performance-plan.md): Lighthouse baseline and performance follow-up
+- [docs/passkey-auth-plan.md](./docs/passkey-auth-plan.md): deferred passkey assessment and rollout plan
+- [docs/roadmap.md](./docs/roadmap.md): future feature ideas and next steps
 - [AGENTS.md](./AGENTS.md): durable repo-specific rules for automated contributors
-- [docs/setup.md](./docs/setup.md): local setup, environment variables, and first run
-- [docs/development.md](./docs/development.md): scripts, testing, editor support, and day-to-day development notes
-- [docs/deployment.md](./docs/deployment.md): CI, production deployment, and security notes
-- [docs/project-structure.md](./docs/project-structure.md): tech stack, architecture, and directory map
-- [docs/passkey-auth-plan.md](./docs/passkey-auth-plan.md): passkey auth fit assessment and a deferred implementation plan
-- [docs/backups.md](./docs/backups.md): automated R2 backups, restore flow, and retention notes
-- [docs/performance-plan.md](./docs/performance-plan.md): Lighthouse baseline and performance follow-up plan
-- [docs/roadmap.md](./docs/roadmap.md): future feature ideas and likely next steps
-
-## Tech Snapshot
-
-- Cloudflare Workers for runtime and hosting
-- Cloudflare D1 for persistence
-- Cloudflare R2 for optional scheduled backups
-- TypeScript throughout the app
-- HTMLisp for server-rendered views
-- Tailwind CSS for styling
-
-## First-Time Reader Notes
-
-- This is a private, password-protected app with lightweight role-based access rather than a multi-tenant SaaS product.
-- Auth accounts now live in the D1 database, with a tiny CLI helper for creating editor and readonly users.
-- Repeated failed login attempts are temporarily rate-limited per client IP.
-- The UI is server-rendered and deliberately simple.
-- Seeded mock students are only used in the isolated end-to-end test environment.
 
 If you want to understand how the codebase is organized before diving in, start with [docs/project-structure.md](./docs/project-structure.md).
