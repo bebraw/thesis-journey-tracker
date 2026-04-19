@@ -52,6 +52,19 @@ async function screenshotViewport(page, outputPath) {
   await page.screenshot({ path: outputPath });
 }
 
+async function switchWorkspaceView(page, viewMode) {
+  await page.locator(`[data-workspace-view-button="${viewMode}"]`).click();
+  await page.waitForFunction(
+    (expectedView) => {
+      const url = new URL(window.location.href);
+      const currentView = url.searchParams.get("view") ?? "list";
+      return currentView === expectedView;
+    },
+    viewMode,
+  );
+  await page.waitForLoadState("networkidle");
+}
+
 async function captureDashboard(page) {
   await login(page);
   await showStudentPanel(page, "Aino Lehtinen");
@@ -59,6 +72,21 @@ async function captureDashboard(page) {
   await addScreenshotPadding(page, { limitStudentRows: true });
   await page.evaluate(() => window.scrollTo(0, 0));
   await screenshotViewport(page, path.join(OUTPUT_DIR, "dashboard-overview.png"));
+}
+
+async function captureGanttView(page) {
+  await login(page);
+  await showStudentPanel(page, "Aino Lehtinen");
+  await switchWorkspaceView(page, "gantt");
+  await addScreenshotPadding(page);
+  await page.addStyleTag({
+    content: `
+      [data-gantt-student-row]:nth-of-type(n+6) { display: none !important; }
+      #ganttStudentRows { max-width: 100% !important; }
+    `,
+  });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await screenshotViewport(page, path.join(OUTPUT_DIR, "dashboard-gantt-view.png"));
 }
 
 async function captureStudentPanel(page) {
@@ -88,7 +116,7 @@ async function main() {
 
   const browser = await chromium.launch();
   try {
-    for (const capture of [captureDashboard, captureStudentPanel, captureDataTools]) {
+    for (const capture of [captureDashboard, captureGanttView, captureStudentPanel, captureDataTools]) {
       const context = await browser.newContext({
         viewport: { width: 1600, height: 1200 },
         colorScheme: "light",

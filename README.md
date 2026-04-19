@@ -8,11 +8,11 @@ The project is intentionally small and server-rendered, with a focused workflow 
 
 <table>
   <tr>
-    <td width="70%">
+    <td width="50%">
       <img src="./docs/screenshots/dashboard-overview.png" alt="Dashboard overview with filters plus list, phase, and Gantt views." />
     </td>
-    <td width="30%">
-      <img src="./docs/screenshots/student-panel.png" alt="Selected student area with editing controls, meeting log history, and phase audit." />
+    <td width="50%">
+      <img src="./docs/screenshots/dashboard-gantt-view.png" alt="Dashboard with the dedicated Gantt view enabled and a selected student panel open." />
     </td>
   </tr>
   <tr>
@@ -21,6 +21,17 @@ The project is intentionally small and server-rendered, with a focused workflow 
       Switch between list, phase, and Gantt views, scan upcoming supervision work, and keep the selected student workspace open while browsing the cohort.
     </td>
     <td>
+      <strong>Gantt workload view</strong><br />
+      Estimate advisor workload visually from thesis start dates and degree-based duration assumptions while keeping the selected student details in reach.
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
+      <img src="./docs/screenshots/student-panel.png" alt="Selected student area with editing controls, meeting log history, and phase audit." />
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
       <strong>Student workspace</strong><br />
       Review the current student state, add supervision notes, and inspect phase history without leaving the dashboard.
     </td>
