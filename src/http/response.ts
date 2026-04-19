@@ -45,6 +45,7 @@ export function iconResponse(icon: ArrayBuffer): Response {
 }
 
 export function redirect(pathname: string, extraHeaders: HeadersInit = {}): Response {
-  const headers = new Headers({ Location: pathname, ...extraHeaders });
+  const headers = new Headers(extraHeaders);
+  headers.set("Location", pathname);
   return new Response(null, { status: 302, headers });
 }

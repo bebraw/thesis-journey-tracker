@@ -581,6 +581,43 @@ describe("multi-user access control", () => {
     expect(env.DB.loginAttempts[0]?.attempt_key).toBe("ip:203.0.113.10|user:advisor");
   });
 
+  it("clears the session and D1 bookmark cookies on logout", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+
+    const response = await fetchHandler(
+      new Request("http://localhost/logout", {
+        method: "POST",
+        headers: {
+          cookie: `${cookie}; thesis_d1_bookmark=bookmark-value`,
+        },
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/login");
+
+    const setCookies = response.headers.getSetCookie();
+    expect(setCookies).toHaveLength(2);
+    expect(
+      setCookies.some(
+        (value) =>
+          value.includes("thesis_session=") &&
+          value.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT") &&
+          value.includes("Max-Age=0"),
+      ),
+    ).toBe(true);
+    expect(
+      setCookies.some(
+        (value) =>
+          value.includes("thesis_d1_bookmark=") &&
+          value.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT") &&
+          value.includes("Max-Age=0"),
+      ),
+    ).toBe(true);
+  });
+
   it("shows the style guide only on local development hosts", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
