@@ -17,7 +17,7 @@ This guide collects the commands and workflows you are likely to need while work
 - `npm run db:seed:sample`: populate the local D1 database with reusable sample students, logs, and phase history
 - `npm test`: run the Vitest suite
 - `npm run test:d1`: run the D1-backed integration tests against Wrangler's local platform proxy
-- `npm run quality:gate:fast`: run type maintenance, TypeScript, unit tests, and D1 integration tests
+- `npm run quality:gate:fast`: refresh Worker types, then run TypeScript, unit tests, and D1 integration tests
 - `npm run quality:gate`: run the full local verification workflow through Agent CI
 - `npm run lighthouse`: run the authenticated Lighthouse performance check
 - `npm run readme:screenshots`: refresh the checked-in README screenshots from the local app running on `127.0.0.1:8788`
