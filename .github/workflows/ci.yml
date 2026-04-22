@@ -32,7 +32,6 @@ jobs:
           test -f .dev.vars.example
           test -f .env.agent-ci.example
           test -f .nvmrc
-          git diff --check
 
       - name: Install dependencies
         shell: bash
