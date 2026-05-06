@@ -157,7 +157,9 @@ describe("multi-user access control", () => {
     );
 
     expect(scheduleMeetingResponse.status).toBe(302);
-    expect(scheduleMeetingResponse.headers.get("location")).toBe("/schedule?week=2026-03-23&student=1&slot=2026-03-24T09:00&error=Read-only+access");
+    expect(scheduleMeetingResponse.headers.get("location")).toBe(
+      "/schedule?week=2026-03-23&student=1&slot=2026-03-24T09:00&error=Read-only+access",
+    );
 
     const saveCalendarSettingsResponse = await fetchHandler(
       new Request("http://localhost/actions/save-google-calendar-settings", {
@@ -498,7 +500,7 @@ describe("multi-user access control", () => {
 
     for (let attemptIndex = 0; attemptIndex < 4; attemptIndex += 1) {
       const failedResponse = await fetchHandler(
-        new Request("http://localhost/login", {
+        new Request("https://tracker.example.com/login", {
           method: "POST",
           headers: loginHeaders,
           body: new URLSearchParams({
@@ -514,7 +516,7 @@ describe("multi-user access control", () => {
     }
 
     const lockoutResponse = await fetchHandler(
-      new Request("http://localhost/login", {
+      new Request("https://tracker.example.com/login", {
         method: "POST",
         headers: loginHeaders,
         body: new URLSearchParams({
@@ -532,7 +534,7 @@ describe("multi-user access control", () => {
     expect(env.DB.loginAttempts[0]?.attempt_key).toBe("ip:203.0.113.10|user:advisor");
 
     const blockedValidLoginResponse = await fetchHandler(
-      new Request("http://localhost/login", {
+      new Request("https://tracker.example.com/login", {
         method: "POST",
         headers: loginHeaders,
         body: new URLSearchParams({
@@ -550,7 +552,7 @@ describe("multi-user access control", () => {
     env.DB.loginAttempts[0]!.locked_until = "2000-01-01T00:00:00.000Z";
 
     const recoveredResponse = await fetchHandler(
-      new Request("http://localhost/login", {
+      new Request("https://tracker.example.com/login", {
         method: "POST",
         headers: loginHeaders,
         body: new URLSearchParams({
@@ -567,6 +569,46 @@ describe("multi-user access control", () => {
     expect(env.DB.loginAttempts).toHaveLength(0);
   });
 
+  it("skips password verification only for local demo logins", async () => {
+    const loginPageResponse = await fetchHandler(new Request("http://localhost/login"), env);
+    const loginPageBody = await loginPageResponse.text();
+
+    expect(loginPageResponse.status).toBe(200);
+    expect(loginPageBody).toContain("Open demo");
+    expect(loginPageBody).not.toContain('name="password"');
+
+    const localDemoResponse = await fetchHandler(
+      new Request("http://localhost/login", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          name: "Advisor",
+        }),
+      }),
+      env,
+    );
+
+    expect(localDemoResponse.status).toBe(302);
+    expect(localDemoResponse.headers.get("location")).toBe("/");
+    expect(localDemoResponse.headers.get("set-cookie")).toContain("thesis_session=");
+    expect(env.DB.loginAttempts).toHaveLength(0);
+
+    const remoteResponse = await fetchHandler(
+      new Request("https://tracker.example.com/login", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          name: "Advisor",
+        }),
+      }),
+      env,
+    );
+
+    expect(remoteResponse.status).toBe(302);
+    expect(remoteResponse.headers.get("location")).toBe("/login?error=1");
+    expect(remoteResponse.headers.get("set-cookie")).toBeNull();
+  });
+
   it("does not lock out a different user from the same shared IP address", async () => {
     const loginHeaders = {
       "cf-connecting-ip": "203.0.113.10",
@@ -575,7 +617,7 @@ describe("multi-user access control", () => {
 
     for (let attemptIndex = 0; attemptIndex < 5; attemptIndex += 1) {
       const failedResponse = await fetchHandler(
-        new Request("http://localhost/login", {
+        new Request("https://tracker.example.com/login", {
           method: "POST",
           headers: loginHeaders,
           body: new URLSearchParams({
@@ -593,7 +635,7 @@ describe("multi-user access control", () => {
     expect(env.DB.loginAttempts[0]?.attempt_key).toBe("ip:203.0.113.10|user:advisor");
 
     const differentUserResponse = await fetchHandler(
-      new Request("http://localhost/login", {
+      new Request("https://tracker.example.com/login", {
         method: "POST",
         headers: loginHeaders,
         body: new URLSearchParams({
@@ -633,17 +675,13 @@ describe("multi-user access control", () => {
     expect(
       setCookies.some(
         (value) =>
-          value.includes("thesis_session=") &&
-          value.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT") &&
-          value.includes("Max-Age=0"),
+          value.includes("thesis_session=") && value.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT") && value.includes("Max-Age=0"),
       ),
     ).toBe(true);
     expect(
       setCookies.some(
         (value) =>
-          value.includes("thesis_d1_bookmark=") &&
-          value.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT") &&
-          value.includes("Max-Age=0"),
+          value.includes("thesis_d1_bookmark=") && value.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT") && value.includes("Max-Age=0"),
       ),
     ).toBe(true);
   });
@@ -698,7 +736,7 @@ describe("multi-user access control", () => {
     });
 
     const response = await fetchHandler(
-      new Request("http://localhost/login", {
+      new Request("https://tracker.example.com/login", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",

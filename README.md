@@ -96,6 +96,7 @@ npm run dev
 ```
 
 Wrangler will print the local URL, typically `http://127.0.0.1:8787`.
+The local dev script keeps the login screen visible but skips password entry for demo sessions on localhost.
 
 For the full setup flow, Google Calendar configuration, remote account management, and troubleshooting, see [docs/setup.md](./docs/setup.md).
 

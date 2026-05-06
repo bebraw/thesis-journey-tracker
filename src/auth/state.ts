@@ -40,12 +40,26 @@ export async function verifyLoginCredentials(
   authState: AuthState,
   enteredName: string,
   password: string,
+  options: { skipPassword?: boolean } = {},
 ): Promise<LoginVerificationResult> {
   const now = new Date();
   const candidateUser =
     authState.users.length === 1 && !enteredName
       ? authState.users[0] || null
       : authState.users.find((user) => user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase()) || null;
+
+  if (options.skipPassword) {
+    return candidateUser
+      ? {
+          status: "authenticated",
+          user: {
+            name: candidateUser.name,
+            role: candidateUser.role,
+          },
+        }
+      : { status: "invalid" };
+  }
+
   const loginAttemptKey = buildLoginAttemptKey(request, enteredName, candidateUser?.name || null);
   const currentAttempt = await getLoginAttempt(env.DB, loginAttemptKey);
 
@@ -83,9 +97,7 @@ export async function verifyLoginCredentials(
   };
 }
 
-type LoginVerificationResult =
-  | { status: "authenticated"; user: SessionUser }
-  | { status: "invalid" | "password_reset" | "rate_limited" };
+type LoginVerificationResult = { status: "authenticated"; user: SessionUser } | { status: "invalid" | "password_reset" | "rate_limited" };
 
 function buildLoginAttemptKey(request: Request, enteredName: string, resolvedUserName: string | null): string {
   const ipAddress = readClientIpAddress(request);
@@ -138,7 +150,10 @@ function buildFailedLoginAttempt(previousAttempt: LoginAttempt | null, attemptKe
       ? Date.parse(previousAttempt.lockedUntil) <= nowTime
       : false;
   const isWithinFailureWindow =
-    previousAttempt && !previousLockExpired && Number.isFinite(previousLastFailedAt) && nowTime - previousLastFailedAt <= LOGIN_FAILURE_WINDOW_MS;
+    previousAttempt &&
+    !previousLockExpired &&
+    Number.isFinite(previousLastFailedAt) &&
+    nowTime - previousLastFailedAt <= LOGIN_FAILURE_WINDOW_MS;
 
   const failureCount = isWithinFailureWindow ? previousAttempt.failureCount + 1 : 1;
   const firstFailedAt = isWithinFailureWindow ? previousAttempt.firstFailedAt : nowIso;

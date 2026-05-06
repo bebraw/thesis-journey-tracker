@@ -77,6 +77,7 @@ This is a remote-only command. The current dashboard query to watch most closely
 - Tailwind input lives in [`src/tailwind-input.css`](../src/tailwind-input.css).
 - Generated CSS is written to `.generated/styles.css`.
 - Wrangler runs the Tailwind build automatically before `dev` and `deploy`, so generated CSS does not need to be committed manually.
+- Local `localhost` and `127.0.0.1` login screens skip password entry for demo sessions. Deployed hostnames still use normal password verification.
 - The UI style guide at `/style-guide` is intentionally available only on local development hosts such as `localhost` or `127.0.0.1`.
 - Project-local frontend guidance for automated contributors lives in [`.codex/skills/frontend-design/SKILL.md`](../.codex/skills/frontend-design/SKILL.md).
 

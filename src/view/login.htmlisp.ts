@@ -3,7 +3,11 @@ import { FIELD_CONTROL_SM, SUBTLE_TEXT, renderButton } from "../ui/foundation";
 import { raw, type HtmlispComponents } from "../htmlisp";
 import { renderDocument, renderView } from "./shared.htmlisp";
 
-export function renderLoginPage(errorState: "invalid" | "rate_limit" | "password_reset" | null, supportsMultipleAccounts = false): string {
+export function renderLoginPage(
+  errorState: "invalid" | "rate_limit" | "password_reset" | null,
+  supportsMultipleAccounts = false,
+  skipsPassword = false,
+): string {
   const errorMessage =
     errorState === "rate_limit"
       ? "Too many failed sign-in attempts. Please wait 15 minutes and try again."
@@ -42,8 +46,16 @@ export function renderLoginPage(errorState: "invalid" | "rate_limit" | "password
             required
             &class="passwordFieldClass"
           />
-          <label class="block text-sm font-medium" for="password">Password</label>
-          <input id="password" name="password" type="password" autocomplete="current-password" required &class="passwordFieldClass" />
+          <label &visibleIf="showPasswordField" class="block text-sm font-medium" for="password">Password</label>
+          <input
+            &visibleIf="showPasswordField"
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            &class="passwordFieldClass"
+          />
           <fragment &children="signInButtonHtml"></fragment>
         </form>
       </section>
@@ -54,16 +66,20 @@ export function renderLoginPage(errorState: "invalid" | "rate_limit" | "password
       passwordFieldClass: `${FIELD_CONTROL_SM} outline-hidden ring-app-brand focus:ring-2`,
       subtleText: `mt-2 max-w-sm ${SUBTLE_TEXT}`,
       showNameField: supportsMultipleAccounts,
+      showPasswordField: !skipsPassword,
       showError: Boolean(errorState),
       errorMessage,
-      signInButtonHtml: raw(renderButton({
-        label: "Sign in",
-        type: "submit",
-        variant: "primaryBlock",
-        className: "transition",
-      })),
-      subtitle:
-        supportsMultipleAccounts
+      signInButtonHtml: raw(
+        renderButton({
+          label: skipsPassword ? "Open demo" : "Sign in",
+          type: "submit",
+          variant: "primaryBlock",
+          className: "transition",
+        }),
+      ),
+      subtitle: skipsPassword
+        ? "Open the local demo dashboard without entering a password."
+        : supportsMultipleAccounts
           ? "Sign in with your assigned account to review students, meetings, and supervision history."
           : "Sign in to open the supervision dashboard for your current thesis cohort.",
     },
