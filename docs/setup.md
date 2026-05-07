@@ -222,6 +222,107 @@ Open the local URL shown by Wrangler, usually `http://127.0.0.1:8787`.
 - If you use `npm run e2e` or `npm run lighthouse`, keep the seeded `Advisor` account in the e2e database unchanged unless you also update the hardcoded test credentials.
 - If the schema is out of date, run `npm run db:migrate` again.
 
+## Docker Backup Setup
+
+Docker is a useful fallback when host Node versions, Windows shell differences, or Wrangler local state are hard to diagnose. The image runs the same Wrangler dev server as the normal setup, but binds it to `0.0.0.0` so the host can reach it through a published port.
+
+Build the image:
+
+```bash
+docker build -t thesis-journey-tracker .
+```
+
+Create a named volume for Wrangler's local D1 state:
+
+```bash
+docker volume create thesis-journey-tracker-state
+```
+
+Create `.dev.vars` on the host if you have not already:
+
+```bash
+cp .dev.vars.example .dev.vars
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item .dev.vars.example .dev.vars
+```
+
+Set a real `SESSION_SECRET` in `.dev.vars` before continuing.
+
+Apply migrations inside the container:
+
+```bash
+docker run --rm \
+  -v thesis-journey-tracker-state:/app/.wrangler \
+  -v "$PWD/.dev.vars:/app/.dev.vars:ro" \
+  thesis-journey-tracker npm run db:migrate
+```
+
+On Windows PowerShell:
+
+```powershell
+docker run --rm `
+  -v thesis-journey-tracker-state:/app/.wrangler `
+  -v "${PWD}/.dev.vars:/app/.dev.vars:ro" `
+  thesis-journey-tracker npm run db:migrate
+```
+
+Create the first editor account:
+
+```bash
+docker run --rm \
+  -v thesis-journey-tracker-state:/app/.wrangler \
+  -v "$PWD/.dev.vars:/app/.dev.vars:ro" \
+  thesis-journey-tracker npm run account:create -- --name "Advisor" --password "change-this-editor-password" --role editor
+```
+
+On Windows PowerShell:
+
+```powershell
+docker run --rm `
+  -v thesis-journey-tracker-state:/app/.wrangler `
+  -v "${PWD}/.dev.vars:/app/.dev.vars:ro" `
+  thesis-journey-tracker npm run account:create -- --name "Advisor" --password "change-this-editor-password" --role editor
+```
+
+Run the setup doctor:
+
+```bash
+docker run --rm \
+  -v thesis-journey-tracker-state:/app/.wrangler \
+  -v "$PWD/.dev.vars:/app/.dev.vars:ro" \
+  thesis-journey-tracker npm run doctor:local
+```
+
+Start the app:
+
+```bash
+docker run --rm \
+  -p 8787:8787 \
+  -v thesis-journey-tracker-state:/app/.wrangler \
+  -v "$PWD/.dev.vars:/app/.dev.vars:ro" \
+  thesis-journey-tracker
+```
+
+On Windows PowerShell:
+
+```powershell
+docker run --rm `
+  -p 8787:8787 `
+  -v thesis-journey-tracker-state:/app/.wrangler `
+  -v "${PWD}/.dev.vars:/app/.dev.vars:ro" `
+  thesis-journey-tracker
+```
+
+Open <http://127.0.0.1:8787>. To reset the containerized local database, remove the named volume and repeat the migration and account steps:
+
+```bash
+docker volume rm thesis-journey-tracker-state
+```
+
 ## Related Docs
 
 - [development.md](./development.md)

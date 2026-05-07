@@ -102,6 +102,17 @@ If a local page returns `500`, run `npm run doctor:local` and check the `npm run
 
 For the full setup flow, Google Calendar configuration, remote account management, and troubleshooting, see [docs/setup.md](./docs/setup.md).
 
+## Docker Backup Path
+
+If local Node or Windows shell setup gets in the way, you can run the app through Docker instead:
+
+```bash
+docker build -t thesis-journey-tracker .
+docker volume create thesis-journey-tracker-state
+```
+
+Then follow the container setup commands in [docs/setup.md](./docs/setup.md#docker-backup-setup). The container uses the same Wrangler local D1 workflow, with database state stored in the named Docker volume.
+
 ## Documentation
 
 - [docs/setup.md](./docs/setup.md): local setup, environment variables, Google Calendar configuration, and first run

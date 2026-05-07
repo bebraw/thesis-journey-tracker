@@ -73,6 +73,12 @@ npm run db:insights
 
 This is a remote-only command. The current dashboard query to watch most closely is the aggregated student list in [`src/students/store.ts`](../src/students/store.ts), because it drives the main page and combines filtering, aggregation, and ordering.
 
+## Docker Fallback
+
+The checked-in [`Dockerfile`](../Dockerfile) builds a development image that runs Wrangler on port `8787`. Use it when host setup is unreliable, especially on machines where Node version managers or shell differences make the normal local flow difficult.
+
+The Docker workflow is documented in [setup.md](./setup.md#docker-backup-setup). Keep `.dev.vars` on the host and mount it read-only; do not bake local secrets into the image.
+
 ## CSS And Frontend Notes
 
 - Tailwind input lives in [`src/tailwind-input.css`](../src/tailwind-input.css).

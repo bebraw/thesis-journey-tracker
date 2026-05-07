@@ -1,0 +1,12 @@
+.dev.vars
+.env*
+.generated
+.git
+.npm
+.wrangler
+desktop-dist
+Library
+node_modules
+playwright-report
+reports
+test-results
