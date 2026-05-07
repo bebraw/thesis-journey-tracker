@@ -13,6 +13,7 @@
     "ci:local:retry": "agent-ci retry",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "doctor:local": "node ./scripts/doctor-local.mjs",
     "types:generate": "HOME=$PWD wrangler types worker-configuration.d.ts",
     "types:check": "HOME=$PWD wrangler types worker-configuration.d.ts --check",
     "db:migrate": "wrangler d1 migrations apply thesis_tracker_db --local",

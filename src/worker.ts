@@ -49,6 +49,9 @@ export default {
       return finalizeD1SessionResponse(response, request.url, sessionState);
     } catch (error) {
       console.error("Unhandled error", error);
+      if (isLocalDevelopmentRequest(request)) {
+        return localInternalErrorResponse(error);
+      }
       return new Response("Internal server error", { status: 500 });
     }
   },
@@ -349,4 +352,22 @@ function isLocalDevelopmentRequest(request: Request): boolean {
     hostname === "::1" ||
     hostname === "[::1]"
   );
+}
+
+function localInternalErrorResponse(error: unknown): Response {
+  const message = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : null;
+  const body = [
+    "Internal server error in local development.",
+    "",
+    message,
+    ...(stack && stack !== message ? ["", stack] : []),
+  ].join("\n");
+
+  return new Response(body, {
+    status: 500,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+    },
+  });
 }

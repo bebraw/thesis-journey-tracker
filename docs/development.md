@@ -10,6 +10,7 @@ This guide collects the commands and workflows you are likely to need while work
 - `npm run ci:local:quiet`: run the same workflow with quieter logs
 - `npm run ci:local:all`: run every workflow Agent CI detects in the repo
 - `npm run ci:local:retry -- --name <runner-name>`: resume a paused local Agent CI runner after fixing an issue
+- `npm run doctor:local`: diagnose local setup issues, including `.dev.vars`, the D1 binding, migrations, and login accounts
 - `npm run types:generate`: regenerate the checked-in Worker runtime and binding types
 - `npm run types:check`: verify that [`worker-configuration.d.ts`](../worker-configuration.d.ts) is up to date
 - `npm run typecheck`: run TypeScript without emitting files

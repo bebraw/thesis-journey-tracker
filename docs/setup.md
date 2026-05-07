@@ -45,6 +45,12 @@ Create your local environment file:
 cp .dev.vars.example .dev.vars
 ```
 
+On Windows PowerShell, use:
+
+```powershell
+Copy-Item .dev.vars.example .dev.vars
+```
+
 Set these values in `.dev.vars`:
 
 - `SESSION_SECRET`: a long random string used to sign auth cookies
@@ -193,6 +199,14 @@ This command only targets Wrangler's local D1 state and is safe to re-run becaus
 
 ## 7. Start The App
 
+Run the local setup doctor before starting the app:
+
+```bash
+npm run doctor:local
+```
+
+It checks the active Node version, `.dev.vars`, the `DB` binding, local D1 tables, and whether at least one login account exists. The script is intentionally cross-platform and works from Windows PowerShell, Windows Command Prompt, macOS, and Linux shells.
+
 ```bash
 npm run dev
 ```
@@ -202,6 +216,8 @@ Open the local URL shown by Wrangler, usually `http://127.0.0.1:8787`.
 ## First Run Checklist
 
 - If the app cannot start, make sure `database_id` is set in [`wrangler.toml`](../wrangler.toml).
+- If the app returns `500` locally, keep `npm run dev` open and read the terminal error. Localhost 500 responses also include the thrown error message and stack trace; deployed production responses intentionally keep this hidden.
+- If setup still fails after following the steps, run `npm run doctor:local` and fix the first reported error before trying the browser again.
 - If login fails, confirm that `app_users` contains at least one account and that `.dev.vars` has the expected `SESSION_SECRET`.
 - If you use `npm run e2e` or `npm run lighthouse`, keep the seeded `Advisor` account in the e2e database unchanged unless you also update the hardcoded test credentials.
 - If the schema is out of date, run `npm run db:migrate` again.
