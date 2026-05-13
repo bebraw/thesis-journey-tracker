@@ -257,12 +257,12 @@ export function renderDashboardGantt(
       </div>
       <div class="overflow-x-auto rounded-card border border-app-line bg-app-surface-soft/35 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/20">
         <div class="min-w-[58rem]">
-          <div class="grid gap-stack-xs xl:grid-cols-[minmax(13rem,18rem)_1fr]">
+          <div class="grid gap-stack-xs px-[calc(var(--spacing-panel-sm)+1px)] xl:grid-cols-[minmax(13rem,18rem)_1fr]">
             <div class="hidden xl:block"></div>
             <div class="relative">
               <div class="flex rounded-control border border-app-line bg-app-surface/80 text-[11px] font-semibold uppercase tracking-[0.14em] text-app-text-muted dark:border-app-line-dark dark:bg-app-surface-dark/80 dark:text-app-text-muted-dark">
                 <fragment &foreach="timeline.months as month">
-                  <div class="border-r border-app-line px-badge-pill-x py-badge-pill-y last:border-r-0 dark:border-app-line-dark" &style="month.styleAttr" &children="month.label"></div>
+                  <div class="box-border shrink-0 border-r border-app-line px-badge-pill-x py-badge-pill-y last:border-r-0 dark:border-app-line-dark" &style="month.styleAttr" &children="month.label"></div>
                 </fragment>
               </div>
               <div &visibleIf="timeline.todayLineVisible" class="pointer-events-none absolute inset-y-0 z-10 w-px bg-app-danger/70 dark:bg-app-danger-line-dark" &style="timeline.todayLineStyleAttr"></div>
@@ -314,7 +314,7 @@ export function renderDashboardGantt(
                   <div class="relative min-h-[4.25rem] rounded-card border border-app-line bg-app-surface dark:border-app-line-dark dark:bg-app-surface-dark">
                     <div class="pointer-events-none absolute inset-0 flex">
                       <fragment &foreach="timeline.months as month">
-                        <div class="border-r border-app-line/70 last:border-r-0 dark:border-app-line-dark/70" &style="month.styleAttr"></div>
+                        <div class="box-border shrink-0 border-r border-app-line/70 last:border-r-0 dark:border-app-line-dark/70" &style="month.styleAttr"></div>
                       </fragment>
                     </div>
                     <div &visibleIf="timeline.todayLineVisible" class="pointer-events-none absolute inset-y-0 z-10 w-px bg-app-danger/70 dark:bg-app-danger-line-dark" &style="timeline.todayLineStyleAttr"></div>
