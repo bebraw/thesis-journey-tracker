@@ -1,17 +1,8 @@
 import { raw } from "../../htmlisp";
 import type { DashboardLaneDefinition } from "../../dashboard-lanes";
 import type { Student } from "../../students/store";
-import {
-  EMPTY_STATE_CARD,
-  renderBadge,
-} from "../../ui";
-import {
-  DEGREE_TYPES,
-  getAssumedProjectDurationMonths,
-  getAssumedProjectEndDate,
-  getDegreeLabel,
-  meetingStatusId,
-} from "../../students";
+import { EMPTY_STATE_CARD, renderBadge } from "../../ui";
+import { DEGREE_TYPES, getAssumedProjectDurationMonths, getAssumedProjectEndDate, getDegreeLabel, meetingStatusId } from "../../students";
 import { renderView } from "../shared.htmlisp";
 import type { DashboardFilters } from "../types";
 
@@ -192,18 +183,16 @@ function prepareGanttTimeline(
       const timelineStart = hasTimeline ? new Date(`${startDate}T00:00:00Z`) : null;
       const timelineEnd = hasTimeline ? new Date(`${projectedEndDate}T00:00:00Z`) : null;
       const leftPercent = timelineStart ? clampPercent((diffDays(bounds.start, timelineStart) / totalDays) * 100) : "0%";
-      const widthPercent = timelineStart && timelineEnd
-        ? clampPercent(((diffDays(timelineStart, timelineEnd) + 1) / totalDays) * 100)
-        : "0%";
+      const widthPercent =
+        timelineStart && timelineEnd ? clampPercent(((diffDays(timelineStart, timelineEnd) + 1) / totalDays) * 100) : "0%";
       const isSelected = selectedStudent ? selectedStudent.id === student.id : false;
 
       return {
-        rowClass:
-          `grid gap-stack-xs rounded-card border p-panel-sm transition xl:grid-cols-[minmax(13rem,18rem)_1fr] ${
-            isSelected
-              ? "border-app-brand bg-app-brand-soft/80 dark:border-app-brand-ring dark:bg-app-brand-soft-dark/20"
-              : "border-app-line bg-app-surface hover:border-app-line-strong hover:bg-app-surface-soft dark:border-app-line-dark dark:bg-app-surface-dark dark:hover:border-app-line-dark-strong dark:hover:bg-app-surface-soft-dark/40"
-          }`,
+        rowClass: `grid gap-stack-xs rounded-card border p-panel-sm transition xl:grid-cols-[18rem_1fr] ${
+          isSelected
+            ? "border-app-brand bg-app-brand-soft/80 dark:border-app-brand-ring dark:bg-app-brand-soft-dark/20"
+            : "border-app-line bg-app-surface hover:border-app-line-strong hover:bg-app-surface-soft dark:border-app-line-dark dark:bg-app-surface-dark dark:hover:border-app-line-dark-strong dark:hover:bg-app-surface-soft-dark/40"
+        }`,
         selectedAttr: isSelected ? "true" : "false",
         selectHref: buildDashboardHref(filters, student.id),
         studentIdAttr: String(student.id),
@@ -229,11 +218,13 @@ function prepareGanttTimeline(
         showMissingTimelineText: embedded && !hasTimeline,
         showStartDatePlaceholder: !hasTimeline,
         barStyleAttr: `left:${leftPercent}; width:${widthPercent}`,
-        barClassAttr: `absolute top-1/2 -translate-y-1/2 rounded-control px-control-x py-badge-pill-y text-sm font-medium shadow-sm ${student.degreeType === "bsc"
-          ? "bg-app-warning text-app-warning-text dark:bg-app-warning-soft-dark/65 dark:text-app-warning-text-dark"
-          : student.degreeType === "dsc"
-            ? "bg-app-mock-soft text-app-mock-text dark:bg-app-mock-soft-dark/60 dark:text-app-mock-text-dark"
-            : "bg-app-brand-soft text-app-brand-strong dark:bg-app-brand-soft-dark/55 dark:text-app-text-dark"}`,
+        barClassAttr: `absolute top-1/2 -translate-y-1/2 rounded-control px-control-x py-badge-pill-y text-sm font-medium shadow-sm ${
+          student.degreeType === "bsc"
+            ? "bg-app-warning text-app-warning-text dark:bg-app-warning-soft-dark/65 dark:text-app-warning-text-dark"
+            : student.degreeType === "dsc"
+              ? "bg-app-mock-soft text-app-mock-text dark:bg-app-mock-soft-dark/60 dark:text-app-mock-text-dark"
+              : "bg-app-brand-soft text-app-brand-strong dark:bg-app-brand-soft-dark/55 dark:text-app-text-dark"
+        }`,
       };
     }),
   };
@@ -259,7 +250,7 @@ export function renderDashboardGantt(
         <div class="min-w-[58rem]">
           <div class="grid gap-stack-xs px-[calc(var(--spacing-panel-sm)+1px)] xl:grid-cols-[minmax(13rem,18rem)_1fr]">
             <div class="hidden xl:block"></div>
-            <div class="relative">
+            <div class="relative min-w-0">
               <div class="flex rounded-control border border-app-line bg-app-surface/80 text-[11px] font-semibold uppercase tracking-[0.14em] text-app-text-muted dark:border-app-line-dark dark:bg-app-surface-dark/80 dark:text-app-text-muted-dark">
                 <fragment &foreach="timeline.months as month">
                   <div class="box-border shrink-0 border-r border-app-line px-badge-pill-x py-badge-pill-y last:border-r-0 dark:border-app-line-dark" &style="month.styleAttr" &children="month.label"></div>
@@ -311,7 +302,7 @@ export function renderDashboardGantt(
                     <p &visibleIf="student.barVisible" class="mt-badge-y text-xs text-app-text-soft dark:text-app-text-soft-dark" &children="student.timelineRangeText"></p>
                     <p &visibleIf="student.showMissingTimelineText" class="mt-badge-y text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="student.missingTimelineText"></p>
                   </div>
-                  <div class="relative min-h-[4.25rem] rounded-card border border-app-line bg-app-surface dark:border-app-line-dark dark:bg-app-surface-dark">
+                  <div class="relative min-h-[4.25rem] min-w-0 rounded-card border border-app-line bg-app-surface dark:border-app-line-dark dark:bg-app-surface-dark">
                     <div class="pointer-events-none absolute inset-0 flex">
                       <fragment &foreach="timeline.months as month">
                         <div class="box-border shrink-0 border-r border-app-line/70 last:border-r-0 dark:border-app-line-dark/70" &style="month.styleAttr"></div>
