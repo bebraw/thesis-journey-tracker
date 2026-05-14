@@ -359,7 +359,7 @@ export function renderStudentsTable(
         </div>
         <fragment &children="filtersPanelHtml"></fragment>
         <fragment &children="activeFiltersPanelHtml"></fragment>
-        <div class="mb-stack-xs flex flex-col gap-stack-xs lg:flex-row lg:items-center lg:justify-between">
+        <div class="mb-stack flex flex-col gap-stack-xs lg:flex-row lg:items-center lg:justify-between">
           <p id="studentResultsMeta" class="min-w-0 text-sm font-medium text-app-text-muted dark:text-app-text-muted-dark"></p>
           <div class="flex flex-col gap-stack self-start sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
             <fragment &children="workspaceViewToggleHtml"></fragment>
@@ -416,7 +416,7 @@ export function renderStudentsTable(
               <thead>
                 <tr &class="tableHeaderClass">
                   <fragment &foreach="sortHeaders as header">
-                    <th scope="col" class="px-cell-x py-cell-y text-left align-middle" aria-sort="none">
+                    <th scope="col" class="px-cell-x py-stack-xs text-left align-middle" aria-sort="none">
                       <button
                         type="button"
                         data-student-sort="1"
