@@ -79,4 +79,32 @@ describe("dashboard gantt", () => {
 
     expect(html).toContain("Start date needed");
   });
+
+  it("expands long timelines so month labels can scroll instead of compressing", () => {
+    const html = renderDashboardGantt(
+      [
+        buildStudent({ id: 1, degreeType: "dsc", startDate: "2024-12-01" }),
+        buildStudent({ id: 2, degreeType: "dsc", startDate: "2026-11-01" }),
+      ],
+      null,
+      {
+        search: "",
+        degree: "",
+        phase: "",
+        status: "",
+        viewMode: "gantt",
+        sortKey: "nextMeeting",
+        sortDirection: "asc",
+      },
+      [
+        { label: "Planning research", phaseId: "research_plan" },
+        { label: "Researching", phaseId: "researching" },
+        { label: "Editing", phaseId: "editing" },
+        { label: "Submitted", phaseId: "submitted" },
+      ],
+      { today: new Date("2026-05-01T00:00:00.000Z") },
+    );
+
+    expect(html).toContain('style="min-width:180.5rem"');
+  });
 });

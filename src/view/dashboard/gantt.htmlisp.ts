@@ -45,6 +45,7 @@ interface PreparedGanttStudent {
 
 interface PreparedGanttTimeline {
   months: PreparedGanttMonth[];
+  timelineWidthStyleAttr: string;
   todayLineVisible: boolean;
   todayLineLeftPercent: string;
   todayLineStyleAttr: string;
@@ -172,6 +173,7 @@ function prepareGanttTimeline(
 
   return {
     months,
+    timelineWidthStyleAttr: `min-width:${Math.max(58, months.length * 4.75)}rem`,
     todayLineVisible,
     todayLineLeftPercent,
     todayLineStyleAttr: `left:${todayLineLeftPercent}`,
@@ -247,7 +249,7 @@ export function renderDashboardGantt(
         <p class="text-sm text-app-text-soft dark:text-app-text-soft-dark">Advisor workload across assumed thesis timelines.</p>
       </div>
       <div class="overflow-x-auto rounded-card border border-app-line bg-app-surface-soft/35 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/20">
-        <div class="min-w-[58rem]">
+        <div &style="timeline.timelineWidthStyleAttr">
           <div class="grid gap-stack-xs px-[calc(var(--spacing-panel-sm)+1px)] xl:grid-cols-[minmax(13rem,18rem)_1fr]">
             <div class="hidden xl:block"></div>
             <div class="relative min-w-0">
