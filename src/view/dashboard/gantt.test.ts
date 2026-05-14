@@ -50,8 +50,8 @@ describe("dashboard gantt", () => {
     expect(html).toContain("Jan 2026");
     expect(html).toContain("Deep work");
     expect(html).toContain("Writing");
-    expect(html).toContain("6 month assumption");
-    expect(html).toContain("4 month assumption");
+    expect(html).toContain("Test Student · MSc · Deep work · 10 Jan -&gt; 10 Jul");
+    expect(html).toContain("Second Student · BSc · Writing · 1 Feb -&gt; 1 Jun");
     expect(html).toContain("data-gantt-student-row");
   });
 

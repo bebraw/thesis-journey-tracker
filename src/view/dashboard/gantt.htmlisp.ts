@@ -1,8 +1,7 @@
-import { raw } from "../../htmlisp";
 import type { DashboardLaneDefinition } from "../../dashboard-lanes";
 import type { Student } from "../../students/store";
-import { EMPTY_STATE_CARD, renderBadge } from "../../ui";
-import { DEGREE_TYPES, getAssumedProjectDurationMonths, getAssumedProjectEndDate, getDegreeLabel, meetingStatusId } from "../../students";
+import { EMPTY_STATE_CARD } from "../../ui";
+import { DEGREE_TYPES, getAssumedProjectEndDate, getDegreeLabel, meetingStatusId } from "../../students";
 import { renderView } from "../shared.htmlisp";
 import type { DashboardFilters } from "../types";
 
@@ -31,13 +30,9 @@ interface PreparedGanttStudent {
   dataNextMeetingDate: string;
   dataLogCount: string;
   barVisible: boolean;
-  phaseBadgeHtml: unknown;
-  degreeBadgeHtml: unknown;
   studentName: string;
-  projectMeta: string;
-  timelineRangeText: string;
-  missingTimelineText: string;
-  showMissingTimelineText: boolean;
+  barLabel: string;
+  barTitle: string;
   showStartDatePlaceholder: boolean;
   barStyleAttr: string;
   barClassAttr: string;
@@ -104,6 +99,14 @@ function formatMonthLabel(date: Date): string {
   return date.toLocaleDateString("en-GB", {
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function formatShortDate(dateText: string): string {
+  return new Date(`${dateText}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
     timeZone: "UTC",
   });
 }
@@ -188,12 +191,15 @@ function prepareGanttTimeline(
       const widthPercent =
         timelineStart && timelineEnd ? clampPercent(((diffDays(timelineStart, timelineEnd) + 1) / totalDays) * 100) : "0%";
       const isSelected = selectedStudent ? selectedStudent.id === student.id : false;
+      const degreeLabel = getDegreeLabel(student.degreeType, DEGREE_TYPES);
+      const timelineRangeText = hasTimeline ? `${startDate} -> ${projectedEndDate}` : "";
+      const shortRangeText = startDate && projectedEndDate ? `${formatShortDate(startDate)} -> ${formatShortDate(projectedEndDate)}` : "";
 
       return {
-        rowClass: `grid gap-stack-xs rounded-card border p-panel-sm transition xl:grid-cols-[18rem_1fr] ${
+        rowClass: `grid grid-cols-[12rem_1fr] transition ${
           isSelected
-            ? "border-app-brand bg-app-brand-soft/80 dark:border-app-brand-ring dark:bg-app-brand-soft-dark/20"
-            : "border-app-line bg-app-surface hover:border-app-line-strong hover:bg-app-surface-soft dark:border-app-line-dark dark:bg-app-surface-dark dark:hover:border-app-line-dark-strong dark:hover:bg-app-surface-soft-dark/40"
+            ? "bg-app-brand-soft/70 dark:bg-app-brand-soft-dark/20"
+            : "bg-app-surface hover:bg-app-surface-soft dark:bg-app-surface-dark dark:hover:bg-app-surface-soft-dark/40"
         }`,
         selectedAttr: isSelected ? "true" : "false",
         selectHref: buildDashboardHref(filters, student.id),
@@ -211,16 +217,12 @@ function prepareGanttTimeline(
         dataNextMeetingDate: student.nextMeetingAt || "",
         dataLogCount: String(student.logCount),
         barVisible: hasTimeline,
-        phaseBadgeHtml: raw(renderBadge({ label: phaseLabel })),
-        degreeBadgeHtml: raw(renderBadge({ label: getDegreeLabel(student.degreeType, DEGREE_TYPES) })),
         studentName: student.name,
-        projectMeta: `${getDegreeLabel(student.degreeType, DEGREE_TYPES)} · ${getAssumedProjectDurationMonths(student.degreeType)} month assumption`,
-        timelineRangeText: hasTimeline ? `${startDate} -> ${projectedEndDate}` : "",
-        missingTimelineText: startDate ? "" : "Start date missing. Add a start date to place this student on the Gantt timeline.",
-        showMissingTimelineText: embedded && !hasTimeline,
+        barLabel: hasTimeline ? `${student.name} · ${degreeLabel} · ${phaseLabel} · ${shortRangeText}` : student.name,
+        barTitle: hasTimeline ? `${student.name} · ${degreeLabel} · ${phaseLabel} · ${timelineRangeText}` : student.name,
         showStartDatePlaceholder: !hasTimeline,
         barStyleAttr: `left:${leftPercent}; width:${widthPercent}`,
-        barClassAttr: `absolute top-1/2 -translate-y-1/2 rounded-control px-control-x py-badge-pill-y text-sm font-medium shadow-sm ${
+        barClassAttr: `absolute top-1/2 min-w-0 -translate-y-1/2 truncate rounded-control px-control-x py-badge-pill-y text-sm font-medium shadow-sm ${
           student.degreeType === "bsc"
             ? "bg-app-warning text-app-warning-text dark:bg-app-warning-soft-dark/65 dark:text-app-warning-text-dark"
             : student.degreeType === "dsc"
@@ -250,74 +252,67 @@ export function renderDashboardGantt(
       </div>
       <div class="overflow-x-auto rounded-card border border-app-line bg-app-surface-soft/35 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/20">
         <div &style="timeline.timelineWidthStyleAttr">
-          <div class="grid gap-stack-xs px-[calc(var(--spacing-panel-sm)+1px)] xl:grid-cols-[minmax(13rem,18rem)_1fr]">
-            <div class="hidden xl:block"></div>
-            <div class="relative min-w-0">
-              <div class="flex rounded-control border border-app-line bg-app-surface/80 text-[11px] font-semibold uppercase tracking-[0.14em] text-app-text-muted dark:border-app-line-dark dark:bg-app-surface-dark/80 dark:text-app-text-muted-dark">
-                <fragment &foreach="timeline.months as month">
-                  <div class="box-border shrink-0 border-r border-app-line px-badge-pill-x py-badge-pill-y last:border-r-0 dark:border-app-line-dark" &style="month.styleAttr" &children="month.label"></div>
-                </fragment>
+          <div class="overflow-hidden rounded-card border border-app-line bg-app-surface shadow-sm dark:border-app-line-dark dark:bg-app-surface-dark">
+            <div class="grid grid-cols-[12rem_1fr] border-b border-app-line bg-app-surface-soft/70 dark:border-app-line-dark dark:bg-app-surface-soft-dark/30">
+              <div class="border-r border-app-line px-panel-sm py-badge-pill-y text-[11px] font-semibold uppercase tracking-[0.14em] text-app-text-muted dark:border-app-line-dark dark:text-app-text-muted-dark">Student</div>
+              <div class="relative min-w-0">
+                <div class="flex text-[11px] font-semibold uppercase tracking-[0.14em] text-app-text-muted dark:text-app-text-muted-dark">
+                  <fragment &foreach="timeline.months as month">
+                    <div class="box-border shrink-0 border-r border-app-line px-badge-pill-x py-badge-pill-y last:border-r-0 dark:border-app-line-dark" &style="month.styleAttr" &children="month.label"></div>
+                  </fragment>
+                </div>
+                <div &visibleIf="timeline.todayLineVisible" class="pointer-events-none absolute inset-y-0 z-10 w-px bg-app-danger/70 dark:bg-app-danger-line-dark" &style="timeline.todayLineStyleAttr"></div>
               </div>
-              <div &visibleIf="timeline.todayLineVisible" class="pointer-events-none absolute inset-y-0 z-10 w-px bg-app-danger/70 dark:bg-app-danger-line-dark" &style="timeline.todayLineStyleAttr"></div>
             </div>
-          </div>
-          <div id="ganttStudentRows" class="mt-stack-xs space-y-stack-xs">
-            <fragment &visibleIf="hasStudents">
-              <fragment &foreach="timeline.students as student">
-                <article
-                  &class="student.rowClass"
-                  data-gantt-student-row
-                  &data-select-href="student.selectHref"
-                  &data-student-id="student.studentIdAttr"
-                  &data-name="student.dataName"
-                  &data-email="student.dataEmail"
-                  &data-topic="student.dataTopic"
-                  &data-notes="student.dataNotes"
-                  &data-degree="student.dataDegree"
-                  &data-degree-label="student.dataDegreeLabel"
-                  &data-phase="student.dataPhase"
-                  &data-phase-label="student.dataPhaseLabel"
-                  &data-status-id="student.dataStatusId"
-                  &data-target-date="student.dataTargetDate"
-                  &data-next-meeting-date="student.dataNextMeetingDate"
-                  &data-log-count="student.dataLogCount"
-                  &aria-selected="student.selectedAttr"
-                  tabindex="0"
-                >
-                  <div class="min-w-0">
-                    <div class="flex items-start justify-between gap-badge-y">
-                      <div class="min-w-0">
+            <div id="ganttStudentRows" class="divide-y divide-app-line dark:divide-app-line-dark">
+              <fragment &visibleIf="hasStudents">
+                <fragment &foreach="timeline.students as student">
+                  <article
+                    &class="student.rowClass"
+                    data-gantt-student-row
+                    &data-select-href="student.selectHref"
+                    &data-student-id="student.studentIdAttr"
+                    &data-name="student.dataName"
+                    &data-email="student.dataEmail"
+                    &data-topic="student.dataTopic"
+                    &data-notes="student.dataNotes"
+                    &data-degree="student.dataDegree"
+                    &data-degree-label="student.dataDegreeLabel"
+                    &data-phase="student.dataPhase"
+                    &data-phase-label="student.dataPhaseLabel"
+                    &data-status-id="student.dataStatusId"
+                    &data-target-date="student.dataTargetDate"
+                    &data-next-meeting-date="student.dataNextMeetingDate"
+                    &data-log-count="student.dataLogCount"
+                    &aria-selected="student.selectedAttr"
+                    tabindex="0"
+                  >
+                    <div class="min-w-0 border-r border-app-line px-panel-sm py-stack-xs dark:border-app-line-dark">
+                      <div class="flex min-h-[2rem] items-center">
                         <a
                           &href="student.selectHref"
                           data-inline-select="1"
                           &data-student-id="student.studentIdAttr"
-                          class="text-sm font-semibold text-app-text underline-offset-2 hover:underline dark:text-app-text-dark"
+                          class="truncate text-sm font-medium text-app-text underline-offset-2 hover:underline dark:text-app-text-dark"
                           &children="student.studentName"
                         ></a>
-                        <p class="mt-1 text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="student.projectMeta"></p>
-                      </div>
-                      <div class="flex flex-wrap justify-end gap-badge-y">
-                        <fragment &children="student.degreeBadgeHtml"></fragment>
-                        <fragment &children="student.phaseBadgeHtml"></fragment>
                       </div>
                     </div>
-                    <p &visibleIf="student.barVisible" class="mt-badge-y text-xs text-app-text-soft dark:text-app-text-soft-dark" &children="student.timelineRangeText"></p>
-                    <p &visibleIf="student.showMissingTimelineText" class="mt-badge-y text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="student.missingTimelineText"></p>
-                  </div>
-                  <div class="relative min-h-[4.25rem] min-w-0 rounded-card border border-app-line bg-app-surface dark:border-app-line-dark dark:bg-app-surface-dark">
-                    <div class="pointer-events-none absolute inset-0 flex">
-                      <fragment &foreach="timeline.months as month">
-                        <div class="box-border shrink-0 border-r border-app-line/70 last:border-r-0 dark:border-app-line-dark/70" &style="month.styleAttr"></div>
-                      </fragment>
+                    <div class="relative flex min-h-[5rem] min-w-0 items-center px-control-x">
+                      <div class="pointer-events-none absolute inset-0 flex">
+                        <fragment &foreach="timeline.months as month">
+                          <div class="box-border shrink-0 border-r border-app-line/70 last:border-r-0 dark:border-app-line-dark/70" &style="month.styleAttr"></div>
+                        </fragment>
+                      </div>
+                      <div &visibleIf="timeline.todayLineVisible" class="pointer-events-none absolute inset-y-0 z-10 w-px bg-app-danger/70 dark:bg-app-danger-line-dark" &style="timeline.todayLineStyleAttr"></div>
+                      <div &visibleIf="student.barVisible" &class="student.barClassAttr" &style="student.barStyleAttr" &title="student.barTitle" &children="student.barLabel"></div>
+                      <p &visibleIf="student.showStartDatePlaceholder" class="relative z-20 w-full truncate rounded-control border border-dashed border-app-line-strong px-control-x py-badge-pill-y text-xs text-app-text-muted dark:border-app-line-dark-strong dark:text-app-text-muted-dark">Start date needed</p>
                     </div>
-                    <div &visibleIf="timeline.todayLineVisible" class="pointer-events-none absolute inset-y-0 z-10 w-px bg-app-danger/70 dark:bg-app-danger-line-dark" &style="timeline.todayLineStyleAttr"></div>
-                    <div &visibleIf="student.barVisible" &class="student.barClassAttr" &style="student.barStyleAttr" &children="student.studentName"></div>
-                    <p &visibleIf="student.showStartDatePlaceholder" class="absolute inset-x-control-x top-1/2 -translate-y-1/2 rounded-control border border-dashed border-app-line-strong px-control-x py-badge-pill-y text-xs text-app-text-muted dark:border-app-line-dark-strong dark:text-app-text-muted-dark">Start date needed</p>
-                  </div>
-                </article>
+                  </article>
+                </fragment>
               </fragment>
-            </fragment>
-            <p &visibleIf="showEmptyState" &class="emptyStateClass">No students yet.</p>
+              <p &visibleIf="showEmptyState" &class="emptyStateClass">No students yet.</p>
+            </div>
           </div>
         </div>
       </div>

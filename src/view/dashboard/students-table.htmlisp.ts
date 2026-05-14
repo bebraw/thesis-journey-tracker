@@ -359,12 +359,14 @@ export function renderStudentsTable(
         </div>
         <fragment &children="filtersPanelHtml"></fragment>
         <fragment &children="activeFiltersPanelHtml"></fragment>
-        <div class="mb-badge-pill-y flex flex-col gap-badge-y lg:flex-row lg:items-center lg:justify-between">
+        <div class="mb-stack-xs flex flex-col gap-stack-xs lg:flex-row lg:items-center lg:justify-between">
           <p id="studentResultsMeta" class="min-w-0 text-sm font-medium text-app-text-muted dark:text-app-text-muted-dark"></p>
-          <div class="flex flex-wrap items-center gap-badge-y self-start lg:justify-end">
+          <div class="flex flex-col gap-stack self-start sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
             <fragment &children="workspaceViewToggleHtml"></fragment>
-            <fragment &children="addStudentButtonHtml"></fragment>
-            <fragment &children="panelToggleButtonHtml"></fragment>
+            <div class="flex flex-wrap items-center gap-stack-xs">
+              <fragment &children="addStudentButtonHtml"></fragment>
+              <fragment &children="panelToggleButtonHtml"></fragment>
+            </div>
           </div>
         </div>
         <div id="selectedStudentPanelShell" &class="selectedPanelShellClass">
@@ -496,7 +498,7 @@ export function renderStudentsTable(
               label: "Add student",
               href: "/students/new",
               variant: "primary",
-              className: "w-full sm:w-auto",
+              className: "inline-flex min-w-[9.5rem] justify-center",
             })
           : "",
       ),
@@ -504,7 +506,7 @@ export function renderStudentsTable(
         label: selectedStudent ? "Hide details" : "Show details",
         type: "button",
         variant: "neutral",
-        className: "xl:hidden",
+        className: "inline-flex min-w-[9.5rem] justify-center xl:hidden",
         attrs: {
           id: "toggleStudentPanelButton",
           "aria-expanded": selectedStudent ? "true" : "false",
