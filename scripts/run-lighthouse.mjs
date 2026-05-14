@@ -190,8 +190,13 @@ async function loginAndGetCookie(credentials) {
     if ((await nameField.count()) > 0) {
       await nameField.fill(credentials.name);
     }
-    await page.getByLabel("Password").fill(credentials.password);
-    await page.getByRole("button", { name: "Sign in" }).click();
+    const passwordField = page.getByLabel("Password");
+    if ((await passwordField.count()) > 0) {
+      await passwordField.fill(credentials.password);
+      await page.getByRole("button", { name: "Sign in" }).click();
+    } else {
+      await page.getByRole("button", { name: "Open demo" }).click();
+    }
     await page.waitForURL(DASHBOARD_URL, { timeout: 15_000 });
 
     const cookies = await context.cookies(BASE_URL);
