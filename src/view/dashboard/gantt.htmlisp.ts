@@ -196,7 +196,7 @@ function prepareGanttTimeline(
       const shortRangeText = startDate && projectedEndDate ? `${formatShortDate(startDate)} -> ${formatShortDate(projectedEndDate)}` : "";
 
       return {
-        rowClass: `grid grid-cols-[12rem_1fr] transition ${
+        rowClass: `grid grid-cols-[12rem_1fr] transition group ${
           isSelected
             ? "bg-app-brand-soft/70 dark:bg-app-brand-soft-dark/20"
             : "bg-app-surface hover:bg-app-surface-soft dark:bg-app-surface-dark dark:hover:bg-app-surface-soft-dark/40"
@@ -250,11 +250,11 @@ export function renderDashboardGantt(
         <h2 &visibleIf="showHeader" class="text-lg font-semibold">Gantt View</h2>
         <p class="text-sm text-app-text-soft dark:text-app-text-soft-dark">Advisor workload across assumed thesis timelines.</p>
       </div>
-      <div class="overflow-x-auto rounded-card border border-app-line bg-app-surface-soft/35 p-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/20">
+      <div class="overflow-x-auto rounded-card border border-app-line bg-app-surface-soft/35 px-0 py-panel-sm dark:border-app-line-dark dark:bg-app-surface-soft-dark/20">
         <div &style="timeline.timelineWidthStyleAttr">
-          <div class="overflow-hidden rounded-card border border-app-line bg-app-surface shadow-sm dark:border-app-line-dark dark:bg-app-surface-dark">
+          <div class="rounded-card border border-app-line bg-app-surface shadow-sm dark:border-app-line-dark dark:bg-app-surface-dark">
             <div class="grid grid-cols-[12rem_1fr] border-b border-app-line bg-app-surface-soft/70 dark:border-app-line-dark dark:bg-app-surface-soft-dark/30">
-              <div class="border-r border-app-line px-panel-sm py-badge-pill-y text-[11px] font-semibold uppercase tracking-[0.14em] text-app-text-muted dark:border-app-line-dark dark:text-app-text-muted-dark">Student</div>
+              <div class="sticky left-0 z-30 border-r border-app-line bg-app-surface-soft px-panel-sm py-badge-pill-y text-[11px] font-semibold uppercase tracking-[0.14em] text-app-text-muted shadow-[8px_0_18px_-18px_rgb(15_23_42_/_0.55)] dark:border-app-line-dark dark:bg-app-surface-soft-dark dark:text-app-text-muted-dark">Student</div>
               <div class="relative min-w-0">
                 <div class="flex text-[11px] font-semibold uppercase tracking-[0.14em] text-app-text-muted dark:text-app-text-muted-dark">
                   <fragment &foreach="timeline.months as month">
@@ -287,7 +287,7 @@ export function renderDashboardGantt(
                     &aria-selected="student.selectedAttr"
                     tabindex="0"
                   >
-                    <div class="min-w-0 border-r border-app-line px-panel-sm py-stack-xs dark:border-app-line-dark">
+                    <div class="sticky left-0 z-20 min-w-0 border-r border-app-line bg-app-surface px-panel-sm py-stack-xs shadow-[8px_0_18px_-18px_rgb(15_23_42_/_0.45)] group-hover:bg-app-surface-soft dark:border-app-line-dark dark:bg-app-surface-dark dark:group-hover:bg-app-surface-soft-dark/40">
                       <div class="flex min-h-[2rem] items-center">
                         <a
                           &href="student.selectHref"

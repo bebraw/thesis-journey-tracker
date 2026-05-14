@@ -53,6 +53,7 @@ describe("dashboard gantt", () => {
     expect(html).toContain("MSc · Deep work · 10 Jan -&gt; 10 Jul");
     expect(html).toContain("BSc · Writing · 1 Feb -&gt; 1 Jun");
     expect(html).toContain("data-gantt-student-row");
+    expect(html).toContain("sticky left-0");
   });
 
   it("shows a placeholder when a student is missing a start date", () => {
