@@ -165,8 +165,8 @@ function renderStudentHistoryContent(
           <fragment &foreach="logs as log">
             <article &class="logEntryClass">
               <p class="font-medium"><span &children="log.timestampText"></span></p>
-              <p class="mt-1"><span class="font-medium">Discussed:</span> <span &children="log.discussed"></span></p>
-              <p class="mt-1"><span class="font-medium">Agreed:</span> <span &children="log.agreedPlan"></span></p>
+              <p class="mt-1"><span class="font-medium mr-1">Discussed:</span><span &children="log.discussed"></span></p>
+              <p class="mt-1"><span class="font-medium mr-1">Agreed:</span><span &children="log.agreedPlan"></span></p>
               <p &visibleIf="log.hasDeadline" class="mt-1"><span class="font-medium">Next-step deadline:</span> <span &children="log.deadlineText"></span></p>
             </article>
           </fragment>
