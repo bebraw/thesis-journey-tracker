@@ -218,7 +218,7 @@ function prepareGanttTimeline(
         dataLogCount: String(student.logCount),
         barVisible: hasTimeline,
         studentName: student.name,
-        barLabel: hasTimeline ? `${student.name} · ${degreeLabel} · ${phaseLabel} · ${shortRangeText}` : student.name,
+        barLabel: hasTimeline ? `${degreeLabel} · ${phaseLabel} · ${shortRangeText}` : student.name,
         barTitle: hasTimeline ? `${student.name} · ${degreeLabel} · ${phaseLabel} · ${timelineRangeText}` : student.name,
         showStartDatePlaceholder: !hasTimeline,
         barStyleAttr: `left:${leftPercent}; width:${widthPercent}`,
