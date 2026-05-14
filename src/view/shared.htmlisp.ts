@@ -319,7 +319,7 @@ export function renderAuthedPageHeader(title: string, description: string, navig
       <h1 class="text-lg font-semibold leading-tight sm:text-xl" &children="title"></h1>
       <p &class="descriptionClass" &children="description"></p>
     </div>
-    <div class="flex flex-wrap items-center justify-between gap-badge-y sm:flex-nowrap sm:justify-end sm:gap-badge-pill-y">
+    <div class="flex w-full flex-wrap items-center gap-badge-pill-y sm:w-auto sm:flex-nowrap sm:justify-end">
       <div &class="viewerSummaryClass">
         <span &children="viewerNameText"></span>
         <span class="font-semibold" &children="viewerRoleText"></span>
@@ -360,7 +360,7 @@ export function renderAuthedPageHeader(title: string, description: string, navig
       viewerNameText: `Signed in as ${viewer.name}`,
       viewerRoleText: viewer.role === "readonly" ? "Read-only" : "Editor",
       actionsRowClass:
-        "flex min-w-0 flex-1 items-center gap-badge-y overflow-visible pb-0.5 pr-badge-y sm:flex-nowrap sm:justify-end sm:pb-0 sm:pr-0 [&>*]:shrink-0",
+        "flex flex-wrap items-center gap-badge-y overflow-visible pb-0.5 sm:flex-nowrap sm:justify-end sm:pb-0 [&>*]:shrink-0",
       navigationHtml: raw(navigationHtml),
       themeToggleClass: THEME_TOGGLE_BUTTON,
       logoutButtonHtml: raw(renderButton({
