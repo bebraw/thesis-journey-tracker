@@ -309,7 +309,8 @@ describe("data import and export", () => {
     expect(body).toContain("data-workspace-view-button=\"gantt\"");
     expect(body).toContain("Advisor workload across assumed thesis timelines.");
     expect(body).toContain("data-gantt-student-row");
-    expect(body).toContain("6 month assumption");
+    expect(body).toContain("MSc · Researching");
+    expect(body).toContain("MSc · Editing");
     expect(body).toContain("Start date needed");
   });
 

@@ -14,8 +14,13 @@ async function login(page: Page) {
   if ((await nameField.count()) > 0) {
     await nameField.fill(LOGIN_NAME);
   }
-  await page.getByLabel("Password").fill(LOGIN_PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  const passwordField = page.getByLabel("Password");
+  if ((await passwordField.count()) > 0) {
+    await passwordField.fill(LOGIN_PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+  } else {
+    await page.getByRole("button", { name: "Open demo" }).click();
+  }
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "Thesis Journey Tracker" })).toBeVisible();
 }
