@@ -46,6 +46,37 @@ describe("multi-user access control", () => {
     expect(body).toContain("Select a student from the table to view details, supervision logs, and phase history.");
   });
 
+  it("counts only active students in the dashboard tracked metric", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+
+    env.DB.students.push({
+      id: 2,
+      name: "Archived Student",
+      email: "archived@example.edu",
+      degree_type: "msc",
+      thesis_topic: "Archived topic",
+      student_notes: null,
+      start_date: "2025-01-01",
+      current_phase: "submitted",
+      next_meeting_at: null,
+      archived_at: "2026-05-01T00:00:00.000Z",
+    });
+
+    const response = await fetchHandler(
+      new Request("http://localhost/", {
+        headers: { cookie },
+      }),
+      env,
+    );
+
+    const body = await response.text();
+    expect(response.status).toBe(200);
+    expect(body).toMatch(/Students tracked[\s\S]*?text-2xl[^>]*>1<\/p>[\s\S]*?Active thesis records\./);
+    expect(body).not.toContain("All active and archived thesis records.");
+    expect(body).not.toContain("Archived Student");
+  });
+
   it("renders the student partial for readonly accounts", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Professor", "readonly-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);

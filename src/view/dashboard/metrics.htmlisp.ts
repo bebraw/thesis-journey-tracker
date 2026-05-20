@@ -15,7 +15,7 @@ export function renderMetricCards(metrics: Metrics): string {
     {
       label: "Students tracked",
       metricValue: String(metrics.total),
-      detail: "All active and archived thesis records.",
+      detail: "Active thesis records.",
       href: "/",
     },
     {

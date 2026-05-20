@@ -9,9 +9,8 @@ import { renderAddStudentPage, renderDashboardPage, renderEmptySelectedPanel, re
 import { getDashboardFilters } from "./filters";
 
 export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser, showStyleGuide: boolean): Promise<Response> {
-  const [students, allStudents, calendarSource, dashboardLanes] = await Promise.all([
+  const [students, calendarSource, dashboardLanes] = await Promise.all([
     listStudents(env.DB),
-    listStudents(env.DB, { includeArchived: true }),
     resolveGoogleCalendarSourceForApp(env),
     resolveDashboardLanesForApp(env),
   ]);
@@ -30,7 +29,7 @@ export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUs
 
   const today = new Date().toISOString().slice(0, 10);
   const metrics = {
-    total: allStudents.length,
+    total: students.length,
     noMeeting: students.filter((student) => meetingStatusId(student) === "not_booked").length,
     pastTarget: students.filter((student) => isPastTargetSubmissionDate(student, today)).length,
     submitted: students.filter((student) => student.currentPhase === "submitted").length,

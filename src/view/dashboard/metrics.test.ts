@@ -13,6 +13,8 @@ describe("dashboard metrics", () => {
     expect(html).toContain('href="/?status=not_booked"');
     expect(html).toContain('href="/?degree=msc&amp;sort=target&amp;dir=asc"');
     expect(html).toContain('href="/?phase=submitted"');
+    expect(html).toContain("Active thesis records.");
+    expect(html).not.toContain("All active and archived thesis records.");
     expect(html).not.toContain("Review students");
     expect(html).not.toContain("Review timeline");
   });
