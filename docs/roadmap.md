@@ -1,44 +1,56 @@
-# Roadmap Ideas
+# Product Roadmap
 
-This note collects feature ideas that feel like a natural next step for the project. It is intentionally lightweight: the items here are prompts for future planning, not firm commitments.
+This note tracks the next product bets for Thesis Journey Tracker. Keep it focused on unfinished work: when an item ships, remove it or rewrite it to describe the remaining gap.
 
 ## Current Priority Items
 
+- Build student risk flags so the dashboard can surface students who need advisor attention instead of only showing the current cohort state.
 - Validate [`src/ui/foundation/`](../src/ui/foundation) against a second real consumer before moving it into a separate repository or package. The in-repo foundation/app split is now in place, so the remaining gap is proving the API outside this app.
 
-## Highest-Value Next Steps
+## Near-Term Roadmap
 
-### Advisor Weekly Digest
-
-Send or generate a short weekly summary of students who need attention, such as:
-
-- overdue meetings
-- newly inactive students
-- upcoming meetings
-- recent phase changes
-
-This could start as a downloadable report and later grow into scheduled email delivery.
-
-### Student Risk Flags
+### 1. Student Risk Flags
 
 Highlight students who may need intervention, for example when they have:
 
 - no recent meeting activity
+- overdue follow-up meetings
 - stalled phase progress
 - repeated missed or slipping deadlines
+- expected submission timing that appears to be drifting
 
-This would make the dashboard more proactive instead of purely descriptive.
+The first version should be small and explainable:
 
-### Timeline View
+- calculate a few deterministic risk reasons from existing student, phase, and meeting data
+- show the reasons in the student list and selected student workspace
+- add a `Needs attention` dashboard filter
+- keep thresholds configurable in code until real usage shows which settings deserve UI controls
+
+This is the highest-value next feature because it turns the dashboard from descriptive tracking into an advisor attention system.
+
+### 2. Timeline View
 
 Add a compact per-student timeline showing:
 
 - start date
 - phase changes
-- meetings
+- supervision meetings
+- follow-up dates
 - derived target submission timing
 
-This would make it easier to understand progress at a glance without reading the full log history.
+The timeline should live in the selected student workspace so an advisor can understand why a student is flagged without reading every log entry manually.
+
+### 3. Advisor Weekly Digest
+
+Generate a short weekly summary of students who need attention, such as:
+
+- students with active risk flags
+- overdue meetings
+- newly inactive students
+- upcoming meetings
+- recent phase changes
+
+Start as a downloadable Markdown or HTML report, then consider scheduled email delivery after the content proves useful.
 
 ## Additional Ideas
 
