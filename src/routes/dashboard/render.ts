@@ -56,9 +56,10 @@ export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUs
   );
 }
 
-export function renderAddStudent(url: URL, sessionUser: SessionUser, showStyleGuide: boolean): Response {
+export async function renderAddStudent(env: Env, url: URL, sessionUser: SessionUser, showStyleGuide: boolean): Promise<Response> {
   const notice = url.searchParams.get("notice");
   const error = url.searchParams.get("error");
+  const dashboardLanes = await resolveDashboardLanesForApp(env);
 
   return htmlResponse(
     renderAddStudentPage({
@@ -66,6 +67,7 @@ export function renderAddStudent(url: URL, sessionUser: SessionUser, showStyleGu
         name: sessionUser.name,
         role: sessionUser.role,
       },
+      dashboardLanes,
       notice,
       error,
       showStyleGuide,
@@ -74,9 +76,10 @@ export function renderAddStudent(url: URL, sessionUser: SessionUser, showStyleGu
 }
 
 export async function renderStudentPanelPartial(env: Env, url: URL, studentId: number, sessionUser: SessionUser): Promise<Response> {
-  const [selectedStudent, calendarSource] = await Promise.all([
+  const [selectedStudent, calendarSource, dashboardLanes] = await Promise.all([
     getStudentById(env.DB, studentId),
     resolveGoogleCalendarSourceForApp(env),
+    resolveDashboardLanesForApp(env),
   ]);
 
   if (!selectedStudent) {
@@ -88,6 +91,7 @@ export async function renderStudentPanelPartial(env: Env, url: URL, studentId: n
   return htmlFragmentResponse(
     renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, {
       canEdit: sessionUser.role !== "readonly",
+      dashboardLanes,
       filters: getDashboardFilters(url.searchParams),
       timeZone: resolveScheduleTimeZone(calendarSource?.timeZone),
     }),

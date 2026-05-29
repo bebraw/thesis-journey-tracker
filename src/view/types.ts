@@ -40,6 +40,7 @@ export interface DashboardPageData {
 
 export interface AddStudentPageData {
   viewer: ViewerContext;
+  dashboardLanes: DashboardLaneDefinition[];
   notice: string | null;
   error: string | null;
   showStyleGuide: boolean;

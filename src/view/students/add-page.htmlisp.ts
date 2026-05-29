@@ -13,6 +13,7 @@ export function renderAddStudentPage(data: AddStudentPageData): string {
   const { viewer, notice, error, showStyleGuide } = data;
   const fields = renderStudentFormFields({
     values: getDefaultStudentFormValues(),
+    dashboardLanes: data.dashboardLanes,
     controlSize: "compact",
     emailLabel: "Email (optional)",
     topicWrapperClassName: "block text-sm sm:col-span-2 lg:col-span-3",

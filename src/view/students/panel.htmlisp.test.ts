@@ -18,6 +18,20 @@ const BASE_STUDENT: Student = {
 };
 
 describe("renderSelectedStudentPanel", () => {
+  it("uses configured dashboard lane labels in the phase dropdown", () => {
+    const html = renderSelectedStudentPanel(BASE_STUDENT, [], [], {
+      dashboardLanes: [
+        { phaseId: "research_plan", label: "Planning research" },
+        { phaseId: "researching", label: "Researching" },
+        { phaseId: "editing", label: "Editing" },
+        { phaseId: "submitted", label: "Submitting" },
+      ],
+    });
+
+    expect(html).toContain('<option value="submitted">Submitting</option>');
+    expect(html).not.toContain('<option value="submitted">Submitted</option>');
+  });
+
   it("defaults the add-log meeting date/time field to the saved next meeting time", () => {
     const html = renderSelectedStudentPanel(BASE_STUDENT, [], []);
     const addLogFormHtml = html.match(/<form action="\/actions\/add-log\/1"[\s\S]*?<\/form>/)?.[0];

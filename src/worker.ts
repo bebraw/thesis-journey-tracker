@@ -190,7 +190,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   if (pathname === "/students/new" && request.method === "GET") {
     const readonlyResponse = ensureEditor("/");
     if (readonlyResponse) return readonlyResponse;
-    return renderAddStudent(url, sessionUser, showStyleGuide);
+    return await renderAddStudent(env, url, sessionUser, showStyleGuide);
   }
 
   if (pathname === "/style-guide" && request.method === "GET") {

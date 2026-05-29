@@ -9,6 +9,7 @@ import {
   type SelectOption,
 } from "../../ui";
 import { raw } from "../../htmlisp";
+import type { DashboardLaneDefinition } from "../../dashboard-lanes";
 import { DEGREE_TYPES, PHASES, STUDENT_FORM_FIELDS, type StudentFormValues } from "../../students";
 import { renderView } from "../shared.htmlisp";
 import { DATETIME_LOCAL_HALF_HOUR_STEP } from "./date-time";
@@ -26,6 +27,7 @@ export interface StudentFormFieldMap {
 
 interface RenderStudentFormFieldsOptions {
   values: StudentFormValues;
+  dashboardLanes?: DashboardLaneDefinition[];
   controlSize?: "default" | "compact";
   emailLabel?: string;
   topicWrapperClassName?: string;
@@ -35,6 +37,7 @@ interface RenderStudentFormFieldsOptions {
 export function renderStudentFormFields(options: RenderStudentFormFieldsOptions): StudentFormFieldMap {
   const {
     values,
+    dashboardLanes = [],
     controlSize = "default",
     emailLabel = "Email",
     topicWrapperClassName,
@@ -48,7 +51,7 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
     value: degree.id,
   }));
   const phaseOptions: SelectOption[] = PHASES.map((phase) => ({
-    label: phase.label,
+    label: dashboardLanes.find((lane) => lane.phaseId === phase.id)?.label || phase.label,
     value: phase.id,
   }));
   const nextMeetingInput = renderInputField({

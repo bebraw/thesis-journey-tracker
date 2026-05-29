@@ -14,7 +14,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
   const { viewer, students, selectedStudent, logs, phaseAudit, dashboardLanes, filters, notice, error, metrics, timeZone, showStyleGuide } = data;
   const canEdit = viewer.role === "editor";
   const selectedPanel = selectedStudent
-    ? renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, { canEdit, filters, timeZone })
+    ? renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, { canEdit, dashboardLanes, filters, timeZone })
     : renderEmptySelectedPanel(
         canEdit
           ? "Select a student from the table to edit details and view/add supervision logs."
