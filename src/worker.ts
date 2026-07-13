@@ -12,6 +12,7 @@ import {
 import { runAutomatedBackup } from "./backup";
 import type { Env, ScheduledControllerLike } from "./app-env";
 import type { D1Database } from "./db-core";
+import { rejectInvalidMutationOrigin } from "./http/origin";
 import { RequestBodyTooLargeError } from "./http/request-body";
 import { cssResponse, htmlResponse, iconResponse, javascriptResponse, redirect } from "./http/response";
 import { applyBrowserSecurityHeaders } from "./http/security";
@@ -57,9 +58,14 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     let response: Response;
     try {
-      const sessionState = createRequestD1Session(request, env.DB);
-      const routeResponse = await handleRequest(request, sessionState ? { ...env, DB: sessionState.database } : env);
-      response = finalizeD1SessionResponse(routeResponse, request.url, sessionState);
+      const originRejection = rejectInvalidMutationOrigin(request);
+      if (originRejection) {
+        response = originRejection;
+      } else {
+        const sessionState = createRequestD1Session(request, env.DB);
+        const routeResponse = await handleRequest(request, sessionState ? { ...env, DB: sessionState.database } : env);
+        response = finalizeD1SessionResponse(routeResponse, request.url, sessionState);
+      }
     } catch (error) {
       if (error instanceof RequestBodyTooLargeError) {
         response = new Response("Request body too large", {

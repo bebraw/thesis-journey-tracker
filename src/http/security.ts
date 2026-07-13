@@ -25,7 +25,7 @@ export function applyBrowserSecurityHeaders(response: Response, requestUrl: stri
   headers.set("Cross-Origin-Opener-Policy", "same-origin");
   headers.set("Cross-Origin-Resource-Policy", "same-origin");
   headers.set("Permissions-Policy", PERMISSIONS_POLICY);
-  headers.set("Referrer-Policy", "no-referrer");
+  headers.set("Referrer-Policy", "same-origin");
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("X-Frame-Options", "DENY");
   headers.set("X-Permitted-Cross-Domain-Policies", "none");

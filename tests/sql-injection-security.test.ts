@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loginWithPassword, seedTestUsers } from "./helpers/auth";
 import { MockD1Database } from "./helpers/mock-d1";
+import { sameOriginRequest } from "./helpers/request";
 
 vi.mock("../.generated/styles.css", () => ({ default: "" }));
 vi.mock("../src/favicon.ico", () => ({ default: new ArrayBuffer(0) }));
@@ -30,7 +31,7 @@ describe("SQL injection safety", () => {
       expect(cookie.startsWith("thesis_session=")).toBe(true);
 
       const response = await fetchHandler(
-        new Request("http://localhost/actions/add-student", {
+        sameOriginRequest("http://localhost/actions/add-student", {
           method: "POST",
           headers: {
             "content-type": "application/x-www-form-urlencoded",
@@ -63,7 +64,7 @@ describe("SQL injection safety", () => {
     const payload = "'; DROP TABLE students; --";
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/update-student/1", {
+      sameOriginRequest("http://localhost/actions/update-student/1", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -99,7 +100,7 @@ describe("SQL injection safety", () => {
       expect(cookie.startsWith("thesis_session=")).toBe(true);
 
       const response = await fetchHandler(
-        new Request("http://localhost/actions/add-log/1", {
+        sameOriginRequest("http://localhost/actions/add-log/1", {
           method: "POST",
           headers: {
             "content-type": "application/x-www-form-urlencoded",
@@ -135,7 +136,7 @@ describe("SQL injection safety", () => {
     });
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/archive-student/1", {
+      sameOriginRequest("http://localhost/actions/archive-student/1", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",

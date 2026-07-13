@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { seedTestUsers, loginWithPassword } from "../../tests/helpers/auth";
 import { MockD1Database } from "../../tests/helpers/mock-d1";
+import { sameOriginRequest } from "../../tests/helpers/request";
 
 vi.mock("../../.generated/styles.css", () => ({ default: "" }));
 vi.mock("../favicon.ico", () => ({ default: new ArrayBuffer(0) }));
@@ -47,6 +48,40 @@ describe("multi-user access control", () => {
 
     const secureResponse = await fetchHandler(new Request("https://tracker.example.edu/login"), env);
     expect(secureResponse.headers.get("strict-transport-security")).toBe("max-age=31536000");
+  });
+
+  it("rejects missing and cross-origin mutations before any database access", async () => {
+    const requests = [
+      new Request("https://tracker.example.edu/login", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ name: "Advisor", password: "wrong-password" }),
+      }),
+      new Request("https://tracker.example.edu/actions/add-student", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          origin: "https://attacker.example",
+        },
+        body: new URLSearchParams({ name: "Injected Student", degreeType: "msc" }),
+      }),
+    ];
+
+    for (const request of requests) {
+      const response = await fetchHandler(request, env);
+
+      expect(response.status).toBe(403);
+      await expect(response.text()).resolves.toBe("Forbidden");
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(response.headers.get("content-security-policy")).toContain("default-src 'none'");
+      expect(response.headers.get("strict-transport-security")).toBe("max-age=31536000");
+      expect(response.headers.has("set-cookie")).toBe(false);
+    }
+
+    expect(env.DB.calls).toHaveLength(0);
+    expect(env.DB.loginAttempts).toHaveLength(0);
+    expect(env.DB.students).toHaveLength(1);
+    expect(env.DB.appUsers.map((user) => user.session_version)).toEqual([1, 1]);
   });
 
   it("shows a readonly dashboard for readonly accounts", async () => {
@@ -173,7 +208,7 @@ describe("multi-user access control", () => {
     expect(scheduleResponse.headers.get("location")).toBe("/?error=Read-only+access");
 
     const updateResponse = await fetchHandler(
-      new Request("http://localhost/actions/update-student/1", {
+      sameOriginRequest("http://localhost/actions/update-student/1", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -196,7 +231,7 @@ describe("multi-user access control", () => {
     expect(updateResponse.headers.get("location")).toBe("/?selected=1&error=Read-only+access");
 
     const scheduleMeetingResponse = await fetchHandler(
-      new Request("http://localhost/actions/schedule-meeting", {
+      sameOriginRequest("http://localhost/actions/schedule-meeting", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -221,7 +256,7 @@ describe("multi-user access control", () => {
     );
 
     const saveCalendarSettingsResponse = await fetchHandler(
-      new Request("http://localhost/actions/save-google-calendar-settings", {
+      sameOriginRequest("http://localhost/actions/save-google-calendar-settings", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -242,7 +277,7 @@ describe("multi-user access control", () => {
     expect(saveCalendarSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
 
     const saveCalendarIcalSettingsResponse = await fetchHandler(
-      new Request("http://localhost/actions/save-google-calendar-ical-settings", {
+      sameOriginRequest("http://localhost/actions/save-google-calendar-ical-settings", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -260,7 +295,7 @@ describe("multi-user access control", () => {
     expect(saveCalendarIcalSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
 
     const saveDashboardLaneSettingsResponse = await fetchHandler(
-      new Request("http://localhost/actions/save-dashboard-lane-settings", {
+      sameOriginRequest("http://localhost/actions/save-dashboard-lane-settings", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -277,7 +312,7 @@ describe("multi-user access control", () => {
     expect(saveDashboardLaneSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
 
     const clearCalendarSettingsResponse = await fetchHandler(
-      new Request("http://localhost/actions/clear-google-calendar-settings", {
+      sameOriginRequest("http://localhost/actions/clear-google-calendar-settings", {
         method: "POST",
         headers: {
           cookie,
@@ -290,7 +325,7 @@ describe("multi-user access control", () => {
     expect(clearCalendarSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
 
     const clearCalendarOAuthResponse = await fetchHandler(
-      new Request("http://localhost/actions/clear-google-calendar-oauth-settings", {
+      sameOriginRequest("http://localhost/actions/clear-google-calendar-oauth-settings", {
         method: "POST",
         headers: {
           cookie,
@@ -303,7 +338,7 @@ describe("multi-user access control", () => {
     expect(clearCalendarOAuthResponse.headers.get("location")).toBe("/?error=Read-only+access");
 
     const clearCalendarIcalResponse = await fetchHandler(
-      new Request("http://localhost/actions/clear-google-calendar-ical-settings", {
+      sameOriginRequest("http://localhost/actions/clear-google-calendar-ical-settings", {
         method: "POST",
         headers: {
           cookie,
@@ -316,7 +351,7 @@ describe("multi-user access control", () => {
     expect(clearCalendarIcalResponse.headers.get("location")).toBe("/?error=Read-only+access");
 
     const resetDashboardLaneSettingsResponse = await fetchHandler(
-      new Request("http://localhost/actions/reset-dashboard-lane-settings", {
+      sameOriginRequest("http://localhost/actions/reset-dashboard-lane-settings", {
         method: "POST",
         headers: {
           cookie,
@@ -336,7 +371,7 @@ describe("multi-user access control", () => {
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/add-student", {
+      sameOriginRequest("http://localhost/actions/add-student", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -368,7 +403,7 @@ describe("multi-user access control", () => {
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/add-student", {
+      sameOriginRequest("http://localhost/actions/add-student", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -401,7 +436,7 @@ describe("multi-user access control", () => {
     env.DB.students[0].next_meeting_at = "2026-04-10T09:00:00.000Z";
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/update-student/1", {
+      sameOriginRequest("http://localhost/actions/update-student/1", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -432,7 +467,7 @@ describe("multi-user access control", () => {
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/add-log/1", {
+      sameOriginRequest("http://localhost/actions/add-log/1", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -462,7 +497,7 @@ describe("multi-user access control", () => {
 
     env.DB.failQueries.push(/^INSERT INTO students/);
     const addStudentResponse = await fetchHandler(
-      new Request("http://localhost/actions/add-student", {
+      sameOriginRequest("http://localhost/actions/add-student", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -487,7 +522,7 @@ describe("multi-user access control", () => {
 
     env.DB.failQueries = [/^INSERT INTO meeting_logs/];
     const addLogResponse = await fetchHandler(
-      new Request("http://localhost/actions/add-log/1", {
+      sameOriginRequest("http://localhost/actions/add-log/1", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -510,7 +545,7 @@ describe("multi-user access control", () => {
 
     env.DB.failQueries = ["UPDATE students SET next_meeting_at = ? WHERE id = ?"];
     const addLogWithMeetingUpdateResponse = await fetchHandler(
-      new Request("http://localhost/actions/add-log/1", {
+      sameOriginRequest("http://localhost/actions/add-log/1", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -534,7 +569,7 @@ describe("multi-user access control", () => {
 
     env.DB.failQueries = ["UPDATE students SET archived_at = ? WHERE id = ? AND archived_at IS NULL"];
     const archiveResponse = await fetchHandler(
-      new Request("http://localhost/actions/archive-student/1", {
+      sameOriginRequest("http://localhost/actions/archive-student/1", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -559,7 +594,7 @@ describe("multi-user access control", () => {
 
     for (let attemptIndex = 0; attemptIndex < 4; attemptIndex += 1) {
       const failedResponse = await fetchHandler(
-        new Request("https://tracker.example.com/login", {
+        sameOriginRequest("https://tracker.example.com/login", {
           method: "POST",
           headers: loginHeaders,
           body: new URLSearchParams({
@@ -575,7 +610,7 @@ describe("multi-user access control", () => {
     }
 
     const lockoutResponse = await fetchHandler(
-      new Request("https://tracker.example.com/login", {
+      sameOriginRequest("https://tracker.example.com/login", {
         method: "POST",
         headers: loginHeaders,
         body: new URLSearchParams({
@@ -597,7 +632,7 @@ describe("multi-user access control", () => {
     expect(clientAttempt?.attempt_key).not.toContain("203.0.113.10");
 
     const blockedValidLoginResponse = await fetchHandler(
-      new Request("https://tracker.example.com/login", {
+      sameOriginRequest("https://tracker.example.com/login", {
         method: "POST",
         headers: loginHeaders,
         body: new URLSearchParams({
@@ -615,7 +650,7 @@ describe("multi-user access control", () => {
     accountAttempt!.locked_until = "2000-01-01T00:00:00.000Z";
 
     const recoveredResponse = await fetchHandler(
-      new Request("https://tracker.example.com/login", {
+      sameOriginRequest("https://tracker.example.com/login", {
         method: "POST",
         headers: loginHeaders,
         body: new URLSearchParams({
@@ -642,7 +677,7 @@ describe("multi-user access control", () => {
     expect(loginPageBody).toContain('name="password"');
 
     const missingPasswordResponse = await fetchHandler(
-      new Request("http://localhost/login", {
+      sameOriginRequest("http://localhost/login", {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -658,7 +693,7 @@ describe("multi-user access control", () => {
     expect(env.DB.loginAttempts).toHaveLength(2);
 
     const validPasswordResponse = await fetchHandler(
-      new Request("http://localhost/login", {
+      sameOriginRequest("http://localhost/login", {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -694,7 +729,7 @@ describe("multi-user access control", () => {
 
   it("rejects oversized login requests before password verification", async () => {
     const response = await fetchHandler(
-      new Request("https://tracker.example.com/login", {
+      sameOriginRequest("https://tracker.example.com/login", {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -720,7 +755,7 @@ describe("multi-user access control", () => {
 
     for (let attemptIndex = 0; attemptIndex < 5; attemptIndex += 1) {
       const failedResponse = await fetchHandler(
-        new Request("https://tracker.example.com/login", {
+        sameOriginRequest("https://tracker.example.com/login", {
           method: "POST",
           headers: loginHeaders,
           body: new URLSearchParams({
@@ -739,7 +774,7 @@ describe("multi-user access control", () => {
     expect(env.DB.loginAttempts.some((attempt) => attempt.attempt_key.startsWith("client:"))).toBe(true);
 
     const differentUserResponse = await fetchHandler(
-      new Request("https://tracker.example.com/login", {
+      sameOriginRequest("https://tracker.example.com/login", {
         method: "POST",
         headers: loginHeaders,
         body: new URLSearchParams({
@@ -760,7 +795,7 @@ describe("multi-user access control", () => {
     let finalResponse: Response | null = null;
     for (let attemptIndex = 0; attemptIndex < 20; attemptIndex += 1) {
       finalResponse = await fetchHandler(
-        new Request("https://tracker.example.com/login", {
+        sameOriginRequest("https://tracker.example.com/login", {
           method: "POST",
           headers: {
             "content-type": "application/x-www-form-urlencoded",
@@ -785,7 +820,7 @@ describe("multi-user access control", () => {
 
   it("locks an account after failures from different trusted client addresses", async () => {
     for (let attemptIndex = 0; attemptIndex < 5; attemptIndex += 1) {
-      const request = new Request("https://tracker.example.com/login", {
+      const request = sameOriginRequest("https://tracker.example.com/login", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -810,7 +845,7 @@ describe("multi-user access control", () => {
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     const response = await fetchHandler(
-      new Request("http://localhost/logout", {
+      sameOriginRequest("http://localhost/logout", {
         method: "POST",
         headers: {
           cookie: `${cookie}; thesis_d1_bookmark=bookmark-value`,
@@ -920,7 +955,7 @@ describe("multi-user access control", () => {
     });
 
     const response = await fetchHandler(
-      new Request("https://tracker.example.com/login", {
+      sameOriginRequest("https://tracker.example.com/login", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",

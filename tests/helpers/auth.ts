@@ -1,6 +1,7 @@
 import type { AccessRole } from "../../src/auth";
 import { hashPassword } from "../../src/auth";
 import { MockD1Database } from "./mock-d1";
+import { sameOriginRequest } from "./request";
 
 export async function seedTestUsers(
   db: MockD1Database,
@@ -23,7 +24,7 @@ export async function loginWithPassword<Env>(
   requestHeaders: HeadersInit = {},
 ): Promise<string> {
   const response = await fetchHandler(
-    new Request("http://localhost/login", {
+    sameOriginRequest("http://localhost/login", {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded", ...requestHeaders },
       body: new URLSearchParams({ name, password }),

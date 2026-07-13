@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loginWithPassword, seedTestUsers } from "../../tests/helpers/auth";
 import { MockD1Database } from "../../tests/helpers/mock-d1";
+import { sameOriginRequest } from "../../tests/helpers/request";
 import { decryptText } from "../encryption";
 
 vi.mock("../../.generated/styles.css", () => ({ default: "" }));
@@ -58,7 +59,7 @@ describe("google calendar scheduling", () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
 
     const saveResponse = await fetchHandler(
-      new Request("http://localhost/actions/save-google-calendar-settings", {
+      sameOriginRequest("http://localhost/actions/save-google-calendar-settings", {
         method: "POST",
         headers: { cookie },
         body: new URLSearchParams({
@@ -133,7 +134,7 @@ describe("google calendar scheduling", () => {
     expect(dataToolsBody).toContain('value="America/New_York"');
 
     const updateResponse = await fetchHandler(
-      new Request("http://localhost/actions/save-google-calendar-settings", {
+      sameOriginRequest("http://localhost/actions/save-google-calendar-settings", {
         method: "POST",
         headers: { cookie },
         body: new URLSearchParams({
@@ -164,7 +165,7 @@ describe("google calendar scheduling", () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
 
     const saveResponse = await fetchHandler(
-      new Request("http://localhost/actions/save-google-calendar-ical-settings", {
+      sameOriginRequest("http://localhost/actions/save-google-calendar-ical-settings", {
         method: "POST",
         headers: { cookie },
         body: new URLSearchParams({
@@ -237,7 +238,7 @@ describe("google calendar scheduling", () => {
     expect(dataToolsBody).toContain("The stored iCal address is write-only and is never returned to this page.");
 
     const preserveResponse = await fetchHandler(
-      new Request("http://localhost/actions/save-google-calendar-ical-settings", {
+      sameOriginRequest("http://localhost/actions/save-google-calendar-ical-settings", {
         method: "POST",
         headers: { cookie },
         body: new URLSearchParams({ iCalUrl: "", timeZone: "America/New_York" }),
@@ -251,7 +252,7 @@ describe("google calendar scheduling", () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/save-google-calendar-ical-settings", {
+      sameOriginRequest("http://localhost/actions/save-google-calendar-ical-settings", {
         method: "POST",
         headers: { cookie },
         body: new URLSearchParams({
@@ -273,7 +274,7 @@ describe("google calendar scheduling", () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
 
     await fetchHandler(
-      new Request("http://localhost/actions/save-google-calendar-ical-settings", {
+      sameOriginRequest("http://localhost/actions/save-google-calendar-ical-settings", {
         method: "POST",
         headers: { cookie },
         body: new URLSearchParams({
@@ -339,7 +340,7 @@ describe("google calendar scheduling", () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
 
     await fetchHandler(
-      new Request("http://localhost/actions/save-google-calendar-settings", {
+      sameOriginRequest("http://localhost/actions/save-google-calendar-settings", {
         method: "POST",
         headers: { cookie },
         body: new URLSearchParams({
@@ -354,7 +355,7 @@ describe("google calendar scheduling", () => {
     );
 
     const clearResponse = await fetchHandler(
-      new Request("http://localhost/actions/clear-google-calendar-settings", {
+      sameOriginRequest("http://localhost/actions/clear-google-calendar-settings", {
         method: "POST",
         headers: { cookie },
       }),
@@ -378,7 +379,7 @@ describe("google calendar scheduling", () => {
     });
 
     const saveIcalResponse = await fetchHandler(
-      new Request("http://localhost/actions/save-google-calendar-ical-settings", {
+      sameOriginRequest("http://localhost/actions/save-google-calendar-ical-settings", {
         method: "POST",
         headers: { cookie },
         body: new URLSearchParams({
@@ -391,7 +392,7 @@ describe("google calendar scheduling", () => {
     expect(saveIcalResponse.status).toBe(302);
 
     const clearOAuthResponse = await fetchHandler(
-      new Request("http://localhost/actions/clear-google-calendar-oauth-settings", {
+      sameOriginRequest("http://localhost/actions/clear-google-calendar-oauth-settings", {
         method: "POST",
         headers: { cookie },
       }),
@@ -632,7 +633,7 @@ describe("google calendar scheduling", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/schedule-meeting", {
+      sameOriginRequest("http://localhost/actions/schedule-meeting", {
         method: "POST",
         headers: { cookie },
         body: new URLSearchParams({
@@ -733,7 +734,7 @@ describe("google calendar scheduling", () => {
     env.DB.failQueries.push(/^UPDATE students/);
 
     const firstResponse = await fetchHandler(
-      new Request("http://localhost/actions/schedule-meeting", {
+      sameOriginRequest("http://localhost/actions/schedule-meeting", {
         method: "POST",
         headers: { cookie },
         body: new URLSearchParams({
@@ -759,7 +760,7 @@ describe("google calendar scheduling", () => {
     env.DB.failQueries = [];
 
     const retryResponse = await fetchHandler(
-      new Request("http://localhost/actions/schedule-meeting", {
+      sameOriginRequest("http://localhost/actions/schedule-meeting", {
         method: "POST",
         headers: { cookie },
         body: new URLSearchParams({
@@ -807,7 +808,7 @@ async function saveGoogleCalendarSettings(
   },
 ): Promise<void> {
   const response = await fetchHandler(
-    new Request("http://localhost/actions/save-google-calendar-settings", {
+    sameOriginRequest("http://localhost/actions/save-google-calendar-settings", {
       method: "POST",
       headers: { cookie },
       body: new URLSearchParams({

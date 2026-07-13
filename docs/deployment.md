@@ -126,5 +126,6 @@ For more detailed backup notes, see [backups.md](./backups.md).
 - Signed sessions expire after four hours and carry only an immutable account ID plus a database session version. Logout, password changes, role changes through the account command, and account removal invalidate previously issued access; logout revokes every active session for that account.
 - Every HTTP response receives a restrictive Content Security Policy and browser hardening headers at the Worker boundary. Inline scripts and HTML event handlers are disallowed; inline style attributes remain allowed because the Gantt layout calculates positions and widths at runtime.
 - HTTPS responses enable HTTP Strict Transport Security for one year. Plain HTTP development responses deliberately omit HSTS.
+- Every state-changing HTTP request must carry an `Origin` header that exactly matches the request URL's origin. Browsers add this automatically for the app's forms and fetch requests; maintenance scripts must supply it explicitly.
 - The current model is suitable for private personal or small-team use.
 - If stronger access control is needed later, Cloudflare Access or another SSO layer would be a natural next step.

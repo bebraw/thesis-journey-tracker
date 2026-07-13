@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loginWithPassword, seedTestUsers } from "../../../tests/helpers/auth";
 import { MockD1Database } from "../../../tests/helpers/mock-d1";
+import { sameOriginRequest } from "../../../tests/helpers/request";
 
 vi.mock("../../../.generated/styles.css", () => ({ default: "" }));
 vi.mock("../../favicon.ico", () => ({ default: new ArrayBuffer(0) }));
@@ -107,7 +108,7 @@ describe("data import and export", () => {
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/update-student/1", {
+      sameOriginRequest("http://localhost/actions/update-student/1", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -163,7 +164,7 @@ describe("data import and export", () => {
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     const saveResponse = await fetchHandler(
-      new Request("http://localhost/actions/save-dashboard-lane-settings", {
+      sameOriginRequest("http://localhost/actions/save-dashboard-lane-settings", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -228,7 +229,7 @@ describe("data import and export", () => {
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     await fetchHandler(
-      new Request("http://localhost/actions/save-dashboard-lane-settings", {
+      sameOriginRequest("http://localhost/actions/save-dashboard-lane-settings", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -245,7 +246,7 @@ describe("data import and export", () => {
     expect(env.DB.appSecrets).toHaveLength(1);
 
     const resetResponse = await fetchHandler(
-      new Request("http://localhost/actions/reset-dashboard-lane-settings", {
+      sameOriginRequest("http://localhost/actions/reset-dashboard-lane-settings", {
         method: "POST",
         headers: { cookie },
       }),
@@ -322,7 +323,7 @@ describe("data import and export", () => {
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/update-student/1", {
+      sameOriginRequest("http://localhost/actions/update-student/1", {
         method: "POST",
         headers: {
           "content-type": "application/x-www-form-urlencoded",
@@ -396,7 +397,7 @@ describe("data import and export", () => {
     );
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/import-json", {
+      sameOriginRequest("http://localhost/actions/import-json", {
         method: "POST",
         headers: { cookie },
         body: formData,
@@ -451,7 +452,7 @@ describe("data import and export", () => {
     );
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/import-json", {
+      sameOriginRequest("http://localhost/actions/import-json", {
         method: "POST",
         headers: { cookie },
         body: formData,
@@ -489,7 +490,7 @@ describe("data import and export", () => {
     formData.set("mode", "replace");
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/import-json", {
+      sameOriginRequest("http://localhost/actions/import-json", {
         method: "POST",
         headers: { cookie },
         body: formData,
@@ -546,7 +547,7 @@ describe("data import and export", () => {
     formData.set("confirmReplace", "yes");
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/import-json", {
+      sameOriginRequest("http://localhost/actions/import-json", {
         method: "POST",
         headers: { cookie },
         body: formData,
@@ -585,7 +586,7 @@ describe("data import and export", () => {
     formData.set("confirmReplace", "yes");
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/import-json", {
+      sameOriginRequest("http://localhost/actions/import-json", {
         method: "POST",
         headers: { cookie },
         body: formData,
@@ -645,7 +646,7 @@ describe("data import and export", () => {
     formData.set("confirmReplace", "yes");
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/import-json", {
+      sameOriginRequest("http://localhost/actions/import-json", {
         method: "POST",
         headers: { cookie },
         body: formData,
@@ -670,7 +671,7 @@ describe("data import and export", () => {
     formData.set("importFile", new File(["not-json"], "broken.json", { type: "application/json" }));
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/import-json", {
+      sameOriginRequest("http://localhost/actions/import-json", {
         method: "POST",
         headers: { cookie },
         body: formData,
@@ -694,7 +695,7 @@ describe("data import and export", () => {
     );
 
     const response = await fetchHandler(
-      new Request("http://localhost/actions/import-json", {
+      sameOriginRequest("http://localhost/actions/import-json", {
         method: "POST",
         headers: { cookie },
         body: formData,

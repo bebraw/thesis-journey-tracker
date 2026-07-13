@@ -21,7 +21,7 @@ This document gives a technical overview of how the project is put together.
 - [`src/students/`](../src/students): shared student-domain code for forms, degree/phase reference data, and derived progress/status helpers
 - [`src/auth/store.ts`](../src/auth/store.ts), [`src/calendar/store.ts`](../src/calendar/store.ts), and [`src/students/store.ts`](../src/students/store.ts): feature-owned D1 persistence modules
 - [`src/db-core.ts`](../src/db-core.ts): shared D1 interfaces and tiny persistence helpers used by the feature-owned stores
-- [`src/http/`](../src/http): bounded request parsing plus shared response, redirect, and browser-security-header helpers
+- [`src/http/`](../src/http): same-origin enforcement, bounded request parsing, and shared response, redirect, and browser-security-header helpers
 - [`src/forms/normalize.ts`](../src/forms/normalize.ts): shared form and payload normalization helpers
 - [`src/formatting.ts`](../src/formatting.ts): shared escaping and date-formatting helpers for views and HTMLisp rendering
 - [`src/routes/dashboard/`](../src/routes/dashboard): the dashboard slice, split into render handlers, actions, and filter/path helpers
