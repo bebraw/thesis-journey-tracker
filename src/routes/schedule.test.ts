@@ -487,7 +487,7 @@ describe("google calendar scheduling", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await fetchHandler(
-      new Request("http://localhost/schedule?student=1&week=2026-03-23", {
+      new Request("http://localhost/schedule?student=1&week=2026-03-23&slot=2026-03-24T09:00", {
         headers: { cookie },
       }),
       env,
@@ -500,6 +500,10 @@ describe("google calendar scheduling", () => {
     expect(body).toContain("Existing Sync");
     expect(body).toContain("13:00 - 14:00");
     expect(body).toContain("/schedule?week=2026-03-23&amp;student=1&amp;slot=2026-03-24T09%3A00");
+    expect(body).toContain("Student: Base Student");
+    expect(body).toContain("Topic: Baseline supervision topic");
+    expect(body).not.toContain("Baseline student note");
+    expect(body).not.toContain("Notes:");
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -606,7 +610,7 @@ describe("google calendar scheduling", () => {
       calendarId: "primary",
       timeZone: "Europe/Helsinki",
     });
-    let createdEventPayload: Record<string, unknown> | null = null;
+    const createdEventPayloads: Record<string, unknown>[] = [];
 
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
@@ -616,7 +620,8 @@ describe("google calendar scheduling", () => {
       }
 
       if (url.startsWith("https://www.googleapis.com/calendar/v3/calendars/primary/events")) {
-        createdEventPayload = JSON.parse(String(init?.body || "{}")) as Record<string, unknown>;
+        const createdEventPayload = JSON.parse(String(init?.body || "{}")) as Record<string, unknown>;
+        createdEventPayloads.push(createdEventPayload);
         return jsonResponse({
           id: "created-event",
           summary: createdEventPayload.summary,
@@ -652,7 +657,7 @@ describe("google calendar scheduling", () => {
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/schedule?week=2026-03-23&student=1&notice=Meeting+scheduled");
-    expect(createdEventPayload).toEqual({
+    expect(createdEventPayloads[0]).toEqual({
       id: expect.stringMatching(/^tjt[0-9a-v]{13}$/),
       summary: "Thesis supervision sync",
       description: "Discuss the next milestone",
@@ -668,6 +673,64 @@ describe("google calendar scheduling", () => {
     });
     expect(env.DB.students[0]?.email).toBe("student@example.edu");
     expect(env.DB.students[0]?.next_meeting_at).toBe("2026-03-24T07:00:00.000Z");
+  });
+
+  it.each([
+    { label: "honors an intentionally blank description", includeDescription: true, expectedDescription: undefined },
+    {
+      label: "uses a safe default when the description field is absent",
+      includeDescription: false,
+      expectedDescription: "Student: Base Student\nTopic: Baseline supervision topic",
+    },
+  ])("$label", async ({ includeDescription, expectedDescription }) => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    await saveGoogleCalendarSettings(fetchHandler, env, cookie, {
+      clientId: "google-client-id",
+      clientSecret: "google-client-secret",
+      refreshToken: "google-refresh-token",
+      calendarId: "primary",
+      timeZone: "Europe/Helsinki",
+    });
+
+    const createdEventPayloads: Record<string, unknown>[] = [];
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url === "https://oauth2.googleapis.com/token") {
+        return jsonResponse({ access_token: "google-access-token" });
+      }
+      if (url.startsWith("https://www.googleapis.com/calendar/v3/calendars/primary/events")) {
+        createdEventPayloads.push(JSON.parse(String(init?.body || "{}")) as Record<string, unknown>);
+        return jsonResponse({ id: "created-event" });
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const body = new URLSearchParams({
+      studentId: "1",
+      week: "2026-03-23",
+      slotStart: "2026-03-24T09:00",
+      slotEnd: "2026-03-24T10:00",
+      title: "Thesis supervision sync",
+      meetingEmail: "base@example.edu",
+    });
+    if (includeDescription) {
+      body.set("description", "");
+    }
+
+    const response = await fetchHandler(
+      sameOriginRequest("http://localhost/actions/schedule-meeting", {
+        method: "POST",
+        headers: { cookie },
+        body,
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(createdEventPayloads).toHaveLength(1);
+    expect(createdEventPayloads[0]?.description).toBe(expectedDescription);
+    expect(JSON.stringify(createdEventPayloads[0])).not.toContain("Baseline student note");
   });
 
   it("reuses the same Google Calendar event when retrying after a local student update failure", async () => {

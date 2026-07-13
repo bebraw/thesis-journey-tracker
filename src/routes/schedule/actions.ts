@@ -61,7 +61,8 @@ export async function handleScheduleMeeting(request: Request, env: Env): Promise
   }
 
   const title = normalizeString(formData.get("title")) || buildScheduleEventTitle(student);
-  const description = normalizeString(formData.get("description")) || buildScheduleEventDescription(student);
+  const submittedDescription = normalizeString(formData.get("description"));
+  const description = formData.has("description") ? submittedDescription : buildScheduleEventDescription(student);
   const eventId = buildScheduledMeetingEventId(studentId, slotStart, slotEnd);
 
   try {

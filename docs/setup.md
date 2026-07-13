@@ -146,14 +146,18 @@ Store the Google Calendar values from the app like this:
 Those values are encrypted before they are written to the `app_secrets` table in D1.
 Stored client secrets and refresh tokens are write-only in the Data Tools page: the Worker never places their decrypted values back into HTML. Leave a secret field blank when editing the non-secret settings to preserve its current value, or use the removal controls to clear it explicitly.
 
+New invitation descriptions default to the student's name and thesis topic only. Internal student notes are never copied automatically. An editor can write attendee-facing text explicitly, or clear the optional description field to send the invitation without a description.
+
 ### Simpler Fallback: Google Calendar iCal Link
 
 If you only want read-only calendar availability and do not need the app to create invitations, you can use the easier iCal fallback mode instead of the full OAuth setup.
 
 Google documents this path here:
+
 - [Sync your calendar with computer programs](https://support.google.com/calendar/answer/37648?hl=en)
 
 What to do:
+
 1. Open Google Calendar on the web
 2. Go to `Settings and sharing` for the calendar you want to use
 3. Open `Integrate calendar`
@@ -162,6 +166,7 @@ What to do:
 6. Optionally save a timezone such as `Europe/Helsinki`
 
 Important limitations:
+
 - This mode is read-only. It shows existing calendar events and open slots, but it does not create events or send invitations from the app.
 - Google treats the `Secret address in iCal format` as sensitive. Do not share it. If it is leaked, reset it in Google Calendar.
 - Stored iCal addresses are write-only in Data Tools. Leave the field blank to preserve the current address, or use the removal control to clear it.

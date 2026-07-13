@@ -164,9 +164,6 @@ export function buildScheduleEventDescription(student: Student): string {
   if (student.thesisTopic) {
     parts.push(`Topic: ${student.thesisTopic}`);
   }
-  if (student.studentNotes) {
-    parts.push(`Notes: ${student.studentNotes}`);
-  }
   return parts.join("\n");
 }
 
