@@ -1,6 +1,12 @@
 export type { AccessRole, AuthUser, SessionIdentity, SessionUser } from "./types";
 export { isAccessRole } from "./types";
-export { hashPassword, verifyPassword, type HashPasswordOptions } from "./password";
+export {
+  hashPassword,
+  PasswordHashUpgradeRequiredError,
+  PASSWORD_HASH_ITERATIONS,
+  verifyPassword,
+  type HashPasswordOptions,
+} from "./password";
 export {
   buildSessionCookie,
   clearSessionCookie,

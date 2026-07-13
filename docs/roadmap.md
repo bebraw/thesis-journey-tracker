@@ -4,6 +4,7 @@ This note tracks the next product bets for Thesis Journey Tracker. Keep it focus
 
 ## Current Priority Items
 
+- Replace the Workers-limited `100000`-iteration PBKDF2 password verifier with a stronger authentication boundary, preferably Cloudflare Access or the first phase of the documented passkey plan. Provisioning, lockouts, and session revocation are hardened; the remaining gap is the password verifier's platform-limited work factor.
 - Build student risk flags so the dashboard can surface students who need advisor attention instead of only showing the current cohort state.
 - Validate [`src/ui/foundation/`](../src/ui/foundation) against a second real consumer before moving it into a separate repository or package. The in-repo foundation/app split is now in place, so the remaining gap is proving the API outside this app.
 
@@ -89,7 +90,3 @@ Let advisors save common filter combinations such as:
 - my MSc students
 - students needing attention this week
 - students close to submission
-
-### Optional Passkey Auth
-
-Investigate passkeys as an optional sign-in upgrade rather than a replacement for the current password flow. See [passkey-auth-plan.md](./passkey-auth-plan.md) for the stored assessment and phased implementation plan.

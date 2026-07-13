@@ -2,8 +2,6 @@ import type { AccessRole } from "../../src/auth";
 import { hashPassword } from "../../src/auth";
 import { MockD1Database } from "./mock-d1";
 
-const TEST_PASSWORD_HASH_ITERATIONS = 1_000;
-
 export async function seedTestUsers(
   db: MockD1Database,
   users: Array<{ name: string; password: string; role: AccessRole }>,
@@ -11,7 +9,7 @@ export async function seedTestUsers(
   for (const user of users) {
     db.seedAuthUser({
       name: user.name,
-      password_hash: await hashPassword(user.password, { iterations: TEST_PASSWORD_HASH_ITERATIONS }),
+      password_hash: await hashPassword(user.password),
       role: user.role,
     });
   }

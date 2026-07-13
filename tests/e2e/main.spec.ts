@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const LOGIN_NAME = "Advisor";
-const LOGIN_PASSWORD = "e2e-password";
+const LOGIN_PASSWORD = "e2e-password-long";
 
 let createdStudentName = "";
 let secondaryStudentName = "";

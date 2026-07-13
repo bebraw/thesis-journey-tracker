@@ -180,16 +180,18 @@ This applies the SQL files in [`migrations/`](../migrations) to Wrangler's local
 Create an editor account in D1:
 
 ```bash
-npm run account:create -- --name "Advisor" --password "change-this-editor-password" --role editor
+npm run account:create -- --name "Advisor" --role editor
 ```
 
 Optional readonly account:
 
 ```bash
-npm run account:create -- --name "Professor" --password "change-this-readonly-password" --role readonly
+npm run account:create -- --name "Professor" --role readonly
 ```
 
-If you are updating an existing deployment or local database that used the older `210000` PBKDF2 default, re-run `npm run account:create` for each account so the stored password hash is rewritten with the Cloudflare-compatible `100000` iteration default.
+The command prompts twice without echoing the password. Passwords must contain at least 15 characters. For non-interactive automation, pass `--password-stdin` and supply exactly one line from a secret manager; never place the password in command arguments.
+
+If an existing account uses any work factor other than the current Cloudflare-compatible `100000` iteration format, re-run `npm run account:create` for that account. Updating an account also revokes its existing sessions.
 
 ## 6. Optionally Load Sample Data
 
@@ -254,7 +256,7 @@ On Windows PowerShell:
 Copy-Item .dev.vars.example .dev.vars
 ```
 
-Set a real `SESSION_SECRET` in `.dev.vars` before continuing.
+Set strong, independent `SESSION_SECRET` and `APP_ENCRYPTION_SECRET` values in `.dev.vars` before continuing.
 
 Apply migrations inside the container:
 
@@ -277,19 +279,19 @@ docker run --rm `
 Create the first editor account:
 
 ```bash
-docker run --rm \
+docker run --rm -it \
   -v thesis-journey-tracker-state:/app/.wrangler \
   -v "$PWD/.dev.vars:/app/.dev.vars:ro" \
-  thesis-journey-tracker npm run account:create -- --name "Advisor" --password "change-this-editor-password" --role editor
+  thesis-journey-tracker npm run account:create -- --name "Advisor" --role editor
 ```
 
 On Windows PowerShell:
 
 ```powershell
-docker run --rm `
+docker run --rm -it `
   -v thesis-journey-tracker-state:/app/.wrangler `
   -v "${PWD}/.dev.vars:/app/.dev.vars:ro" `
-  thesis-journey-tracker npm run account:create -- --name "Advisor" --password "change-this-editor-password" --role editor
+  thesis-journey-tracker npm run account:create -- --name "Advisor" --role editor
 ```
 
 Run the setup doctor:

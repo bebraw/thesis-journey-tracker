@@ -80,9 +80,11 @@ Set `SESSION_SECRET` and `APP_ENCRYPTION_SECRET` to different random values of a
 
 ```bash
 npm run db:migrate
-npm run account:create -- --name "Advisor" --password "change-this-password" --role editor
+npm run account:create -- --name "Advisor" --role editor
 npm run doctor:local
 ```
+
+The account command prompts for a password without echoing it or placing it in shell history. Use a unique password of at least 15 characters.
 
 Optional: load sample data for a ready-made local dashboard:
 

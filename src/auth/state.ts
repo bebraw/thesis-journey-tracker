@@ -8,7 +8,7 @@ import {
   type LoginAttempt,
   type StoredAuthUser,
 } from "./store";
-import { verifyPassword } from "./password";
+import { PasswordHashUpgradeRequiredError, verifyPassword } from "./password";
 import { type SessionIdentity, type SessionUser } from "./types";
 
 const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
@@ -17,6 +17,8 @@ const CLIENT_LOGIN_MAX_FAILURES = 20;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
 const LOGIN_ATTEMPT_RETENTION_MS = 24 * 60 * 60 * 1000;
 const LOGIN_ATTEMPT_PRUNE_LIMIT = 25;
+const MAX_LOGIN_NAME_CHARACTERS = 100;
+const MAX_LOGIN_PASSWORD_BYTES = 1_024;
 const DUMMY_PASSWORD_HASH =
   "pbkdf2_sha256$100000$AAAAAAAAAAAAAAAAAAAAAA==$hdWn2Z2YPji1MoW1r05A3cRvbd46WyUHU6YxFtRxMXU=";
 
@@ -71,10 +73,15 @@ export async function verifyLoginCredentials(
   password: string,
 ): Promise<LoginVerificationResult> {
   const now = new Date();
+  const inputWithinLimits =
+    [...enteredName].length <= MAX_LOGIN_NAME_CHARACTERS &&
+    new TextEncoder().encode(password).byteLength <= MAX_LOGIN_PASSWORD_BYTES;
   const candidateUser =
-    authState.users.length === 1 && !enteredName
-      ? authState.users[0] || null
-      : authState.users.find((user) => user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase()) || null;
+    !inputWithinLimits
+      ? null
+      : authState.users.length === 1 && !enteredName
+        ? authState.users[0] || null
+        : authState.users.find((user) => user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase()) || null;
 
   await pruneExpiredLoginAttempts(env.DB, {
     lastFailureBefore: new Date(now.getTime() - LOGIN_ATTEMPT_RETENTION_MS).toISOString(),
@@ -98,9 +105,11 @@ export async function verifyLoginCredentials(
   try {
     passwordVerified = await verifyPassword(password, candidateUser?.passwordHash || DUMMY_PASSWORD_HASH);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (message.includes("Stored password hash uses")) {
-      console.error("Password hash requires reset", { user: candidateUser?.name || enteredName, message });
+    if (error instanceof PasswordHashUpgradeRequiredError) {
+      console.error("Password hash requires reset", {
+        userId: candidateUser?.id || null,
+        storedIterations: error.storedIterations,
+      });
       return { status: "password_reset" };
     }
     throw error;

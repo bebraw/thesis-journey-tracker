@@ -103,13 +103,13 @@ WHERE s.name = 'Aino Lehtinen'
 INSERT INTO app_users (name, password_hash, role)
 SELECT
   'Advisor',
-  'pbkdf2_sha256$1000$YWR2aXNvci1lMmUtc2FsdCE=$vWdnZyAp8eIkNeriwkT3dWSV3v2ViWTbWgZKxHL9z6s=',
+  'pbkdf2_sha256$100000$YWR2aXNvci1lMmUtMDAwMQ==$CFq+NshZkR1AVBKWUZiHQzLptVqPQthhqWmG1EfxeNw=',
   'editor'
 WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE name = 'Advisor');
 
 INSERT INTO app_users (name, password_hash, role)
 SELECT
   'Professor',
-  'pbkdf2_sha256$1000$cHJvZmVzc29yLWUyZSEhMQ==$x6eLFFCwkECaYWooV/vH2Qd+0h05y7rfdQF0naWv2RE=',
+  'pbkdf2_sha256$100000$cHJvZmVzc29yLWUyZTAwMQ==$HiWjxNsL9+QoVlHxGZbyf65UDhOc8iSL/pw//bB4S2Y=',
   'readonly'
 WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE name = 'Professor');

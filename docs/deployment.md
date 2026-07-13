@@ -56,16 +56,18 @@ npm run db:migrate:remote
 4. Create at least one remote login account in D1:
 
 ```bash
-npm run account:create -- --name "Advisor" --password "change-this-editor-password" --role editor --remote
+npm run account:create -- --name "Advisor" --role editor --remote
 ```
 
 Optional readonly account:
 
 ```bash
-npm run account:create -- --name "Professor" --password "change-this-readonly-password" --role readonly --remote
+npm run account:create -- --name "Professor" --role readonly --remote
 ```
 
-If you already created production accounts with the older `210000` PBKDF2 default, reset each affected account once with the same command shape above. Running `account:create` again updates the stored hash in place with the Cloudflare-compatible `100000` iteration default.
+The command reads a password of at least 15 characters from a hidden interactive prompt. For automation, use `--password-stdin` with a secret-manager source. Plaintext password arguments, custom iteration counts, and SQL printing are intentionally unsupported. Re-run the command for any account whose stored hash uses a work factor other than the current Cloudflare-compatible `100000` format; updating an account revokes its existing sessions.
+
+The `100000` PBKDF2 work factor is the current Workers runtime compatibility ceiling used by this project, not the long-term authentication target. Keep the app private and rate-limited, and prioritize the Cloudflare Access or passkey follow-up tracked in the roadmap.
 
 5. Deploy:
 

@@ -150,7 +150,7 @@ function checkLocalDatabase() {
   const count = Number(userRows.rows[0]?.count || 0);
   if (count <= 0) {
     console.error("error No login accounts found in local D1.");
-    console.error('Run npm run account:create -- --name "Advisor" --password "change-this-password" --role editor');
+    console.error('Run npm run account:create -- --name "Advisor" --role editor');
     return true;
   }
 

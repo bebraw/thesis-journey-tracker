@@ -876,7 +876,7 @@ describe("multi-user access control", () => {
     expect(remoteStyleGuideResponse.status).toBe(404);
   });
 
-  it("redirects to password reset guidance for accounts hashed above the Cloudflare PBKDF2 limit", async () => {
+  it("redirects to password reset guidance for accounts using a noncurrent PBKDF2 work factor", async () => {
     env = {
       DB: new MockD1Database(),
       SESSION_SECRET: "test-session-secret-with-at-least-32-bytes",
