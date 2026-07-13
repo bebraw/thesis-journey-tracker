@@ -8,7 +8,7 @@ vi.mock("../favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 type WorkerFetch = (typeof import("../worker"))["default"]["fetch"];
 
 describe("multi-user access control", () => {
-  let env: { DB: MockD1Database; SESSION_SECRET: string };
+  let env: { DB: MockD1Database; SESSION_SECRET: string; APP_ENCRYPTION_SECRET: string };
   let fetchHandler: WorkerFetch;
 
   beforeEach(async () => {
@@ -17,7 +17,8 @@ describe("multi-user access control", () => {
     fetchHandler = workerModule.default.fetch;
     env = {
       DB: new MockD1Database(),
-      SESSION_SECRET: "test-secret",
+      SESSION_SECRET: "test-session-secret-with-at-least-32-bytes",
+      APP_ENCRYPTION_SECRET: "test-app-encryption-secret-with-32-bytes",
     };
     await seedTestUsers(env.DB, [
       { name: "Advisor", password: "editor-password", role: "editor" },
@@ -642,6 +643,20 @@ describe("multi-user access control", () => {
     expect(env.DB.loginAttempts).toHaveLength(0);
   });
 
+  it("fails closed without strong independent runtime secrets", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const response = await fetchHandler(new Request("https://tracker.example.com/login"), {
+      ...env,
+      SESSION_SECRET: "short",
+      APP_ENCRYPTION_SECRET: "short",
+    });
+
+    expect(response.status).toBe(500);
+    expect(await response.text()).toBe("Security configuration is invalid.");
+    expect(consoleError).toHaveBeenCalledWith("Invalid security configuration", expect.stringContaining("SESSION_SECRET"));
+    consoleError.mockRestore();
+  });
+
   it("rejects oversized login requests before password verification", async () => {
     const response = await fetchHandler(
       new Request("https://tracker.example.com/login", {
@@ -778,7 +793,8 @@ describe("multi-user access control", () => {
   it("redirects to password reset guidance for accounts hashed above the Cloudflare PBKDF2 limit", async () => {
     env = {
       DB: new MockD1Database(),
-      SESSION_SECRET: "test-secret",
+      SESSION_SECRET: "test-session-secret-with-at-least-32-bytes",
+      APP_ENCRYPTION_SECRET: "test-app-encryption-secret-with-32-bytes",
     };
     env.DB.seedAuthUser({
       name: "Advisor",

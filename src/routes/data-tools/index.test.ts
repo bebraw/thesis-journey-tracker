@@ -8,7 +8,7 @@ vi.mock("../../favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 type WorkerFetch = (typeof import("../../worker"))["default"]["fetch"];
 
 describe("data import and export", () => {
-  let env: { DB: MockD1Database; SESSION_SECRET: string; REPLACE_IMPORT_ENABLED?: string };
+  let env: { DB: MockD1Database; SESSION_SECRET: string; APP_ENCRYPTION_SECRET: string; REPLACE_IMPORT_ENABLED?: string };
   let fetchHandler: WorkerFetch;
 
   beforeEach(async () => {
@@ -17,7 +17,8 @@ describe("data import and export", () => {
     fetchHandler = workerModule.default.fetch;
     env = {
       DB: new MockD1Database(),
-      SESSION_SECRET: "test-secret",
+      SESSION_SECRET: "test-session-secret-with-at-least-32-bytes",
+      APP_ENCRYPTION_SECRET: "test-app-encryption-secret-with-32-bytes",
     };
     await seedTestUsers(env.DB, [{ name: "Advisor", password: "test-password", role: "editor" }]);
 

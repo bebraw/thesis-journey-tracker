@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loginWithPassword, seedTestUsers } from "../../tests/helpers/auth";
 import { MockD1Database } from "../../tests/helpers/mock-d1";
+import { decryptText } from "../encryption";
 
 vi.mock("../../.generated/styles.css", () => ({ default: "" }));
 vi.mock("../favicon.ico", () => ({ default: new ArrayBuffer(0) }));
@@ -10,7 +11,7 @@ type WorkerFetch = (typeof import("../worker"))["default"]["fetch"];
 interface TestEnv {
   DB: MockD1Database;
   SESSION_SECRET: string;
-  APP_ENCRYPTION_SECRET?: string;
+  APP_ENCRYPTION_SECRET: string;
 }
 
 describe("google calendar scheduling", () => {
@@ -23,8 +24,8 @@ describe("google calendar scheduling", () => {
     fetchHandler = workerModule.default.fetch;
     env = {
       DB: new MockD1Database(),
-      SESSION_SECRET: "test-secret",
-      APP_ENCRYPTION_SECRET: "encryption-secret",
+      SESSION_SECRET: "test-session-secret-with-at-least-32-bytes",
+      APP_ENCRYPTION_SECRET: "test-app-encryption-secret-with-32-bytes",
     };
     await seedTestUsers(env.DB, [{ name: "Advisor", password: "test-password", role: "editor" }]);
   });
@@ -74,6 +75,7 @@ describe("google calendar scheduling", () => {
     expect(env.DB.appSecrets).toHaveLength(1);
     expect(env.DB.appSecrets[0]?.encrypted_value).not.toContain("stored-client-secret");
     expect(env.DB.appSecrets[0]?.encrypted_value).not.toContain("stored-refresh-token");
+    await expect(decryptText(env.DB.appSecrets[0]!.encrypted_value, env.SESSION_SECRET)).rejects.toThrow();
 
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;

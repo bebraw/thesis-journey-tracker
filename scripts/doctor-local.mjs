@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 const DATABASE_NAME = "thesis_tracker_db";
+const MINIMUM_SECRET_BYTES = 32;
 const REQUIRED_TABLES = [
   "students",
   "meeting_logs",
@@ -55,13 +56,32 @@ function checkDevVars() {
   }
 
   const values = parseEnvFile(readFileSync(".dev.vars", "utf8"));
-  if (!values.SESSION_SECRET || values.SESSION_SECRET === "change-this-to-a-long-random-secret") {
-    console.error("error SESSION_SECRET is missing or still set to the example value in .dev.vars.");
+  const sessionSecretError = validateSecret("SESSION_SECRET", values.SESSION_SECRET);
+  const appEncryptionSecretError = validateSecret("APP_ENCRYPTION_SECRET", values.APP_ENCRYPTION_SECRET);
+  if (sessionSecretError || appEncryptionSecretError) {
+    console.error(`error ${sessionSecretError || appEncryptionSecretError}`);
+    return true;
+  }
+  if (values.SESSION_SECRET === values.APP_ENCRYPTION_SECRET) {
+    console.error("error APP_ENCRYPTION_SECRET must be different from SESSION_SECRET.");
     return true;
   }
 
-  console.log("ok .dev.vars contains SESSION_SECRET");
+  console.log("ok .dev.vars contains strong, independent application secrets");
   return false;
+}
+
+function validateSecret(name, value) {
+  if (!value) {
+    return `${name} must be configured.`;
+  }
+  if (/^(change-this-|replace-with-)/i.test(value)) {
+    return `${name} must not use a documented placeholder value.`;
+  }
+  if (Buffer.byteLength(value, "utf8") < MINIMUM_SECRET_BYTES) {
+    return `${name} must contain at least ${MINIMUM_SECRET_BYTES} bytes.`;
+  }
+  return null;
 }
 
 function checkWranglerConfig() {

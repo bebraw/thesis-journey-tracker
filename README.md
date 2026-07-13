@@ -74,7 +74,7 @@ npm run types:generate
 cp .dev.vars.example .dev.vars
 ```
 
-Set `SESSION_SECRET` before starting the app.
+Set `SESSION_SECRET` and `APP_ENCRYPTION_SECRET` to different random values of at least 32 bytes before starting the app.
 
 3. Apply migrations and create your first account:
 

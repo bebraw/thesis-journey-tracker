@@ -1,4 +1,5 @@
 import type { Env } from "./app-env";
+import { requireAppEncryptionSecret } from "./security/secrets";
 import { deleteAppSecret, getAppSecret, upsertAppSecret } from "./calendar/store";
 import { decryptText, encryptText } from "./encryption";
 import { normalizeString } from "./forms/normalize";
@@ -148,5 +149,5 @@ function resolveStoredLanePhaseId(rawLane: StoredDashboardLaneLike): PhaseId | n
 }
 
 function resolveAppEncryptionSecret(env: Env): string {
-  return env.APP_ENCRYPTION_SECRET || env.SESSION_SECRET || "";
+  return requireAppEncryptionSecret(env);
 }

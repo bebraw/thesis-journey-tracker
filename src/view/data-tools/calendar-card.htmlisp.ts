@@ -371,7 +371,7 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
           textClassName: DANGER_TEXT,
         })),
         encryptionNote:
-          "Saved calendar settings are encrypted before they are written to the database. Set APP_ENCRYPTION_SECRET in the Worker environment if you want that encryption key to be separate from SESSION_SECRET.",
+          "Saved calendar settings are encrypted before they are written to the database. APP_ENCRYPTION_SECRET is required and must be different from SESSION_SECRET.",
       },
     ),
   );

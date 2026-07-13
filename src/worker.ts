@@ -31,6 +31,7 @@ import {
   renderDataTools,
 } from "./routes/data-tools";
 import { getScheduleReturnPath, handleScheduleMeeting, renderSchedule } from "./routes/schedule";
+import { validateRuntimeSecrets } from "./security/secrets";
 import { DASHBOARD_INTERACTION_SCRIPT } from "./view/dashboard/interaction-script";
 import { renderStyleGuidePage } from "./views";
 
@@ -159,8 +160,13 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return new Response("D1 binding is missing. Configure DB in wrangler.toml.", { status: 500 });
   }
 
-  if (!env.SESSION_SECRET) {
-    return new Response("SESSION_SECRET must be configured.", { status: 500 });
+  const securityConfigurationError = validateRuntimeSecrets(env);
+  if (securityConfigurationError) {
+    console.error("Invalid security configuration", securityConfigurationError);
+    return new Response("Security configuration is invalid.", {
+      status: 500,
+      headers: { "cache-control": "no-store" },
+    });
   }
 
   if (pathname === "/style-guide" && !showStyleGuide) {
@@ -172,7 +178,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return new Response(authState.error, { status: 500 });
   }
 
-  const sessionUser = await getSessionUser(request, env.SESSION_SECRET, SESSION_COOKIE);
+  const sessionUser = await getSessionUser(request, env.SESSION_SECRET as string, SESSION_COOKIE);
 
   if (pathname === "/login" && (request.method === "GET" || request.method === "POST")) {
     return await handleLoginRequest(request, env, authState, sessionUser);

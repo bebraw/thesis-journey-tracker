@@ -4,6 +4,7 @@ import { normalizeString } from "../forms/normalize";
 import { resolveGoogleCalendarConfig } from "./google";
 import { resolveScheduleTimeZone } from "./scheduling";
 import type { Env } from "../app-env";
+import { requireAppEncryptionSecret } from "../security/secrets";
 
 const GOOGLE_CALENDAR_SECRET_KEY = "google_calendar_config";
 
@@ -95,7 +96,7 @@ export async function clearStoredGoogleCalendarSettings(env: Env): Promise<void>
 }
 
 function resolveAppEncryptionSecret(env: Env): string {
-  return env.APP_ENCRYPTION_SECRET || env.SESSION_SECRET || "";
+  return requireAppEncryptionSecret(env);
 }
 
 async function persistOrClearGoogleCalendarSettings(env: Env, settings: StoredGoogleCalendarSettings, updatedAt: string): Promise<void> {

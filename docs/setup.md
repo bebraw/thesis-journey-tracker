@@ -53,8 +53,8 @@ Copy-Item .dev.vars.example .dev.vars
 
 Set these values in `.dev.vars`:
 
-- `SESSION_SECRET`: a long random string used to sign auth cookies
-- `APP_ENCRYPTION_SECRET`: optional but recommended if you want to save Google Calendar credentials inside the app; if omitted, the app falls back to `SESSION_SECRET` for encryption
+- `SESSION_SECRET`: at least 32 random bytes used to sign auth cookies
+- `APP_ENCRYPTION_SECRET`: a different value of at least 32 random bytes used to encrypt stored application settings
 - `REPLACE_IMPORT_ENABLED`: optional, set to `1` only when you intentionally want to allow full replacement imports for recovery work
 
 Example:
@@ -64,6 +64,8 @@ SESSION_SECRET=change-this-to-a-long-random-secret
 APP_ENCRYPTION_SECRET=change-this-to-a-different-long-random-secret
 # REPLACE_IMPORT_ENABLED=1
 ```
+
+Generate each value independently with `openssl rand -base64 32` or an equivalent cryptographically secure password generator. The app rejects missing, short, placeholder, or reused secret values.
 
 The app still runs without Google Calendar credentials. If you want scheduling enabled, collect the Google values below and then save them from `Data Tools`; they will be encrypted before they are stored in D1.
 
@@ -135,7 +137,7 @@ If you want `/schedule` to read and create Google Calendar events, collect the v
 
 Store the Google Calendar values from the app like this:
 
-1. Make sure `SESSION_SECRET` is set, and preferably also set `APP_ENCRYPTION_SECRET`
+1. Make sure strong, independent `SESSION_SECRET` and `APP_ENCRYPTION_SECRET` values are set
 2. Start the app and sign in as an editor
 3. Open `/data-tools`
 4. Paste the Google client ID, client secret, refresh token, calendar ID, and optional timezone into the `Google Calendar Credentials` form

@@ -8,7 +8,7 @@ vi.mock("../src/favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 type WorkerFetch = (typeof import("../src/worker"))["default"]["fetch"];
 
 describe("SQL injection safety", () => {
-  let env: { DB: MockD1Database; SESSION_SECRET: string };
+  let env: { DB: MockD1Database; SESSION_SECRET: string; APP_ENCRYPTION_SECRET: string };
   let fetchHandler: WorkerFetch;
 
   beforeEach(async () => {
@@ -17,7 +17,8 @@ describe("SQL injection safety", () => {
     fetchHandler = workerModule.default.fetch;
     env = {
       DB: new MockD1Database(),
-      SESSION_SECRET: "test-secret",
+      SESSION_SECRET: "test-session-secret-with-at-least-32-bytes",
+      APP_ENCRYPTION_SECRET: "test-app-encryption-secret-with-32-bytes",
     };
     await seedTestUsers(env.DB, [{ name: "Advisor", password: "test-password", role: "editor" }]);
   });

@@ -33,7 +33,9 @@ npx wrangler secret put SESSION_SECRET
 npx wrangler secret put APP_ENCRYPTION_SECRET
 ```
 
-If you want the Google Calendar scheduling page enabled in production, keep `APP_ENCRYPTION_SECRET` set and then save either full Google OAuth credentials or a read-only Google Calendar iCal fallback link from the `Data Tools` page after deployment. Those values are encrypted before being stored in D1.
+Generate two independent values with `openssl rand -base64 32`; never reuse one value for both bindings. Both secrets are required even when Google Calendar integration is not configured.
+
+If an existing deployment previously omitted `APP_ENCRYPTION_SECRET`, its stored calendar and custom-lane settings were encrypted with the old session-key fallback. Record the configuration before upgrading, deploy with a new independent application key, clear the unreadable stored settings, and re-enter them. Rotate the Google refresh token and secret iCal URL during this process.
 
 Other plain Worker vars can still go in `wrangler.toml`:
 
