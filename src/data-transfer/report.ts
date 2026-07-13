@@ -32,14 +32,14 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
       const targetSubmissionDate = getTargetSubmissionDate(student);
       const meetingStatus = meetingStatusText(student, generatedAt);
       const parts = [
-        `${student.name} (${getDegreeLabel(student.degreeType, DEGREE_TYPES)})`,
-        `phase ${getPhaseLabel(student.currentPhase, PHASES)}`,
+        `${escapeMarkdownInlineText(student.name)} (${escapeMarkdownInlineText(getDegreeLabel(student.degreeType, DEGREE_TYPES))})`,
+        `phase ${escapeMarkdownInlineText(getPhaseLabel(student.currentPhase, PHASES))}`,
         targetSubmissionDate ? `target ${targetSubmissionDate}` : "target not set",
         `meeting ${meetingStatus.toLowerCase()}`,
       ];
 
       if (latestLog) {
-        parts.push(`last update ${formatDateTime(latestLog.happenedAt)}`);
+        parts.push(`last update ${escapeMarkdownInlineText(formatDateTime(latestLog.happenedAt))}`);
       }
 
       return `- ${parts.join("; ")}`;
@@ -49,19 +49,19 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
     const targetSubmissionDate = getTargetSubmissionDate(student);
     const meetingStatus = meetingStatusText(student, generatedAt);
     const parts = [
-      `${student.name} (${getDegreeLabel(student.degreeType, DEGREE_TYPES)})`,
-      `phase ${getPhaseLabel(student.currentPhase, PHASES)}`,
+      `${escapeMarkdownInlineText(student.name)} (${escapeMarkdownInlineText(getDegreeLabel(student.degreeType, DEGREE_TYPES))})`,
+      `phase ${escapeMarkdownInlineText(getPhaseLabel(student.currentPhase, PHASES))}`,
       targetSubmissionDate ? `target ${targetSubmissionDate}` : "target not set",
       `meeting ${meetingStatus.toLowerCase()}`,
     ];
 
     if (student.thesisTopic) {
-      parts.push(`topic "${student.thesisTopic}"`);
+      parts.push(`topic "${escapeMarkdownInlineText(student.thesisTopic)}"`);
     }
 
     if (latestLog) {
-      parts.push(`last log ${formatDateTime(latestLog.happenedAt)}`);
-      parts.push(`agreed next step "${latestLog.agreedPlan}"`);
+      parts.push(`last log ${escapeMarkdownInlineText(formatDateTime(latestLog.happenedAt))}`);
+      parts.push(`agreed next step "${escapeMarkdownInlineText(latestLog.agreedPlan)}"`);
     } else {
       parts.push("no supervision log yet");
     }
@@ -93,4 +93,15 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
     ...studentLines,
     "",
   ].join("\n");
+}
+
+function escapeMarkdownInlineText(value: string): string {
+  const singleLine = value
+    .normalize("NFC")
+    .replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/gu, " ")
+    .replace(/[\u00ad\u061c\u200b\u200e\u200f\u202a-\u202e\u2060-\u206f\ufeff]/gu, "")
+    .replace(/\s+/gu, " ")
+    .trim();
+  const htmlSafe = singleLine.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  return htmlSafe.replace(/[!-/:-@[-`{-~]/g, (character) => (character === "&" || character === ";" ? character : `\\${character}`));
 }

@@ -53,6 +53,8 @@ The default cron runs every day at `01:30 UTC`. Adjust it if another off-peak wi
 
 Keep the bucket private. The JSON export and Markdown report contain student data and should not be exposed through a public bucket URL or custom domain.
 
+The Markdown report includes student names, topics, and the latest agreed plans as escaped, single-line content; internal student notes and discussion text remain excluded. Imported content cannot add report headings, links, remote images, or raw HTML when the report is opened in a Markdown viewer.
+
 ## Testing The Backup Locally
 
 Wrangler can expose scheduled handlers in local development:
