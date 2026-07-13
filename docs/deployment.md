@@ -16,7 +16,7 @@ The workflow runs:
 
 The fast gate fails on npm advisories, then verifies [`worker-configuration.d.ts`](../worker-configuration.d.ts) before the rest of its checks, so CI also rejects checked-in Worker types that drift from the Wrangler configuration instead of silently rewriting them.
 
-The jobs target the explicit Ubuntu 24.04 runner line. The fast job runs inside a digest-pinned `node:24.18.0-bookworm` image, the browser job runs inside a digest-pinned `mcr.microsoft.com/playwright:v1.58.2-noble` image, and third-party Actions are pinned to reviewed commit SHAs. That keeps the local Agent CI runner off the host's Node runtime while matching the repo's pinned Node and Playwright versions and preventing mutable tags from changing executable CI dependencies unexpectedly.
+The jobs target the explicit Ubuntu 24.04 runner line. The fast job runs inside a digest-pinned `node:24.18.0-bookworm` image, the browser job runs inside a digest-pinned `mcr.microsoft.com/playwright:v1.58.2-noble` image, and third-party Actions are pinned to reviewed commit SHAs. Checkout does not persist its GitHub credential because later steps do not need authenticated Git access. These controls keep the local Agent CI runner off the host's Node runtime while matching the repo's pinned Node and Playwright versions and preventing mutable tags from changing executable CI dependencies unexpectedly.
 
 ## Deploying To Cloudflare
 
