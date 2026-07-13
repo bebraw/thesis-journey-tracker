@@ -49,9 +49,9 @@ Browser verification now runs through Agent CI rather than a separate local Play
 The checked-in local-CI scripts prewarm dependencies through the fast job's `install` step before parallel jobs start, avoiding concurrent cold installs into the shared local cache.
 
 - Start Docker before running `npm run ci:local` or `npm run ci:local:quiet`.
-- If your clone has no `origin` remote, copy `.env.agent-ci.example` to `.env.agent-ci` and set `GITHUB_REPO=owner/repo`.
-- If your Docker CLI uses a non-default socket or context, set `DOCKER_HOST=...` in `.env.agent-ci` so Agent CI reaches the same engine.
-- If local runs complain about a missing GitHub Actions runner image, pull `ghcr.io/actions/actions-runner:latest` once and rerun the workflow.
+- If your clone has no `origin` remote, add one or set `GITHUB_REPO=owner/repo` in the shell environment before running local CI. Agent CI does not load this non-prefixed value from `.env.agent-ci`.
+- If your Docker CLI uses a non-default socket, set `AGENT_CI_DOCKER_HOST=...` in `.env.agent-ci` so Agent CI and the wrapper reach the same engine.
+- The wrapper pulls the reviewed immutable GitHub Actions runner digest when necessary, verifies the local alias resolves to that image, and partitions Agent CI's runner cache by both package version and digest. Do not pull or retag `ghcr.io/actions/actions-runner:latest` manually.
 
 The browser job still uses the repo's Playwright tests and config under the hood, but the supported way to run them as part of verification is the checked-in Agent CI workflow in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
