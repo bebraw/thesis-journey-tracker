@@ -169,9 +169,10 @@ describe("schema migrations", () => {
     expect(studentRow.updated_at).not.toBe("2026-01-01T09:00:00.000Z");
 
     const appUserRow = db
-      .prepare("SELECT role, updated_at FROM app_users WHERE id = 1")
-      .get() as { role: string; updated_at: string };
+      .prepare("SELECT role, session_version, updated_at FROM app_users WHERE id = 1")
+      .get() as { role: string; session_version: number; updated_at: string };
     expect(appUserRow.role).toBe("readonly");
+    expect(appUserRow.session_version).toBe(1);
     expect(appUserRow.updated_at).not.toBe("2026-01-01T09:00:00.000Z");
 
     db.exec("DELETE FROM students WHERE id = 1");

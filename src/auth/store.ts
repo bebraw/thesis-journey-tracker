@@ -7,6 +7,7 @@ export interface StoredAuthUser {
   name: string;
   passwordHash: string;
   role: AccessRole;
+  sessionVersion: number;
 }
 
 export interface LoginAttempt {
@@ -28,6 +29,7 @@ interface AuthUserRow {
   name: string;
   password_hash: string;
   role: AccessRole;
+  session_version: number | string;
 }
 
 interface LoginAttemptRow {
@@ -41,7 +43,7 @@ interface LoginAttemptRow {
 export async function listAuthUsers(db: D1Database): Promise<StoredAuthUser[]> {
   const rows = await db
     .prepare(
-      `SELECT id, name, password_hash, role
+      `SELECT id, name, password_hash, role, session_version
        FROM app_users
        ORDER BY name ASC`,
     )
@@ -52,6 +54,7 @@ export async function listAuthUsers(db: D1Database): Promise<StoredAuthUser[]> {
     name: row.name,
     passwordHash: row.password_hash,
     role: row.role,
+    sessionVersion: parseDbNumber(row.session_version),
   }));
 }
 
@@ -62,7 +65,8 @@ export async function upsertAuthUser(db: D1Database, input: UpsertAuthUserInput)
        VALUES (?, ?, ?)
        ON CONFLICT(name) DO UPDATE SET
          password_hash = excluded.password_hash,
-         role = excluded.role`,
+         role = excluded.role,
+         session_version = app_users.session_version + 1`,
     )
     .bind(input.name, input.passwordHash, input.role)
     .run();
@@ -73,7 +77,7 @@ export async function upsertAuthUser(db: D1Database, input: UpsertAuthUserInput)
 
   const row = await db
     .prepare(
-      `SELECT id, name, password_hash, role
+      `SELECT id, name, password_hash, role, session_version
        FROM app_users
        WHERE name = ? COLLATE NOCASE`,
     )
@@ -85,6 +89,21 @@ export async function upsertAuthUser(db: D1Database, input: UpsertAuthUserInput)
   }
 
   return parseDbNumber(row.id);
+}
+
+export async function revokeAuthUserSessions(db: D1Database, userId: number): Promise<void> {
+  const result = await db
+    .prepare(
+      `UPDATE app_users
+       SET session_version = session_version + 1
+       WHERE id = ?`,
+    )
+    .bind(userId)
+    .run();
+
+  if (!result.success || result.meta.changes !== 1) {
+    throw new Error("Failed to revoke auth user sessions.");
+  }
 }
 
 export async function getLoginAttempt(db: D1Database, attemptKey: string): Promise<LoginAttempt | null> {

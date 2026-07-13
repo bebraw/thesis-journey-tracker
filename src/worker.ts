@@ -1,6 +1,14 @@
 import styles from "../.generated/styles.css";
 import favicon from "./favicon.ico";
-import { getSessionUser, isReadonlyUser, resolveAuthState, SESSION_COOKIE, SESSION_TTL_SECONDS } from "./auth";
+import {
+  getSessionIdentity,
+  isReadonlyUser,
+  resolveAuthState,
+  resolveSessionUser,
+  revokeAuthUserSessions,
+  SESSION_COOKIE,
+  SESSION_TTL_SECONDS,
+} from "./auth";
 import { runAutomatedBackup } from "./backup";
 import type { Env, ScheduledControllerLike } from "./app-env";
 import type { D1Database } from "./db-core";
@@ -178,13 +186,17 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return new Response(authState.error, { status: 500 });
   }
 
-  const sessionUser = await getSessionUser(request, env.SESSION_SECRET as string, SESSION_COOKIE);
+  const sessionIdentity = await getSessionIdentity(request, env.SESSION_SECRET as string, SESSION_COOKIE);
+  const sessionUser = resolveSessionUser(authState, sessionIdentity);
 
   if (pathname === "/login" && (request.method === "GET" || request.method === "POST")) {
     return await handleLoginRequest(request, env, authState, sessionUser);
   }
 
   if (pathname === "/logout" && request.method === "POST") {
+    if (sessionUser) {
+      await revokeAuthUserSessions(env.DB, sessionUser.id);
+    }
     return handleLogout(request.url, clearBookmarkCookie(request.url));
   }
 

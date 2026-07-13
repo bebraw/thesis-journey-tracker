@@ -83,7 +83,8 @@ function buildUpsertSql(user) {
 VALUES ('${escapeSql(user.name)}', '${escapeSql(user.passwordHash)}', '${escapeSql(user.role)}')
 ON CONFLICT(name) DO UPDATE SET
   password_hash = excluded.password_hash,
-  role = excluded.role;`;
+  role = excluded.role,
+  session_version = app_users.session_version + 1;`;
 }
 
 function escapeSql(value) {

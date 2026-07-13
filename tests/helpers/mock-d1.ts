@@ -35,6 +35,7 @@ interface AppUserStore {
   name: string;
   password_hash: string;
   role: string;
+  session_version: number;
 }
 
 interface LoginAttemptStore {
@@ -126,10 +127,11 @@ export class MockD1Database {
     }
   }
 
-  seedAuthUser(user: Omit<AppUserStore, "id">) {
+  seedAuthUser(user: Omit<AppUserStore, "id" | "session_version"> & { session_version?: number }) {
     const row: AppUserStore = {
       id: this.nextAppUserId++,
       ...user,
+      session_version: user.session_version ?? 1,
     };
     this.appUsers.push(row);
     return row.id;
@@ -264,6 +266,7 @@ export class MockD1Database {
         existingUser.name = normalizedName;
         existingUser.password_hash = String(passwordHash);
         existingUser.role = String(role);
+        existingUser.session_version += 1;
         return { success: true, meta: { last_row_id: existingUser.id, changes: 1 } };
       }
 
@@ -272,6 +275,7 @@ export class MockD1Database {
         name: normalizedName,
         password_hash: String(passwordHash),
         role: String(role),
+        session_version: 1,
       };
       this.appUsers.push(row);
       return { success: true, meta: { last_row_id: row.id, changes: 1 } };
@@ -323,6 +327,15 @@ export class MockD1Database {
     if (q === "DELETE FROM login_attempts WHERE attempt_key = ?") {
       const attemptKey = String(values[0] || "");
       this.loginAttempts = this.loginAttempts.filter((attempt) => attempt.attempt_key !== attemptKey);
+      return { success: true, meta: { changes: 1 } };
+    }
+
+    if (q === "UPDATE app_users SET session_version = session_version + 1 WHERE id = ?") {
+      const user = this.appUsers.find((candidate) => candidate.id === Number(values[0]));
+      if (!user) {
+        return { success: true, meta: { changes: 0 } };
+      }
+      user.session_version += 1;
       return { success: true, meta: { changes: 1 } };
     }
 
@@ -393,7 +406,7 @@ export class MockD1Database {
       };
     }
 
-    if (q === "SELECT id, name, password_hash, role FROM app_users WHERE name = ? COLLATE NOCASE") {
+    if (q === "SELECT id, name, password_hash, role, session_version FROM app_users WHERE name = ? COLLATE NOCASE") {
       const lookupName = String(values[0] || "");
       const row = this.appUsers.find((user) => user.name.toLocaleLowerCase() === lookupName.toLocaleLowerCase());
       return row || null;
@@ -469,7 +482,7 @@ export class MockD1Database {
       return { results };
     }
 
-    if (q === "SELECT id, name, password_hash, role FROM app_users ORDER BY name ASC") {
+    if (q === "SELECT id, name, password_hash, role, session_version FROM app_users ORDER BY name ASC") {
       const results = [...this.appUsers].sort((left, right) => left.name.localeCompare(right.name));
       return { results };
     }

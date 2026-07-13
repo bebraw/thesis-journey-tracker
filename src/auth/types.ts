@@ -7,8 +7,15 @@ export interface AuthUser {
 }
 
 export interface SessionUser {
+  id: number;
   name: string;
   role: AccessRole;
+  sessionVersion: number;
+}
+
+export interface SessionIdentity {
+  userId: number;
+  sessionVersion: number;
 }
 
 export function isAccessRole(value: unknown): value is AccessRole {

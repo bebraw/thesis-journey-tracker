@@ -1,14 +1,15 @@
-export type { AccessRole, AuthUser, SessionUser } from "./types";
+export type { AccessRole, AuthUser, SessionIdentity, SessionUser } from "./types";
 export { isAccessRole } from "./types";
 export { hashPassword, verifyPassword, type HashPasswordOptions } from "./password";
 export {
   buildSessionCookie,
   clearSessionCookie,
   createSessionToken,
-  getSessionUser,
+  getSessionIdentity,
   isAuthenticated,
   SESSION_COOKIE,
   SESSION_TTL_SECONDS,
   type SessionConfig,
 } from "./session";
-export { isReadonlyUser, resolveAuthState, verifyLoginCredentials, type AuthState } from "./state";
+export { isReadonlyUser, resolveAuthState, resolveSessionUser, verifyLoginCredentials, type AuthState } from "./state";
+export { revokeAuthUserSessions } from "./store";

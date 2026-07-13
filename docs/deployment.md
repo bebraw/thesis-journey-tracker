@@ -121,5 +121,6 @@ For more detailed backup notes, see [backups.md](./backups.md).
 - `editor` accounts can add, edit, import, export, and archive student data.
 - `readonly` accounts can view the dashboard, student details, meeting logs, and phase history.
 - Sessions are stored in an `HttpOnly`, `Secure`, signed cookie.
+- Signed sessions expire after four hours and carry only an immutable account ID plus a database session version. Logout, password changes, role changes through the account command, and account removal invalidate previously issued access; logout revokes every active session for that account.
 - The current model is suitable for private personal or small-team use.
 - If stronger access control is needed later, Cloudflare Access or another SSO layer would be a natural next step.

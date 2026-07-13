@@ -9,7 +9,7 @@ import {
   type StoredAuthUser,
 } from "./store";
 import { verifyPassword } from "./password";
-import { type SessionUser } from "./types";
+import { type SessionIdentity, type SessionUser } from "./types";
 
 const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
 const ACCOUNT_LOGIN_MAX_FAILURES = 5;
@@ -27,6 +27,22 @@ export interface AuthState {
 
 export function isReadonlyUser(user: SessionUser): boolean {
   return user.role === "readonly";
+}
+
+export function resolveSessionUser(authState: AuthState, identity: SessionIdentity | null): SessionUser | null {
+  if (!identity) {
+    return null;
+  }
+  const storedUser = authState.users.find((user) => user.id === identity.userId);
+  if (!storedUser || storedUser.sessionVersion !== identity.sessionVersion) {
+    return null;
+  }
+  return {
+    id: storedUser.id,
+    name: storedUser.name,
+    role: storedUser.role,
+    sessionVersion: storedUser.sessionVersion,
+  };
 }
 
 export async function resolveAuthState(env: Env): Promise<AuthState> {
@@ -113,8 +129,10 @@ export async function verifyLoginCredentials(
   return {
     status: "authenticated",
     user: {
+      id: candidateUser.id,
       name: candidateUser.name,
       role: candidateUser.role,
+      sessionVersion: candidateUser.sessionVersion,
     },
   };
 }

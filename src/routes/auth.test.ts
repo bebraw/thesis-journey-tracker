@@ -805,6 +805,37 @@ describe("multi-user access control", () => {
           value.includes("thesis_d1_bookmark=") && value.includes("Expires=Thu, 01 Jan 1970 00:00:00 GMT") && value.includes("Max-Age=0"),
       ),
     ).toBe(true);
+
+    expect(env.DB.appUsers.find((user) => user.name === "Advisor")?.session_version).toBe(2);
+    const replayResponse = await fetchHandler(
+      new Request("http://localhost/", {
+        headers: { cookie },
+      }),
+      env,
+    );
+    expect(replayResponse.status).toBe(302);
+    expect(replayResponse.headers.get("location")).toBe("/login");
+  });
+
+  it("resolves the current role and account existence from D1 for every request", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    const advisor = env.DB.appUsers.find((user) => user.name === "Advisor")!;
+    advisor.role = "readonly";
+
+    const roleChangedResponse = await fetchHandler(
+      new Request("http://localhost/data-tools", { headers: { cookie } }),
+      env,
+    );
+    expect(roleChangedResponse.status).toBe(302);
+    expect(roleChangedResponse.headers.get("location")).toBe("/?error=Read-only+access");
+
+    env.DB.appUsers = env.DB.appUsers.filter((user) => user.id !== advisor.id);
+    const deletedAccountResponse = await fetchHandler(
+      new Request("http://localhost/", { headers: { cookie } }),
+      env,
+    );
+    expect(deletedAccountResponse.status).toBe(302);
+    expect(deletedAccountResponse.headers.get("location")).toBe("/login");
   });
 
   it("shows the style guide only on local development hosts", async () => {

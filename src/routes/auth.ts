@@ -56,7 +56,10 @@ export async function handleLoginRequest(
     return redirect("/login?error=1");
   }
 
-  const token = await createSessionToken(env.SESSION_SECRET || "", SESSION_TTL_SECONDS, loginResult.user);
+  const token = await createSessionToken(env.SESSION_SECRET || "", SESSION_TTL_SECONDS, {
+    userId: loginResult.user.id,
+    sessionVersion: loginResult.user.sessionVersion,
+  });
   return redirect("/", {
     "Set-Cookie": buildSessionCookie(token, request.url, {
       cookieName: SESSION_COOKIE,
