@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { getPlatformProxy, type PlatformProxy } from "wrangler";
+import { getLoginAttempt, recordLoginFailure } from "../src/auth/store";
 import {
   createMeetingLog,
   createPhaseAuditEntry,
@@ -64,6 +65,15 @@ describe("D1-backed db helpers", () => {
         FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
       );
     `);
+    await runStatement(platform.env.DB, `
+      CREATE TABLE IF NOT EXISTS login_attempts (
+        attempt_key TEXT PRIMARY KEY,
+        failure_count INTEGER NOT NULL DEFAULT 0,
+        first_failed_at TEXT NOT NULL,
+        last_failed_at TEXT NOT NULL,
+        locked_until TEXT
+      );
+    `);
   }, 60_000);
 
   afterAll(async () => {
@@ -77,6 +87,7 @@ describe("D1-backed db helpers", () => {
     await runStatement(platform.env.DB, "DELETE FROM student_phase_audit");
     await runStatement(platform.env.DB, "DELETE FROM meeting_logs");
     await runStatement(platform.env.DB, "DELETE FROM students");
+    await runStatement(platform.env.DB, "DELETE FROM login_attempts");
   });
 
   it("reads aggregated student data from a local D1 binding", async () => {
@@ -159,6 +170,24 @@ describe("D1-backed db helpers", () => {
 
     expect(student?.currentPhase).toBe("researching");
     expect(phaseAudit).toHaveLength(0);
+  });
+
+  it("atomically records concurrent login failures", async () => {
+    const now = "2026-03-24T09:00:00.000Z";
+    await Promise.all(
+      Array.from({ length: 5 }, () =>
+        recordLoginFailure(platform.env.DB, "account:1", {
+          now,
+          failureWindowStart: "2026-03-24T08:45:00.000Z",
+          maxFailures: 5,
+          lockedUntil: "2026-03-24T09:15:00.000Z",
+        }),
+      ),
+    );
+
+    const attempt = await getLoginAttempt(platform.env.DB, "account:1");
+    expect(attempt?.failureCount).toBe(5);
+    expect(attempt?.lockedUntil).toBe("2026-03-24T09:15:00.000Z");
   });
 });
 

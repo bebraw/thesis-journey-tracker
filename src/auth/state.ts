@@ -1,11 +1,24 @@
 import type { Env } from "../app-env";
-import { clearLoginAttempt, getLoginAttempt, listAuthUsers, saveLoginAttempt, type LoginAttempt } from "./store";
+import {
+  clearLoginAttempt,
+  getLoginAttempt,
+  listAuthUsers,
+  pruneExpiredLoginAttempts,
+  recordLoginFailure,
+  type LoginAttempt,
+  type StoredAuthUser,
+} from "./store";
 import { verifyPassword } from "./password";
 import { type SessionUser } from "./types";
 
 const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
-const LOGIN_MAX_FAILURES = 5;
+const ACCOUNT_LOGIN_MAX_FAILURES = 5;
+const CLIENT_LOGIN_MAX_FAILURES = 20;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
+const LOGIN_ATTEMPT_RETENTION_MS = 24 * 60 * 60 * 1000;
+const LOGIN_ATTEMPT_PRUNE_LIMIT = 25;
+const DUMMY_PASSWORD_HASH =
+  "pbkdf2_sha256$100000$AAAAAAAAAAAAAAAAAAAAAA==$hdWn2Z2YPji1MoW1r05A3cRvbd46WyUHU6YxFtRxMXU=";
 
 export interface AuthState {
   users: Awaited<ReturnType<typeof listAuthUsers>>;
@@ -47,16 +60,27 @@ export async function verifyLoginCredentials(
       ? authState.users[0] || null
       : authState.users.find((user) => user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase()) || null;
 
-  const loginAttemptKey = buildLoginAttemptKey(request, enteredName, candidateUser?.name || null);
-  const currentAttempt = await getLoginAttempt(env.DB, loginAttemptKey);
+  await pruneExpiredLoginAttempts(env.DB, {
+    lastFailureBefore: new Date(now.getTime() - LOGIN_ATTEMPT_RETENTION_MS).toISOString(),
+    now: now.toISOString(),
+    limit: LOGIN_ATTEMPT_PRUNE_LIMIT,
+  });
 
-  if (isLoginAttemptLocked(currentAttempt, now)) {
+  const loginAttemptBuckets = await buildLoginAttemptBuckets(request, env.SESSION_SECRET || "", candidateUser);
+  const currentAttempts = await Promise.all(
+    loginAttemptBuckets.map(async (bucket) => ({
+      bucket,
+      attempt: await getLoginAttempt(env.DB, bucket.attemptKey),
+    })),
+  );
+
+  if (currentAttempts.some(({ attempt }) => isLoginAttemptLocked(attempt, now))) {
     return { status: "rate_limited" };
   }
 
   let passwordVerified = false;
   try {
-    passwordVerified = candidateUser ? await verifyPassword(password, candidateUser.passwordHash) : false;
+    passwordVerified = await verifyPassword(password, candidateUser?.passwordHash || DUMMY_PASSWORD_HASH);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes("Stored password hash uses")) {
@@ -67,14 +91,25 @@ export async function verifyLoginCredentials(
   }
 
   if (!candidateUser || !passwordVerified) {
-    const nextAttempt = buildFailedLoginAttempt(currentAttempt, loginAttemptKey, now);
-    await saveLoginAttempt(env.DB, nextAttempt);
+    const nextAttempts = await Promise.all(
+      loginAttemptBuckets.map((bucket) =>
+        recordLoginFailure(env.DB, bucket.attemptKey, {
+          now: now.toISOString(),
+          failureWindowStart: new Date(now.getTime() - LOGIN_FAILURE_WINDOW_MS).toISOString(),
+          maxFailures: bucket.maxFailures,
+          lockedUntil: new Date(now.getTime() + LOGIN_LOCKOUT_MS).toISOString(),
+        }),
+      ),
+    );
     return {
-      status: nextAttempt.lockedUntil ? "rate_limited" : "invalid",
+      status: nextAttempts.some((attempt) => isLoginAttemptLocked(attempt, now)) ? "rate_limited" : "invalid",
     };
   }
 
-  await clearLoginAttempt(env.DB, loginAttemptKey);
+  const accountBucket = loginAttemptBuckets.find((bucket) => bucket.kind === "account");
+  if (accountBucket) {
+    await clearLoginAttempt(env.DB, accountBucket.attemptKey);
+  }
   return {
     status: "authenticated",
     user: {
@@ -86,37 +121,66 @@ export async function verifyLoginCredentials(
 
 type LoginVerificationResult = { status: "authenticated"; user: SessionUser } | { status: "invalid" | "password_reset" | "rate_limited" };
 
-function buildLoginAttemptKey(request: Request, enteredName: string, resolvedUserName: string | null): string {
-  const ipAddress = readClientIpAddress(request);
-  const loginName = normalizeLoginAttemptName(resolvedUserName || enteredName);
-  return `ip:${ipAddress}|user:${loginName}`;
+interface LoginAttemptBucket {
+  kind: "account" | "client";
+  attemptKey: string;
+  maxFailures: number;
 }
 
-function readClientIpAddress(request: Request): string {
-  const directIp = normalizeIpAddress(request.headers.get("cf-connecting-ip"));
-  if (directIp) {
-    return directIp;
+async function buildLoginAttemptBuckets(
+  request: Request,
+  sessionSecret: string,
+  candidateUser: StoredAuthUser | null,
+): Promise<LoginAttemptBucket[]> {
+  const clientSource = readTrustedCloudflareClientIp(request) || "untrusted-direct-client";
+  const clientDigest = await hmacClientSource(sessionSecret, clientSource);
+  const buckets: LoginAttemptBucket[] = [
+    {
+      kind: "client",
+      attemptKey: `client:${clientDigest}`,
+      maxFailures: CLIENT_LOGIN_MAX_FAILURES,
+    },
+  ];
+  if (candidateUser) {
+    buckets.unshift({
+      kind: "account",
+      attemptKey: `account:${candidateUser.id}`,
+      maxFailures: ACCOUNT_LOGIN_MAX_FAILURES,
+    });
   }
-
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    const forwardedIp = normalizeIpAddress(forwardedFor.split(",")[0] || "");
-    if (forwardedIp) {
-      return forwardedIp;
-    }
-  }
-
-  return "local-development";
+  return buckets;
 }
 
-function normalizeIpAddress(value: string | null | undefined): string | null {
+function readTrustedCloudflareClientIp(request: Request): string | null {
+  const cloudflareMetadata = (request as Request & { cf?: unknown }).cf;
+  if (!cloudflareMetadata) {
+    return null;
+  }
+
+  return normalizeIpAddress(request.headers.get("cf-connecting-ip"));
+}
+
+function normalizeIpAddress(value: string | null): string | null {
   const normalized = (value || "").trim();
-  return normalized.length > 0 ? normalized : null;
+  if (!normalized || normalized.length > 64 || !/^[0-9a-f:.]+$/i.test(normalized)) {
+    return null;
+  }
+  return normalized.toLocaleLowerCase();
 }
 
-function normalizeLoginAttemptName(value: string | null | undefined): string {
-  const normalized = (value || "").trim().toLocaleLowerCase();
-  return normalized || "anonymous";
+async function hmacClientSource(secret: string, source: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const digest = await crypto.subtle.sign("HMAC", key, encoder.encode(`login-client:${source}`));
+  return bytesToBase64Url(new Uint8Array(digest));
+}
+
+function bytesToBase64Url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 function isLoginAttemptLocked(attempt: LoginAttempt | null, now: Date): boolean {
@@ -126,30 +190,4 @@ function isLoginAttemptLocked(attempt: LoginAttempt | null, now: Date): boolean 
 
   const lockedUntilTime = Date.parse(attempt.lockedUntil);
   return Number.isFinite(lockedUntilTime) && lockedUntilTime > now.getTime();
-}
-
-function buildFailedLoginAttempt(previousAttempt: LoginAttempt | null, attemptKey: string, now: Date): LoginAttempt {
-  const nowIso = now.toISOString();
-  const nowTime = now.getTime();
-  const previousLastFailedAt = previousAttempt ? Date.parse(previousAttempt.lastFailedAt) : Number.NaN;
-  const previousLockExpired =
-    previousAttempt?.lockedUntil && Number.isFinite(Date.parse(previousAttempt.lockedUntil))
-      ? Date.parse(previousAttempt.lockedUntil) <= nowTime
-      : false;
-  const isWithinFailureWindow =
-    previousAttempt &&
-    !previousLockExpired &&
-    Number.isFinite(previousLastFailedAt) &&
-    nowTime - previousLastFailedAt <= LOGIN_FAILURE_WINDOW_MS;
-
-  const failureCount = isWithinFailureWindow ? previousAttempt.failureCount + 1 : 1;
-  const firstFailedAt = isWithinFailureWindow ? previousAttempt.firstFailedAt : nowIso;
-
-  return {
-    attemptKey,
-    failureCount,
-    firstFailedAt,
-    lastFailedAt: nowIso,
-    lockedUntil: failureCount >= LOGIN_MAX_FAILURES ? new Date(nowTime + LOGIN_LOCKOUT_MS).toISOString() : null,
-  };
 }

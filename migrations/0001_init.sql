@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_login_attempts_locked_until ON login_attempts (locked_until);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_last_failed_at ON login_attempts (last_failed_at);
 
 CREATE TABLE IF NOT EXISTS app_secrets (
   secret_key TEXT PRIMARY KEY,

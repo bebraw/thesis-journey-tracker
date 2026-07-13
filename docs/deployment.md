@@ -117,7 +117,7 @@ For more detailed backup notes, see [backups.md](./backups.md).
 ## Security Model
 
 - App access is protected by signed session cookies and lightweight account roles.
-- Repeated failed login attempts from the same client IP are temporarily locked out for 15 minutes after 5 failures.
+- Five failures lock the targeted account for 15 minutes, even when they come from different clients. Twenty failures from one trusted Cloudflare client address also trigger a 15-minute client lockout. Direct/local traffic shares one client bucket, forwarded headers are ignored outside the Cloudflare request boundary, and stored client keys are HMAC-obscured rather than raw IP addresses.
 - `editor` accounts can add, edit, import, export, and archive student data.
 - `readonly` accounts can view the dashboard, student details, meeting logs, and phase history.
 - Sessions are stored in an `HttpOnly`, `Secure`, signed cookie.

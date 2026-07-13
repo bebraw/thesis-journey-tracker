@@ -278,26 +278,46 @@ export class MockD1Database {
     }
 
     if (q.startsWith("INSERT INTO login_attempts")) {
-      const [attemptKey, failureCount, firstFailedAt, lastFailedAt, lockedUntil] = values;
+      const [attemptKey, firstFailedAt, lastFailedAt, failureWindowStart, , resetFirstFailedAt, updatedLastFailedAt, , maxFailures, lockedUntil] =
+        values;
       const normalizedKey = String(attemptKey);
       const existingAttempt = this.loginAttempts.find((attempt) => attempt.attempt_key === normalizedKey);
 
       if (existingAttempt) {
-        existingAttempt.failure_count = Number(failureCount);
-        existingAttempt.first_failed_at = String(firstFailedAt);
-        existingAttempt.last_failed_at = String(lastFailedAt);
-        existingAttempt.locked_until = lockedUntil === null ? null : String(lockedUntil);
+        const isWithinFailureWindow = existingAttempt.last_failed_at >= String(failureWindowStart);
+        existingAttempt.failure_count = isWithinFailureWindow ? existingAttempt.failure_count + 1 : 1;
+        existingAttempt.first_failed_at = isWithinFailureWindow
+          ? existingAttempt.first_failed_at
+          : String(resetFirstFailedAt);
+        existingAttempt.last_failed_at = String(updatedLastFailedAt);
+        existingAttempt.locked_until =
+          isWithinFailureWindow && existingAttempt.failure_count >= Number(maxFailures) ? String(lockedUntil) : null;
         return { success: true, meta: { changes: 1 } };
       }
 
       this.loginAttempts.push({
         attempt_key: normalizedKey,
-        failure_count: Number(failureCount),
+        failure_count: 1,
         first_failed_at: String(firstFailedAt),
         last_failed_at: String(lastFailedAt),
-        locked_until: lockedUntil === null ? null : String(lockedUntil),
+        locked_until: null,
       });
       return { success: true, meta: { changes: 1 } };
+    }
+
+    if (q.startsWith("DELETE FROM login_attempts WHERE attempt_key IN")) {
+      const [lastFailureBefore, now, limit] = values;
+      const removableKeys = this.loginAttempts
+        .filter(
+          (attempt) =>
+            attempt.last_failed_at < String(lastFailureBefore) &&
+            (attempt.locked_until === null || attempt.locked_until < String(now)),
+        )
+        .sort((left, right) => left.last_failed_at.localeCompare(right.last_failed_at))
+        .slice(0, Number(limit))
+        .map((attempt) => attempt.attempt_key);
+      this.loginAttempts = this.loginAttempts.filter((attempt) => !removableKeys.includes(attempt.attempt_key));
+      return { success: true, meta: { changes: removableKeys.length } };
     }
 
     if (q === "DELETE FROM login_attempts WHERE attempt_key = ?") {

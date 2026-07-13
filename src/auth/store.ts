@@ -101,6 +101,88 @@ export async function getLoginAttempt(db: D1Database, attemptKey: string): Promi
     return null;
   }
 
+  return mapLoginAttemptRow(row);
+}
+
+export async function recordLoginFailure(
+  db: D1Database,
+  attemptKey: string,
+  options: {
+    now: string;
+    failureWindowStart: string;
+    maxFailures: number;
+    lockedUntil: string;
+  },
+): Promise<LoginAttempt> {
+  const result = await db
+    .prepare(
+      `INSERT INTO login_attempts (attempt_key, failure_count, first_failed_at, last_failed_at, locked_until)
+       VALUES (?, 1, ?, ?, NULL)
+       ON CONFLICT(attempt_key) DO UPDATE SET
+         failure_count = CASE
+           WHEN login_attempts.last_failed_at >= ? THEN login_attempts.failure_count + 1
+           ELSE 1
+         END,
+         first_failed_at = CASE
+           WHEN login_attempts.last_failed_at >= ? THEN login_attempts.first_failed_at
+           ELSE ?
+         END,
+         last_failed_at = ?,
+         locked_until = CASE
+           WHEN login_attempts.last_failed_at >= ? AND login_attempts.failure_count + 1 >= ? THEN ?
+           ELSE NULL
+         END`,
+    )
+    .bind(
+      attemptKey,
+      options.now,
+      options.now,
+      options.failureWindowStart,
+      options.failureWindowStart,
+      options.now,
+      options.now,
+      options.failureWindowStart,
+      options.maxFailures,
+      options.lockedUntil,
+    )
+    .run();
+
+  if (!result.success) {
+    throw new Error("Failed to record login failure.");
+  }
+
+  const attempt = await getLoginAttempt(db, attemptKey);
+  if (!attempt) {
+    throw new Error("Failed to read recorded login failure.");
+  }
+  return attempt;
+}
+
+export async function clearLoginAttempt(db: D1Database, attemptKey: string): Promise<void> {
+  await db.prepare("DELETE FROM login_attempts WHERE attempt_key = ?").bind(attemptKey).run();
+}
+
+export async function pruneExpiredLoginAttempts(
+  db: D1Database,
+  options: { lastFailureBefore: string; now: string; limit: number },
+): Promise<void> {
+  await db
+    .prepare(
+      `DELETE FROM login_attempts
+       WHERE attempt_key IN (
+         SELECT attempt_key
+         FROM login_attempts
+         WHERE last_failed_at < ?
+           AND (locked_until IS NULL OR locked_until < ?)
+         ORDER BY last_failed_at ASC
+         LIMIT ?
+       )`,
+    )
+    .bind(options.lastFailureBefore, options.now, options.limit)
+    .run();
+}
+
+function mapLoginAttemptRow(row: LoginAttemptRow): LoginAttempt {
   return {
     attemptKey: row.attempt_key,
     failureCount: parseDbNumber(row.failure_count),
@@ -108,23 +190,4 @@ export async function getLoginAttempt(db: D1Database, attemptKey: string): Promi
     lastFailedAt: row.last_failed_at,
     lockedUntil: row.locked_until,
   };
-}
-
-export async function saveLoginAttempt(db: D1Database, attempt: LoginAttempt): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO login_attempts (attempt_key, failure_count, first_failed_at, last_failed_at, locked_until)
-       VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(attempt_key) DO UPDATE SET
-         failure_count = excluded.failure_count,
-         first_failed_at = excluded.first_failed_at,
-         last_failed_at = excluded.last_failed_at,
-         locked_until = excluded.locked_until`,
-    )
-    .bind(attempt.attemptKey, attempt.failureCount, attempt.firstFailedAt, attempt.lastFailedAt, attempt.lockedUntil)
-    .run();
-}
-
-export async function clearLoginAttempt(db: D1Database, attemptKey: string): Promise<void> {
-  await db.prepare("DELETE FROM login_attempts WHERE attempt_key = ?").bind(attemptKey).run();
 }
