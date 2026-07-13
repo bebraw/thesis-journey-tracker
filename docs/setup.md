@@ -301,7 +301,7 @@ Start the app:
 
 ```bash
 docker run --rm \
-  -p 8787:8787 \
+  -p 127.0.0.1:8787:8787 \
   -v thesis-journey-tracker-state:/app/.wrangler \
   -v "$PWD/.dev.vars:/app/.dev.vars:ro" \
   thesis-journey-tracker
@@ -311,13 +311,13 @@ On Windows PowerShell:
 
 ```powershell
 docker run --rm `
-  -p 8787:8787 `
+  -p 127.0.0.1:8787:8787 `
   -v thesis-journey-tracker-state:/app/.wrangler `
   -v "${PWD}/.dev.vars:/app/.dev.vars:ro" `
   thesis-journey-tracker
 ```
 
-Open <http://127.0.0.1:8787>. To reset the containerized local database, remove the named volume and repeat the migration and account steps:
+Open <http://127.0.0.1:8787>. The explicit host address keeps the development server off other host interfaces. To reset the containerized local database, remove the named volume and repeat the migration and account steps:
 
 ```bash
 docker volume rm thesis-journey-tracker-state

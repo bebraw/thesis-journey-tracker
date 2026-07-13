@@ -6,7 +6,6 @@ import { renderDocument, renderView } from "./shared.htmlisp";
 export function renderLoginPage(
   errorState: "invalid" | "rate_limit" | "password_reset" | null,
   supportsMultipleAccounts = false,
-  skipsPassword = false,
 ): string {
   const errorMessage =
     errorState === "rate_limit"
@@ -46,9 +45,8 @@ export function renderLoginPage(
             required
             &class="passwordFieldClass"
           />
-          <label &visibleIf="showPasswordField" class="block text-sm font-medium" for="password">Password</label>
+          <label class="block text-sm font-medium" for="password">Password</label>
           <input
-            &visibleIf="showPasswordField"
             id="password"
             name="password"
             type="password"
@@ -66,22 +64,19 @@ export function renderLoginPage(
       passwordFieldClass: `${FIELD_CONTROL_SM} outline-hidden ring-app-brand focus:ring-2`,
       subtleText: `mt-2 max-w-sm ${SUBTLE_TEXT}`,
       showNameField: supportsMultipleAccounts,
-      showPasswordField: !skipsPassword,
       showError: Boolean(errorState),
       errorMessage,
       signInButtonHtml: raw(
         renderButton({
-          label: skipsPassword ? "Open demo" : "Sign in",
+          label: "Sign in",
           type: "submit",
           variant: "primaryBlock",
           className: "transition",
         }),
       ),
-      subtitle: skipsPassword
-        ? "Open the local demo dashboard without entering a password."
-        : supportsMultipleAccounts
-          ? "Sign in with your assigned account to review students, meetings, and supervision history."
-          : "Sign in to open the supervision dashboard for your current thesis cohort.",
+      subtitle: supportsMultipleAccounts
+        ? "Sign in with your assigned account to review students, meetings, and supervision history."
+        : "Sign in to open the supervision dashboard for your current thesis cohort.",
     },
     components,
   );

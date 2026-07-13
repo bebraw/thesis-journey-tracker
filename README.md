@@ -97,7 +97,7 @@ npm run dev
 ```
 
 Wrangler will print the local URL, typically `http://127.0.0.1:8787`.
-The local dev script keeps the login screen visible but skips password entry for demo sessions on localhost.
+Local development uses the same password verification as deployed environments.
 If a local page returns `500`, run `npm run doctor:local` and check the `npm run dev` terminal output. Localhost responses include the thrown error message to make setup problems easier to diagnose.
 
 For the full setup flow, Google Calendar configuration, remote account management, and troubleshooting, see [docs/setup.md](./docs/setup.md).

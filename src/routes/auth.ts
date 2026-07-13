@@ -18,8 +18,6 @@ export async function handleLoginRequest(
   authState: AuthState,
   sessionUser: SessionUser | null,
 ): Promise<Response> {
-  const skipPassword = shouldSkipLoginPassword(request);
-
   if (request.method === "GET") {
     if (sessionUser) {
       return redirect("/");
@@ -33,13 +31,13 @@ export async function handleLoginRequest(
           : url.searchParams.get("error")
             ? "invalid"
             : null;
-    return htmlResponse(renderLoginPage(errorState, authState.users.length > 1, skipPassword));
+    return htmlResponse(renderLoginPage(errorState, authState.users.length > 1));
   }
 
   const formData = await request.formData();
   const enteredName = (formData.get("name") || "").toString().trim();
   const password = (formData.get("password") || "").toString();
-  const loginResult = await verifyLoginCredentials(env, request, authState, enteredName, password, { skipPassword });
+  const loginResult = await verifyLoginCredentials(env, request, authState, enteredName, password);
 
   if (loginResult.status === "rate_limited") {
     return redirect("/login?error=rate_limit");
@@ -82,20 +80,4 @@ export function handleLogout(requestUrl: string, clearBookmarkCookie: string): R
 export function readonlyRedirect(pathname: string): Response {
   const separator = pathname.includes("?") ? "&" : "?";
   return redirect(`${pathname}${separator}error=Read-only+access`);
-}
-
-function shouldSkipLoginPassword(request: Request): boolean {
-  return isLocalDevelopmentRequest(request);
-}
-
-function isLocalDevelopmentRequest(request: Request): boolean {
-  const hostname = new URL(request.url).hostname.toLocaleLowerCase();
-  return (
-    hostname === "localhost" ||
-    hostname.endsWith(".localhost") ||
-    hostname === "127.0.0.1" ||
-    hostname === "0.0.0.0" ||
-    hostname === "::1" ||
-    hostname === "[::1]"
-  );
 }

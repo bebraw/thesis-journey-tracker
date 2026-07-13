@@ -600,15 +600,15 @@ describe("multi-user access control", () => {
     expect(env.DB.loginAttempts).toHaveLength(0);
   });
 
-  it("skips password verification only for local demo logins", async () => {
+  it("requires password verification for localhost requests", async () => {
     const loginPageResponse = await fetchHandler(new Request("http://localhost/login"), env);
     const loginPageBody = await loginPageResponse.text();
 
     expect(loginPageResponse.status).toBe(200);
-    expect(loginPageBody).toContain("Open demo");
-    expect(loginPageBody).not.toContain('name="password"');
+    expect(loginPageBody).toContain("Sign in");
+    expect(loginPageBody).toContain('name="password"');
 
-    const localDemoResponse = await fetchHandler(
+    const missingPasswordResponse = await fetchHandler(
       new Request("http://localhost/login", {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -619,25 +619,27 @@ describe("multi-user access control", () => {
       env,
     );
 
-    expect(localDemoResponse.status).toBe(302);
-    expect(localDemoResponse.headers.get("location")).toBe("/");
-    expect(localDemoResponse.headers.get("set-cookie")).toContain("thesis_session=");
-    expect(env.DB.loginAttempts).toHaveLength(0);
+    expect(missingPasswordResponse.status).toBe(302);
+    expect(missingPasswordResponse.headers.get("location")).toBe("/login?error=1");
+    expect(missingPasswordResponse.headers.get("set-cookie")).toBeNull();
+    expect(env.DB.loginAttempts).toHaveLength(1);
 
-    const remoteResponse = await fetchHandler(
-      new Request("https://tracker.example.com/login", {
+    const validPasswordResponse = await fetchHandler(
+      new Request("http://localhost/login", {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
           name: "Advisor",
+          password: "editor-password",
         }),
       }),
       env,
     );
 
-    expect(remoteResponse.status).toBe(302);
-    expect(remoteResponse.headers.get("location")).toBe("/login?error=1");
-    expect(remoteResponse.headers.get("set-cookie")).toBeNull();
+    expect(validPasswordResponse.status).toBe(302);
+    expect(validPasswordResponse.headers.get("location")).toBe("/");
+    expect(validPasswordResponse.headers.get("set-cookie")).toContain("thesis_session=");
+    expect(env.DB.loginAttempts).toHaveLength(0);
   });
 
   it("does not lock out a different user from the same shared IP address", async () => {

@@ -84,7 +84,7 @@ The Docker workflow is documented in [setup.md](./setup.md#docker-backup-setup).
 - Tailwind input lives in [`src/tailwind-input.css`](../src/tailwind-input.css).
 - Generated CSS is written to `.generated/styles.css`.
 - Wrangler runs the Tailwind build automatically before `dev` and `deploy`, so generated CSS does not need to be committed manually.
-- Local `localhost` and `127.0.0.1` login screens skip password entry for demo sessions. Deployed hostnames still use normal password verification.
+- Local and deployed login screens use the same password verification path. Tests must not infer development mode from a request hostname.
 - The UI style guide at `/style-guide` is intentionally available only on local development hosts such as `localhost` or `127.0.0.1`.
 - Project-local frontend guidance for automated contributors lives in [`.codex/skills/frontend-design/SKILL.md`](../.codex/skills/frontend-design/SKILL.md).
 

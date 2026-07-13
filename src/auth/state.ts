@@ -40,25 +40,12 @@ export async function verifyLoginCredentials(
   authState: AuthState,
   enteredName: string,
   password: string,
-  options: { skipPassword?: boolean } = {},
 ): Promise<LoginVerificationResult> {
   const now = new Date();
   const candidateUser =
     authState.users.length === 1 && !enteredName
       ? authState.users[0] || null
       : authState.users.find((user) => user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase()) || null;
-
-  if (options.skipPassword) {
-    return candidateUser
-      ? {
-          status: "authenticated",
-          user: {
-            name: candidateUser.name,
-            role: candidateUser.role,
-          },
-        }
-      : { status: "invalid" };
-  }
 
   const loginAttemptKey = buildLoginAttemptKey(request, enteredName, candidateUser?.name || null);
   const currentAttempt = await getLoginAttempt(env.DB, loginAttemptKey);
