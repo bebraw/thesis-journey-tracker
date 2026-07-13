@@ -77,7 +77,11 @@ The `100000` PBKDF2 work factor is the current Workers runtime compatibility cei
 npm run deploy
 ```
 
+[`wrangler.toml`](../wrangler.toml) explicitly disables public [versioned and aliased Preview URLs](https://developers.cloudflare.com/workers/versions-and-deployments/preview-urls/). A deploy reconciles that setting; for an existing Worker, disable Preview URLs in the Cloudflare dashboard immediately if you cannot deploy yet.
+
 6. For a custom domain, enable Cloudflare's [Always Use HTTPS](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/) option. The Worker also redirects non-local HTTP as defense in depth, but an application redirect cannot protect request bytes that a client already sent over its first plaintext connection.
+
+This repository leaves the stable [`workers.dev` route](https://developers.cloudflare.com/workers/configuration/routing/workers-dev/) enabled because it cannot know your production hostname. Once a custom domain or route is configured and verified, add `workers_dev = false` to `wrangler.toml`. If `workers.dev` must remain available, protect that hostname with Cloudflare Access too; an Access policy on only the custom hostname does not cover the separate `workers.dev` endpoint.
 
 ## Automated Backups
 
@@ -132,6 +136,7 @@ For more detailed backup notes, see [backups.md](./backups.md).
 - If you are upgrading an existing instance, make sure the latest migrations have been applied before or during deployment.
 - Automated backups are stored under the `BACKUP_PREFIX` path in the configured R2 bucket.
 - Automatic Worker traces are disabled because an outbound iCal request contains a bearer-style secret in its URL. Do not enable automatic fetch tracing without a design that redacts that URL before telemetry is stored.
+- Public versioned and aliased Preview URLs are disabled. The stable `workers.dev` endpoint remains a separate production entry point until a custom route is configured and `workers_dev = false` is committed.
 - `npm run db:insights` is useful after deployment for checking whether the dashboard queries stay within expected D1 read and latency budgets.
 
 ## Security Model

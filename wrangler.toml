@@ -1,6 +1,7 @@
 name = "thesis-journey-tracker"
 main = "src/worker.ts"
 compatibility_date = "2026-03-22"
+preview_urls = false
 
 [secrets]
 required = ["SESSION_SECRET", "APP_ENCRYPTION_SECRET"]
