@@ -10,7 +10,7 @@ The workflow keeps Node.js `24.18.0` LTS aligned with [`.nvmrc`](../.nvmrc) so l
 
 The workflow runs:
 
-- `npm ci`
+- `npm ci --strict-allow-scripts`
 - `npm run quality:gate:fast`
 - `npm run e2e && npm run lighthouse`
 

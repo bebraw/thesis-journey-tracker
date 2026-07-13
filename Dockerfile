@@ -8,8 +8,8 @@ WORKDIR /app
 ENV CI=1
 ENV WRANGLER_SEND_METRICS=false
 
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json package-lock.json .npmrc ./
+RUN npm ci --strict-allow-scripts
 
 FROM node:${NODE_VERSION}-bookworm-slim@${NODE_IMAGE_DIGEST}
 

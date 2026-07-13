@@ -64,7 +64,7 @@ The project is intentionally small and server-rendered, with a focused workflow 
 1. Install dependencies and generate Worker types:
 
 ```bash
-npm install
+npm ci
 npm run types:generate
 ```
 

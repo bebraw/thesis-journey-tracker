@@ -64,6 +64,8 @@ npm run lighthouse
 Reports are written to `reports/lighthouse/`. The audit enforces a minimum performance score of `90` for both mobile and desktop runs.
 Lighthouse is intentionally pinned to `12.6.1`: the current `13.x` dependency tree still triggers OpenTelemetry security advisories. Do not bump it mechanically; verify both `npm audit` and the mobile/desktop performance runs when reevaluating the pin.
 
+Dependency installation uses npm's strict lifecycle-script allowlist. Only the exact reviewed `esbuild` and `workerd` versions may run install scripts; optional accelerators, postinstall notices, and native build or binary-check fallbacks that the verified workflows do not require are explicitly denied. If an update introduces a new lifecycle script, `npm ci` fails before running it. Start a lockfile update with `npm install --ignore-scripts`, inspect the new package and script, then change `allowScripts` deliberately and rerun a clean install, the Docker build, and local CI. Do not bypass the policy to make an update pass.
+
 For current findings and follow-up work, see [performance-plan.md](./performance-plan.md).
 
 ## D1 Operations

@@ -11,7 +11,7 @@ This guide covers the full local setup flow for running Thesis Journey Tracker f
 ## 1. Install Dependencies
 
 ```bash
-npm install
+npm ci
 npm run types:generate
 ```
 

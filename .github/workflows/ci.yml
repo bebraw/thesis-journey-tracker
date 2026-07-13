@@ -38,7 +38,7 @@ jobs:
       - name: Install dependencies
         id: install
         shell: bash
-        run: npm ci
+        run: npm ci --strict-allow-scripts
 
       - name: Run fast quality gate
         shell: bash
@@ -62,7 +62,7 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: npm ci
+        run: npm ci --strict-allow-scripts
 
       - name: Run browser quality gate
         shell: bash
