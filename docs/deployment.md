@@ -75,6 +75,8 @@ The `100000` PBKDF2 work factor is the current Workers runtime compatibility cei
 npm run deploy
 ```
 
+6. For a custom domain, enable Cloudflare's [Always Use HTTPS](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/) option. The Worker also redirects non-local HTTP as defense in depth, but an application redirect cannot protect request bytes that a client already sent over its first plaintext connection.
+
 ## Automated Backups
 
 The Worker includes a scheduled backup job that writes an app JSON export, a professor-ready Markdown report, and a backup manifest into an R2 bucket whenever the exported student data changed since the latest stored backup.
@@ -140,7 +142,7 @@ For more detailed backup notes, see [backups.md](./backups.md).
 - Signed sessions expire after four hours and carry only an immutable account ID plus a database session version. Logout, password changes, role changes through the account command, and account removal invalidate previously issued access; logout revokes every active session for that account.
 - Request-scoped D1 sessions begin on the primary database. Authentication and session-revocation reads never trust a client-supplied D1 bookmark, so future read-replication settings cannot temporarily restore revoked access.
 - Every HTTP response receives a restrictive Content Security Policy and browser hardening headers at the Worker boundary. Inline scripts and HTML event handlers are disallowed; inline style attributes remain allowed because the Gantt layout calculates positions and widths at runtime.
-- HTTPS responses enable HTTP Strict Transport Security for one year. Plain HTTP development responses deliberately omit HSTS.
+- Non-local HTTP requests receive a same-URL `308` redirect before origin validation, D1 access, or authentication work. Local development hosts may remain on HTTP. HTTPS responses enable HTTP Strict Transport Security for one year; redirects and local HTTP responses deliberately omit HSTS.
 - Every state-changing HTTP request must carry an `Origin` header that exactly matches the request URL's origin. Browsers add this automatically for the app's forms and fetch requests; maintenance scripts must supply it explicitly.
 - Google Calendar invitation defaults include only attendee-facing student and thesis-topic text. Internal student notes are excluded unless an editor deliberately writes equivalent text into the invitation description.
 - Downloaded and automated Markdown reports escape student-supplied text and collapse embedded line breaks so imported content cannot inject headings, links, remote images, or raw HTML.

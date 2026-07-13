@@ -50,6 +50,53 @@ describe("multi-user access control", () => {
     expect(secureResponse.headers.get("strict-transport-security")).toBe("max-age=31536000");
   });
 
+  it("redirects non-local HTTP before origin, database, or authentication handling", async () => {
+    const response = await fetchHandler(
+      new Request("http://tracker.example.edu/actions/add-student?return=%2F%3Fview%3Dphases", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          origin: "http://attacker.example",
+        },
+        body: new URLSearchParams({ name: "Plaintext attempt" }),
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe(
+      "https://tracker.example.edu/actions/add-student?return=%2F%3Fview%3Dphases",
+    );
+    await expect(response.text()).resolves.toBe("");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("content-security-policy")).toContain("default-src 'none'");
+    expect(response.headers.has("strict-transport-security")).toBe(false);
+    expect(response.headers.has("set-cookie")).toBe(false);
+    expect(env.DB.sessionConstraints).toEqual([]);
+    expect(env.DB.calls).toEqual([]);
+  });
+
+  it.each([
+    "http://localhost:8787/styles.css",
+    "http://app.localhost:8787/styles.css",
+    "http://127.0.0.1:8787/styles.css",
+    "http://0.0.0.0:8787/styles.css",
+    "http://[::1]:8787/styles.css",
+  ])("allows local HTTP development at %s", async (requestUrl) => {
+    const response = await fetchHandler(new Request(requestUrl), env);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.has("location")).toBe(false);
+    expect(response.headers.has("strict-transport-security")).toBe(false);
+  });
+
+  it("does not treat a localhost-looking production hostname as local", async () => {
+    const response = await fetchHandler(new Request("http://localhost.example/styles.css"), env);
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("https://localhost.example/styles.css");
+  });
+
   it("pins D1 sessions to the primary and retires legacy client bookmarks", async () => {
     const ordinaryResponse = await fetchHandler(new Request("http://localhost/styles.css"), env);
     expect(ordinaryResponse.headers.getSetCookie()).toEqual([]);

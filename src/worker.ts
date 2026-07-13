@@ -50,6 +50,11 @@ const EXPIRED_COOKIE_DATE = "Thu, 01 Jan 1970 00:00:00 GMT";
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const httpsRedirect = redirectNonLocalHttpRequest(request);
+    if (httpsRedirect) {
+      return applyBrowserSecurityHeaders(httpsRedirect, request.url);
+    }
+
     let response: Response;
     try {
       const originRejection = rejectInvalidMutationOrigin(request);
@@ -84,6 +89,22 @@ export default {
     }
   },
 };
+
+function redirectNonLocalHttpRequest(request: Request): Response | null {
+  const url = new URL(request.url);
+  if (url.protocol !== "http:" || isLocalDevelopmentHostname(url.hostname)) {
+    return null;
+  }
+
+  url.protocol = "https:";
+  return new Response(null, {
+    status: 308,
+    headers: {
+      "Cache-Control": "no-store",
+      Location: url.toString(),
+    },
+  });
+}
 
 function createRequestD1Session(db: D1Database | null | undefined): D1Database | null | undefined {
   if (!db || !hasD1SessionApi(db)) {
@@ -357,14 +378,18 @@ async function handleScheduledBackup(controller: ScheduledControllerLike, env: E
 }
 
 function isLocalDevelopmentRequest(request: Request): boolean {
-  const hostname = new URL(request.url).hostname.toLocaleLowerCase();
+  return isLocalDevelopmentHostname(new URL(request.url).hostname);
+}
+
+function isLocalDevelopmentHostname(hostname: string): boolean {
+  const normalizedHostname = hostname.toLowerCase();
   return (
-    hostname === "localhost" ||
-    hostname.endsWith(".localhost") ||
-    hostname === "127.0.0.1" ||
-    hostname === "0.0.0.0" ||
-    hostname === "::1" ||
-    hostname === "[::1]"
+    normalizedHostname === "localhost" ||
+    normalizedHostname.endsWith(".localhost") ||
+    normalizedHostname === "127.0.0.1" ||
+    normalizedHostname === "0.0.0.0" ||
+    normalizedHostname === "::1" ||
+    normalizedHostname === "[::1]"
   );
 }
 
