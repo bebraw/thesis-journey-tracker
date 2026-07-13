@@ -67,6 +67,7 @@ export class MockD1Database {
   public appSecrets: AppSecretStore[] = [];
   public calls: QueryCall[] = [];
   public failQueries: Array<string | RegExp> = [];
+  public sessionConstraints: string[] = [];
 
   private nextStudentId = 1;
   private nextLogId = 1;
@@ -90,6 +91,11 @@ export class MockD1Database {
 
   prepare(query: string) {
     return new MockPreparedStatement(this, query);
+  }
+
+  withSession(constraint: string) {
+    this.sessionConstraints.push(constraint);
+    return this;
   }
 
   async batch(statements: MockPreparedStatement[]) {

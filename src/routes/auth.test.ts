@@ -50,6 +50,28 @@ describe("multi-user access control", () => {
     expect(secureResponse.headers.get("strict-transport-security")).toBe("max-age=31536000");
   });
 
+  it("pins D1 sessions to the primary and retires legacy client bookmarks", async () => {
+    const ordinaryResponse = await fetchHandler(new Request("http://localhost/styles.css"), env);
+    expect(ordinaryResponse.headers.getSetCookie()).toEqual([]);
+    expect(env.DB.sessionConstraints).toEqual(["first-primary"]);
+
+    env.DB.sessionConstraints = [];
+    const legacyResponse = await fetchHandler(
+      new Request("https://tracker.example.edu/login", {
+        headers: { cookie: "thesis_d1_bookmark=attacker-controlled-bookmark" },
+      }),
+      env,
+    );
+
+    expect(env.DB.sessionConstraints).toEqual(["first-primary"]);
+    expect(legacyResponse.headers.get("cache-control")).toBe("no-store");
+    expect(legacyResponse.headers.getSetCookie()).toEqual([
+      expect.stringContaining(
+        "thesis_d1_bookmark=; HttpOnly; Secure; Path=/; SameSite=Lax; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0",
+      ),
+    ]);
+  });
+
   it("rejects missing and cross-origin mutations before any database access", async () => {
     const requests = [
       new Request("https://tracker.example.edu/login", {
@@ -859,6 +881,7 @@ describe("multi-user access control", () => {
 
     const setCookies = response.headers.getSetCookie();
     expect(setCookies).toHaveLength(2);
+    expect(response.headers.get("cache-control")).toBe("no-store");
     expect(
       setCookies.some(
         (value) =>

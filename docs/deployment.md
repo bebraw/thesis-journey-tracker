@@ -138,6 +138,7 @@ For more detailed backup notes, see [backups.md](./backups.md).
 - `readonly` accounts can view the dashboard, student details, meeting logs, and phase history.
 - Sessions are stored in an `HttpOnly`, `Secure`, signed cookie.
 - Signed sessions expire after four hours and carry only an immutable account ID plus a database session version. Logout, password changes, role changes through the account command, and account removal invalidate previously issued access; logout revokes every active session for that account.
+- Request-scoped D1 sessions begin on the primary database. Authentication and session-revocation reads never trust a client-supplied D1 bookmark, so future read-replication settings cannot temporarily restore revoked access.
 - Every HTTP response receives a restrictive Content Security Policy and browser hardening headers at the Worker boundary. Inline scripts and HTML event handlers are disallowed; inline style attributes remain allowed because the Gantt layout calculates positions and widths at runtime.
 - HTTPS responses enable HTTP Strict Transport Security for one year. Plain HTTP development responses deliberately omit HSTS.
 - Every state-changing HTTP request must carry an `Origin` header that exactly matches the request URL's origin. Browsers add this automatically for the app's forms and fetch requests; maintenance scripts must supply it explicitly.

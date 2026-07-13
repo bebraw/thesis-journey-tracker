@@ -32,7 +32,7 @@ export async function loginWithPassword<Env>(
     env,
   );
 
-  const setCookie = response.headers.get("set-cookie") || "";
+  const setCookie = response.headers.getSetCookie().find((value) => value.startsWith("thesis_session=")) || "";
   const cookie = setCookie.split(";")[0];
   return cookie;
 }

@@ -68,7 +68,7 @@ export async function handleLoginRequest(
   });
 }
 
-export function handleLogout(requestUrl: string, clearBookmarkCookie: string): Response {
+export function handleLogout(requestUrl: string): Response {
   const headers = new Headers();
   headers.append(
     "Set-Cookie",
@@ -77,7 +77,6 @@ export function handleLogout(requestUrl: string, clearBookmarkCookie: string): R
       ttlSeconds: SESSION_TTL_SECONDS,
     }),
   );
-  headers.append("Set-Cookie", clearBookmarkCookie);
   return redirect("/login", headers);
 }
 

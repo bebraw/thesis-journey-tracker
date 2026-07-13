@@ -7,7 +7,6 @@ import {
   resolveSessionUser,
   revokeAuthUserSessions,
   SESSION_COOKIE,
-  SESSION_TTL_SECONDS,
 } from "./auth";
 import { runAutomatedBackup } from "./backup";
 import type { Env, ScheduledControllerLike } from "./app-env";
@@ -49,11 +48,6 @@ import { renderStyleGuidePage } from "./views";
 const D1_BOOKMARK_COOKIE = "thesis_d1_bookmark";
 const EXPIRED_COOKIE_DATE = "Thu, 01 Jan 1970 00:00:00 GMT";
 
-interface D1SessionState {
-  session: globalThis.D1DatabaseSession;
-  database: D1Database;
-}
-
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     let response: Response;
@@ -62,9 +56,9 @@ export default {
       if (originRejection) {
         response = originRejection;
       } else {
-        const sessionState = createRequestD1Session(request, env.DB);
-        const routeResponse = await handleRequest(request, sessionState ? { ...env, DB: sessionState.database } : env);
-        response = finalizeD1SessionResponse(routeResponse, request.url, sessionState);
+        const requestDatabase = createRequestD1Session(env.DB);
+        const requestEnv: Env = requestDatabase ? { ...env, DB: requestDatabase } : env;
+        response = await handleRequest(request, requestEnv);
       }
     } catch (error) {
       if (error instanceof RequestBodyTooLargeError) {
@@ -79,7 +73,7 @@ export default {
           : new Response("Internal server error", { status: 500 });
       }
     }
-    return applyBrowserSecurityHeaders(response, request.url);
+    return applyBrowserSecurityHeaders(retireLegacyD1Bookmark(response, request), request.url);
   },
   async scheduled(controller: ScheduledControllerLike, env: Env): Promise<void> {
     try {
@@ -91,36 +85,22 @@ export default {
   },
 };
 
-function createRequestD1Session(request: Request, db: D1Database | null | undefined): D1SessionState | null {
+function createRequestD1Session(db: D1Database | null | undefined): D1Database | null | undefined {
   if (!db || !hasD1SessionApi(db)) {
-    return null;
+    return db;
   }
 
-  const bookmark = readCookie(request.headers.get("cookie") || "", D1_BOOKMARK_COOKIE);
-  const session = db.withSession(bookmark || "first-primary");
-  return {
-    session,
-    database: session,
-  };
+  return db.withSession("first-primary");
 }
 
-function finalizeD1SessionResponse(response: Response, requestUrl: string, sessionState: D1SessionState | null): Response {
-  if (!sessionState) {
-    return response;
-  }
-
-  const existingSetCookie = response.headers.get("set-cookie") || "";
-  if (existingSetCookie.includes(`${D1_BOOKMARK_COOKIE}=`)) {
-    return response;
-  }
-
-  const bookmark = sessionState.session.getBookmark();
-  if (!bookmark) {
+function retireLegacyD1Bookmark(response: Response, request: Request): Response {
+  if (!readCookie(request.headers.get("cookie") || "", D1_BOOKMARK_COOKIE)) {
     return response;
   }
 
   const headers = new Headers(response.headers);
-  headers.append("Set-Cookie", buildBookmarkCookie(requestUrl, bookmark));
+  headers.append("Set-Cookie", clearBookmarkCookie(request.url));
+  headers.set("Cache-Control", "no-store");
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -130,11 +110,6 @@ function finalizeD1SessionResponse(response: Response, requestUrl: string, sessi
 
 function hasD1SessionApi(db: D1Database): db is globalThis.D1Database {
   return "withSession" in db && typeof db.withSession === "function";
-}
-
-function buildBookmarkCookie(requestUrl: string, bookmark: string): string {
-  const securePart = new URL(requestUrl).protocol === "https:" ? " Secure;" : "";
-  return `${D1_BOOKMARK_COOKIE}=${encodeURIComponent(bookmark)}; HttpOnly;${securePart} Path=/; SameSite=Lax; Max-Age=${SESSION_TTL_SECONDS}`;
 }
 
 function clearBookmarkCookie(requestUrl: string): string {
@@ -211,7 +186,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     if (sessionUser) {
       await revokeAuthUserSessions(env.DB, sessionUser.id);
     }
-    return handleLogout(request.url, clearBookmarkCookie(request.url));
+    return handleLogout(request.url);
   }
 
   if (!sessionUser) {
