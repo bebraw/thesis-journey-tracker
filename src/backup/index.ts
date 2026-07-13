@@ -14,6 +14,8 @@ import {
 } from "./storage";
 import type { AutomatedBackupManifest, AutomatedBackupResult, R2BucketLike } from "./types";
 
+const UNCHANGED_BACKUP_REFRESH_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
+
 export async function runAutomatedBackup(
   db: D1Database,
   bucket: R2BucketLike,
@@ -32,7 +34,7 @@ export async function runAutomatedBackup(
   const normalizedPrefix = normalizeBackupPrefix(options.backupPrefix);
   const latestStoredBackup = await findLatestStoredBackup(bucket, normalizedPrefix);
 
-  if (latestStoredBackup?.contentHash === contentHash) {
+  if (latestStoredBackup?.contentHash === contentHash && isStoredBackupFresh(latestStoredBackup.generatedAt, timestamp)) {
     return {
       skipped: true,
       contentHash,
@@ -120,6 +122,15 @@ export async function runAutomatedBackup(
     manifestKey,
     matchedManifestKey: null,
   };
+}
+
+function isStoredBackupFresh(generatedAt: string | null, timestamp: Date): boolean {
+  if (!generatedAt) {
+    return false;
+  }
+
+  const backupAgeMs = timestamp.getTime() - Date.parse(generatedAt);
+  return backupAgeMs >= 0 && backupAgeMs < UNCHANGED_BACKUP_REFRESH_INTERVAL_MS;
 }
 
 export { normalizeBackupPrefix } from "./storage";

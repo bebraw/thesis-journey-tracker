@@ -20,7 +20,7 @@ export function buildAutomatedBackupPrefix(timestamp: Date, rawPrefix: string | 
 export async function findLatestStoredBackup(
   bucket: R2BucketLike,
   backupPrefix: string,
-): Promise<{ manifestKey: string; contentHash: string | null } | null> {
+): Promise<{ manifestKey: string; contentHash: string | null; generatedAt: string | null } | null> {
   if (!bucket.list) {
     return null;
   }
@@ -31,9 +31,11 @@ export async function findLatestStoredBackup(
     return null;
   }
 
+  const metadata = await readStoredBackupMetadata(bucket, latestManifestKey);
   return {
     manifestKey: latestManifestKey,
-    contentHash: await readStoredBackupContentHash(bucket, latestManifestKey),
+    contentHash: metadata?.contentHash ?? null,
+    generatedAt: metadata?.generatedAt ?? null,
   };
 }
 
@@ -64,7 +66,10 @@ async function listBackupManifestKeys(bucket: R2BucketLike, backupPrefix: string
   return manifestKeys;
 }
 
-async function readStoredBackupContentHash(bucket: R2BucketLike, manifestKey: string): Promise<string | null> {
+async function readStoredBackupMetadata(
+  bucket: R2BucketLike,
+  manifestKey: string,
+): Promise<{ contentHash: string | null; generatedAt: string | null } | null> {
   if (!bucket.get) {
     return null;
   }
@@ -86,19 +91,23 @@ async function readStoredBackupContentHash(bucket: R2BucketLike, manifestKey: st
     return null;
   }
 
-  const contentHash = typeof parsedManifest.contentHash === "string" ? parsedManifest.contentHash.trim() : "";
-  if (contentHash) {
-    return contentHash;
+  const generatedAt = readStoredGeneratedAt(parsedManifest);
+  const storedContentHash = typeof parsedManifest.contentHash === "string" ? parsedManifest.contentHash : "";
+  if (storedContentHash) {
+    return {
+      contentHash: /^[a-f0-9]{64}$/.test(storedContentHash) ? storedContentHash : null,
+      generatedAt,
+    };
   }
 
   const jsonExportKey = readStoredJsonExportKey(parsedManifest);
   if (!jsonExportKey) {
-    return null;
+    return { contentHash: null, generatedAt };
   }
 
   const jsonExportObject = await bucket.get(jsonExportKey);
   if (!jsonExportObject) {
-    return null;
+    return { contentHash: null, generatedAt };
   }
 
   const jsonExportText = await jsonExportObject.text();
@@ -106,14 +115,30 @@ async function readStoredBackupContentHash(bucket: R2BucketLike, manifestKey: st
   try {
     parsedExport = JSON.parse(jsonExportText);
   } catch {
-    return null;
+    return { contentHash: null, generatedAt };
   }
 
   if (!isDataExportFileLike(parsedExport)) {
+    return { contentHash: null, generatedAt };
+  }
+
+  return {
+    contentHash: await createDataExportContentHash(parsedExport),
+    generatedAt,
+  };
+}
+
+function readStoredGeneratedAt(value: Record<string, unknown>): string | null {
+  if (typeof value.generatedAt !== "string") {
     return null;
   }
 
-  return createDataExportContentHash(parsedExport);
+  const generatedAt = value.generatedAt;
+  const generatedAtTime = Date.parse(generatedAt);
+  if (!Number.isFinite(generatedAtTime) || new Date(generatedAtTime).toISOString() !== generatedAt) {
+    return null;
+  }
+  return generatedAt;
 }
 
 function readStoredJsonExportKey(value: Record<string, unknown>): string | null {

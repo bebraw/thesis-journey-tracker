@@ -80,7 +80,7 @@ describe("automated backups", () => {
     expect(manifest.artifacts.professorReportKey).toBe(reportObject?.key);
   });
 
-  it("skips creating a new backup when the exported data content is unchanged", async () => {
+  it("skips an unchanged backup just under 30 days after the latest snapshot", async () => {
     const db = new MockD1Database();
     const bucket = new MockR2Bucket();
 
@@ -93,7 +93,7 @@ describe("automated backups", () => {
     const secondResult = await runAutomatedBackup(db, bucket, {
       backupPrefix: "prod-backups",
       cron: "30 1 * * *",
-      timestamp: new Date("2026-03-24T01:30:00.000Z"),
+      timestamp: new Date("2026-04-22T01:29:59.999Z"),
     });
 
     expect(firstResult.skipped).toBe(false);
@@ -103,6 +103,68 @@ describe("automated backups", () => {
     expect(secondResult.matchedManifestKey).toBe(firstResult.manifestKey);
     expect(secondResult.contentHash).toBe(firstResult.contentHash);
     expect(bucket.objects).toHaveLength(3);
+  });
+
+  it.each([
+    ["exactly 30 days old", "2026-04-22T01:30:00.000Z"],
+    ["31 days old", "2026-04-23T01:30:00.000Z"],
+  ])("refreshes an unchanged backup when the latest snapshot is %s", async (_description, refreshTimestamp) => {
+    const db = new MockD1Database();
+    const bucket = new MockR2Bucket();
+
+    const firstResult = await runAutomatedBackup(db, bucket, {
+      backupPrefix: "prod-backups",
+      cron: "30 1 * * *",
+      timestamp: new Date("2026-03-23T01:30:00.000Z"),
+    });
+
+    const refreshedResult = await runAutomatedBackup(db, bucket, {
+      backupPrefix: "prod-backups",
+      cron: "30 1 * * *",
+      timestamp: new Date(refreshTimestamp),
+    });
+
+    expect(firstResult.skipped).toBe(false);
+    expect(refreshedResult.skipped).toBe(false);
+    expect(refreshedResult.contentHash).toBe(firstResult.contentHash);
+    expect(refreshedResult.manifest?.generatedAt).toBe(refreshTimestamp);
+    expect(bucket.objects).toHaveLength(6);
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["invalid", "not-a-date"],
+    ["future", "2026-03-25T01:30:00.000Z"],
+  ])("refreshes an unchanged backup when generatedAt is %s", async (_description, generatedAt) => {
+    const db = new MockD1Database();
+    const bucket = new MockR2Bucket();
+
+    const firstResult = await runAutomatedBackup(db, bucket, {
+      backupPrefix: "prod-backups",
+      cron: "30 1 * * *",
+      timestamp: new Date("2026-03-23T01:30:00.000Z"),
+    });
+
+    const manifestObject = bucket.objects.find((object) => object.key.endsWith("backup-manifest.json"));
+    expect(manifestObject).toBeDefined();
+    const manifest = JSON.parse(manifestObject!.value) as { generatedAt?: string };
+    if (generatedAt === undefined) {
+      delete manifest.generatedAt;
+    } else {
+      manifest.generatedAt = generatedAt;
+    }
+    manifestObject!.value = JSON.stringify(manifest);
+
+    const refreshedResult = await runAutomatedBackup(db, bucket, {
+      backupPrefix: "prod-backups",
+      cron: "30 1 * * *",
+      timestamp: new Date("2026-03-24T01:30:00.000Z"),
+    });
+
+    expect(firstResult.skipped).toBe(false);
+    expect(refreshedResult.skipped).toBe(false);
+    expect(refreshedResult.contentHash).toBe(firstResult.contentHash);
+    expect(bucket.objects).toHaveLength(6);
   });
 
   it("creates a new backup when the exported data changes", async () => {

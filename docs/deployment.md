@@ -85,7 +85,7 @@ This repository leaves the stable [`workers.dev` route](https://developers.cloud
 
 ## Automated Backups
 
-The Worker includes a scheduled backup job that writes an app JSON export, a professor-ready Markdown report, and a backup manifest into an R2 bucket whenever the exported student data changed since the latest stored backup.
+The Worker includes a scheduled backup job that writes an app JSON export, a professor-ready Markdown report, and a backup manifest into an R2 bucket whenever the exported student data changed since the latest stored backup. Unchanged data is refreshed every 30 days so the 90-day lifecycle retains recent restore points; missing, invalid, or future-dated manifest timestamps force a fresh snapshot.
 
 To enable it:
 

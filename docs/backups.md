@@ -4,13 +4,13 @@ This project can create automated backups when it is deployed on Cloudflare with
 
 ## What The Scheduled Backup Stores
 
-Each scheduled run compares the latest stored backup against a stable hash of the current JSON export content. When the exported student data has changed, the Worker writes three files into the configured R2 bucket:
+Each scheduled run compares the latest stored backup against a stable hash of the current JSON export content. When the exported student data has changed, or the latest valid snapshot is at least 30 days old, the Worker writes three files into the configured R2 bucket:
 
 - a full JSON app export that can be restored from the Data Tools page
 - a professor-friendly Markdown status report
 - a small manifest file with counts, the cron expression, and the generated object keys
 
-If the exported data is unchanged, the scheduled run skips creating a new backup snapshot.
+If the exported data is unchanged and the latest valid snapshot is younger than 30 days, the scheduled run skips creating a duplicate. Missing, invalid, or future-dated manifest timestamps are not trusted; the Worker writes a fresh snapshot instead.
 
 By default the files are stored under:
 
@@ -77,7 +77,7 @@ For app-level restore, download the JSON export from R2 and import it from the D
 
 ## Retention
 
-R2 retention is not managed by the Worker itself. The lifecycle rule above applies the project's 90-day default to every object under `automated-backups/`.
+R2 retention is not managed by the Worker itself. The lifecycle rule above applies the project's 90-day default to every object under `automated-backups/`. The Worker refreshes unchanged data every 30 days so normal daily cron operation keeps recent restore points inside that retention window instead of allowing the only unchanged snapshot to age out.
 
 To change the retention window or `BACKUP_PREFIX`, remove the named rule and re-add it with the desired day count and matching prefix. These commands restore the checked-in default:
 
