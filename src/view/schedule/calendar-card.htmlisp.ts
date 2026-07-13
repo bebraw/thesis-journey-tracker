@@ -32,7 +32,7 @@ export function renderScheduleCalendarCard(data: SchedulePageData): string {
                         &visibleIf="event.linkVisible"
                         &href="event.htmlLink"
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         &class="linkClass"
                       >Open in Google Calendar</a>
                     </article>

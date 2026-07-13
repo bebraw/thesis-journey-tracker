@@ -1,9 +1,35 @@
 import { addDaysToDateString, localDateTimeToUtcIso } from "./scheduling";
 import type { GoogleCalendarEvent } from "./google";
+import { normalizeGoogleCalendarEventLink, normalizeGoogleCalendarIcalUrl } from "./urls";
 
 interface ListIcalCalendarEventsOptions {
   timeMinIso?: string;
   timeMaxIso?: string;
+  fetchTimeoutMs?: number;
+}
+
+const ICAL_FETCH_TIMEOUT_MS = 10_000;
+const MAX_ICAL_REDIRECTS = 3;
+const MAX_ICAL_RESPONSE_BYTES = 5 * 1024 * 1024;
+const MAX_ICAL_LINES = 50_000;
+const MAX_ICAL_LINE_CHARACTERS = 16_384;
+const MAX_RAW_ICAL_EVENTS = 2_000;
+const MAX_EXPANDED_ICAL_EVENTS = 5_000;
+const MAX_ICAL_EXDATES = 20_000;
+const MAX_ICAL_EXDATES_PER_EVENT = 5_000;
+const MAX_RECURRENCE_ITERATIONS = 20_000;
+const MAX_RECURRENCE_ITERATIONS_PER_EVENT = 3_700;
+const MAX_UID_CHARACTERS = 1_024;
+const MAX_SUMMARY_CHARACTERS = 4_096;
+const MAX_DESCRIPTION_CHARACTERS = 65_536;
+const MAX_EVENT_URL_CHARACTERS = 2_048;
+const MAX_RRULE_CHARACTERS = 2_048;
+
+export class IcalCalendarError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IcalCalendarError";
+  }
 }
 
 interface IcalDateTimeField {
@@ -61,13 +87,97 @@ export async function listIcalCalendarEvents(
   options: ListIcalCalendarEventsOptions = {},
   fetchImpl: typeof fetch = fetch,
 ): Promise<GoogleCalendarEvent[]> {
-  const response = await fetchImpl(iCalUrl);
-  if (!response.ok) {
-    throw new Error(`iCal download failed with status ${response.status}.`);
+  const normalizedUrl = normalizeGoogleCalendarIcalUrl(iCalUrl);
+  if (!normalizedUrl) {
+    throw new IcalCalendarError("iCal feed URL is not an allowed Google Calendar secret address.");
   }
 
-  const calendarText = await response.text();
-  return parseIcalCalendarEvents(calendarText, defaultTimeZone, options);
+  const abortController = new AbortController();
+  const timeout = setTimeout(() => abortController.abort(), options.fetchTimeoutMs ?? ICAL_FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetchIcalResponse(normalizedUrl, fetchImpl, abortController.signal);
+    const calendarText = await readBoundedIcalText(response);
+    return parseIcalCalendarEvents(calendarText, defaultTimeZone, options);
+  } catch (error) {
+    if (abortController.signal.aborted) {
+      throw new IcalCalendarError("iCal download timed out.");
+    }
+    if (error instanceof IcalCalendarError) {
+      throw error;
+    }
+    throw new IcalCalendarError("iCal download failed.");
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchIcalResponse(url: string, fetchImpl: typeof fetch, signal: AbortSignal): Promise<Response> {
+  let currentUrl = url;
+  for (let redirectCount = 0; redirectCount <= MAX_ICAL_REDIRECTS; redirectCount += 1) {
+    const response = await fetchImpl(currentUrl, {
+      headers: { Accept: "text/calendar" },
+      redirect: "manual",
+      signal,
+    });
+    if (![301, 302, 303, 307, 308].includes(response.status)) {
+      if (!response.ok) {
+        throw new IcalCalendarError(`iCal download failed with status ${response.status}.`);
+      }
+      const contentType = (response.headers.get("content-type") || "").split(";", 1)[0]?.trim().toLowerCase();
+      if (contentType !== "text/calendar") {
+        throw new IcalCalendarError("iCal response did not use the text/calendar content type.");
+      }
+      return response;
+    }
+
+    await response.body?.cancel();
+    if (redirectCount === MAX_ICAL_REDIRECTS) {
+      throw new IcalCalendarError("iCal download exceeded the redirect limit.");
+    }
+    const location = response.headers.get("location");
+    const nextUrl = location ? normalizeGoogleCalendarIcalUrl(new URL(location, currentUrl).toString()) : null;
+    if (!nextUrl) {
+      throw new IcalCalendarError("iCal download redirect was not an allowed Google Calendar secret address.");
+    }
+    currentUrl = nextUrl;
+  }
+  throw new IcalCalendarError("iCal download exceeded the redirect limit.");
+}
+
+async function readBoundedIcalText(response: Response): Promise<string> {
+  const rawContentLength = response.headers.get("content-length");
+  if (rawContentLength && /^\d+$/.test(rawContentLength.trim()) && Number(rawContentLength) > MAX_ICAL_RESPONSE_BYTES) {
+    throw new IcalCalendarError("iCal response exceeds the 5 MiB limit.");
+  }
+  if (!response.body) {
+    return "";
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_ICAL_RESPONSE_BYTES) {
+        await reader.cancel();
+        throw new IcalCalendarError("iCal response exceeds the 5 MiB limit.");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
 }
 
 export function parseIcalCalendarEvents(
@@ -76,11 +186,13 @@ export function parseIcalCalendarEvents(
   options: ListIcalCalendarEventsOptions = {},
 ): GoogleCalendarEvent[] {
   const lines = unfoldIcalLines(calendarText);
+  assertCompleteIcalCalendar(lines);
   const calendarTimeZone = findCalendarTimeZone(lines) || defaultTimeZone;
   const parsedEvents = parseRawIcalEvents(lines);
   const exceptionsByUid = buildExceptionMap(parsedEvents, calendarTimeZone);
   const usedExceptionKeys = new Set<string>();
   const events: GoogleCalendarEvent[] = [];
+  const recurrenceBudget = { iterations: 0 };
 
   for (const fields of parsedEvents) {
     if (fields.recurrenceId) {
@@ -91,13 +203,22 @@ export function parseIcalCalendarEvents(
       const event = buildIcalEvent(fields, calendarTimeZone, options);
       if (event) {
         events.push(event);
+        assertExpandedEventBudget(events.length);
       }
       continue;
     }
 
     events.push(
-      ...expandRecurringEvent(fields, calendarTimeZone, options, exceptionsByUid.get(fields.uid || "") || new Map(), usedExceptionKeys),
+      ...expandRecurringEvent(
+        fields,
+        calendarTimeZone,
+        options,
+        exceptionsByUid.get(fields.uid || "") || new Map(),
+        usedExceptionKeys,
+        recurrenceBudget,
+      ),
     );
+    assertExpandedEventBudget(events.length);
   }
 
   for (const fields of parsedEvents) {
@@ -113,6 +234,7 @@ export function parseIcalCalendarEvents(
     const event = buildIcalEvent(fields, calendarTimeZone, options);
     if (event) {
       events.push(event);
+      assertExpandedEventBudget(events.length);
     }
   }
 
@@ -122,6 +244,7 @@ export function parseIcalCalendarEvents(
 function parseRawIcalEvents(lines: string[]): IcalEventFields[] {
   const events: IcalEventFields[] = [];
   let currentEvent: IcalEventFields | null = null;
+  let exdateCount = 0;
 
   for (const line of lines) {
     if (line === "BEGIN:VEVENT") {
@@ -132,6 +255,9 @@ function parseRawIcalEvents(lines: string[]): IcalEventFields[] {
     if (line === "END:VEVENT") {
       if (currentEvent) {
         events.push(currentEvent);
+        if (events.length > MAX_RAW_ICAL_EVENTS) {
+          throw new IcalCalendarError(`iCal feed exceeds the ${MAX_RAW_ICAL_EVENTS}-event limit.`);
+        }
       }
       currentEvent = null;
       continue;
@@ -152,13 +278,13 @@ function parseRawIcalEvents(lines: string[]): IcalEventFields[] {
     const params = parseIcalParams(paramParts);
 
     if (name === "UID") {
-      currentEvent.uid = rawValue.trim();
+      currentEvent.uid = readBoundedField(rawValue.trim(), "UID", MAX_UID_CHARACTERS);
     } else if (name === "SUMMARY") {
-      currentEvent.summary = decodeIcalText(rawValue);
+      currentEvent.summary = readBoundedField(decodeIcalText(rawValue), "SUMMARY", MAX_SUMMARY_CHARACTERS);
     } else if (name === "DESCRIPTION") {
-      currentEvent.description = decodeIcalText(rawValue);
+      currentEvent.description = readBoundedField(decodeIcalText(rawValue), "DESCRIPTION", MAX_DESCRIPTION_CHARACTERS);
     } else if (name === "URL") {
-      currentEvent.url = rawValue.trim();
+      currentEvent.url = readBoundedField(rawValue.trim(), "URL", MAX_EVENT_URL_CHARACTERS);
     } else if (name === "DTSTART") {
       currentEvent.start = {
         value: rawValue.trim(),
@@ -170,11 +296,15 @@ function parseRawIcalEvents(lines: string[]): IcalEventFields[] {
         params,
       };
     } else if (name === "RRULE") {
-      currentEvent.rrule = rawValue.trim();
+      currentEvent.rrule = readBoundedField(rawValue.trim(), "RRULE", MAX_RRULE_CHARACTERS);
     } else if (name === "EXDATE") {
       for (const value of rawValue.split(",")) {
         const trimmedValue = value.trim();
         if (!trimmedValue) continue;
+        exdateCount += 1;
+        if (exdateCount > MAX_ICAL_EXDATES || currentEvent.exdates.length >= MAX_ICAL_EXDATES_PER_EVENT) {
+          throw new IcalCalendarError("iCal feed exceeds the safe recurrence-exclusion limit.");
+        }
         currentEvent.exdates.push({
           value: trimmedValue,
           params,
@@ -232,6 +362,7 @@ function expandRecurringEvent(
   options: ListIcalCalendarEventsOptions,
   exceptions: Map<string, IcalEventFields>,
   usedExceptionKeys: Set<string>,
+  recurrenceBudget: { iterations: number },
 ): GoogleCalendarEvent[] {
   if (!fields.start) {
     return [];
@@ -252,11 +383,27 @@ function expandRecurringEvent(
   const occurrenceEvents: GoogleCalendarEvent[] = [];
   let occurrenceCount = 0;
   let cursorDate = start.date;
-  const maxCursorDate = rule.until?.kind === "date" ? rule.until.date : rule.until?.date || window.timeMaxDate || addDaysToDateString(start.date, 366);
-  let safetyCounter = 0;
+  if (!rule.count && window.timeMinDate) {
+    const lookbackDays = getRecurrenceWindowLookbackDays(start, end);
+    const windowScanStart = addDaysToDateString(window.timeMinDate, -lookbackDays);
+    cursorDate = cursorDate.localeCompare(windowScanStart) < 0 ? windowScanStart : cursorDate;
+  }
 
-  while (cursorDate <= maxCursorDate && safetyCounter < 3700) {
-    safetyCounter += 1;
+  const maximumDates = [rule.until?.date || null, window.timeMaxDate].filter((value): value is string => Boolean(value));
+  const maxCursorDate = maximumDates.length > 0
+    ? maximumDates.reduce((earliest, value) => (value.localeCompare(earliest) < 0 ? value : earliest))
+    : addDaysToDateString(cursorDate, 366);
+  let eventIterations = 0;
+
+  while (cursorDate <= maxCursorDate) {
+    eventIterations += 1;
+    recurrenceBudget.iterations += 1;
+    if (
+      eventIterations > MAX_RECURRENCE_ITERATIONS_PER_EVENT ||
+      recurrenceBudget.iterations > MAX_RECURRENCE_ITERATIONS
+    ) {
+      throw new IcalCalendarError("iCal recurrence expansion exceeds the safe iteration limit.");
+    }
 
     if (matchesRecurringRule(cursorDate, start.date, rule)) {
       const occurrence = buildRecurringOccurrence(cursorDate, start, end);
@@ -286,9 +433,11 @@ function expandRecurringEvent(
         const exceptionEvent = buildIcalEvent(matchingException, calendarTimeZone, options);
         if (exceptionEvent) {
           occurrenceEvents.push(exceptionEvent);
+          assertExpandedEventBudget(occurrenceEvents.length);
         }
       } else if (temporalOverlapsWindow(occurrence.start, occurrence.end, options)) {
         occurrenceEvents.push(createGoogleCalendarEvent(fields, occurrence.start, occurrence.end));
+        assertExpandedEventBudget(occurrenceEvents.length);
       }
     }
 
@@ -305,6 +454,11 @@ function buildIcalExpansionWindow(options: ListIcalCalendarEventsOptions): IcalE
     timeMinDate: options.timeMinIso ? options.timeMinIso.slice(0, 10) : null,
     timeMaxDate: options.timeMaxIso ? options.timeMaxIso.slice(0, 10) : null,
   };
+}
+
+function getRecurrenceWindowLookbackDays(start: ParsedTemporal, end: ParsedTemporal): number {
+  const durationDays = daysBetweenDateStrings(start.date, end.date);
+  return Number.isFinite(durationDays) ? Math.max(1, durationDays + 1) : 1;
 }
 
 function temporalOverlapsWindow(start: ParsedTemporal, end: ParsedTemporal, options: ListIcalCalendarEventsOptions): boolean {
@@ -340,7 +494,7 @@ function createGoogleCalendarEvent(fields: IcalEventFields, start: ParsedTempora
     id: fields.uid || "",
     summary: fields.summary || "Untitled event",
     description: fields.description || null,
-    htmlLink: fields.url || null,
+    htmlLink: normalizeGoogleCalendarEventLink(fields.url),
     startDateTime: start.kind === "dateTime" ? start.utcIso : null,
     startDate: start.kind === "date" ? start.date : null,
     endDateTime: end.kind === "dateTime" ? end.utcIso : null,
@@ -585,7 +739,68 @@ function compareGoogleCalendarEvents(left: GoogleCalendarEvent, right: GoogleCal
 }
 
 function unfoldIcalLines(calendarText: string): string[] {
-  return calendarText.replace(/\r?\n[ \t]/g, "").split(/\r?\n/).filter(Boolean);
+  const rawLines = calendarText.split(/\r?\n/);
+  if (rawLines.length > MAX_ICAL_LINES) {
+    throw new IcalCalendarError(`iCal feed exceeds the ${MAX_ICAL_LINES}-line limit.`);
+  }
+
+  const unfoldedLines: string[] = [];
+  for (const rawLine of rawLines) {
+    if ((rawLine.startsWith(" ") || rawLine.startsWith("\t")) && unfoldedLines.length > 0) {
+      const previousIndex = unfoldedLines.length - 1;
+      const combinedLine = `${unfoldedLines[previousIndex]}${rawLine.slice(1)}`;
+      assertIcalLineLength(combinedLine);
+      unfoldedLines[previousIndex] = combinedLine;
+      continue;
+    }
+
+    assertIcalLineLength(rawLine);
+    if (rawLine) {
+      unfoldedLines.push(rawLine);
+    }
+  }
+  return unfoldedLines;
+}
+
+function assertCompleteIcalCalendar(lines: string[]): void {
+  let beginCount = 0;
+  let endCount = 0;
+
+  for (const line of lines) {
+    if (line === "BEGIN:VCALENDAR") {
+      beginCount += 1;
+    } else if (line === "END:VCALENDAR") {
+      endCount += 1;
+    }
+  }
+
+  if (
+    lines[0] !== "BEGIN:VCALENDAR" ||
+    lines.at(-1) !== "END:VCALENDAR" ||
+    beginCount !== 1 ||
+    endCount !== 1
+  ) {
+    throw new IcalCalendarError("iCal response is not a complete VCALENDAR document.");
+  }
+}
+
+function assertIcalLineLength(line: string): void {
+  if (line.length > MAX_ICAL_LINE_CHARACTERS) {
+    throw new IcalCalendarError(`iCal line exceeds the ${MAX_ICAL_LINE_CHARACTERS}-character limit.`);
+  }
+}
+
+function readBoundedField(value: string, fieldName: string, maxCharacters: number): string {
+  if (value.length > maxCharacters) {
+    throw new IcalCalendarError(`iCal ${fieldName} field exceeds the ${maxCharacters}-character limit.`);
+  }
+  return value;
+}
+
+function assertExpandedEventBudget(eventCount: number): void {
+  if (eventCount > MAX_EXPANDED_ICAL_EVENTS) {
+    throw new IcalCalendarError(`iCal feed exceeds the ${MAX_EXPANDED_ICAL_EVENTS}-expanded-event limit.`);
+  }
 }
 
 function findCalendarTimeZone(lines: string[]): string | null {

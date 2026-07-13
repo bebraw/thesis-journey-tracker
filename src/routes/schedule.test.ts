@@ -245,6 +245,28 @@ describe("google calendar scheduling", () => {
     expect(preserveResponse.status).toBe(302);
   });
 
+  it("rejects non-Google iCal sources without storing them", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+
+    const response = await fetchHandler(
+      new Request("http://localhost/actions/save-google-calendar-ical-settings", {
+        method: "POST",
+        headers: { cookie },
+        body: new URLSearchParams({
+          iCalUrl: "https://example.com/calendar/private.ics",
+          timeZone: "Europe/Helsinki",
+        }),
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(
+      "/data-tools?error=Enter+a+valid+Google+Calendar+Secret+address+in+iCal+format",
+    );
+    expect(env.DB.appSecrets).toHaveLength(0);
+  });
+
   it("expands recurring iCal fallback events with exceptions for the requested week", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
 

@@ -3,6 +3,7 @@ import { decryptText, encryptText } from "../encryption";
 import { normalizeString } from "../forms/normalize";
 import { resolveGoogleCalendarConfig } from "./google";
 import { resolveScheduleTimeZone } from "./scheduling";
+import { normalizeGoogleCalendarIcalUrl } from "./urls";
 import type { Env } from "../app-env";
 import { requireAppEncryptionSecret } from "../security/secrets";
 
@@ -52,7 +53,7 @@ export async function resolveGoogleCalendarSourceForApp(env: Env): Promise<Googl
     };
   }
 
-  const iCalUrl = normalizeString(storedSettings.settings.iCalUrl);
+  const iCalUrl = normalizeGoogleCalendarIcalUrl(normalizeString(storedSettings.settings.iCalUrl));
   if (!iCalUrl) {
     return null;
   }
@@ -100,6 +101,11 @@ function resolveAppEncryptionSecret(env: Env): string {
 }
 
 async function persistOrClearGoogleCalendarSettings(env: Env, settings: StoredGoogleCalendarSettings, updatedAt: string): Promise<void> {
+  const normalizedIcalUrl = settings.iCalUrl ? normalizeGoogleCalendarIcalUrl(settings.iCalUrl) : null;
+  if (settings.iCalUrl && !normalizedIcalUrl) {
+    throw new Error("Google Calendar iCal URL is not an allowed secret feed address.");
+  }
+
   if (!hasAnyStoredGoogleCalendarSettings(settings)) {
     await clearStoredGoogleCalendarSettings(env);
     return;
@@ -112,7 +118,7 @@ async function persistOrClearGoogleCalendarSettings(env: Env, settings: StoredGo
       clientSecret: settings.clientSecret || undefined,
       refreshToken: settings.refreshToken || undefined,
       calendarId: settings.calendarId || undefined,
-      iCalUrl: settings.iCalUrl || undefined,
+      iCalUrl: normalizedIcalUrl || undefined,
       timeZone: settings.timeZone || undefined,
     }),
     resolveAppEncryptionSecret(env),

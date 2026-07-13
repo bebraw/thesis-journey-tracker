@@ -1,3 +1,5 @@
+import { normalizeGoogleCalendarEventLink } from "./urls";
+
 export interface GoogleCalendarConfigInput {
   clientId?: string;
   clientSecret?: string;
@@ -112,7 +114,7 @@ export async function listGoogleCalendarEvents(
     id: item.id || "",
     summary: item.summary || "Untitled event",
     description: item.description || null,
-    htmlLink: item.htmlLink || null,
+    htmlLink: normalizeGoogleCalendarEventLink(item.htmlLink),
     startDateTime: item.start?.dateTime || null,
     startDate: item.start?.date || null,
     endDateTime: item.end?.dateTime || null,
@@ -197,7 +199,7 @@ function mapGoogleCalendarApiEvent(item: GoogleCalendarApiEvent | undefined, inp
     id: item?.id || input.eventId || "",
     summary: item?.summary || input.summary,
     description: item?.description || input.description || null,
-    htmlLink: item?.htmlLink || null,
+    htmlLink: normalizeGoogleCalendarEventLink(item?.htmlLink),
     startDateTime: item?.start?.dateTime || null,
     startDate: item?.start?.date || null,
     endDateTime: item?.end?.dateTime || null,

@@ -3,6 +3,7 @@ import {
   clearStoredGoogleCalendarSettings,
   getStoredGoogleCalendarSettingsPayload,
   saveStoredGoogleCalendarSettings,
+  normalizeGoogleCalendarIcalUrl,
   type StoredGoogleCalendarSettings,
 } from "../../calendar";
 import { normalizeString } from "../../forms/normalize";
@@ -47,9 +48,13 @@ export async function handleSaveGoogleCalendarSettings(request: Request, env: En
 
 export async function handleSaveGoogleCalendarIcalSettings(request: Request, env: Env): Promise<Response> {
   const formData = await readFormData(request);
-  const submittedIcalUrl = normalizeString(formData.get("iCalUrl"));
+  const rawSubmittedIcalUrl = normalizeString(formData.get("iCalUrl"));
+  const submittedIcalUrl = rawSubmittedIcalUrl ? normalizeGoogleCalendarIcalUrl(rawSubmittedIcalUrl) : null;
   const timeZone = normalizeString(formData.get("timeZone"));
   const currentSettings = await getStoredGoogleCalendarSettingsPayload(env);
+  if (rawSubmittedIcalUrl && !submittedIcalUrl) {
+    return redirect("/data-tools?error=Enter+a+valid+Google+Calendar+Secret+address+in+iCal+format");
+  }
   const iCalUrl = submittedIcalUrl || currentSettings.iCalUrl;
 
   if (!iCalUrl) {

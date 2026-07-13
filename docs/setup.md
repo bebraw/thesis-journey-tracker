@@ -165,6 +165,8 @@ Important limitations:
 - This mode is read-only. It shows existing calendar events and open slots, but it does not create events or send invitations from the app.
 - Google treats the `Secret address in iCal format` as sensitive. Do not share it. If it is leaked, reset it in Google Calendar.
 - Stored iCal addresses are write-only in Data Tools. Leave the field blank to preserve the current address, or use the removal control to clear it.
+- The app accepts only the exact HTTPS secret-feed format served by `calendar.google.com`; redirects are checked against the same allowlist.
+- Each download has a 10-second timeout and a 5 MiB response limit. Oversized, malformed, or excessively complex calendars are rejected instead of being partially imported.
 - On some work or school Google accounts, the secret iCal address may be unavailable if the admin has disabled it.
 
 ## 4. Apply Migrations

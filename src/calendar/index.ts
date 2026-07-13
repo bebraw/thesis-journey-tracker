@@ -8,7 +8,8 @@ export {
   type GoogleCalendarConfigInput,
   type GoogleCalendarEvent,
 } from "./google";
-export { listIcalCalendarEvents, parseIcalCalendarEvents } from "./ical";
+export { IcalCalendarError, listIcalCalendarEvents, parseIcalCalendarEvents } from "./ical";
+export { normalizeGoogleCalendarEventLink, normalizeGoogleCalendarIcalUrl } from "./urls";
 export {
   addHourToLocalDateTime,
   buildScheduleEventDescription,
