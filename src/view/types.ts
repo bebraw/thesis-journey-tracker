@@ -61,10 +61,10 @@ export interface DataToolsPageData {
   effectiveGoogleCalendarId: string | null;
   effectiveGoogleCalendarTimeZone: string | null;
   googleCalendarClientId: string;
-  googleCalendarClientSecret: string;
-  googleCalendarRefreshToken: string;
+  googleCalendarClientSecretConfigured: boolean;
+  googleCalendarRefreshTokenConfigured: boolean;
   googleCalendarCalendarId: string;
-  googleCalendarIcalUrl: string;
+  googleCalendarIcalUrlConfigured: boolean;
   googleCalendarTimeZone: string;
 }
 

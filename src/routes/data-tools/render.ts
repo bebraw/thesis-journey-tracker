@@ -38,10 +38,10 @@ export async function renderDataTools(url: URL, env: Env, sessionUser: SessionUs
       effectiveGoogleCalendarId: calendarSource?.mode === "api" ? calendarSource.config.calendarId : null,
       effectiveGoogleCalendarTimeZone: calendarSource?.timeZone || null,
       googleCalendarClientId: storedCalendarSettings?.settings.clientId || "",
-      googleCalendarClientSecret: storedCalendarSettings?.settings.clientSecret || "",
-      googleCalendarRefreshToken: storedCalendarSettings?.settings.refreshToken || "",
+      googleCalendarClientSecretConfigured: Boolean(storedCalendarSettings?.settings.clientSecret),
+      googleCalendarRefreshTokenConfigured: Boolean(storedCalendarSettings?.settings.refreshToken),
       googleCalendarCalendarId: storedCalendarSettings?.settings.calendarId || "",
-      googleCalendarIcalUrl: storedCalendarSettings?.settings.iCalUrl || "",
+      googleCalendarIcalUrlConfigured: Boolean(storedCalendarSettings?.settings.iCalUrl),
       googleCalendarTimeZone: storedCalendarSettings?.settings.timeZone || "",
     }),
   );

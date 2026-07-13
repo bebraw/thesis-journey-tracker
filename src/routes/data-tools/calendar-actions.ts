@@ -12,10 +12,13 @@ import { redirect } from "../../http/response";
 export async function handleSaveGoogleCalendarSettings(request: Request, env: Env): Promise<Response> {
   const formData = await readFormData(request);
   const clientId = normalizeString(formData.get("clientId"));
-  const clientSecret = normalizeString(formData.get("clientSecret"));
-  const refreshToken = normalizeString(formData.get("refreshToken"));
+  const submittedClientSecret = normalizeString(formData.get("clientSecret"));
+  const submittedRefreshToken = normalizeString(formData.get("refreshToken"));
   const calendarId = normalizeString(formData.get("calendarId"));
   const timeZone = normalizeString(formData.get("timeZone"));
+  const currentSettings = await getStoredGoogleCalendarSettingsPayload(env);
+  const clientSecret = submittedClientSecret || currentSettings.clientSecret;
+  const refreshToken = submittedRefreshToken || currentSettings.refreshToken;
 
   if (!clientId || !clientSecret || !refreshToken || !calendarId) {
     return redirect("/data-tools?error=All+Google+Calendar+credential+fields+except+timezone+are+required");
@@ -25,7 +28,7 @@ export async function handleSaveGoogleCalendarSettings(request: Request, env: En
     await saveStoredGoogleCalendarSettings(
       env,
       {
-        ...(await getStoredGoogleCalendarSettingsPayload(env)),
+        ...currentSettings,
         clientId,
         clientSecret,
         refreshToken,
@@ -44,8 +47,10 @@ export async function handleSaveGoogleCalendarSettings(request: Request, env: En
 
 export async function handleSaveGoogleCalendarIcalSettings(request: Request, env: Env): Promise<Response> {
   const formData = await readFormData(request);
-  const iCalUrl = normalizeString(formData.get("iCalUrl"));
+  const submittedIcalUrl = normalizeString(formData.get("iCalUrl"));
   const timeZone = normalizeString(formData.get("timeZone"));
+  const currentSettings = await getStoredGoogleCalendarSettingsPayload(env);
+  const iCalUrl = submittedIcalUrl || currentSettings.iCalUrl;
 
   if (!iCalUrl) {
     return redirect("/data-tools?error=Google+Calendar+iCal+URL+is+required");
@@ -55,7 +60,7 @@ export async function handleSaveGoogleCalendarIcalSettings(request: Request, env
     await saveStoredGoogleCalendarSettings(
       env,
       {
-        ...(await getStoredGoogleCalendarSettingsPayload(env)),
+        ...currentSettings,
         iCalUrl,
         timeZone: timeZone || undefined,
       },

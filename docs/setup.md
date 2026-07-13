@@ -142,6 +142,7 @@ Store the Google Calendar values from the app like this:
 5. Save the form
 
 Those values are encrypted before they are written to the `app_secrets` table in D1.
+Stored client secrets and refresh tokens are write-only in the Data Tools page: the Worker never places their decrypted values back into HTML. Leave a secret field blank when editing the non-secret settings to preserve its current value, or use the removal controls to clear it explicitly.
 
 ### Simpler Fallback: Google Calendar iCal Link
 
@@ -161,6 +162,7 @@ What to do:
 Important limitations:
 - This mode is read-only. It shows existing calendar events and open slots, but it does not create events or send invitations from the app.
 - Google treats the `Secret address in iCal format` as sensitive. Do not share it. If it is leaked, reset it in Google Calendar.
+- Stored iCal addresses are write-only in Data Tools. Leave the field blank to preserve the current address, or use the removal control to clear it.
 - On some work or school Google accounts, the secret iCal address may be unavailable if the admin has disabled it.
 
 ## 4. Apply Migrations

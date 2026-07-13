@@ -119,13 +119,41 @@ describe("google calendar scheduling", () => {
     expect(dataToolsBody).toContain('name="clientId"');
     expect(dataToolsBody).toContain('value="stored-client-id"');
     expect(dataToolsBody).toContain('name="clientSecret"');
-    expect(dataToolsBody).toContain('value="stored-client-secret"');
     expect(dataToolsBody).toContain('name="refreshToken"');
-    expect(dataToolsBody).toContain('value="stored-refresh-token"');
+    expect(dataToolsBody).not.toContain("stored-client-secret");
+    expect(dataToolsBody).not.toContain("stored-refresh-token");
+    expect(dataToolsBody).toContain("Stored secrets are write-only and are never returned to this page.");
     expect(dataToolsBody).toContain('name="calendarId"');
     expect(dataToolsBody).toContain('value="stored-calendar@example.com"');
     expect(dataToolsBody).toContain('name="timeZone"');
     expect(dataToolsBody).toContain('value="America/New_York"');
+
+    const updateResponse = await fetchHandler(
+      new Request("http://localhost/actions/save-google-calendar-settings", {
+        method: "POST",
+        headers: { cookie },
+        body: new URLSearchParams({
+          clientId: "updated-client-id",
+          clientSecret: "",
+          refreshToken: "",
+          calendarId: "updated-calendar@example.com",
+          timeZone: "Europe/Helsinki",
+        }),
+      }),
+      env,
+    );
+
+    expect(updateResponse.status).toBe(302);
+    const updatedDataToolsResponse = await fetchHandler(
+      new Request("http://localhost/data-tools", { headers: { cookie } }),
+      env,
+    );
+    const updatedDataToolsBody = await updatedDataToolsResponse.text();
+    expect(updatedDataToolsBody).toContain("Active source: encrypted full Google Calendar scheduling credentials.");
+    expect(updatedDataToolsBody).toContain('value="updated-client-id"');
+    expect(updatedDataToolsBody).toContain('value="updated-calendar@example.com"');
+    expect(updatedDataToolsBody).not.toContain("stored-client-secret");
+    expect(updatedDataToolsBody).not.toContain("stored-refresh-token");
   });
 
   it("can save an iCal fallback and use it for read-only availability", async () => {
@@ -201,7 +229,18 @@ describe("google calendar scheduling", () => {
     const dataToolsBody = await dataToolsResponse.text();
     expect(dataToolsBody).toContain("Active source: encrypted Google Calendar iCal fallback link.");
     expect(dataToolsBody).toContain('name="iCalUrl"');
-    expect(dataToolsBody).toContain('value="https://calendar.google.com/calendar/ical/example/private-ical/basic.ics"');
+    expect(dataToolsBody).not.toContain("private-ical/basic.ics");
+    expect(dataToolsBody).toContain("The stored iCal address is write-only and is never returned to this page.");
+
+    const preserveResponse = await fetchHandler(
+      new Request("http://localhost/actions/save-google-calendar-ical-settings", {
+        method: "POST",
+        headers: { cookie },
+        body: new URLSearchParams({ iCalUrl: "", timeZone: "America/New_York" }),
+      }),
+      env,
+    );
+    expect(preserveResponse.status).toBe(302);
   });
 
   it("expands recurring iCal fallback events with exceptions for the requested week", async () => {
@@ -379,7 +418,7 @@ describe("google calendar scheduling", () => {
     );
     const dataToolsBody = await dataToolsResponse.text();
     expect(dataToolsBody).toContain("Active source: encrypted Google Calendar iCal fallback link.");
-    expect(dataToolsBody).toContain('value="https://calendar.google.com/calendar/ical/example/private-ical/basic.ics"');
+    expect(dataToolsBody).not.toContain("private-ical/basic.ics");
     expect(dataToolsBody).toContain('name="clientId"');
     expect(dataToolsBody).not.toContain('value="stored-client-id"');
   });

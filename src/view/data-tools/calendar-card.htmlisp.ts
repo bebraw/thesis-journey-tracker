@@ -68,10 +68,10 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
     effectiveGoogleCalendarId,
     effectiveGoogleCalendarTimeZone,
     googleCalendarClientId,
-    googleCalendarClientSecret,
-    googleCalendarRefreshToken,
+    googleCalendarClientSecretConfigured,
+    googleCalendarRefreshTokenConfigured,
     googleCalendarCalendarId,
-    googleCalendarIcalUrl,
+    googleCalendarIcalUrlConfigured,
     googleCalendarTimeZone,
   } = data;
 
@@ -120,8 +120,8 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
     label: "Google client secret",
     name: "clientSecret",
     type: "password",
-    required: true,
-    value: googleCalendarClientSecret,
+    required: !googleCalendarClientSecretConfigured,
+    placeholder: googleCalendarClientSecretConfigured ? "Configured - enter a replacement" : undefined,
     className: FIELD_CONTROL_SM,
     attrs: {
       autocomplete: "off",
@@ -131,8 +131,8 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
     label: "Google refresh token",
     name: "refreshToken",
     type: "password",
-    required: true,
-    value: googleCalendarRefreshToken,
+    required: !googleCalendarRefreshTokenConfigured,
+    placeholder: googleCalendarRefreshTokenConfigured ? "Configured - enter a replacement" : undefined,
     className: FIELD_CONTROL_SM,
     attrs: {
       autocomplete: "off",
@@ -161,8 +161,8 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
   const icalUrlFieldHtml = renderInputField({
     label: "Google Calendar iCal URL",
     name: "iCalUrl",
-    required: true,
-    value: googleCalendarIcalUrl,
+    required: !googleCalendarIcalUrlConfigured,
+    placeholder: googleCalendarIcalUrlConfigured ? "Configured - enter a replacement" : undefined,
     className: FIELD_CONTROL_SM,
     attrs: {
       autocomplete: "off",
@@ -172,6 +172,7 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
   const fullModeSectionHtml = renderInsetCard(
     renderView(
       `<fragment &children="headerHtml"></fragment>
+      <p class="mt-stack-xs text-sm text-app-text-muted dark:text-app-text-muted-dark" &children="secretHandlingText"></p>
       <form action="/actions/save-google-calendar-settings" method="post" class="mt-panel-sm space-y-stack-xs">
         <fragment &children="clientIdFieldHtml"></fragment>
         <fragment &children="clientSecretFieldHtml"></fragment>
@@ -188,6 +189,10 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
           title: "Full scheduling mode",
           meta: "Create Google Calendar events from the schedule page",
         })),
+        secretHandlingText:
+          googleCalendarClientSecretConfigured && googleCalendarRefreshTokenConfigured
+            ? "Stored secrets are write-only and are never returned to this page. Leave the secret and refresh-token fields blank to keep their current values."
+            : "Secrets become write-only after saving and are never returned to this page.",
         clientIdFieldHtml: raw(clientIdFieldHtml),
         clientSecretFieldHtml: raw(clientSecretFieldHtml),
         refreshTokenFieldHtml: raw(refreshTokenFieldHtml),
@@ -227,6 +232,7 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
   const icalModeSectionHtml = renderInsetCard(
     renderView(
       `<fragment &children="headerHtml"></fragment>
+      <p class="mt-stack-xs text-sm text-app-text-muted dark:text-app-text-muted-dark" &children="secretHandlingText"></p>
       <form action="/actions/save-google-calendar-ical-settings" method="post" class="mt-panel-sm space-y-stack-xs">
         <fragment &children="icalUrlFieldHtml"></fragment>
         <fragment &children="timeZoneFieldHtml"></fragment>
@@ -240,6 +246,9 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
           title: "iCal fallback mode",
           meta: "Read-only availability with the lightest setup",
         })),
+        secretHandlingText: googleCalendarIcalUrlConfigured
+          ? "The stored iCal address is write-only and is never returned to this page. Leave the field blank to keep its current value."
+          : "The secret iCal address becomes write-only after saving and is never returned to this page.",
         icalUrlFieldHtml: raw(icalUrlFieldHtml),
         timeZoneFieldHtml: raw(timeZoneFieldHtml),
         saveIcalButton: raw(renderButton({
