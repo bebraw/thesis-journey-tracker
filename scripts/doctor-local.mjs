@@ -39,13 +39,20 @@ function printSection(label) {
 }
 
 function checkNodeVersion() {
-  const major = Number.parseInt(process.versions.node.split(".")[0] || "", 10);
-  if (Number.isFinite(major) && major >= 25) {
+  if (!existsSync(".nvmrc")) {
+    console.error("error .nvmrc is missing, so the required Node.js version cannot be determined.");
+    return true;
+  }
+
+  const expectedVersion = readFileSync(".nvmrc", "utf8").trim().replace(/^v/, "");
+  if (expectedVersion && process.versions.node === expectedVersion) {
     console.log(`ok Node.js ${process.versions.node}`);
     return false;
   }
 
-  console.error(`error Node.js ${process.versions.node} is active. Use the version from .nvmrc before installing dependencies.`);
+  console.error(
+    `error Node.js ${process.versions.node} is active, but .nvmrc requires ${expectedVersion || "a valid version"}. Run nvm use before installing dependencies.`,
+  );
   return true;
 }
 

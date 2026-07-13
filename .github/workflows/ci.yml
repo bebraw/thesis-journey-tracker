@@ -17,7 +17,7 @@ jobs:
   quality-fast:
     runs-on: ubuntu-latest
     container:
-      image: node:25.8.1-bookworm
+      image: node:24.18.0-bookworm@sha256:392e1e23f34da768d8d1f4e502b64f200d3be3465934d4b7930f57d7e2fc1989
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +52,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 25.8.1
+          node-version: 24.18.0
           cache: npm
 
       - name: Install dependencies

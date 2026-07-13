@@ -4,7 +4,7 @@ This guide covers the full local setup flow for running Thesis Journey Tracker f
 
 ## Prerequisites
 
-- Node.js `25.8.1` via [`.nvmrc`](../.nvmrc) (`nvm install && nvm use`)
+- Node.js `24.18.0` LTS via [`.nvmrc`](../.nvmrc) (`nvm install && nvm use`)
 - npm
 - A Cloudflare account with Wrangler access
 
@@ -233,6 +233,7 @@ Open the local URL shown by Wrangler, usually `http://127.0.0.1:8787`.
 ## Docker Backup Setup
 
 Docker is a useful fallback when host Node versions, Windows shell differences, or Wrangler local state are hard to diagnose. The image runs the same Wrangler dev server as the normal setup, but binds it to `0.0.0.0` so the host can reach it through a published port.
+The image pins its Node base image by digest and owns the development workspace as the unprivileged `node` user, so Wrangler and the documented npm commands do not run as root.
 
 Build the image:
 

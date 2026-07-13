@@ -6,7 +6,7 @@ This guide covers CI, production deployment, automated backups, and the current 
 
 GitHub Actions runs the workflow in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on pushes to `main` and on pull requests. The same workflow can also be run locally with `npm run ci:local` or `npm run ci:local:quiet`.
 
-The workflow keeps Node.js `25.8.1` aligned with [`.nvmrc`](../.nvmrc) so local `nvm use` and CI stay aligned.
+The workflow keeps Node.js `24.18.0` LTS aligned with [`.nvmrc`](../.nvmrc) so local `nvm use` and CI stay aligned.
 
 The workflow runs:
 
@@ -16,7 +16,7 @@ The workflow runs:
 
 The fast gate refreshes [`worker-configuration.d.ts`](../worker-configuration.d.ts) before the rest of its checks so the checked-in Worker types stay aligned with the current Wrangler configuration.
 
-The fast job runs inside `node:25.8.1-bookworm`, and the browser job runs inside `mcr.microsoft.com/playwright:v1.58.2-noble`. That keeps the local Agent CI runner off the host's Node runtime while still matching the repo's pinned Node and Playwright versions.
+The fast job runs inside a digest-pinned `node:24.18.0-bookworm` image, and the browser job runs inside `mcr.microsoft.com/playwright:v1.58.2-noble`. That keeps the local Agent CI runner off the host's Node runtime while still matching the repo's pinned Node and Playwright versions.
 
 ## Deploying To Cloudflare
 
