@@ -133,7 +133,7 @@ For more detailed backup notes, see [backups.md](./backups.md).
 ## Security Model
 
 - App access is protected by signed session cookies and lightweight account roles.
-- Five failures lock the targeted account for 15 minutes, even when they come from different clients. Twenty failures from one trusted Cloudflare client address also trigger a 15-minute client lockout. Direct/local traffic shares one client bucket, forwarded headers are ignored outside the Cloudflare request boundary, and stored client keys are HMAC-obscured rather than raw IP addresses.
+- Invalid logins update two HMAC-opaque throttling buckets: one for the attempted account name and one for the trusted Cloudflare client address. The fifth account failure or twentieth client failure rate-limits further invalid attempts for 15 minutes, while correct credentials are still verified and accepted so an attacker cannot lock out the account. A successful login clears its account bucket but preserves an active client throttle. Direct/local traffic shares one client bucket, and forwarded headers are ignored outside the Cloudflare request boundary.
 - `editor` accounts can add, edit, import, export, and archive student data.
 - `readonly` accounts can view the dashboard, student details, meeting logs, and phase history.
 - Sessions are stored in an `HttpOnly`, `Secure`, signed cookie.

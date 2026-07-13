@@ -24,14 +24,7 @@ export async function handleLoginRequest(
       return redirect("/");
     }
     const url = new URL(request.url);
-    const errorState =
-      url.searchParams.get("error") === "rate_limit"
-        ? "rate_limit"
-        : url.searchParams.get("error") === "password_reset"
-          ? "password_reset"
-          : url.searchParams.get("error")
-            ? "invalid"
-            : null;
+    const errorState = url.searchParams.get("error") === "rate_limit" ? "rate_limit" : url.searchParams.get("error") ? "invalid" : null;
     return htmlResponse(renderLoginPage(errorState, authState.users.length > 1));
   }
 
@@ -42,10 +35,6 @@ export async function handleLoginRequest(
 
   if (loginResult.status === "rate_limited") {
     return redirect("/login?error=rate_limit");
-  }
-
-  if (loginResult.status === "password_reset") {
-    return redirect("/login?error=password_reset");
   }
 
   if (loginResult.status === "invalid") {

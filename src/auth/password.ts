@@ -24,6 +24,11 @@ interface ParsedPasswordHash {
   derivedKey: Uint8Array;
 }
 
+export type PasswordHashInspection =
+  | { status: "current"; iterations: number }
+  | { status: "upgrade_required"; iterations: number }
+  | { status: "invalid"; iterations: null };
+
 export async function hashPassword(password: string, options: HashPasswordOptions = {}): Promise<string> {
   const salt = options.salt ?? crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
   if (salt.byteLength !== SALT_LENGTH) {
@@ -47,6 +52,17 @@ export async function verifyPassword(password: string, storedHash: string): Prom
   return timingSafeEqualBytes(actualDerivedKey, parsedHash.derivedKey);
 }
 
+export function inspectPasswordHash(storedHash: string): PasswordHashInspection {
+  const parsedHash = parsePasswordHash(storedHash);
+  if (!parsedHash) {
+    return { status: "invalid", iterations: null };
+  }
+  if (parsedHash.iterations !== PASSWORD_HASH_ITERATIONS) {
+    return { status: "upgrade_required", iterations: parsedHash.iterations };
+  }
+  return { status: "current", iterations: parsedHash.iterations };
+}
+
 async function derivePasswordKey(password: string, salt: Uint8Array, iterations: number): Promise<Uint8Array> {
   const keyMaterial = await crypto.subtle.importKey("raw", textEncoder.encode(password), "PBKDF2", false, ["deriveBits"]);
   const derivedBits = await crypto.subtle.deriveBits(
@@ -63,12 +79,16 @@ async function derivePasswordKey(password: string, salt: Uint8Array, iterations:
 }
 
 function parsePasswordHash(value: string): ParsedPasswordHash | null {
-  const [scheme, iterationText, saltText, derivedKeyText] = value.split("$");
-  if (scheme !== HASH_SCHEME || !iterationText || !saltText || !derivedKeyText) {
+  const parts = value.split("$");
+  if (parts.length !== 4) {
+    return null;
+  }
+  const [scheme, iterationText, saltText, derivedKeyText] = parts;
+  if (scheme !== HASH_SCHEME || !iterationText || !saltText || !derivedKeyText || !/^[1-9]\d*$/.test(iterationText)) {
     return null;
   }
 
-  const iterations = Number.parseInt(iterationText, 10);
+  const iterations = Number(iterationText);
   if (!Number.isFinite(iterations) || iterations <= 0) {
     return null;
   }

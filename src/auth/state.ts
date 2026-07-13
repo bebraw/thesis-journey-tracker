@@ -4,11 +4,11 @@ import {
   getLoginAttempt,
   listAuthUsers,
   pruneExpiredLoginAttempts,
-  recordLoginFailure,
+  recordLoginFailures,
   type LoginAttempt,
   type StoredAuthUser,
 } from "./store";
-import { PasswordHashUpgradeRequiredError, verifyPassword } from "./password";
+import { inspectPasswordHash, verifyPassword } from "./password";
 import { type SessionIdentity, type SessionUser } from "./types";
 
 const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
@@ -73,15 +73,14 @@ export async function verifyLoginCredentials(
   password: string,
 ): Promise<LoginVerificationResult> {
   const now = new Date();
-  const inputWithinLimits =
-    [...enteredName].length <= MAX_LOGIN_NAME_CHARACTERS &&
-    new TextEncoder().encode(password).byteLength <= MAX_LOGIN_PASSWORD_BYTES;
-  const candidateUser =
-    !inputWithinLimits
-      ? null
-      : authState.users.length === 1 && !enteredName
-        ? authState.users[0] || null
-        : authState.users.find((user) => user.name.toLocaleLowerCase() === enteredName.toLocaleLowerCase()) || null;
+  const normalizedEnteredName = normalizeLoginName(enteredName);
+  const nameWithinLimits = [...enteredName].length <= MAX_LOGIN_NAME_CHARACTERS;
+  const passwordWithinLimits = new TextEncoder().encode(password).byteLength <= MAX_LOGIN_PASSWORD_BYTES;
+  const candidateUser = !nameWithinLimits
+    ? null
+    : authState.users.length === 1 && !enteredName
+      ? authState.users[0] || null
+      : authState.users.find((user) => normalizeLoginName(user.name) === normalizedEnteredName) || null;
 
   await pruneExpiredLoginAttempts(env.DB, {
     lastFailureBefore: new Date(now.getTime() - LOGIN_ATTEMPT_RETENTION_MS).toISOString(),
@@ -89,7 +88,13 @@ export async function verifyLoginCredentials(
     limit: LOGIN_ATTEMPT_PRUNE_LIMIT,
   });
 
-  const loginAttemptBuckets = await buildLoginAttemptBuckets(request, env.SESSION_SECRET || "", candidateUser);
+  const loginAttemptBuckets = await buildLoginAttemptBuckets(
+    request,
+    env.SESSION_SECRET || "",
+    candidateUser,
+    normalizedEnteredName,
+    nameWithinLimits,
+  );
   const currentAttempts = await Promise.all(
     loginAttemptBuckets.map(async (bucket) => ({
       bucket,
@@ -97,34 +102,34 @@ export async function verifyLoginCredentials(
     })),
   );
 
-  if (currentAttempts.some(({ attempt }) => isLoginAttemptLocked(attempt, now))) {
-    return { status: "rate_limited" };
-  }
+  const passwordHashInspection = candidateUser ? inspectPasswordHash(candidateUser.passwordHash) : null;
+  const verifierHash = passwordHashInspection?.status === "current" ? candidateUser?.passwordHash : DUMMY_PASSWORD_HASH;
+  const passwordVerified = await verifyPassword(passwordWithinLimits ? password : "", verifierHash || DUMMY_PASSWORD_HASH);
+  const credentialsValid = Boolean(
+    candidateUser && passwordWithinLimits && passwordHashInspection?.status === "current" && passwordVerified,
+  );
 
-  let passwordVerified = false;
-  try {
-    passwordVerified = await verifyPassword(password, candidateUser?.passwordHash || DUMMY_PASSWORD_HASH);
-  } catch (error) {
-    if (error instanceof PasswordHashUpgradeRequiredError) {
-      console.error("Password hash requires reset", {
-        userId: candidateUser?.id || null,
-        storedIterations: error.storedIterations,
-      });
-      return { status: "password_reset" };
+  if (!credentialsValid) {
+    if (currentAttempts.some(({ attempt }) => isLoginAttemptLocked(attempt, now))) {
+      return { status: "rate_limited" };
     }
-    throw error;
-  }
+    const accountAttempt = currentAttempts.find(({ bucket }) => bucket.kind === "account")?.attempt;
+    if (!accountAttempt && candidateUser && passwordHashInspection?.status === "upgrade_required") {
+      console.error("Password hash requires reset", {
+        userId: candidateUser.id,
+        storedIterations: passwordHashInspection.iterations,
+      });
+    }
 
-  if (!candidateUser || !passwordVerified) {
-    const nextAttempts = await Promise.all(
-      loginAttemptBuckets.map((bucket) =>
-        recordLoginFailure(env.DB, bucket.attemptKey, {
-          now: now.toISOString(),
-          failureWindowStart: new Date(now.getTime() - LOGIN_FAILURE_WINDOW_MS).toISOString(),
-          maxFailures: bucket.maxFailures,
-          lockedUntil: new Date(now.getTime() + LOGIN_LOCKOUT_MS).toISOString(),
-        }),
-      ),
+    const nextAttempts = await recordLoginFailures(
+      env.DB,
+      loginAttemptBuckets.map((bucket) => ({
+        attemptKey: bucket.attemptKey,
+        now: now.toISOString(),
+        failureWindowStart: new Date(now.getTime() - LOGIN_FAILURE_WINDOW_MS).toISOString(),
+        maxFailures: bucket.maxFailures,
+        lockedUntil: new Date(now.getTime() + LOGIN_LOCKOUT_MS).toISOString(),
+      })),
     );
     return {
       status: nextAttempts.some((attempt) => isLoginAttemptLocked(attempt, now)) ? "rate_limited" : "invalid",
@@ -138,15 +143,15 @@ export async function verifyLoginCredentials(
   return {
     status: "authenticated",
     user: {
-      id: candidateUser.id,
-      name: candidateUser.name,
-      role: candidateUser.role,
-      sessionVersion: candidateUser.sessionVersion,
+      id: candidateUser!.id,
+      name: candidateUser!.name,
+      role: candidateUser!.role,
+      sessionVersion: candidateUser!.sessionVersion,
     },
   };
 }
 
-type LoginVerificationResult = { status: "authenticated"; user: SessionUser } | { status: "invalid" | "password_reset" | "rate_limited" };
+type LoginVerificationResult = { status: "authenticated"; user: SessionUser } | { status: "invalid" | "rate_limited" };
 
 interface LoginAttemptBucket {
   kind: "account" | "client";
@@ -158,24 +163,46 @@ async function buildLoginAttemptBuckets(
   request: Request,
   sessionSecret: string,
   candidateUser: StoredAuthUser | null,
+  normalizedEnteredName: string,
+  nameWithinLimits: boolean,
 ): Promise<LoginAttemptBucket[]> {
+  const accountSource = candidateUser
+    ? `user-id:${candidateUser.id}`
+    : nameWithinLimits
+      ? `unknown-name:${normalizedEnteredName}`
+      : "over-limit-name";
   const clientSource = readTrustedCloudflareClientIp(request) || "untrusted-direct-client";
-  const clientDigest = await hmacClientSource(sessionSecret, clientSource);
-  const buckets: LoginAttemptBucket[] = [
+  const [accountDigest, clientDigest] = await Promise.all([
+    hmacLoginSource(sessionSecret, "account", accountSource),
+    hmacLoginSource(sessionSecret, "client", clientSource),
+  ]);
+  return [
+    {
+      kind: "account",
+      attemptKey: `account:${accountDigest}`,
+      maxFailures: ACCOUNT_LOGIN_MAX_FAILURES,
+    },
     {
       kind: "client",
       attemptKey: `client:${clientDigest}`,
       maxFailures: CLIENT_LOGIN_MAX_FAILURES,
     },
   ];
-  if (candidateUser) {
-    buckets.unshift({
-      kind: "account",
-      attemptKey: `account:${candidateUser.id}`,
-      maxFailures: ACCOUNT_LOGIN_MAX_FAILURES,
-    });
-  }
-  return buckets;
+}
+
+function normalizeLoginName(value: string): string {
+  return value.toLocaleLowerCase();
+}
+
+/*
+ * Login attempt keys are deliberately opaque. This keeps account names, IDs,
+ * and trusted client addresses out of D1 while preserving stable buckets.
+ */
+async function hmacLoginSource(secret: string, kind: "account" | "client", source: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const digest = await crypto.subtle.sign("HMAC", key, encoder.encode(`login-${kind}:${source}`));
+  return bytesToBase64Url(new Uint8Array(digest));
 }
 
 function readTrustedCloudflareClientIp(request: Request): string | null {
@@ -193,13 +220,6 @@ function normalizeIpAddress(value: string | null): string | null {
     return null;
   }
   return normalized.toLocaleLowerCase();
-}
-
-async function hmacClientSource(secret: string, source: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const digest = await crypto.subtle.sign("HMAC", key, encoder.encode(`login-client:${source}`));
-  return bytesToBase64Url(new Uint8Array(digest));
 }
 
 function bytesToBase64Url(bytes: Uint8Array): string {

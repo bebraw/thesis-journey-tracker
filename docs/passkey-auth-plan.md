@@ -17,7 +17,7 @@ Because of that, passkeys fit best as an optional upgrade path alongside passwor
 
 ## Why It Is Not A Simple Swap
 
-The current flow verifies a password against `app_users`, applies IP-based lockouts via `login_attempts`, and then issues a signed session cookie. Passkeys would add new concerns that the app does not currently have:
+The current flow verifies a password against `app_users`, applies opaque account- and client-based invalid-attempt throttles via `login_attempts`, and then issues a signed session cookie. Passkeys would add new concerns that the app does not currently have:
 
 - browser-side WebAuthn calls instead of a plain HTML form POST
 - credential registration and verification endpoints

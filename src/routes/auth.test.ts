@@ -608,7 +608,7 @@ describe("multi-user access control", () => {
     env.DB.failQueries = [];
   });
 
-  it("rate limits repeated failed logins from the same client IP", async () => {
+  it("throttles repeated failures without allowing an attacker to block valid credentials", async () => {
     const loginHeaders = {
       "cf-connecting-ip": "203.0.113.10",
       "content-type": "application/x-www-form-urlencoded",
@@ -645,15 +645,18 @@ describe("multi-user access control", () => {
 
     expect(lockoutResponse.status).toBe(302);
     expect(lockoutResponse.headers.get("location")).toBe("/login?error=rate_limit");
-    const accountAttempt = env.DB.loginAttempts.find((attempt) => attempt.attempt_key === "account:1");
+    const accountAttempt = env.DB.loginAttempts.find((attempt) => attempt.attempt_key.startsWith("account:"));
     const clientAttempt = env.DB.loginAttempts.find((attempt) => attempt.attempt_key.startsWith("client:"));
     expect(accountAttempt?.failure_count).toBe(5);
     expect(accountAttempt?.locked_until).toBeTruthy();
+    expect(accountAttempt?.attempt_key).toMatch(/^account:[A-Za-z0-9_-]{43}$/);
+    expect(accountAttempt?.attempt_key).not.toContain("Advisor");
+    expect(accountAttempt?.attempt_key).not.toContain(":1");
     expect(clientAttempt?.failure_count).toBe(5);
     expect(clientAttempt?.locked_until).toBeNull();
     expect(clientAttempt?.attempt_key).not.toContain("203.0.113.10");
 
-    const blockedValidLoginResponse = await fetchHandler(
+    const validLoginResponse = await fetchHandler(
       sameOriginRequest("https://tracker.example.com/login", {
         method: "POST",
         headers: loginHeaders,
@@ -665,29 +668,42 @@ describe("multi-user access control", () => {
       env,
     );
 
-    expect(blockedValidLoginResponse.status).toBe(302);
-    expect(blockedValidLoginResponse.headers.get("location")).toBe("/login?error=rate_limit");
-    expect(blockedValidLoginResponse.headers.get("set-cookie")).toBeNull();
-
-    accountAttempt!.locked_until = "2000-01-01T00:00:00.000Z";
-
-    const recoveredResponse = await fetchHandler(
-      sameOriginRequest("https://tracker.example.com/login", {
-        method: "POST",
-        headers: loginHeaders,
-        body: new URLSearchParams({
-          name: "Advisor",
-          password: "editor-password",
-        }),
-      }),
-      env,
-    );
-
-    expect(recoveredResponse.status).toBe(302);
-    expect(recoveredResponse.headers.get("location")).toBe("/");
-    expect(recoveredResponse.headers.get("set-cookie")).toContain("thesis_session=");
+    expect(validLoginResponse.status).toBe(302);
+    expect(validLoginResponse.headers.get("location")).toBe("/");
+    expect(validLoginResponse.headers.get("set-cookie")).toContain("thesis_session=");
     expect(env.DB.loginAttempts).toHaveLength(1);
     expect(env.DB.loginAttempts[0]?.attempt_key).toMatch(/^client:/);
+  });
+
+  it("returns the same failure sequence for known and unknown account names", async () => {
+    const attemptLocations = async (name: string): Promise<Array<string | null>> => {
+      const locations: Array<string | null> = [];
+      for (let attemptIndex = 0; attemptIndex < 5; attemptIndex += 1) {
+        const response = await fetchHandler(
+          sameOriginRequest("https://tracker.example.com/login", {
+            method: "POST",
+            headers: { "content-type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ name, password: "wrong-password" }),
+          }),
+          env,
+        );
+        locations.push(response.headers.get("location"));
+      }
+      return locations;
+    };
+
+    const knownSequence = await attemptLocations("Advisor");
+    const unknownSequence = await attemptLocations("Unknown account");
+
+    expect(knownSequence).toEqual(["/login?error=1", "/login?error=1", "/login?error=1", "/login?error=1", "/login?error=rate_limit"]);
+    expect(unknownSequence).toEqual(knownSequence);
+    const accountKeys = env.DB.loginAttempts
+      .filter((attempt) => attempt.attempt_key.startsWith("account:"))
+      .map((attempt) => attempt.attempt_key);
+    expect(accountKeys).toHaveLength(2);
+    expect(accountKeys.every((key) => /^account:[A-Za-z0-9_-]{43}$/.test(key))).toBe(true);
+    expect(accountKeys.join(" ")).not.toContain("Advisor");
+    expect(accountKeys.join(" ")).not.toContain("Unknown account");
   });
 
   it("requires password verification for localhost requests", async () => {
@@ -792,7 +808,7 @@ describe("multi-user access control", () => {
     }
 
     expect(env.DB.loginAttempts).toHaveLength(2);
-    expect(env.DB.loginAttempts.some((attempt) => attempt.attempt_key === "account:1")).toBe(true);
+    expect(env.DB.loginAttempts.some((attempt) => attempt.attempt_key.startsWith("account:"))).toBe(true);
     expect(env.DB.loginAttempts.some((attempt) => attempt.attempt_key.startsWith("client:"))).toBe(true);
 
     const differentUserResponse = await fetchHandler(
@@ -813,7 +829,7 @@ describe("multi-user access control", () => {
     expect(env.DB.loginAttempts).toHaveLength(2);
   });
 
-  it("bounds unknown-user attempts to one client bucket and ignores forwarded-for spoofing", async () => {
+  it("keeps a client throttle after valid login and ignores forwarded-header spoofing", async () => {
     let finalResponse: Response | null = null;
     for (let attemptIndex = 0; attemptIndex < 20; attemptIndex += 1) {
       finalResponse = await fetchHandler(
@@ -834,10 +850,34 @@ describe("multi-user access control", () => {
     }
 
     expect(finalResponse?.headers.get("location")).toBe("/login?error=rate_limit");
-    expect(env.DB.loginAttempts).toHaveLength(1);
-    expect(env.DB.loginAttempts[0]?.attempt_key).toMatch(/^client:/);
-    expect(env.DB.loginAttempts[0]?.failure_count).toBe(20);
-    expect(env.DB.loginAttempts[0]?.locked_until).toBeTruthy();
+    const clientAttempt = env.DB.loginAttempts.find((attempt) => attempt.attempt_key.startsWith("client:"));
+    const accountAttempts = env.DB.loginAttempts.filter((attempt) => attempt.attempt_key.startsWith("account:"));
+    expect(clientAttempt?.failure_count).toBe(20);
+    expect(clientAttempt?.locked_until).toBeTruthy();
+    expect(accountAttempts).toHaveLength(20);
+    expect(accountAttempts.every((attempt) => attempt.failure_count === 1 && attempt.locked_until === null)).toBe(true);
+
+    const validLoginResponse = await fetchHandler(
+      sameOriginRequest("https://tracker.example.com/login", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ name: "Advisor", password: "editor-password" }),
+      }),
+      env,
+    );
+    expect(validLoginResponse.headers.get("location")).toBe("/");
+    expect(validLoginResponse.headers.get("set-cookie")).toContain("thesis_session=");
+    expect(clientAttempt?.locked_until).toBeTruthy();
+
+    const nextInvalidResponse = await fetchHandler(
+      sameOriginRequest("https://tracker.example.com/login", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ name: "Advisor", password: "wrong-password" }),
+      }),
+      env,
+    );
+    expect(nextInvalidResponse.headers.get("location")).toBe("/login?error=rate_limit");
   });
 
   it("locks an account after failures from different trusted client addresses", async () => {
@@ -855,7 +895,7 @@ describe("multi-user access control", () => {
       expect(response.status).toBe(302);
     }
 
-    const accountAttempt = env.DB.loginAttempts.find((attempt) => attempt.attempt_key === "account:1");
+    const accountAttempt = env.DB.loginAttempts.find((attempt) => attempt.attempt_key.startsWith("account:"));
     const clientAttempts = env.DB.loginAttempts.filter((attempt) => attempt.attempt_key.startsWith("client:"));
     expect(accountAttempt?.failure_count).toBe(5);
     expect(accountAttempt?.locked_until).toBeTruthy();
@@ -965,7 +1005,14 @@ describe("multi-user access control", () => {
     expect(remoteStyleGuideResponse.status).toBe(404);
   });
 
-  it("redirects to password reset guidance for accounts using a noncurrent PBKDF2 work factor", async () => {
+  it.each([
+    {
+      label: "a noncurrent PBKDF2 work factor",
+      passwordHash: `pbkdf2_sha256$210000$${Buffer.alloc(16).toString("base64")}$${Buffer.alloc(32).toString("base64")}`,
+      logsResetRequirement: true,
+    },
+    { label: "a malformed password hash", passwordHash: "not-a-password-hash", logsResetRequirement: false },
+  ])("returns a generic failure for an account with $label", async ({ passwordHash, logsResetRequirement }) => {
     env = {
       DB: new MockD1Database(),
       SESSION_SECRET: "test-session-secret-with-at-least-32-bytes",
@@ -973,9 +1020,10 @@ describe("multi-user access control", () => {
     };
     env.DB.seedAuthUser({
       name: "Advisor",
-      password_hash: `pbkdf2_sha256$210000$${Buffer.alloc(16).toString("base64")}$${Buffer.alloc(32).toString("base64")}`,
+      password_hash: passwordHash,
       role: "editor",
     });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     const response = await fetchHandler(
       sameOriginRequest("https://tracker.example.com/login", {
@@ -992,6 +1040,13 @@ describe("multi-user access control", () => {
     );
 
     expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toBe("/login?error=password_reset");
+    expect(response.headers.get("location")).toBe("/login?error=1");
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(env.DB.loginAttempts.map((attempt) => attempt.attempt_key).sort()).toEqual([
+      expect.stringMatching(/^account:[A-Za-z0-9_-]{43}$/),
+      expect.stringMatching(/^client:[A-Za-z0-9_-]{43}$/),
+    ]);
+    expect(consoleError).toHaveBeenCalledTimes(logsResetRequirement ? 1 : 0);
+    consoleError.mockRestore();
   });
 });

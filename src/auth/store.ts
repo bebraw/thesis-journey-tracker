@@ -133,48 +133,66 @@ export async function recordLoginFailure(
     lockedUntil: string;
   },
 ): Promise<LoginAttempt> {
-  const result = await db
-    .prepare(
-      `INSERT INTO login_attempts (attempt_key, failure_count, first_failed_at, last_failed_at, locked_until)
-       VALUES (?, 1, ?, ?, NULL)
-       ON CONFLICT(attempt_key) DO UPDATE SET
-         failure_count = CASE
-           WHEN login_attempts.last_failed_at >= ? THEN login_attempts.failure_count + 1
-           ELSE 1
-         END,
-         first_failed_at = CASE
-           WHEN login_attempts.last_failed_at >= ? THEN login_attempts.first_failed_at
-           ELSE ?
-         END,
-         last_failed_at = ?,
-         locked_until = CASE
-           WHEN login_attempts.last_failed_at >= ? AND login_attempts.failure_count + 1 >= ? THEN ?
-           ELSE NULL
-         END`,
-    )
-    .bind(
-      attemptKey,
-      options.now,
-      options.now,
-      options.failureWindowStart,
-      options.failureWindowStart,
-      options.now,
-      options.now,
-      options.failureWindowStart,
-      options.maxFailures,
-      options.lockedUntil,
-    )
-    .run();
-
-  if (!result.success) {
-    throw new Error("Failed to record login failure.");
-  }
-
-  const attempt = await getLoginAttempt(db, attemptKey);
+  const [attempt] = await recordLoginFailures(db, [{ attemptKey, ...options }]);
   if (!attempt) {
     throw new Error("Failed to read recorded login failure.");
   }
   return attempt;
+}
+
+export async function recordLoginFailures(
+  db: D1Database,
+  failures: Array<{
+    attemptKey: string;
+    now: string;
+    failureWindowStart: string;
+    maxFailures: number;
+    lockedUntil: string;
+  }>,
+): Promise<LoginAttempt[]> {
+  const statements = failures.map((failure) =>
+    db
+      .prepare(
+        `INSERT INTO login_attempts (attempt_key, failure_count, first_failed_at, last_failed_at, locked_until)
+         VALUES (?, 1, ?, ?, NULL)
+         ON CONFLICT(attempt_key) DO UPDATE SET
+           failure_count = CASE
+             WHEN login_attempts.last_failed_at >= ? THEN login_attempts.failure_count + 1
+             ELSE 1
+           END,
+           first_failed_at = CASE
+             WHEN login_attempts.last_failed_at >= ? THEN login_attempts.first_failed_at
+             ELSE ?
+           END,
+           last_failed_at = ?,
+           locked_until = CASE
+             WHEN login_attempts.last_failed_at >= ? AND login_attempts.failure_count + 1 >= ? THEN ?
+             ELSE NULL
+           END`,
+      )
+      .bind(
+        failure.attemptKey,
+        failure.now,
+        failure.now,
+        failure.failureWindowStart,
+        failure.failureWindowStart,
+        failure.now,
+        failure.now,
+        failure.failureWindowStart,
+        failure.maxFailures,
+        failure.lockedUntil,
+      ),
+  );
+  const results = await db.batch(statements);
+  if (results.some((result) => !result.success)) {
+    throw new Error("Failed to record login failures.");
+  }
+
+  const attempts = await Promise.all(failures.map((failure) => getLoginAttempt(db, failure.attemptKey)));
+  if (attempts.some((attempt) => !attempt)) {
+    throw new Error("Failed to read recorded login failures.");
+  }
+  return attempts as LoginAttempt[];
 }
 
 export async function clearLoginAttempt(db: D1Database, attemptKey: string): Promise<void> {
