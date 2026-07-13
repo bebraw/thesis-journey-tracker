@@ -1,4 +1,4 @@
-import { escapeJsString, formatDateTime, toDateTimeLocalInput } from "../../formatting";
+import { formatDateTime, toDateTimeLocalInput } from "../../formatting";
 import { raw } from "../../htmlisp";
 import type { DashboardLaneDefinition } from "../../dashboard-lanes";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getStudentFormValues, getTargetSubmissionDate, PHASES } from "../../students";
@@ -476,7 +476,7 @@ export function renderSelectedStudentPanel(
           &action="deleteAction"
           method="post"
           class="shrink-0"
-          &onsubmit="deleteConfirm"
+          &data-confirm-message="deleteConfirm"
         >
           <input type="hidden" name="returnTo" &value="returnTo" />
           <fragment &children="deleteButtonHtml"></fragment>
@@ -484,7 +484,7 @@ export function renderSelectedStudentPanel(
         {
           deleteAction: `/actions/archive-student/${student.id}`,
           returnTo,
-          deleteConfirm: `return window.confirm('Archive ${escapeJsString(student.name)}? This will hide the student from the active dashboard but keep the history intact.');`,
+          deleteConfirm: `Archive ${student.name}? This will hide the student from the active dashboard but keep the history intact.`,
           deleteButtonHtml: raw(renderButton({
             label: "Archive",
             type: "submit",

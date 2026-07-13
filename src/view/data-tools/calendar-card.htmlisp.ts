@@ -290,7 +290,7 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
         <li>Configure the OAuth consent screen in Google Auth Platform.</li>
         <li>Create a <strong>Web application</strong> OAuth client and, if you use OAuth Playground, add <code>https://developers.google.com/oauthplayground</code> as an authorized redirect URI.</li>
         <li>Copy the client ID and client secret from that OAuth client.</li>
-        <li>Open <a href="https://developers.google.com/oauthplayground" target="_blank" rel="noreferrer" class="${TEXT_LINK}">Google OAuth 2.0 Playground</a>, enable <code>Use your own OAuth credentials</code>, authorize exactly <code>https://www.googleapis.com/auth/calendar.events</code>, exchange the code, and copy the refresh token.</li>
+        <li>Open <a href="https://developers.google.com/oauthplayground" target="_blank" rel="noopener noreferrer" class="${TEXT_LINK}">Google OAuth 2.0 Playground</a>, enable <code>Use your own OAuth credentials</code>, authorize exactly <code>https://www.googleapis.com/auth/calendar.events</code>, exchange the code, and copy the refresh token.</li>
         <li>For the calendar ID, either use <code>primary</code> or open Google Calendar and copy the value from <code>Settings and sharing</code> -> <code>Integrate calendar</code> -> <code>Calendar ID</code>.</li>
         <li>Timezone is optional. Use an IANA timezone such as <code>Europe/Helsinki</code>.</li>
       </ol>

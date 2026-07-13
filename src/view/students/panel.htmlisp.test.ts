@@ -52,4 +52,13 @@ describe("renderSelectedStudentPanel", () => {
     expect(html).toContain("10 Apr 2026, 09:00 UTC");
     expect(html).not.toContain("10 Apr 2026, 12:00 EEST");
   });
+
+  it("uses escaped data for archive confirmation instead of an inline handler", () => {
+    const html = renderSelectedStudentPanel({ ...BASE_STUDENT, name: "O'Connor <script>" }, [], []);
+
+    expect(html).toContain("data-confirm-message=");
+    expect(html).not.toContain("onsubmit=");
+    expect(html).not.toContain("window.confirm");
+    expect(html).not.toContain("<script>");
+  });
 });

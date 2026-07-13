@@ -118,6 +118,7 @@ async function main() {
       const context = await browser.newContext({
         viewport: { width: 1600, height: 1200 },
         colorScheme: "light",
+        bypassCSP: true,
       });
       const page = await context.newPage();
       await capture(page);

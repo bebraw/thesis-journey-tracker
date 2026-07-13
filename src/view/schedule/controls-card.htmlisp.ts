@@ -10,7 +10,7 @@ export function renderScheduleControlsCard(data: SchedulePageData): string {
     name: "student",
     className: FIELD_CONTROL_SM,
     attrs: {
-      onchange: "this.form.requestSubmit()",
+      "data-auto-submit": "1",
     },
     options: [
       { label: "Choose a student", value: "" },

@@ -3,35 +3,6 @@ import { BUTTON_CLASS_MAP, renderButton } from "../ui/foundation";
 import { type HtmlispComponents, raw, renderEscapedHTMLisp } from "../htmlisp";
 import type { ViewerContext } from "./types";
 
-const THEME_BOOTSTRAP_SCRIPT = `<script>
-      (function applyTheme() {
-        var stored = localStorage.getItem("theme");
-        if (stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
-          document.documentElement.classList.add("dark");
-        }
-      }());
-    </script>`;
-
-export const THEME_TOGGLE_SCRIPT = `<script>
-    var themeToggle = document.getElementById("themeToggle");
-    var root = document.documentElement;
-
-    function syncThemeToggleAccessibility() {
-      var nextMode = root.classList.contains("dark") ? "light" : "dark";
-      var label = "Switch to " + nextMode + " mode";
-      themeToggle.setAttribute("title", label);
-      themeToggle.setAttribute("aria-label", label);
-    }
-
-    syncThemeToggleAccessibility();
-
-    themeToggle.addEventListener("click", function () {
-      root.classList.toggle("dark");
-      localStorage.setItem("theme", root.classList.contains("dark") ? "dark" : "light");
-      syncThemeToggleAccessibility();
-    });
-  </script>`;
-
 export function renderView(
   htmlInput: string,
   props: Record<string, unknown> = {},
@@ -48,7 +19,7 @@ export function renderDocument(title: string, bodyContent: string, bodyClass = B
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title &children="title"></title>
-    <fragment &children="themeBootstrapScript"></fragment>
+    <script src="/app.js"></script>
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
@@ -63,13 +34,11 @@ export function renderDocument(title: string, bodyContent: string, bodyClass = B
       &title="title"
       &bodyClass="bodyClass"
       &bodyContent="bodyContent"
-      &themeBootstrapScript="themeBootstrapScript"
     ></Document>`,
     {
       title,
       bodyClass,
       bodyContent: raw(bodyContent),
-      themeBootstrapScript: raw(THEME_BOOTSTRAP_SCRIPT),
     },
     components,
   );
@@ -416,7 +385,7 @@ export function renderAuthedPageDocument(options: RenderAuthedPageDocumentOption
       )),
       flashHtml: raw(flashHtml),
       sections: sections.map((section) => raw(section)),
-      scripts: [...scripts, THEME_TOGGLE_SCRIPT].map((script) => raw(script)),
+      scripts: scripts.map((script) => raw(script)),
     },
   );
 

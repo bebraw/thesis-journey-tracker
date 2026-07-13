@@ -21,7 +21,7 @@ This document gives a technical overview of how the project is put together.
 - [`src/students/`](../src/students): shared student-domain code for forms, degree/phase reference data, and derived progress/status helpers
 - [`src/auth/store.ts`](../src/auth/store.ts), [`src/calendar/store.ts`](../src/calendar/store.ts), and [`src/students/store.ts`](../src/students/store.ts): feature-owned D1 persistence modules
 - [`src/db-core.ts`](../src/db-core.ts): shared D1 interfaces and tiny persistence helpers used by the feature-owned stores
-- [`src/http/response.ts`](../src/http/response.ts): HTTP response and redirect helpers for Worker routes
+- [`src/http/`](../src/http): bounded request parsing plus shared response, redirect, and browser-security-header helpers
 - [`src/forms/normalize.ts`](../src/forms/normalize.ts): shared form and payload normalization helpers
 - [`src/formatting.ts`](../src/formatting.ts): shared escaping and date-formatting helpers for views and HTMLisp rendering
 - [`src/routes/dashboard/`](../src/routes/dashboard): the dashboard slice, split into render handlers, actions, and filter/path helpers
@@ -54,7 +54,7 @@ graph TD
     Students[src/students/<br/>Forms, reference data, status helpers]
     Stores[src/*/store.ts<br/>Feature-owned D1 access]
     DBCore[src/db-core.ts<br/>Shared D1 interfaces]
-    Http[src/http/response.ts<br/>HTTP responses]
+    Http[src/http/<br/>Request limits, responses, security headers]
     Forms[src/forms/normalize.ts<br/>Normalization]
     Formatting[src/formatting.ts<br/>Escaping and dates]
     HTMLisp[src/htmlisp/<br/>Rendering and attributes]
@@ -100,7 +100,7 @@ graph TD
     Tests --> D1
 ```
 
-The Worker is now intentionally thin: it handles request/session setup, authentication, and route dispatch. Feature-specific page rendering and form-action behavior live under [`src/routes/`](../src/routes), where handlers talk to D1 through feature-owned store modules, render server-side HTML through the shared view/UI layers, and rely on shared feature modules such as [`src/auth/`](../src/auth) for reusable authentication concerns, [`src/calendar/`](../src/calendar) for Google Calendar access and schedule-building logic, [`src/students/`](../src/students) for shared student forms and status rules, and [`src/data-transfer/`](../src/data-transfer) for import/export/report generation shared with automated backups. Shared D1 interfaces now live in [`src/db-core.ts`](../src/db-core.ts), while focused support code is split between [`src/http/response.ts`](../src/http/response.ts), [`src/forms/normalize.ts`](../src/forms/normalize.ts), and [`src/formatting.ts`](../src/formatting.ts).
+The Worker is now intentionally thin: it handles request/session setup, authentication, route dispatch, and final response hardening. Feature-specific page rendering and form-action behavior live under [`src/routes/`](../src/routes), where handlers talk to D1 through feature-owned store modules, render server-side HTML through the shared view/UI layers, and rely on shared feature modules such as [`src/auth/`](../src/auth) for reusable authentication concerns, [`src/calendar/`](../src/calendar) for Google Calendar access and schedule-building logic, [`src/students/`](../src/students) for shared student forms and status rules, and [`src/data-transfer/`](../src/data-transfer) for import/export/report generation shared with automated backups. Shared D1 interfaces now live in [`src/db-core.ts`](../src/db-core.ts), while focused support code is split between [`src/http/`](../src/http), [`src/forms/normalize.ts`](../src/forms/normalize.ts), and [`src/formatting.ts`](../src/formatting.ts).
 
 The UI layer now has an explicit boundary for reuse work. [`src/ui/foundation/`](../src/ui/foundation) is the intended extraction target and contains the generic public surface for controls, cards, disclosures, metadata presentation, and form wrappers. [`src/ui/app/`](../src/ui/app) keeps the product-specific shell and status conventions local to this repository. [`src/ui/index.ts`](../src/ui/index.ts) still re-exports both surfaces so existing imports can migrate incrementally.
 

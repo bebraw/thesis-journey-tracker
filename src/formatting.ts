@@ -47,10 +47,6 @@ export function escapeHtml(value: string | number): string {
     .replaceAll("'", "&#039;");
 }
 
-export function escapeJsString(value: string): string {
-  return value.replaceAll("\\", "\\\\").replaceAll("'", "\\'").replaceAll("\r", "\\r").replaceAll("\n", "\\n");
-}
-
 function findPart(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes): string {
   return parts.find((part) => part.type === type)?.value || "";
 }

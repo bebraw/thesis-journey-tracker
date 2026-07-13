@@ -14,6 +14,7 @@ import type { Env, ScheduledControllerLike } from "./app-env";
 import type { D1Database } from "./db-core";
 import { RequestBodyTooLargeError } from "./http/request-body";
 import { cssResponse, htmlResponse, iconResponse, javascriptResponse, redirect } from "./http/response";
+import { applyBrowserSecurityHeaders } from "./http/security";
 import { handleLoginRequest, handleLogout, readonlyRedirect } from "./routes/auth";
 import {
   handleAddLog,
@@ -40,6 +41,7 @@ import {
 } from "./routes/data-tools";
 import { getScheduleReturnPath, handleScheduleMeeting, renderSchedule } from "./routes/schedule";
 import { validateRuntimeSecrets } from "./security/secrets";
+import { APP_INTERACTION_SCRIPT } from "./view/app-script";
 import { DASHBOARD_INTERACTION_SCRIPT } from "./view/dashboard/interaction-script";
 import { renderStyleGuidePage } from "./views";
 
@@ -53,23 +55,25 @@ interface D1SessionState {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    let response: Response;
     try {
       const sessionState = createRequestD1Session(request, env.DB);
-      const response = await handleRequest(request, sessionState ? { ...env, DB: sessionState.database } : env);
-      return finalizeD1SessionResponse(response, request.url, sessionState);
+      const routeResponse = await handleRequest(request, sessionState ? { ...env, DB: sessionState.database } : env);
+      response = finalizeD1SessionResponse(routeResponse, request.url, sessionState);
     } catch (error) {
       if (error instanceof RequestBodyTooLargeError) {
-        return new Response("Request body too large", {
+        response = new Response("Request body too large", {
           status: 413,
           headers: { "cache-control": "no-store" },
         });
+      } else {
+        console.error("Unhandled error", error);
+        response = isLocalDevelopmentRequest(request)
+          ? localInternalErrorResponse(error)
+          : new Response("Internal server error", { status: 500 });
       }
-      console.error("Unhandled error", error);
-      if (isLocalDevelopmentRequest(request)) {
-        return localInternalErrorResponse(error);
-      }
-      return new Response("Internal server error", { status: 500 });
     }
+    return applyBrowserSecurityHeaders(response, request.url);
   },
   async scheduled(controller: ScheduledControllerLike, env: Env): Promise<void> {
     try {
@@ -154,6 +158,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   if (pathname === "/styles.css") {
     return cssResponse(styles);
+  }
+
+  if (pathname === "/app.js") {
+    return javascriptResponse(APP_INTERACTION_SCRIPT);
   }
 
   if (pathname === "/dashboard.js") {

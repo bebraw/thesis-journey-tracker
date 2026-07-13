@@ -26,6 +26,29 @@ describe("multi-user access control", () => {
     ]);
   });
 
+  it("serves a CSP-compatible application shell with security headers", async () => {
+    const loginResponse = await fetchHandler(new Request("http://localhost/login"), env);
+    const loginBody = await loginResponse.text();
+
+    expect(loginResponse.headers.get("content-security-policy")).toContain("script-src 'self'");
+    expect(loginResponse.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(loginResponse.headers.has("strict-transport-security")).toBe(false);
+    expect(loginBody).toContain('<script src="/app.js"></script>');
+    expect(loginBody).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/);
+    expect(loginBody).not.toMatch(/\son[a-z]+=/i);
+
+    const appScriptResponse = await fetchHandler(new Request("http://localhost/app.js"), env);
+    const appScript = await appScriptResponse.text();
+    expect(appScriptResponse.headers.get("content-type")).toBe("application/javascript; charset=utf-8");
+    expect(appScriptResponse.headers.get("cache-control")).toBe("no-cache");
+    expect(appScriptResponse.headers.get("content-security-policy")).toContain("default-src 'none'");
+    expect(appScript).toContain("data-auto-submit");
+    expect(appScript).toContain("data-confirm-message");
+
+    const secureResponse = await fetchHandler(new Request("https://tracker.example.edu/login"), env);
+    expect(secureResponse.headers.get("strict-transport-security")).toBe("max-age=31536000");
+  });
+
   it("shows a readonly dashboard for readonly accounts", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Professor", "readonly-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
@@ -39,7 +62,11 @@ describe("multi-user access control", () => {
 
     const body = await response.text();
     expect(response.status).toBe(200);
+    expect(response.headers.get("content-security-policy")).toContain("script-src-attr 'none'");
     expect(body).toContain("Signed in as Professor");
+    expect(body).toContain('<script src="/dashboard.js" defer></script>');
+    expect(body).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/);
+    expect(body).not.toMatch(/\son[a-z]+=/i);
     expect(body).toContain("Read-only");
     expect(body).toContain("Base Student");
     expect(body).not.toContain("Add student");
@@ -659,6 +686,8 @@ describe("multi-user access control", () => {
 
     expect(response.status).toBe(500);
     expect(await response.text()).toBe("Security configuration is invalid.");
+    expect(response.headers.get("content-security-policy")).toContain("default-src 'none'");
+    expect(response.headers.get("strict-transport-security")).toBe("max-age=31536000");
     expect(consoleError).toHaveBeenCalledWith("Invalid security configuration", expect.stringContaining("SESSION_SECRET"));
     consoleError.mockRestore();
   });
@@ -678,6 +707,8 @@ describe("multi-user access control", () => {
 
     expect(response.status).toBe(413);
     expect(await response.text()).toBe("Request body too large");
+    expect(response.headers.get("content-security-policy")).toContain("default-src 'none'");
+    expect(response.headers.get("strict-transport-security")).toBe("max-age=31536000");
     expect(env.DB.loginAttempts).toHaveLength(0);
   });
 

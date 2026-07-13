@@ -103,6 +103,18 @@ test.describe("dashboard e2e", () => {
     await expect(page.locator("[data-student-row]").first()).toContainText("Noah Virtanen");
   });
 
+  test("persists the selected color theme across reloads", async ({ page }) => {
+    await login(page);
+    const root = page.locator("html");
+    const initiallyDark = await root.evaluate((element) => element.classList.contains("dark"));
+
+    await page.getByRole("button", { name: /Switch to (dark|light) mode/ }).click();
+    await expect.poll(() => root.evaluate((element) => element.classList.contains("dark"))).toBe(!initiallyDark);
+
+    await page.reload();
+    await expect.poll(() => root.evaluate((element) => element.classList.contains("dark"))).toBe(!initiallyDark);
+  });
+
   test("can export and import JSON backups from data tools", async ({ page }) => {
     await login(page);
 

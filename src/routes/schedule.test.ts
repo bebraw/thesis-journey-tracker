@@ -50,6 +50,8 @@ describe("google calendar scheduling", () => {
     expect(body).toContain("Simpler fallback: Google Calendar Secret address in iCal format");
     expect(body).toContain("Open Data Tools");
     expect(body).not.toContain("Schedule Selected Slot");
+    expect(body).toContain('data-auto-submit="1"');
+    expect(body).not.toContain("onchange=");
   });
 
   it("can save encrypted database credentials and use them as the active calendar config", async () => {
