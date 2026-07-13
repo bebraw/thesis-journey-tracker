@@ -35,6 +35,8 @@ npx wrangler secret put APP_ENCRYPTION_SECRET
 
 Generate two independent values with `openssl rand -base64 32`; never reuse one value for both bindings. Both secrets are required even when Google Calendar integration is not configured.
 
+[`wrangler.toml`](../wrangler.toml) declares both bindings as required. Wrangler refuses to deploy when either production secret is missing, while the Worker still validates their strength and independence at runtime.
+
 If an existing deployment previously omitted `APP_ENCRYPTION_SECRET`, its stored calendar and custom-lane settings were encrypted with the old session-key fallback. Record the configuration before upgrading, deploy with a new independent application key, clear the unreadable stored settings, and re-enter them. Rotate the Google refresh token and secret iCal URL during this process.
 
 Other plain Worker vars can still go in `wrangler.toml`:

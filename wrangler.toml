@@ -2,6 +2,9 @@ name = "thesis-journey-tracker"
 main = "src/worker.ts"
 compatibility_date = "2026-03-22"
 
+[secrets]
+required = ["SESSION_SECRET", "APP_ENCRYPTION_SECRET"]
+
 [build]
 command = "npm run build:css"
 watch_dir = "src"
