@@ -23,10 +23,19 @@ automated-backups/YYYY/MM/DD/TIMESTAMP/
 1. Create an R2 bucket:
 
 ```bash
-npx wrangler r2 bucket create thesis-journey-tracker-backups
+npx wrangler r2 bucket create thesis-journey-tracker-backup
 ```
 
-2. Update [`wrangler.toml`](../wrangler.toml):
+2. Add a 90-day lifecycle rule for the default backup prefix, then verify it:
+
+```bash
+npx wrangler r2 bucket lifecycle add thesis-journey-tracker-backup expire-automated-backups automated-backups/ --expire-days 90
+npx wrangler r2 bucket lifecycle list thesis-journey-tracker-backup
+```
+
+Backup setup is incomplete until the listing shows the `expire-automated-backups` rule for the `automated-backups/` prefix with a 90-day expiration. The Worker does not delete backups itself. All three files in a snapshot use this prefix, so the rule expires the JSON export, Markdown report, and manifest together.
+
+3. Confirm that [`wrangler.toml`](../wrangler.toml) uses the same bucket and prefix:
 
 ```toml
 [triggers]
@@ -34,13 +43,15 @@ crons = ["30 1 * * *"]
 
 [[r2_buckets]]
 binding = "BACKUP_BUCKET"
-bucket_name = "thesis-journey-tracker-backups"
+bucket_name = "thesis-journey-tracker-backup"
 
 [vars]
 BACKUP_PREFIX = "automated-backups"
 ```
 
 The default cron runs every day at `01:30 UTC`. Adjust it if another off-peak window fits your usage better.
+
+Keep the bucket private. The JSON export and Markdown report contain student data and should not be exposed through a public bucket URL or custom domain.
 
 ## Testing The Backup Locally
 
@@ -64,10 +75,16 @@ For app-level restore, download the JSON export from R2 and import it from the D
 
 ## Retention
 
-R2 retention is not managed by the Worker itself. A good default is:
+R2 retention is not managed by the Worker itself. The lifecycle rule above applies the project's 90-day default to every object under `automated-backups/`.
 
-- keep daily backups for 90 days
-- keep a smaller weekly or monthly archive longer if needed
-- test a restore regularly instead of only checking that files exist
+To change the retention window or `BACKUP_PREFIX`, remove the named rule and re-add it with the desired day count and matching prefix. These commands restore the checked-in default:
 
-Cloudflare R2 lifecycle rules are a good fit for automatic cleanup once you decide on a retention window.
+```bash
+npx wrangler r2 bucket lifecycle remove thesis-journey-tracker-backup --name expire-automated-backups
+npx wrangler r2 bucket lifecycle add thesis-journey-tracker-backup expire-automated-backups automated-backups/ --expire-days 90
+npx wrangler r2 bucket lifecycle list thesis-journey-tracker-backup
+```
+
+The current automation does not create a separate weekly or monthly archive. If longer retention is required, copy selected snapshots into a distinct private prefix or bucket and give that location its own lifecycle policy.
+
+Test a restore regularly instead of only checking that files exist. Confirm that the JSON import succeeds, the restored record counts match the manifest, and the Markdown report opens as expected.

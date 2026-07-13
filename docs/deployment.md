@@ -84,12 +84,26 @@ To enable it:
 1. Create an R2 bucket:
 
 ```bash
-npx wrangler r2 bucket create thesis-journey-tracker-backups
+npx wrangler r2 bucket create thesis-journey-tracker-backup
 ```
 
-2. Update [`wrangler.toml`](../wrangler.toml) so `bucket_name` points at that bucket.
+2. Add the default 90-day retention rule:
 
-3. Review the configured cron trigger:
+```bash
+npx wrangler r2 bucket lifecycle add thesis-journey-tracker-backup expire-automated-backups automated-backups/ --expire-days 90
+```
+
+3. Verify the lifecycle configuration:
+
+```bash
+npx wrangler r2 bucket lifecycle list thesis-journey-tracker-backup
+```
+
+Do not consider backup setup complete until the output shows rule `expire-automated-backups`, prefix `automated-backups/`, and a 90-day expiration. If `BACKUP_PREFIX` changes, configure and verify a lifecycle rule for the new prefix as well.
+
+4. Confirm that [`wrangler.toml`](../wrangler.toml) points `bucket_name` at `thesis-journey-tracker-backup`. Keep this bucket private because its artifacts contain student data.
+
+5. Review the configured cron trigger:
 
 ```toml
 [triggers]
@@ -98,7 +112,7 @@ crons = ["30 1 * * *"]
 
 That default means the backup runs daily at `01:30 UTC`.
 
-4. Deploy the Worker after the R2 binding is configured:
+6. Deploy the Worker after the R2 binding and lifecycle rule are configured:
 
 ```bash
 npm run deploy
