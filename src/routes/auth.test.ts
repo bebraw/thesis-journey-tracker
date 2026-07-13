@@ -642,6 +642,24 @@ describe("multi-user access control", () => {
     expect(env.DB.loginAttempts).toHaveLength(0);
   });
 
+  it("rejects oversized login requests before password verification", async () => {
+    const response = await fetchHandler(
+      new Request("https://tracker.example.com/login", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          name: "Advisor",
+          password: "x".repeat(17 * 1024),
+        }),
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(413);
+    expect(await response.text()).toBe("Request body too large");
+    expect(env.DB.loginAttempts).toHaveLength(0);
+  });
+
   it("does not lock out a different user from the same shared IP address", async () => {
     const loginHeaders = {
       "cf-connecting-ip": "203.0.113.10",

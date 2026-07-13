@@ -10,6 +10,7 @@ import {
   type ImportedStudentBundle,
 } from "../../data-transfer";
 import type { D1Database, D1PreparedStatement } from "../../db-core";
+import { IMPORT_FILE_LIMIT_BYTES, IMPORT_FORM_BODY_LIMIT_BYTES, readFormData } from "../../http/request-body";
 import { redirect } from "../../http/response";
 import { listLogsForStudent, listPhaseAuditEntriesForStudent, listStudents } from "../../students/store";
 
@@ -60,7 +61,7 @@ export async function handleProfessorReportExport(env: Env): Promise<Response> {
 }
 
 export async function handleImportJson(request: Request, env: Env): Promise<Response> {
-  const formData = await request.formData();
+  const formData = await readFormData(request, { maxBytes: IMPORT_FORM_BODY_LIMIT_BYTES });
   const file = formData.get("importFile");
   const mode = formData.get("mode") === "replace" ? "replace" : "append";
   const replaceConfirmed = formData.get("confirmReplace") === "yes";
@@ -68,6 +69,11 @@ export async function handleImportJson(request: Request, env: Env): Promise<Resp
 
   if (!file || typeof file !== "object" || !("text" in file) || typeof file.text !== "function") {
     return redirect("/data-tools?error=Choose+a+JSON+file+to+import");
+  }
+
+  const fileSize = "size" in file && typeof file.size === "number" ? file.size : Number.POSITIVE_INFINITY;
+  if (fileSize > IMPORT_FILE_LIMIT_BYTES) {
+    return redirect("/data-tools?error=Import+file+exceeds+the+4+MiB+limit");
   }
 
   const { data, error } = parseDataImport(await file.text());

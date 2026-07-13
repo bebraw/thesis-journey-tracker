@@ -60,7 +60,7 @@ If the `BACKUP_BUCKET` binding is configured, the run will write the backup arti
 
 ## Restoring From Backup
 
-For app-level restore, download the JSON export from R2 and import it from the Data Tools page in the deployed app. Use append mode for merging data or replacement mode for a full restore.
+For app-level restore, download the JSON export from R2 and import it from the Data Tools page in the deployed app. Use append mode for merging data or replacement mode for a full restore. The Data Tools importer accepts JSON files up to 4 MiB; split larger append imports into smaller files before uploading them.
 
 ## Retention
 

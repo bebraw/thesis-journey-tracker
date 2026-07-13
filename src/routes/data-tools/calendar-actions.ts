@@ -6,10 +6,11 @@ import {
   type StoredGoogleCalendarSettings,
 } from "../../calendar";
 import { normalizeString } from "../../forms/normalize";
+import { readFormData } from "../../http/request-body";
 import { redirect } from "../../http/response";
 
 export async function handleSaveGoogleCalendarSettings(request: Request, env: Env): Promise<Response> {
-  const formData = await request.formData();
+  const formData = await readFormData(request);
   const clientId = normalizeString(formData.get("clientId"));
   const clientSecret = normalizeString(formData.get("clientSecret"));
   const refreshToken = normalizeString(formData.get("refreshToken"));
@@ -42,7 +43,7 @@ export async function handleSaveGoogleCalendarSettings(request: Request, env: En
 }
 
 export async function handleSaveGoogleCalendarIcalSettings(request: Request, env: Env): Promise<Response> {
-  const formData = await request.formData();
+  const formData = await readFormData(request);
   const iCalUrl = normalizeString(formData.get("iCalUrl"));
   const timeZone = normalizeString(formData.get("timeZone"));
 

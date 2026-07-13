@@ -683,4 +683,26 @@ describe("data import and export", () => {
     expect(env.DB.meetingLogs).toHaveLength(1);
     expect(env.DB.phaseAuditEntries).toHaveLength(1);
   });
+
+  it("rejects JSON import files larger than 4 MiB", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    const formData = new FormData();
+    formData.set(
+      "importFile",
+      new File(["x".repeat(4 * 1024 * 1024 + 1)], "oversized.json", { type: "application/json" }),
+    );
+
+    const response = await fetchHandler(
+      new Request("http://localhost/actions/import-json", {
+        method: "POST",
+        headers: { cookie },
+        body: formData,
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/data-tools?error=Import+file+exceeds+the+4+MiB+limit");
+    expect(env.DB.students).toHaveLength(1);
+  });
 });

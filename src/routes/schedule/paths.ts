@@ -1,4 +1,5 @@
 import { resolveScheduleTimeZone, resolveWeekStart } from "../../calendar";
+import { readFormData } from "../../http/request-body";
 
 export function buildSchedulePath(options: {
   weekStart?: string | null;
@@ -44,7 +45,7 @@ export function appendScheduleMessage(
 }
 
 export async function getScheduleReturnPath(request: Request): Promise<string> {
-  const formData = await request.clone().formData();
+  const formData = await readFormData(request);
   return parseScheduleReturnTo(formData.get("returnTo"));
 }
 

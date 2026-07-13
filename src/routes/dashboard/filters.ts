@@ -1,4 +1,5 @@
 import type { DashboardFilters } from "../../view/types";
+import { readFormData } from "../../http/request-body";
 
 const DEFAULT_DASHBOARD_SORT_KEY = "nextMeeting";
 const DEFAULT_DASHBOARD_SORT_DIRECTION: DashboardFilters["sortDirection"] = "asc";
@@ -68,7 +69,7 @@ export function appendDashboardMessage(pathname: string, options: { selectedId?:
 }
 
 export async function getDashboardReturnPath(request: Request, options: { selectedId?: number } = {}): Promise<string> {
-  const formData = await request.clone().formData();
+  const formData = await readFormData(request);
   return buildDashboardPath(parseDashboardReturnTo(formData.get("returnTo")), {
     selectedId: options.selectedId,
   });

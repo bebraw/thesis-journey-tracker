@@ -9,6 +9,7 @@ import {
   verifyLoginCredentials,
 } from "../auth";
 import type { Env } from "../app-env";
+import { LOGIN_FORM_BODY_LIMIT_BYTES, readFormData } from "../http/request-body";
 import { htmlResponse, redirect } from "../http/response";
 import { renderLoginPage } from "../views";
 
@@ -34,7 +35,7 @@ export async function handleLoginRequest(
     return htmlResponse(renderLoginPage(errorState, authState.users.length > 1));
   }
 
-  const formData = await request.formData();
+  const formData = await readFormData(request, { maxBytes: LOGIN_FORM_BODY_LIMIT_BYTES });
   const enteredName = (formData.get("name") || "").toString().trim();
   const password = (formData.get("password") || "").toString();
   const loginResult = await verifyLoginCredentials(env, request, authState, enteredName, password);

@@ -1,6 +1,7 @@
 import type { Env } from "../../app-env";
 import { resolveGoogleCalendarSourceForApp, resolveScheduleTimeZone } from "../../calendar";
 import { normalizeDate, normalizeDateTime, normalizeString } from "../../forms/normalize";
+import { readFormData } from "../../http/request-body";
 import { redirect } from "../../http/response";
 import { parseStudentFormSubmission } from "../../students";
 import {
@@ -16,7 +17,7 @@ import {
 import { appendDashboardMessage, getDashboardReturnPath } from "./filters";
 
 export async function handleAddStudent(request: Request, env: Env): Promise<Response> {
-  const formData = await request.formData();
+  const formData = await readFormData(request);
   const timeZone = await resolveDashboardTimeZone(env);
   const studentInput = parseStudentFormSubmission(formData, { mode: "create", timeZone });
   if (!studentInput) {
@@ -39,7 +40,7 @@ export async function handleUpdateStudent(request: Request, env: Env, studentId:
     return redirect(appendDashboardMessage(returnPath, { error: "Student not found" }));
   }
 
-  const formData = await request.formData();
+  const formData = await readFormData(request);
   const timeZone = await resolveDashboardTimeZone(env);
   const studentInput = parseStudentFormSubmission(formData, {
     mode: "update",
@@ -72,7 +73,7 @@ export async function handleUpdateStudent(request: Request, env: Env, studentId:
 
 export async function handleAddLog(request: Request, env: Env, studentId: number): Promise<Response> {
   const returnPath = await getDashboardReturnPath(request, { selectedId: studentId });
-  const formData = await request.formData();
+  const formData = await readFormData(request);
   const timeZone = await resolveDashboardTimeZone(env);
 
   const happenedAt = normalizeDateTime(formData.get("happenedAt"), true, timeZone) || new Date().toISOString();

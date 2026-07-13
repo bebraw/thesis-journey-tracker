@@ -9,13 +9,14 @@ import {
   resolveWeekStart,
 } from "../../calendar";
 import { normalizeString } from "../../forms/normalize";
+import { readFormData } from "../../http/request-body";
 import { redirect } from "../../http/response";
 import { getStudentById, updateStudent } from "../../students/store";
 import { appendScheduleMessage, getScheduleReturnPath, normalizeScheduleSlotValue } from "./paths";
 
 export async function handleScheduleMeeting(request: Request, env: Env): Promise<Response> {
   const returnPathPromise = getScheduleReturnPath(request);
-  const formData = await request.formData();
+  const formData = await readFormData(request);
   const returnPath = await returnPathPromise;
   const studentId = Number.parseInt(String(formData.get("studentId") || ""), 10);
   const calendarSource = await resolveGoogleCalendarSourceForApp(env);

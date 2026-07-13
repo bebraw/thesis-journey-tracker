@@ -4,6 +4,7 @@ import { getSessionUser, isReadonlyUser, resolveAuthState, SESSION_COOKIE, SESSI
 import { runAutomatedBackup } from "./backup";
 import type { Env, ScheduledControllerLike } from "./app-env";
 import type { D1Database } from "./db-core";
+import { RequestBodyTooLargeError } from "./http/request-body";
 import { cssResponse, htmlResponse, iconResponse, javascriptResponse, redirect } from "./http/response";
 import { handleLoginRequest, handleLogout, readonlyRedirect } from "./routes/auth";
 import {
@@ -48,6 +49,12 @@ export default {
       const response = await handleRequest(request, sessionState ? { ...env, DB: sessionState.database } : env);
       return finalizeD1SessionResponse(response, request.url, sessionState);
     } catch (error) {
+      if (error instanceof RequestBodyTooLargeError) {
+        return new Response("Request body too large", {
+          status: 413,
+          headers: { "cache-control": "no-store" },
+        });
+      }
       console.error("Unhandled error", error);
       if (isLocalDevelopmentRequest(request)) {
         return localInternalErrorResponse(error);

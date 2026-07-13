@@ -4,10 +4,11 @@ import {
   parseDashboardLaneConfigurationForm,
   saveDashboardLaneConfig,
 } from "../../dashboard-lanes";
+import { readFormData } from "../../http/request-body";
 import { redirect } from "../../http/response";
 
 export async function handleSaveDashboardLaneSettings(request: Request, env: Env): Promise<Response> {
-  const formData = await request.formData();
+  const formData = await readFormData(request);
   const { lanes, error } = parseDashboardLaneConfigurationForm(formData);
   if (!lanes || error) {
     return redirect(`/data-tools?error=${encodeURIComponent(error || "Invalid dashboard lane settings")}`);
