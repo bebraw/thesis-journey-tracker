@@ -1,4 +1,4 @@
-import { EMPTY_DASHED_CARD, MUTED_TEXT, SOFT_SURFACE_CARD, SUBTLE_TEXT, SURFACE_CARD_SM, TEXT_LINK, renderCard, renderSectionHeader } from "../../ui";
+import { EMPTY_DASHED_CARD, MUTED_TEXT, SOFT_SURFACE_CARD, SUBTLE_TEXT, SURFACE_CARD_SM, renderCard, renderSectionHeader } from "../../ui";
 import type { SchedulePageData } from "../types";
 import { raw } from "../../htmlisp";
 import { renderView } from "../shared.htmlisp";
@@ -25,16 +25,8 @@ export function renderScheduleCalendarCard(data: SchedulePageData): string {
                 <div class="mt-badge-y space-y-badge-y" &visibleIf="day.hasEvents">
                   <fragment &foreach="day.events as event">
                     <article &class="eventCardClass">
-                      <p class="font-semibold" &children="event.summary"></p>
+                      <p class="font-semibold">Busy</p>
                       <p class="mt-1 text-app-text-soft dark:text-app-text-soft-dark" &children="event.timeText"></p>
-                      <p class="mt-1 text-app-text-muted dark:text-app-text-muted-dark" &visibleIf="event.descriptionVisible" &children="event.description"></p>
-                      <a
-                        &visibleIf="event.linkVisible"
-                        &href="event.htmlLink"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        &class="linkClass"
-                      >Open in Google Calendar</a>
                     </article>
                   </fragment>
                 </div>
@@ -64,7 +56,6 @@ export function renderScheduleCalendarCard(data: SchedulePageData): string {
         weekText: weekLabel,
         timezoneText: `Google Calendar timezone: ${timeZone}`,
         emptyStateClass: EMPTY_DASHED_CARD,
-        linkClass: `mt-1 inline-flex ${TEXT_LINK}`,
         days: days.map((day) => ({
           label: day.label,
           slotCountText: `${day.slots.length} open`,
@@ -79,12 +70,7 @@ export function renderScheduleCalendarCard(data: SchedulePageData): string {
           hasEvents: day.hasEvents,
           showNoEvents: !day.hasEvents,
           events: day.events.map((event) => ({
-            summary: event.summary,
             timeText: event.timeText,
-            descriptionVisible: Boolean(event.description),
-            description: event.description || "",
-            linkVisible: Boolean(event.htmlLink),
-            htmlLink: event.htmlLink || "",
           })),
           hasSlots: day.hasSlots,
           showNoSlots: !day.hasSlots,

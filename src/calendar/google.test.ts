@@ -9,27 +9,36 @@ const CONFIG: GoogleCalendarConfig = {
   timeZone: "Europe/Helsinki",
 };
 
-describe("Google Calendar API event links", () => {
-  it("keeps only exact HTTPS Google Calendar event links", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ access_token: "access-token" }), {
+describe("Google Calendar API availability reads", () => {
+  it("requests only the event fields needed to calculate busy times", async () => {
+    let eventsRequestUrl = "";
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+
+      if (url === "https://oauth2.googleapis.com/token") {
+        return new Response(JSON.stringify({ access_token: "access-token" }), {
           headers: { "content-type": "application/json" },
+        });
+      }
+
+      eventsRequestUrl = url;
+      return new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "event-1",
+              summary: "Private appointment",
+              description: "Private description",
+              htmlLink: "https://www.google.com/calendar/event?eid=private",
+              start: { dateTime: "2026-03-24T13:00:00+02:00" },
+              end: { dateTime: "2026-03-24T14:00:00+02:00" },
+              attendees: [{ email: "private@example.com" }],
+            },
+          ],
         }),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            items: [
-              { id: "safe", htmlLink: "https://www.google.com/calendar/event?eid=safe" },
-              { id: "unsafe", htmlLink: "javascript:alert(1)" },
-              { id: "redirect", htmlLink: "https://www.google.com/calendar/url?continue=https://example.com" },
-            ],
-          }),
-          { headers: { "content-type": "application/json" } },
-        ),
+        { headers: { "content-type": "application/json" } },
       );
+    });
 
     const events = await listGoogleCalendarEvents(
       CONFIG,
@@ -40,6 +49,10 @@ describe("Google Calendar API event links", () => {
       fetchMock,
     );
 
-    expect(events.map((event) => event.htmlLink)).toEqual(["https://www.google.com/calendar/event?eid=safe", null, null]);
+    const requestUrl = new URL(eventsRequestUrl);
+    expect(requestUrl.searchParams.get("fields")).toBe("items(id,start,end)");
+    expect(events).toHaveLength(1);
+    expect(events[0]?.startDateTime).toBe("2026-03-24T13:00:00+02:00");
+    expect(events[0]?.endDateTime).toBe("2026-03-24T14:00:00+02:00");
   });
 });

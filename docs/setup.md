@@ -119,13 +119,13 @@ If you want `/schedule` to read and create Google Calendar events, collect the v
    - [Calendars and events concept guide](https://developers.google.com/workspace/calendar/api/concepts/events-calendars)
    - [Calendar get reference](https://developers.google.com/workspace/calendar/api/v3/reference/calendars/get)
 
-   You have two common options:
-   - Use `primary` for your main calendar
-   - Use a shared or secondary calendar ID copied from Google Calendar on the web:
-     1. Open Google Calendar in a browser
-     2. Go to `Settings and sharing` for the target calendar
-     3. Open `Integrate calendar`
-     4. Copy `Calendar ID`
+   Prefer a dedicated shared or secondary calendar for Thesis Journey Tracker. Keeping supervision events separate reduces the chance that personal calendar data is affected by a configuration mistake. Copy its calendar ID from Google Calendar on the web:
+   1. Open Google Calendar in a browser
+   2. Go to `Settings and sharing` for the target calendar
+   3. Open `Integrate calendar`
+   4. Copy `Calendar ID`
+
+   Use `primary` only if you are comfortable allowing the app to operate on the authorizing user's main calendar. The schedule page displays existing entries only as `Busy` plus their time, but the OAuth `calendar.events` scope still permits the credential to view and edit events across calendars available to that Google account. Selecting a secondary calendar keeps this app's normal requests separate; for stronger credential isolation, authorize a dedicated Google account that does not have access to unrelated calendars.
 
    Save that value for the `Google Calendar ID` field in `Data Tools`.
 
@@ -148,6 +148,8 @@ Stored client secrets and refresh tokens are write-only in the Data Tools page: 
 
 New invitation descriptions default to the student's name and thesis topic only. Internal student notes are never copied automatically. An editor can write attendee-facing text explicitly, or clear the optional description field to send the invitation without a description.
 
+Existing calendar entries are shown to app users only as `Busy` plus their time. Event titles, descriptions, attendee addresses, and Google Calendar links are not displayed.
+
 ### Simpler Fallback: Google Calendar iCal Link
 
 If you only want read-only calendar availability and do not need the app to create invitations, you can use the easier iCal fallback mode instead of the full OAuth setup.
@@ -167,8 +169,9 @@ What to do:
 
 Important limitations:
 
-- This mode is read-only. It shows existing calendar events and open slots, but it does not create events or send invitations from the app.
+- This mode is read-only. It shows existing entries only as busy times alongside open slots; it does not display event details, create events, or send invitations from the app.
 - Google treats the `Secret address in iCal format` as sensitive. Do not share it. If it is leaked, reset it in Google Calendar.
+- Prefer a secret iCal address from a dedicated shared or secondary calendar instead of a personal primary calendar.
 - Stored iCal addresses are write-only in Data Tools. Leave the field blank to preserve the current address, or use the removal control to clear it.
 - The app accepts only the exact HTTPS secret-feed format served by `calendar.google.com`; redirects are checked against the same allowlist.
 - Each download has a 10-second timeout and a 5 MiB response limit. Oversized, malformed, or excessively complex calendars are rejected instead of being partially imported.

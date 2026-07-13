@@ -92,10 +92,7 @@ export async function renderSchedule(url: URL, env: Env, sessionUser: SessionUse
         hasEvents: day.events.length > 0,
         hasSlots: day.slots.length > 0,
         events: day.events.map((event) => ({
-          summary: event.summary,
           timeText: event.timeText,
-          description: event.description,
-          htmlLink: event.htmlLink,
         })),
         slots: day.slots.map((slot) => ({
           label: slot.label,

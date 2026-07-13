@@ -217,8 +217,11 @@ describe("google calendar scheduling", () => {
     const scheduleBody = await scheduleResponse.text();
     expect(scheduleResponse.status).toBe(200);
     expect(scheduleBody).toContain("Viewing Google Calendar iCal availability for Base Student");
-    expect(scheduleBody).toContain("iCal Busy Slot");
+    expect(scheduleBody).toContain(">Busy</p>");
     expect(scheduleBody).toContain("13:00 - 14:00");
+    expect(scheduleBody).not.toContain("iCal Busy Slot");
+    expect(scheduleBody).not.toContain("Imported from iCal");
+    expect(scheduleBody).not.toContain("Open in Google Calendar");
     expect(scheduleBody).toContain(
       "Google Calendar iCal fallback mode is read-only. Add full Google OAuth credentials in Data Tools to create invitations from the app.",
     );
@@ -331,8 +334,9 @@ describe("google calendar scheduling", () => {
 
     const scheduleBody = await scheduleResponse.text();
     expect(scheduleResponse.status).toBe(200);
-    expect(scheduleBody).toContain("Moved supervision");
+    expect(scheduleBody).toContain(">Busy</p>");
     expect(scheduleBody).toContain("15:00 - 16:00");
+    expect(scheduleBody).not.toContain("Moved supervision");
     expect(scheduleBody).not.toContain("Weekly supervision");
   });
 
@@ -435,7 +439,8 @@ describe("google calendar scheduling", () => {
       env,
     );
     const scheduleBody = await scheduleResponse.text();
-    expect(scheduleBody).toContain("iCal Busy Slot");
+    expect(scheduleBody).toContain(">Busy</p>");
+    expect(scheduleBody).not.toContain("iCal Busy Slot");
 
     const dataToolsResponse = await fetchHandler(
       new Request("http://localhost/data-tools", {
@@ -459,6 +464,7 @@ describe("google calendar scheduling", () => {
       calendarId: "primary",
       timeZone: "Europe/Helsinki",
     });
+    let eventsRequestUrl = "";
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
 
@@ -467,6 +473,7 @@ describe("google calendar scheduling", () => {
       }
 
       if (url.startsWith("https://www.googleapis.com/calendar/v3/calendars/primary/events")) {
+        eventsRequestUrl = url;
         return jsonResponse({
           items: [
             {
@@ -476,7 +483,7 @@ describe("google calendar scheduling", () => {
               htmlLink: "https://calendar.google.com/calendar/event?eid=existing-sync",
               start: { dateTime: "2026-03-24T13:00:00+02:00" },
               end: { dateTime: "2026-03-24T14:00:00+02:00" },
-              attendees: [{ email: "base@example.edu" }],
+              attendees: [{ email: "private-attendee@example.com" }],
             },
           ],
         });
@@ -497,13 +504,19 @@ describe("google calendar scheduling", () => {
     expect(response.status).toBe(200);
     expect(body).toContain("Google Calendar Scheduling");
     expect(body).toContain("Scheduling for Base Student in Europe/Helsinki.");
-    expect(body).toContain("Existing Sync");
+    expect(body).toContain(">Busy</p>");
     expect(body).toContain("13:00 - 14:00");
+    expect(body).not.toContain("Existing Sync");
+    expect(body).not.toContain("Already booked");
+    expect(body).not.toContain("existing-sync");
+    expect(body).not.toContain("private-attendee@example.com");
+    expect(body).not.toContain("Open in Google Calendar");
     expect(body).toContain("/schedule?week=2026-03-23&amp;student=1&amp;slot=2026-03-24T09%3A00");
     expect(body).toContain("Student: Base Student");
     expect(body).toContain("Topic: Baseline supervision topic");
     expect(body).not.toContain("Baseline student note");
     expect(body).not.toContain("Notes:");
+    expect(new URL(eventsRequestUrl).searchParams.get("fields")).toBe("items(id,start,end)");
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 

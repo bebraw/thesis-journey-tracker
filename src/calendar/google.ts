@@ -98,6 +98,7 @@ export async function listGoogleCalendarEvents(
   url.searchParams.set("timeMin", options.timeMinIso);
   url.searchParams.set("timeMax", options.timeMaxIso);
   url.searchParams.set("timeZone", config.timeZone);
+  url.searchParams.set("fields", "items(id,start,end)");
 
   const response = await fetchImpl(url.toString(), {
     headers: {

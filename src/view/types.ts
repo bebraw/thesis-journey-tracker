@@ -75,10 +75,7 @@ export interface ScheduleSlotViewData {
 }
 
 export interface ScheduleEventViewData {
-  summary: string;
   timeText: string;
-  description: string | null;
-  htmlLink: string | null;
 }
 
 export interface ScheduleDayViewData {

@@ -81,6 +81,7 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
     [
       "Requires client ID, client secret, refresh token, and calendar ID.",
       "Lets advisors pick a slot and create the invite immediately.",
+      "Prefer a dedicated shared or secondary calendar instead of a personal primary calendar.",
       "Works best when scheduling is a regular part of the workflow.",
     ],
     renderButton({
@@ -97,6 +98,7 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
     [
       "Requires only Google Calendar's Secret address in iCal format.",
       "Shows availability but does not let the app create invitations.",
+      "Prefer a secret address from a dedicated shared or secondary calendar.",
       "Useful as a fallback when OAuth setup is not worth the overhead.",
     ],
     renderButton({
@@ -291,7 +293,7 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
         <li>Create a <strong>Web application</strong> OAuth client and, if you use OAuth Playground, add <code>https://developers.google.com/oauthplayground</code> as an authorized redirect URI.</li>
         <li>Copy the client ID and client secret from that OAuth client.</li>
         <li>Open <a href="https://developers.google.com/oauthplayground" target="_blank" rel="noopener noreferrer" class="${TEXT_LINK}">Google OAuth 2.0 Playground</a>, enable <code>Use your own OAuth credentials</code>, authorize exactly <code>https://www.googleapis.com/auth/calendar.events</code>, exchange the code, and copy the refresh token.</li>
-        <li>For the calendar ID, either use <code>primary</code> or open Google Calendar and copy the value from <code>Settings and sharing</code> -> <code>Integrate calendar</code> -> <code>Calendar ID</code>.</li>
+        <li>Prefer a dedicated shared or secondary calendar. Copy its ID from <code>Settings and sharing</code> -> <code>Integrate calendar</code> -> <code>Calendar ID</code>. Use <code>primary</code> only if you accept the app operating on the authorizing user's main calendar.</li>
         <li>Timezone is optional. Use an IANA timezone such as <code>Europe/Helsinki</code>.</li>
       </ol>
       <p class="mt-stack-xs text-app-text-muted dark:text-app-text-muted-dark">
@@ -303,7 +305,7 @@ export function renderGoogleCalendarCard(data: DataToolsPageData): string {
     summary: "What the iCal fallback can and cannot do",
     className: "mt-stack-xs",
     content:
-      '<p class="text-app-text-muted dark:text-app-text-muted-dark">Google Calendar provides a <code>Secret address in iCal format</code> under <code>Settings and sharing</code> -> <code>Integrate calendar</code>. This app can use that link as an easier fallback mode, but it cannot create invitations from the app while using it.</p>',
+      '<p class="text-app-text-muted dark:text-app-text-muted-dark">Google Calendar provides a <code>Secret address in iCal format</code> under <code>Settings and sharing</code> -> <code>Integrate calendar</code>. Prefer a link from a dedicated shared or secondary calendar. This app shows its entries only as busy times and cannot create invitations while using the fallback.</p>',
   });
 
   return renderCard(

@@ -6,13 +6,9 @@ const SLOT_START_HOUR = 9;
 const SLOT_END_HOUR = 17;
 
 export interface ScheduleEventView {
-  id: string;
-  summary: string;
-  description: string | null;
   startLocal: string;
   endLocal: string;
   timeText: string;
-  htmlLink: string | null;
 }
 
 export interface ScheduleSlot {
@@ -63,13 +59,9 @@ export function buildScheduleWeek(
     const startLocal = toEventLocalStart(event, timeZone);
     const endLocal = toEventLocalEnd(event, timeZone);
     return {
-      id: event.id,
-      summary: event.summary,
-      description: event.description,
       startLocal,
       endLocal,
       timeText: buildEventTimeText(startLocal, endLocal),
-      htmlLink: event.htmlLink,
     };
   });
 
