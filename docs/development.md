@@ -11,6 +11,7 @@ This guide collects the commands and workflows you are likely to need while work
 - `npm run ci:local:all`: run every workflow Agent CI detects in the repo
 - `npm run ci:local:retry -- --name <runner-name>`: resume a paused local Agent CI runner after fixing an issue
 - `npm run doctor:local`: diagnose local setup issues, including `.dev.vars`, the D1 binding, migrations, and login accounts
+- `npm run audit:dependencies`: fail on any npm advisory, including development-tool advisories
 - `npm run types:generate`: regenerate the checked-in Worker runtime and binding types
 - `npm run types:check`: verify that [`worker-configuration.d.ts`](../worker-configuration.d.ts) is up to date
 - `npm run typecheck`: run TypeScript without emitting files
@@ -18,7 +19,7 @@ This guide collects the commands and workflows you are likely to need while work
 - `npm run db:seed:sample`: populate the local D1 database with reusable sample students, logs, and phase history
 - `npm test`: run the Vitest suite
 - `npm run test:d1`: run the D1-backed integration tests against Wrangler's local platform proxy
-- `npm run quality:gate:fast`: refresh Worker types, then run TypeScript, unit tests, and D1 integration tests
+- `npm run quality:gate:fast`: audit dependencies, verify Worker types, then run TypeScript, unit tests, and D1 integration tests
 - `npm run quality:gate`: run the full local verification workflow through Agent CI
 - `npm run lighthouse`: run the authenticated Lighthouse performance check
 - `npm run readme:screenshots`: refresh the checked-in README screenshots from the local app running on `127.0.0.1:8788`
@@ -45,6 +46,7 @@ This uses Wrangler's local platform proxy and applies the checked-in migrations 
 ## Local CI With Agent CI
 
 Browser verification now runs through Agent CI rather than a separate local Playwright install flow.
+The checked-in local-CI scripts prewarm dependencies through the fast job's `install` step before parallel jobs start, avoiding concurrent cold installs into the shared local cache.
 
 - Start Docker before running `npm run ci:local` or `npm run ci:local:quiet`.
 - If your clone has no `origin` remote, copy `.env.agent-ci.example` to `.env.agent-ci` and set `GITHUB_REPO=owner/repo`.
@@ -60,6 +62,7 @@ npm run lighthouse
 ```
 
 Reports are written to `reports/lighthouse/`. The audit enforces a minimum performance score of `90` for both mobile and desktop runs.
+Lighthouse is intentionally pinned to `12.6.1`: the current `13.x` dependency tree still triggers OpenTelemetry security advisories. Do not bump it mechanically; verify both `npm audit` and the mobile/desktop performance runs when reevaluating the pin.
 
 For current findings and follow-up work, see [performance-plan.md](./performance-plan.md).
 

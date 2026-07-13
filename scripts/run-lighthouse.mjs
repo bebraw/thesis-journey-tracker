@@ -14,7 +14,7 @@ const SERVER_START_TIMEOUT_MS = 120_000;
 const SERVER_POLL_INTERVAL_MS = 500;
 const MIN_PERFORMANCE_SCORE = 90;
 const LOGIN_NAME = "Advisor";
-const LOGIN_PASSWORD = "e2e-password";
+const LOGIN_PASSWORD = "e2e-password-long";
 
 const auditModes = [
   { id: "mobile", config: undefined },
@@ -191,12 +191,8 @@ async function loginAndGetCookie(credentials) {
       await nameField.fill(credentials.name);
     }
     const passwordField = page.getByLabel("Password");
-    if ((await passwordField.count()) > 0) {
-      await passwordField.fill(credentials.password);
-      await page.getByRole("button", { name: "Sign in" }).click();
-    } else {
-      await page.getByRole("button", { name: "Open demo" }).click();
-    }
+    await passwordField.fill(credentials.password);
+    await page.getByRole("button", { name: "Sign in" }).click();
     await page.waitForURL(DASHBOARD_URL, { timeout: 15_000 });
 
     const cookies = await context.cookies(BASE_URL);

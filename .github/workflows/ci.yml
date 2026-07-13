@@ -34,6 +34,7 @@ jobs:
           test -f .nvmrc
 
       - name: Install dependencies
+        id: install
         shell: bash
         run: npm ci
 

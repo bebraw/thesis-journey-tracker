@@ -14,7 +14,7 @@ The workflow runs:
 - `npm run quality:gate:fast`
 - `npm run e2e && npm run lighthouse`
 
-The fast gate refreshes [`worker-configuration.d.ts`](../worker-configuration.d.ts) before the rest of its checks so the checked-in Worker types stay aligned with the current Wrangler configuration.
+The fast gate fails on npm advisories, then verifies [`worker-configuration.d.ts`](../worker-configuration.d.ts) before the rest of its checks, so CI also rejects checked-in Worker types that drift from the Wrangler configuration instead of silently rewriting them.
 
 The fast job runs inside a digest-pinned `node:24.18.0-bookworm` image, and the browser job runs inside `mcr.microsoft.com/playwright:v1.58.2-noble`. That keeps the local Agent CI runner off the host's Node runtime while still matching the repo's pinned Node and Playwright versions.
 

@@ -5,18 +5,16 @@ import { chromium } from "@playwright/test";
 const BASE_URL = "http://127.0.0.1:8788";
 const OUTPUT_DIR = path.resolve("docs/screenshots");
 const LOGIN_NAME = "Advisor";
-const LOGIN_PASSWORD = "e2e-password";
+const LOGIN_PASSWORD = "e2e-password-long";
 
 async function login(page) {
   await page.goto(`${BASE_URL}/`, { waitUntil: "networkidle" });
   const passwordField = page.getByLabel("Password");
-  if ((await passwordField.count()) > 0) {
-    await page.getByLabel("Name").fill(LOGIN_NAME);
-    await passwordField.fill(LOGIN_PASSWORD);
-    await page.getByRole("button", { name: "Sign in" }).click();
-    await page.waitForURL(`${BASE_URL}/`);
-    await page.waitForLoadState("networkidle");
-  }
+  await page.getByLabel("Name").fill(LOGIN_NAME);
+  await passwordField.fill(LOGIN_PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL(`${BASE_URL}/`);
+  await page.waitForLoadState("networkidle");
 }
 
 async function showStudentPanel(page, studentName) {
