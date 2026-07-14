@@ -6,6 +6,8 @@ This guide covers CI, production deployment, automated backups, and the current 
 
 GitHub Actions runs the workflow in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on pushes to `main` and on pull requests. The same workflow can also be run locally with `npm run ci:local` or `npm run ci:local:quiet`.
 
+GitHub Actions validates the repository but does not publish or promote Worker versions. The connected Cloudflare Git build runs independently and is configured with both its production deploy command and version command set to `npx wrangler versions upload`. Pushes therefore create deployable versions without changing the active production deployment before GitHub CI finishes.
+
 The workflow keeps Node.js `24.18.0` LTS aligned with [`.nvmrc`](../.nvmrc) so local `nvm use` and CI stay aligned.
 
 The workflow runs:
@@ -69,13 +71,18 @@ npm run account:create -- --name "Professor" --role readonly --remote
 
 The command reads a password of at least 15 characters from a hidden interactive prompt. For automation, use `--password-stdin` with a secret-manager source. Plaintext password arguments, custom iteration counts, and SQL printing are intentionally unsupported. Re-run the command for any account whose stored hash uses a work factor other than the current Cloudflare-compatible `100000` format; updating an account revokes its existing sessions.
 
-The `100000` PBKDF2 work factor is the current Workers runtime compatibility ceiling used by this project, not the long-term authentication target. Keep the app private and rate-limited, and prioritize the Cloudflare Access or passkey follow-up tracked in the roadmap.
+The `100000` PBKDF2 work factor is the current Workers runtime compatibility ceiling used by this project. Together with the app's session controls and login throttling, it is accepted for private personal or small-team use. Application throttling is not an edge denial-of-service boundary: sufficiently distributed traffic can still consume D1 reads and PBKDF2 work. If the app is exposed more broadly or shows abuse or unexpected cost, add Cloudflare Access, Turnstile, or an appropriate WAF or rate-limit rule.
 
-5. Deploy:
+5. Upload and promote a reviewed version.
+
+For the normal Git-connected release path, push the commit and wait for both GitHub Actions and the Cloudflare build to succeed. In the Cloudflare build or version details, verify that the uploaded version belongs to the same reviewed commit. Then list recent versions, replace `VERSION_ID` below with the uploaded version's ID, and promote it explicitly:
 
 ```bash
-npm run deploy
+npx wrangler versions list
+npx wrangler versions deploy VERSION_ID@100% -y
 ```
+
+If a local upload is needed instead of the connected build, run `npx wrangler versions upload`, record the returned version ID, and promote it with the same `versions deploy` command only after local or GitHub CI passes. `npm run deploy` uses `wrangler deploy`, which uploads and immediately promotes a version; reserve it for an intentional direct deployment after completing the same checks.
 
 [`wrangler.toml`](../wrangler.toml) explicitly disables public [versioned and aliased Preview URLs](https://developers.cloudflare.com/workers/versions-and-deployments/preview-urls/). A deploy reconciles that setting; for an existing Worker, disable Preview URLs in the Cloudflare dashboard immediately if you cannot deploy yet.
 
@@ -120,11 +127,7 @@ crons = ["30 1 * * *"]
 
 That default means the backup runs daily at `01:30 UTC`.
 
-6. Deploy the Worker after the R2 binding and lifecycle rule are configured:
-
-```bash
-npm run deploy
-```
+6. After the R2 binding and lifecycle rule are configured, upload and promote a reviewed Worker version using step 5 under [Deploying To Cloudflare](#deploying-to-cloudflare).
 
 For more detailed backup notes, see [backups.md](./backups.md).
 
@@ -133,6 +136,7 @@ For more detailed backup notes, see [backups.md](./backups.md).
 - The Worker configuration lives in [`wrangler.toml`](../wrangler.toml).
 - Refresh [`worker-configuration.d.ts`](../worker-configuration.d.ts) with `npm run types:generate` whenever the Worker bindings change.
 - The CSS build runs automatically before deploy through Wrangler's build configuration.
+- Connected Git builds upload versions but do not promote them. Keep production promotion manual until any future automation is explicitly gated on successful GitHub CI for the same commit.
 - If you are upgrading an existing instance, make sure the latest migrations have been applied before or during deployment.
 - Automated backups are stored under the `BACKUP_PREFIX` path in the configured R2 bucket.
 - Automatic Worker traces are disabled because an outbound iCal request contains a bearer-style secret in its URL. Do not enable automatic fetch tracing without a design that redacts that URL before telemetry is stored.
@@ -155,4 +159,5 @@ For more detailed backup notes, see [backups.md](./backups.md).
 - Existing calendar entries are exposed to app users only as `Busy` plus their time. Google API availability reads request only event IDs and start/end values; iCal event summaries, descriptions, attendees, and links never enter the schedule view data. Prefer a dedicated shared or secondary calendar, and use a dedicated Google account when the OAuth credential must not have access to unrelated calendars.
 - Downloaded and automated Markdown reports escape student-supplied text and collapse embedded line breaks so imported content cannot inject headings, links, remote images, or raw HTML.
 - The current model is suitable for private personal or small-team use.
-- If stronger access control is needed later, Cloudflare Access or another SSO layer would be a natural next step.
+- Distributed or rotating-source login traffic can still consume D1 and password-verification work even though the in-app throttles limit ordinary brute force and prevent forced account lockout. This availability and cost exposure is an accepted residual for the current private deployment, not a known authentication bypass. Reassess Cloudflare Access, Turnstile, or edge WAF/rate limiting if exposure or traffic grows.
+- Google OAuth token and Calendar REST responses still need explicit request deadlines and bounded response reads. The iCal download path already has both protections; the remaining implementation work is tracked in the roadmap.

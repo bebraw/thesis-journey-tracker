@@ -4,7 +4,7 @@ This note tracks the next product bets for Thesis Journey Tracker. Keep it focus
 
 ## Current Priority Items
 
-- Put a stronger authentication boundary in front of the Workers-limited `100000`-iteration PBKDF2 verifier, preferably Cloudflare Access or the first phase of the documented passkey plan.
+- Add explicit deadlines and bounded response reads to the Google OAuth token exchange and Calendar REST requests in [`src/calendar/google.ts`](../src/calendar/google.ts). The iCal downloader already enforces both limits.
 - Build student risk flags so the dashboard can surface students who need advisor attention instead of only showing the current cohort state.
 - Validate [`src/ui/foundation/`](../src/ui/foundation) against a second real consumer before moving it into a separate repository or package. The in-repo foundation/app split is now in place, so the remaining gap is proving the API outside this app.
 
