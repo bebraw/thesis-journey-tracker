@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { getPlatformProxy, type PlatformProxy } from "wrangler";
 import { getLoginAttempt, recordLoginFailure, revokeAuthUserSessions } from "../src/auth/store";
+import { deleteAppSecret, getAppSecret, upsertAppSecret } from "../src/calendar/store";
 import {
+  archiveStudent,
   createMeetingLog,
   createPhaseAuditEntry,
   createStudent,
@@ -12,6 +14,7 @@ import {
   listLogsForStudent,
   listPhaseAuditEntriesForStudent,
   listStudents,
+  updateStudent,
   updateStudentWithPhaseAudit,
 } from "../src/students/store";
 
@@ -100,6 +103,16 @@ describe("D1-backed db helpers", () => {
       END;
     `,
     );
+    await runStatement(
+      platform.env.DB,
+      `
+      CREATE TABLE IF NOT EXISTS app_secrets (
+        secret_key TEXT PRIMARY KEY,
+        encrypted_value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `,
+    );
   }, 60_000);
 
   afterAll(async () => {
@@ -115,6 +128,7 @@ describe("D1-backed db helpers", () => {
     await runStatement(platform.env.DB, "DELETE FROM students");
     await runStatement(platform.env.DB, "DELETE FROM login_attempts");
     await runStatement(platform.env.DB, "DELETE FROM app_users");
+    await runStatement(platform.env.DB, "DELETE FROM app_secrets");
   });
 
   it("reads aggregated student data from a local D1 binding", async () => {
@@ -230,6 +244,80 @@ describe("D1-backed db helpers", () => {
       .bind(user!.id)
       .first<{ session_version: number }>();
     expect(updatedUser?.session_version).toBe(2);
+  });
+
+  it("validates returned student rows for creates, updates, and archives", async () => {
+    const studentId = await createStudent(platform.env.DB, {
+      name: "Mutation Student",
+      email: "mutation@example.edu",
+      degreeType: "msc",
+      thesisTopic: "Mutation postconditions",
+      studentNotes: null,
+      startDate: "2026-01-15",
+      currentPhase: "researching",
+      nextMeetingAt: null,
+    });
+
+    expect(studentId).toBeGreaterThan(0);
+
+    await expect(
+      updateStudent(platform.env.DB, studentId, {
+        name: "Updated Mutation Student",
+        email: "mutation@example.edu",
+        degreeType: "msc",
+        thesisTopic: "Mutation postconditions",
+        studentNotes: "Updated through RETURNING",
+        startDate: "2026-01-15",
+        currentPhase: "editing",
+        nextMeetingAt: null,
+      }),
+    ).resolves.toBeUndefined();
+
+    await expect(archiveStudent(platform.env.DB, studentId, "2026-04-01T10:00:00.000Z")).resolves.toBeUndefined();
+    const student = await getStudentById(platform.env.DB, studentId, { includeArchived: true });
+    expect(student?.name).toBe("Updated Mutation Student");
+    expect(student?.archivedAt).toBe("2026-04-01T10:00:00.000Z");
+
+    await expect(
+      updateStudent(platform.env.DB, 999_999, {
+        name: "Missing Student",
+        email: null,
+        degreeType: "msc",
+        thesisTopic: null,
+        studentNotes: null,
+        startDate: null,
+        currentPhase: "research_plan",
+        nextMeetingAt: null,
+      }),
+    ).rejects.toThrow("did not affect the expected database row");
+    await expect(archiveStudent(platform.env.DB, 999_999, "2026-04-01T10:00:00.000Z")).rejects.toThrow(
+      "did not affect the expected database row",
+    );
+  });
+
+  it("validates application secret upserts while keeping deletion idempotent", async () => {
+    await expect(
+      upsertAppSecret(platform.env.DB, "calendar_refresh_token", "encrypted-v1", "2026-04-01T10:00:00.000Z"),
+    ).resolves.toBeUndefined();
+    await expect(
+      upsertAppSecret(platform.env.DB, "calendar_refresh_token", "encrypted-v2", "2026-04-02T10:00:00.000Z"),
+    ).resolves.toBeUndefined();
+
+    await expect(getAppSecret(platform.env.DB, "calendar_refresh_token")).resolves.toEqual({
+      secretKey: "calendar_refresh_token",
+      encryptedValue: "encrypted-v2",
+      updatedAt: "2026-04-02T10:00:00.000Z",
+    });
+
+    await expect(deleteAppSecret(platform.env.DB, "calendar_refresh_token")).resolves.toBeUndefined();
+    await expect(deleteAppSecret(platform.env.DB, "calendar_refresh_token")).resolves.toBeUndefined();
+    await expect(getAppSecret(platform.env.DB, "calendar_refresh_token")).resolves.toBeNull();
+  });
+
+  it("rejects session revocation for a missing user", async () => {
+    await expect(revokeAuthUserSessions(platform.env.DB, 999_999)).rejects.toThrow(
+      "did not affect the expected database row",
+    );
   });
 });
 
