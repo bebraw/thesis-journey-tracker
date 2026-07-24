@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { getPlatformProxy, type PlatformProxy } from "wrangler";
-import { getLoginAttempt, recordLoginFailure } from "../src/auth/store";
+import { getLoginAttempt, recordLoginFailure, revokeAuthUserSessions } from "../src/auth/store";
 import {
   createMeetingLog,
   createPhaseAuditEntry,
@@ -74,6 +74,32 @@ describe("D1-backed db helpers", () => {
         locked_until TEXT
       );
     `);
+    await runStatement(
+      platform.env.DB,
+      `
+      CREATE TABLE IF NOT EXISTS app_users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL CHECK (role IN ('editor', 'readonly')),
+        session_version INTEGER NOT NULL DEFAULT 1 CHECK (session_version >= 1),
+        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      );
+    `,
+    );
+    await runStatement(
+      platform.env.DB,
+      `
+      CREATE TRIGGER IF NOT EXISTS trg_app_users_updated_at
+      AFTER UPDATE ON app_users
+      FOR EACH ROW
+      BEGIN
+        UPDATE app_users
+        SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+        WHERE id = OLD.id;
+      END;
+    `,
+    );
   }, 60_000);
 
   afterAll(async () => {
@@ -88,6 +114,7 @@ describe("D1-backed db helpers", () => {
     await runStatement(platform.env.DB, "DELETE FROM meeting_logs");
     await runStatement(platform.env.DB, "DELETE FROM students");
     await runStatement(platform.env.DB, "DELETE FROM login_attempts");
+    await runStatement(platform.env.DB, "DELETE FROM app_users");
   });
 
   it("reads aggregated student data from a local D1 binding", async () => {
@@ -188,6 +215,21 @@ describe("D1-backed db helpers", () => {
     const attempt = await getLoginAttempt(platform.env.DB, "account:1");
     expect(attempt?.failureCount).toBe(5);
     expect(attempt?.lockedUntil).toBe("2026-03-24T09:15:00.000Z");
+  });
+
+  it("revokes sessions when the app user update trigger adds another D1 change", async () => {
+    await runStatement(platform.env.DB, "INSERT INTO app_users (name, password_hash, role) VALUES ('D1 Advisor', 'unused', 'editor')");
+    const user = await platform.env.DB.prepare("SELECT id, session_version FROM app_users WHERE name = ?")
+      .bind("D1 Advisor")
+      .first<{ id: number; session_version: number }>();
+
+    expect(user).not.toBeNull();
+    await expect(revokeAuthUserSessions(platform.env.DB, user!.id)).resolves.toBeUndefined();
+
+    const updatedUser = await platform.env.DB.prepare("SELECT session_version FROM app_users WHERE id = ?")
+      .bind(user!.id)
+      .first<{ session_version: number }>();
+    expect(updatedUser?.session_version).toBe(2);
   });
 });
 

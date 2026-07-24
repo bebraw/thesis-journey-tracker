@@ -342,7 +342,7 @@ export class MockD1Database {
         return { success: true, meta: { changes: 0 } };
       }
       user.session_version += 1;
-      return { success: true, meta: { changes: 1 } };
+      return { success: true, meta: { changes: 2 } };
     }
 
     if (q.startsWith("INSERT INTO app_secrets")) {

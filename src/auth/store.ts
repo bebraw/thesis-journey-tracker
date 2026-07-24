@@ -101,7 +101,7 @@ export async function revokeAuthUserSessions(db: D1Database, userId: number): Pr
     .bind(userId)
     .run();
 
-  if (!result.success || result.meta.changes !== 1) {
+  if (!result.success || (result.meta.changes ?? 0) < 1) {
     throw new Error("Failed to revoke auth user sessions.");
   }
 }
