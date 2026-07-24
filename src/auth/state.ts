@@ -1,4 +1,5 @@
 import type { Env } from "../app-env";
+import { logError } from "../observability/error-logging";
 import {
   clearLoginAttempt,
   getLoginAttempt,
@@ -115,9 +116,9 @@ export async function verifyLoginCredentials(
     }
     const accountAttempt = currentAttempts.find(({ bucket }) => bucket.kind === "account")?.attempt;
     if (!accountAttempt && candidateUser && passwordHashInspection?.status === "upgrade_required") {
-      console.error("Password hash requires reset", {
-        userId: candidateUser.id,
-        storedIterations: passwordHashInspection.iterations,
+      logError("auth.password_hash_upgrade_required", new Error("Password hash requires reset"), {
+        user_id: candidateUser.id,
+        stored_iterations: passwordHashInspection.iterations,
       });
     }
 

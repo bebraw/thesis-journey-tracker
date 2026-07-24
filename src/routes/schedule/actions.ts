@@ -11,6 +11,7 @@ import {
 import { normalizeString } from "../../forms/normalize";
 import { readFormData } from "../../http/request-body";
 import { redirect } from "../../http/response";
+import { logError } from "../../observability/error-logging";
 import { getStudentById, updateStudent } from "../../students/store";
 import { appendScheduleMessage, getScheduleReturnPath, normalizeScheduleSlotValue } from "./paths";
 
@@ -75,7 +76,7 @@ export async function handleScheduleMeeting(request: Request, env: Env): Promise
       attendeeEmails: [meetingEmail],
     });
   } catch (error) {
-    console.error("Failed to schedule Google Calendar event", error);
+    logError("calendar.event_create_failed", error);
     return redirect(appendScheduleMessage(returnPath, { weekStart, studentId, slotStart, error: "Failed to schedule Google Calendar event" }));
   }
 
@@ -91,7 +92,7 @@ export async function handleScheduleMeeting(request: Request, env: Env): Promise
       nextMeetingAt: localDateTimeToUtcIso(slotStart, calendarSource.config.timeZone),
     });
   } catch (error) {
-    console.error("Google Calendar invite created but student update failed", error);
+    logError("calendar.event_student_update_failed", error);
     return redirect(
       appendScheduleMessage(returnPath, {
         weekStart,

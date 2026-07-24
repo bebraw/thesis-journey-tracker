@@ -15,6 +15,7 @@ import { rejectInvalidMutationOrigin } from "./http/origin";
 import { RequestBodyTooLargeError } from "./http/request-body";
 import { cssResponse, htmlResponse, iconResponse, javascriptResponse, redirect } from "./http/response";
 import { applyBrowserSecurityHeaders } from "./http/security";
+import { logError } from "./observability/error-logging";
 import { handleLoginRequest, handleLogout, readonlyRedirect } from "./routes/auth";
 import {
   handleAddLog,
@@ -72,7 +73,7 @@ export default {
           headers: { "cache-control": "no-store" },
         });
       } else {
-        console.error("Unhandled error", error);
+        logError("request.unhandled", error, requestErrorContext(request));
         response = isLocalDevelopmentRequest(request)
           ? localInternalErrorResponse(error)
           : new Response("Internal server error", { status: 500 });
@@ -84,7 +85,7 @@ export default {
     try {
       await handleScheduledBackup(controller, env);
     } catch (error) {
-      console.error("Scheduled backup failed", error);
+      logError("backup.scheduled_failed", error);
       throw error;
     }
   },
@@ -180,7 +181,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   const securityConfigurationError = validateRuntimeSecrets(env);
   if (securityConfigurationError) {
-    console.error("Invalid security configuration", securityConfigurationError);
+    logError("configuration.security_invalid", securityConfigurationError);
     return new Response("Security configuration is invalid.", {
       status: 500,
       headers: { "cache-control": "no-store" },
@@ -409,4 +410,12 @@ function localInternalErrorResponse(error: unknown): Response {
       "Content-Type": "text/plain; charset=utf-8",
     },
   });
+}
+
+function requestErrorContext(request: Request) {
+  return {
+    method: request.method,
+    path: new URL(request.url).pathname,
+    ray_id: request.headers.get("cf-ray") || undefined,
+  };
 }

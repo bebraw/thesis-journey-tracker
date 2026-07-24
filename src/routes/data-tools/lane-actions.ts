@@ -6,6 +6,7 @@ import {
 } from "../../dashboard-lanes";
 import { readFormData } from "../../http/request-body";
 import { redirect } from "../../http/response";
+import { logError } from "../../observability/error-logging";
 
 export async function handleSaveDashboardLaneSettings(request: Request, env: Env): Promise<Response> {
   const formData = await readFormData(request);
@@ -17,7 +18,7 @@ export async function handleSaveDashboardLaneSettings(request: Request, env: Env
   try {
     await saveDashboardLaneConfig(env, lanes, new Date().toISOString());
   } catch (saveError) {
-    console.error("Failed to save dashboard lane settings", saveError);
+    logError("dashboard_lanes.save_failed", saveError);
     return redirect("/data-tools?error=Failed+to+save+dashboard+lane+settings");
   }
 
@@ -28,7 +29,7 @@ export async function handleResetDashboardLaneSettings(env: Env): Promise<Respon
   try {
     await clearDashboardLaneConfig(env);
   } catch (clearError) {
-    console.error("Failed to reset dashboard lane settings", clearError);
+    logError("dashboard_lanes.reset_failed", clearError);
     return redirect("/data-tools?error=Failed+to+reset+dashboard+lane+settings");
   }
 

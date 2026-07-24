@@ -12,6 +12,7 @@ import {
 import type { D1Database, D1PreparedStatement } from "../../db-core";
 import { IMPORT_FILE_LIMIT_BYTES, IMPORT_FORM_BODY_LIMIT_BYTES, readFormData } from "../../http/request-body";
 import { redirect } from "../../http/response";
+import { logError } from "../../observability/error-logging";
 import { listLogsForStudent, listPhaseAuditEntriesForStudent, listStudents } from "../../students/store";
 
 const MAX_IMPORT_BATCH_STATEMENTS = 750;
@@ -100,7 +101,7 @@ export async function handleImportJson(request: Request, env: Env): Promise<Resp
       await env.DB.batch(statements);
     }
   } catch (error) {
-    console.error("Import failed", error);
+    logError("data_import.failed", error);
     const errorMessage =
       mode === "replace" ? "Replacement import failed. Existing data was left unchanged." : "Import failed. No changes were saved.";
     return redirect(`/data-tools?error=${encodeURIComponent(errorMessage)}`);

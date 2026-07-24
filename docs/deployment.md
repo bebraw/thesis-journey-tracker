@@ -140,6 +140,7 @@ For more detailed backup notes, see [backups.md](./backups.md).
 - If you are upgrading an existing instance, make sure the latest migrations have been applied before or during deployment.
 - Automated backups are stored under the `BACKUP_PREFIX` path in the configured R2 bucket.
 - Automatic Worker traces are disabled because an outbound iCal request contains a bearer-style secret in its URL. Do not enable automatic fetch tracing without a design that redacts that URL before telemetry is stored.
+- Application failures are logged as structured `application_error` objects with stable event names and normalized error fields. Request bodies, cookies, query strings, calendar URLs, and credentials must not be added as log context.
 - Public versioned and aliased Preview URLs are disabled. The stable `workers.dev` endpoint remains a separate production entry point until a custom route is configured and `workers_dev = false` is committed.
 - `npm run db:insights` is useful after deployment for checking whether the dashboard queries stay within expected D1 read and latency budgets.
 

@@ -1,6 +1,7 @@
 import { deleteAppSecret, getAppSecret, upsertAppSecret } from "./store";
 import { decryptText, encryptText } from "../encryption";
 import { normalizeString } from "../forms/normalize";
+import { logError } from "../observability/error-logging";
 import { resolveGoogleCalendarConfig } from "./google";
 import { resolveScheduleTimeZone } from "./scheduling";
 import { normalizeGoogleCalendarIcalUrl } from "./urls";
@@ -79,7 +80,7 @@ export async function getStoredGoogleCalendarSettings(env: Env): Promise<StoredG
       updatedAt: storedSecret.updatedAt,
     };
   } catch (error) {
-    console.error("Failed to load stored Google Calendar settings", error);
+    logError("calendar.settings_load_failed", error);
     return null;
   }
 }

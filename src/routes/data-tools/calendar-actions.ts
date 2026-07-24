@@ -9,6 +9,7 @@ import {
 import { normalizeString } from "../../forms/normalize";
 import { readFormData } from "../../http/request-body";
 import { redirect } from "../../http/response";
+import { logError } from "../../observability/error-logging";
 
 export async function handleSaveGoogleCalendarSettings(request: Request, env: Env): Promise<Response> {
   const formData = await readFormData(request);
@@ -39,7 +40,7 @@ export async function handleSaveGoogleCalendarSettings(request: Request, env: En
       new Date().toISOString(),
     );
   } catch (error) {
-    console.error("Failed to save Google Calendar settings", error);
+    logError("calendar.oauth_settings_save_failed", error);
     return redirect("/data-tools?error=Failed+to+save+encrypted+Google+Calendar+settings");
   }
 
@@ -72,7 +73,7 @@ export async function handleSaveGoogleCalendarIcalSettings(request: Request, env
       new Date().toISOString(),
     );
   } catch (error) {
-    console.error("Failed to save Google Calendar iCal settings", error);
+    logError("calendar.ical_settings_save_failed", error);
     return redirect("/data-tools?error=Failed+to+save+encrypted+Google+Calendar+iCal+settings");
   }
 
@@ -91,7 +92,7 @@ export async function handleClearGoogleCalendarOAuthSettings(env: Env): Promise<
     };
     await saveStoredGoogleCalendarSettings(env, nextSettings, new Date().toISOString());
   } catch (error) {
-    console.error("Failed to clear Google Calendar OAuth settings", error);
+    logError("calendar.oauth_settings_clear_failed", error);
     return redirect("/data-tools?error=Failed+to+clear+stored+Google+Calendar+credentials");
   }
 
@@ -107,7 +108,7 @@ export async function handleClearGoogleCalendarIcalSettings(env: Env): Promise<R
     };
     await saveStoredGoogleCalendarSettings(env, nextSettings, new Date().toISOString());
   } catch (error) {
-    console.error("Failed to clear Google Calendar iCal settings", error);
+    logError("calendar.ical_settings_clear_failed", error);
     return redirect("/data-tools?error=Failed+to+clear+stored+Google+Calendar+iCal+settings");
   }
 
@@ -118,7 +119,7 @@ export async function handleClearGoogleCalendarSettings(env: Env): Promise<Respo
   try {
     await clearStoredGoogleCalendarSettings(env);
   } catch (error) {
-    console.error("Failed to clear Google Calendar settings", error);
+    logError("calendar.settings_clear_failed", error);
     return redirect("/data-tools?error=Failed+to+clear+stored+Google+Calendar+settings");
   }
 

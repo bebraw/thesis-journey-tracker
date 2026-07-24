@@ -15,6 +15,7 @@ import {
   type GoogleCalendarEvent,
 } from "../../calendar";
 import { htmlResponse } from "../../http/response";
+import { logError } from "../../observability/error-logging";
 import { listStudents } from "../../students/store";
 import { renderSchedulePage } from "../../views";
 import { buildSchedulePath, normalizeScheduleSlotValue } from "./paths";
@@ -37,7 +38,7 @@ export async function renderSchedule(url: URL, env: Env, sessionUser: SessionUse
     try {
       events = await listGoogleCalendarEventsForWeek(calendarSource.config, weekStart, timeZone);
     } catch (calendarError) {
-      console.error("Failed to load Google Calendar events", calendarError);
+      logError("calendar.events_load_failed", calendarError);
       syncFailed = true;
       error = error || formatCalendarSyncError(calendarSource.label, calendarError);
     }
@@ -45,7 +46,7 @@ export async function renderSchedule(url: URL, env: Env, sessionUser: SessionUse
     try {
       events = await listIcalCalendarEventsForWeek(calendarSource.iCalUrl, weekStart, timeZone);
     } catch (calendarError) {
-      console.error("Failed to load Google Calendar iCal events", calendarError);
+      logError("calendar.ical_events_load_failed", calendarError);
       syncFailed = true;
       error = error || formatCalendarSyncError(calendarSource.label, calendarError);
     }

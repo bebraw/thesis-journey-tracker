@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { seedTestUsers, loginWithPassword } from "../../tests/helpers/auth";
 import { MockD1Database } from "../../tests/helpers/mock-d1";
 import { sameOriginRequest } from "../../tests/helpers/request";
@@ -25,6 +25,10 @@ describe("multi-user access control", () => {
       { name: "Advisor", password: "editor-password", role: "editor" },
       { name: "Professor", password: "readonly-password", role: "readonly" },
     ]);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("serves a CSP-compatible application shell with security headers", async () => {
@@ -808,8 +812,13 @@ describe("multi-user access control", () => {
     expect(await response.text()).toBe("Security configuration is invalid.");
     expect(response.headers.get("content-security-policy")).toContain("default-src 'none'");
     expect(response.headers.get("strict-transport-security")).toBe("max-age=31536000");
-    expect(consoleError).toHaveBeenCalledWith("Invalid security configuration", expect.stringContaining("SESSION_SECRET"));
-    consoleError.mockRestore();
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "application_error",
+        event: "configuration.security_invalid",
+        error_message: expect.stringContaining("SESSION_SECRET"),
+      }),
+    );
   });
 
   it("rejects oversized login requests before password verification", async () => {
@@ -1094,6 +1103,14 @@ describe("multi-user access control", () => {
       expect.stringMatching(/^client:[A-Za-z0-9_-]{43}$/),
     ]);
     expect(consoleError).toHaveBeenCalledTimes(logsResetRequirement ? 1 : 0);
-    consoleError.mockRestore();
+    if (logsResetRequirement) {
+      expect(consoleError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "application_error",
+          event: "auth.password_hash_upgrade_required",
+          user_id: 1,
+        }),
+      );
+    }
   });
 });

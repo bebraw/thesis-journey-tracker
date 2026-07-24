@@ -3,6 +3,7 @@ import { resolveGoogleCalendarSourceForApp, resolveScheduleTimeZone } from "../.
 import { normalizeDate, normalizeDateTime, normalizeString } from "../../forms/normalize";
 import { readFormData } from "../../http/request-body";
 import { redirect } from "../../http/response";
+import { logError } from "../../observability/error-logging";
 import { parseStudentFormSubmission } from "../../students";
 import {
   archiveStudent,
@@ -28,7 +29,7 @@ export async function handleAddStudent(request: Request, env: Env): Promise<Resp
     const selected = await createStudent(env.DB, studentInput);
     return redirect(`/?selected=${selected}&notice=Student+added`);
   } catch (error) {
-    console.error("Failed to save new student", error);
+    logError("student.create_failed", error);
     return redirect("/students/new?error=Failed+to+save+student");
   }
 }
@@ -64,7 +65,7 @@ export async function handleUpdateStudent(request: Request, env: Env, studentId:
       await updateStudent(env.DB, studentId, studentInput);
     }
   } catch (error) {
-    console.error("Failed to save student update", error);
+    logError("student.update_failed", error);
     return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Failed to save student update" }));
   }
 
@@ -109,7 +110,7 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
       await createMeetingLog(env.DB, logInput);
     }
   } catch (error) {
-    console.error("Failed to save meeting log", error);
+    logError("meeting_log.create_failed", error);
     return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Failed to save log" }));
   }
 
@@ -125,7 +126,7 @@ export async function handleArchiveStudent(request: Request, env: Env, studentId
   try {
     await archiveStudent(env.DB, studentId, new Date().toISOString());
   } catch (error) {
-    console.error("Failed to archive student", error);
+    logError("student.archive_failed", error);
     return redirect(appendDashboardMessage(returnPath, { error: "Failed to archive student" }));
   }
 

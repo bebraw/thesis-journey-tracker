@@ -3,6 +3,7 @@ import { requireAppEncryptionSecret } from "./security/secrets";
 import { deleteAppSecret, getAppSecret, upsertAppSecret } from "./calendar/store";
 import { decryptText, encryptText } from "./encryption";
 import { normalizeString } from "./forms/normalize";
+import { logError } from "./observability/error-logging";
 import { PHASES } from "./students/reference-data";
 import type { PhaseId } from "./students/store";
 
@@ -59,7 +60,7 @@ export async function getStoredDashboardLaneConfig(env: Env): Promise<StoredDash
       updatedAt: storedSecret.updatedAt,
     };
   } catch (error) {
-    console.error("Failed to load stored dashboard lane configuration", error);
+    logError("dashboard_lanes.load_failed", error);
     return null;
   }
 }
