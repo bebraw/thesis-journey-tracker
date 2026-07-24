@@ -73,10 +73,11 @@ export default {
           headers: { "cache-control": "no-store" },
         });
       } else {
-        logError("request.unhandled", error, requestErrorContext(request));
+        const incidentId = getIncidentId(request);
+        logError("request.unhandled", error, requestErrorContext(request, incidentId));
         response = isLocalDevelopmentRequest(request)
           ? localInternalErrorResponse(error)
-          : new Response("Internal server error", { status: 500 });
+          : productionInternalErrorResponse(incidentId);
       }
     }
     return applyBrowserSecurityHeaders(retireLegacyD1Bookmark(response, request), request.url);
@@ -412,8 +413,25 @@ function localInternalErrorResponse(error: unknown): Response {
   });
 }
 
-function requestErrorContext(request: Request) {
+function productionInternalErrorResponse(incidentId: string): Response {
+  return new Response(`Internal server error\nReference: ${incidentId}`, {
+    status: 500,
+    headers: {
+      "Cache-Control": "no-store",
+      "Content-Type": "text/plain; charset=utf-8",
+      "X-Incident-ID": incidentId,
+    },
+  });
+}
+
+function getIncidentId(request: Request): string {
+  const rayId = request.headers.get("cf-ray") || "";
+  return /^[A-Za-z0-9._:-]{1,128}$/.test(rayId) ? rayId : crypto.randomUUID();
+}
+
+function requestErrorContext(request: Request, incidentId: string) {
   return {
+    incident_id: incidentId,
     method: request.method,
     path: new URL(request.url).pathname,
     ray_id: request.headers.get("cf-ray") || undefined,

@@ -821,6 +821,36 @@ describe("multi-user access control", () => {
     );
   });
 
+  it("returns and logs a production incident reference for unhandled errors", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    env.DB.withSession = () => {
+      throw new Error("Sensitive internal failure");
+    };
+
+    const response = await fetchHandler(
+      new Request("https://tracker.example.com/", {
+        headers: { "cf-ray": "abc123-HEL" },
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(500);
+    expect(await response.text()).toBe("Internal server error\nReference: abc123-HEL");
+    expect(response.headers.get("x-incident-id")).toBe("abc123-HEL");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "application_error",
+        event: "request.unhandled",
+        incident_id: "abc123-HEL",
+        ray_id: "abc123-HEL",
+        method: "GET",
+        path: "/",
+        error_message: "Sensitive internal failure",
+      }),
+    );
+  });
+
   it("rejects oversized login requests before password verification", async () => {
     const response = await fetchHandler(
       sameOriginRequest("https://tracker.example.com/login", {
