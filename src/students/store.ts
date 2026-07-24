@@ -1,5 +1,5 @@
 import type { D1Database, D1PreparedStatement } from "../db-core";
-import { parseDbNumber } from "../db-core";
+import { parseDbNumber, requireD1MutationSuccess, requireD1ReturnedId } from "../db-core";
 
 export type PhaseId = "research_plan" | "researching" | "editing" | "submitted";
 
@@ -188,9 +188,9 @@ export async function createStudent(db: D1Database, input: CreateStudentInput): 
   const result = await db
     .prepare(buildInsertStudentQuery())
     .bind(...studentMutationValues(input))
-    .run();
+    .run<{ id: number | string }>();
 
-  return parseDbNumber(result.meta.last_row_id ?? 0);
+  return requireD1ReturnedId(result, "Creating student");
 }
 
 export async function studentExists(db: D1Database, studentId: number, options: StudentQueryOptions = {}): Promise<boolean> {
@@ -200,7 +200,8 @@ export async function studentExists(db: D1Database, studentId: number, options: 
 }
 
 export async function updateStudent(db: D1Database, studentId: number, input: UpdateStudentInput): Promise<void> {
-  await buildUpdateStudentStatement(db, studentId, input).run();
+  const result = await buildUpdateStudentStatement(db, studentId, input).run<{ id: number | string }>();
+  requireD1ReturnedId(result, "Updating student");
 }
 
 export async function updateStudentWithPhaseAudit(
@@ -209,27 +210,42 @@ export async function updateStudentWithPhaseAudit(
   input: UpdateStudentInput,
   auditEntry: CreatePhaseAuditInput,
 ): Promise<void> {
-  await db.batch([buildUpdateStudentStatement(db, studentId, input), buildCreatePhaseAuditStatement(db, auditEntry)]);
+  const results = await db.batch<{ id: number | string }>([
+    buildUpdateStudentStatement(db, studentId, input),
+    buildCreatePhaseAuditStatement(db, auditEntry),
+  ]);
+  requireD1BatchIds(results, "Updating student with phase audit", 2);
 }
 
 export async function archiveStudent(db: D1Database, studentId: number, archivedAt: string): Promise<void> {
-  await db.prepare("UPDATE students SET archived_at = ? WHERE id = ? AND archived_at IS NULL").bind(archivedAt, studentId).run();
+  const result = await db
+    .prepare("UPDATE students SET archived_at = ? WHERE id = ? AND archived_at IS NULL RETURNING id")
+    .bind(archivedAt, studentId)
+    .run<{ id: number | string }>();
+  requireD1ReturnedId(result, "Archiving student");
 }
 
 export async function deleteAllStudents(db: D1Database): Promise<void> {
-  await db.prepare("DELETE FROM students").run();
+  const result = await db.prepare("DELETE FROM students").run();
+  requireD1MutationSuccess(result, "Deleting all students");
 }
 
 export async function createMeetingLog(db: D1Database, input: CreateLogInput): Promise<void> {
-  await buildCreateMeetingLogStatement(db, input).run();
+  const result = await buildCreateMeetingLogStatement(db, input).run<{ id: number | string }>();
+  requireD1ReturnedId(result, "Creating meeting log");
 }
 
 export async function createMeetingLogWithNextMeeting(db: D1Database, input: CreateLogInput, nextMeetingAt: string): Promise<void> {
-  await db.batch([buildCreateMeetingLogStatement(db, input), buildUpdateStudentNextMeetingStatement(db, input.studentId, nextMeetingAt)]);
+  const results = await db.batch<{ id: number | string }>([
+    buildCreateMeetingLogStatement(db, input),
+    buildUpdateStudentNextMeetingStatement(db, input.studentId, nextMeetingAt),
+  ]);
+  requireD1BatchIds(results, "Creating meeting log with next meeting", 2);
 }
 
 export async function createPhaseAuditEntry(db: D1Database, input: CreatePhaseAuditInput): Promise<void> {
-  await buildCreatePhaseAuditStatement(db, input).run();
+  const result = await buildCreatePhaseAuditStatement(db, input).run<{ id: number | string }>();
+  requireD1ReturnedId(result, "Creating phase audit entry");
 }
 
 function mapStudentRow(row: StudentRow): Student {
@@ -251,7 +267,8 @@ function mapStudentRow(row: StudentRow): Student {
 
 function buildInsertStudentQuery(): string {
   return `INSERT INTO students (name, email, degree_type, thesis_topic, student_notes, start_date, current_phase, next_meeting_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       RETURNING id`;
 }
 
 function buildUpdateStudentStatement(db: D1Database, studentId: number, input: UpdateStudentInput): D1PreparedStatement {
@@ -259,7 +276,8 @@ function buildUpdateStudentStatement(db: D1Database, studentId: number, input: U
     .prepare(
       `UPDATE students
        SET name = ?, email = ?, degree_type = ?, thesis_topic = ?, student_notes = ?, start_date = ?, current_phase = ?, next_meeting_at = ?
-       WHERE id = ?`,
+       WHERE id = ?
+       RETURNING id`,
     )
     .bind(...studentMutationValues(input), studentId);
 }
@@ -268,7 +286,8 @@ function buildCreatePhaseAuditStatement(db: D1Database, input: CreatePhaseAuditI
   return db
     .prepare(
       `INSERT INTO student_phase_audit (student_id, changed_at, from_phase, to_phase)
-       VALUES (?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?)
+       RETURNING id`,
     )
     .bind(input.studentId, input.changedAt, input.fromPhase, input.toPhase);
 }
@@ -277,7 +296,8 @@ function buildCreateMeetingLogStatement(db: D1Database, input: CreateLogInput): 
   return db
     .prepare(
       `INSERT INTO meeting_logs (student_id, happened_at, discussed, agreed_plan, next_step_deadline)
-       VALUES (?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?)
+       RETURNING id`,
     )
     .bind(input.studentId, input.happenedAt, input.discussed, input.agreedPlan, input.nextStepDeadline);
 }
@@ -287,7 +307,18 @@ function buildUpdateStudentNextMeetingStatement(
   studentId: number,
   nextMeetingAt: string | null,
 ): D1PreparedStatement {
-  return db.prepare("UPDATE students SET next_meeting_at = ? WHERE id = ?").bind(nextMeetingAt, studentId);
+  return db.prepare("UPDATE students SET next_meeting_at = ? WHERE id = ? RETURNING id").bind(nextMeetingAt, studentId);
+}
+
+function requireD1BatchIds(
+  results: Array<{ success: boolean; meta: { changes?: number }; results?: Array<{ id: number | string }> }>,
+  operation: string,
+  expectedCount: number,
+): void {
+  if (results.length !== expectedCount) {
+    throw new Error(`${operation} returned an incomplete database batch.`);
+  }
+  results.forEach((result) => requireD1ReturnedId(result, operation));
 }
 
 function studentMutationValues(input: StudentMutationInput): Array<string | number | null> {

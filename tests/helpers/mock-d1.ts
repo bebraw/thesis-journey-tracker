@@ -58,6 +58,15 @@ interface QueryCall {
   method: "run" | "first" | "all";
 }
 
+interface MockRunResult {
+  success?: boolean;
+  meta?: {
+    last_row_id?: number;
+    changes?: number;
+  };
+  results?: Array<Record<string, D1Value>>;
+}
+
 export class MockD1Database {
   public students: StudentRowStore[] = [];
   public meetingLogs: MeetingLogStore[] = [];
@@ -98,7 +107,7 @@ export class MockD1Database {
     return this;
   }
 
-  async batch(statements: MockPreparedStatement[]) {
+  async batch<T = unknown>(statements: MockPreparedStatement[]) {
     const snapshot = {
       students: this.students.map((row) => ({ ...row })),
       meetingLogs: this.meetingLogs.map((row) => ({ ...row })),
@@ -115,7 +124,7 @@ export class MockD1Database {
     try {
       const results = [];
       for (const statement of statements) {
-        results.push(await statement.run());
+        results.push(await statement.run<T>());
       }
       return results;
     } catch (error) {
@@ -143,7 +152,7 @@ export class MockD1Database {
     return row.id;
   }
 
-  runQuery(query: string, values: D1Value[]) {
+  runQuery(query: string, values: D1Value[]): MockRunResult {
     const q = normalizeQuery(query);
 
     if (this.failQueries.some((pattern) => (typeof pattern === "string" ? q === pattern : pattern.test(q)))) {
@@ -170,29 +179,29 @@ export class MockD1Database {
       };
       this.students.push(row);
       this.nextStudentId = Math.max(this.nextStudentId, id + 1);
-      return { success: true, meta: { last_row_id: row.id, changes: 1 } };
+      return { success: true, meta: { last_row_id: row.id, changes: 1 }, results: [{ id: row.id }] };
     }
 
-    if (q === "UPDATE students SET archived_at = ? WHERE id = ? AND archived_at IS NULL") {
+    if (q === "UPDATE students SET archived_at = ? WHERE id = ? AND archived_at IS NULL RETURNING id") {
       const archivedAt = values[0] === null ? null : String(values[0]);
       const id = Number(values[1]);
       const row = this.students.find((student) => student.id === id && !student.archived_at);
       if (!row) {
-        return { success: true, meta: { changes: 0 } };
+        return { success: true, meta: { changes: 0 }, results: [] };
       }
       row.archived_at = archivedAt;
-      return { success: true, meta: { changes: 1 } };
+      return { success: true, meta: { changes: 1 }, results: [{ id: row.id }] };
     }
 
-    if (q === "UPDATE students SET next_meeting_at = ? WHERE id = ?") {
+    if (q === "UPDATE students SET next_meeting_at = ? WHERE id = ? RETURNING id") {
       const nextMeetingAt = values[0] === null ? null : String(values[0]);
       const id = Number(values[1]);
       const row = this.students.find((student) => student.id === id);
       if (!row) {
-        return { success: true, meta: { changes: 0 } };
+        return { success: true, meta: { changes: 0 }, results: [] };
       }
       row.next_meeting_at = nextMeetingAt;
-      return { success: true, meta: { changes: 1 } };
+      return { success: true, meta: { changes: 1 }, results: [{ id: row.id }] };
     }
 
     if (q.startsWith("UPDATE students")) {
@@ -200,7 +209,7 @@ export class MockD1Database {
       const id = Number(studentId);
       const row = this.students.find((student) => student.id === id);
       if (!row) {
-        return { success: true, meta: { changes: 0 } };
+        return { success: true, meta: { changes: 0 }, results: [] };
       }
       row.name = String(name);
       row.email = email === null ? null : String(email);
@@ -210,7 +219,7 @@ export class MockD1Database {
       row.start_date = startDate === null ? null : String(startDate);
       row.current_phase = String(phase);
       row.next_meeting_at = nextMeetingAt === null ? null : String(nextMeetingAt);
-      return { success: true, meta: { changes: 1 } };
+      return { success: true, meta: { changes: 1 }, results: [{ id: row.id }] };
     }
 
     if (q === "DELETE FROM students WHERE id = ?") {
@@ -244,7 +253,7 @@ export class MockD1Database {
       };
       this.meetingLogs.push(row);
       this.nextLogId = Math.max(this.nextLogId, id + 1);
-      return { success: true, meta: { last_row_id: row.id, changes: 1 } };
+      return { success: true, meta: { last_row_id: row.id, changes: 1 }, results: [{ id: row.id }] };
     }
 
     if (q.startsWith("INSERT INTO student_phase_audit")) {
@@ -260,7 +269,7 @@ export class MockD1Database {
       };
       this.phaseAuditEntries.push(row);
       this.nextPhaseAuditId = Math.max(this.nextPhaseAuditId, id + 1);
-      return { success: true, meta: { last_row_id: row.id, changes: 1 } };
+      return { success: true, meta: { last_row_id: row.id, changes: 1 }, results: [{ id: row.id }] };
     }
 
     if (q.startsWith("INSERT INTO app_users")) {
@@ -273,7 +282,7 @@ export class MockD1Database {
         existingUser.password_hash = String(passwordHash);
         existingUser.role = String(role);
         existingUser.session_version += 1;
-        return { success: true, meta: { last_row_id: existingUser.id, changes: 1 } };
+        return { success: true, meta: { last_row_id: existingUser.id, changes: 1 }, results: [{ id: existingUser.id }] };
       }
 
       const row: AppUserStore = {
@@ -284,7 +293,7 @@ export class MockD1Database {
         session_version: 1,
       };
       this.appUsers.push(row);
-      return { success: true, meta: { last_row_id: row.id, changes: 1 } };
+      return { success: true, meta: { last_row_id: row.id, changes: 1 }, results: [{ id: row.id }] };
     }
 
     if (q.startsWith("INSERT INTO login_attempts")) {
@@ -302,7 +311,7 @@ export class MockD1Database {
         existingAttempt.last_failed_at = String(updatedLastFailedAt);
         existingAttempt.locked_until =
           isWithinFailureWindow && existingAttempt.failure_count >= Number(maxFailures) ? String(lockedUntil) : null;
-        return { success: true, meta: { changes: 1 } };
+        return { success: true, meta: { changes: 1 }, results: [{ attempt_key: normalizedKey }] };
       }
 
       this.loginAttempts.push({
@@ -312,7 +321,7 @@ export class MockD1Database {
         last_failed_at: String(lastFailedAt),
         locked_until: null,
       });
-      return { success: true, meta: { changes: 1 } };
+      return { success: true, meta: { changes: 1 }, results: [{ attempt_key: normalizedKey }] };
     }
 
     if (q.startsWith("DELETE FROM login_attempts WHERE attempt_key IN")) {
@@ -336,13 +345,13 @@ export class MockD1Database {
       return { success: true, meta: { changes: 1 } };
     }
 
-    if (q === "UPDATE app_users SET session_version = session_version + 1 WHERE id = ?") {
+    if (q === "UPDATE app_users SET session_version = session_version + 1 WHERE id = ? RETURNING id") {
       const user = this.appUsers.find((candidate) => candidate.id === Number(values[0]));
       if (!user) {
-        return { success: true, meta: { changes: 0 } };
+        return { success: true, meta: { changes: 0 }, results: [] };
       }
       user.session_version += 1;
-      return { success: true, meta: { changes: 2 } };
+      return { success: true, meta: { changes: 2 }, results: [{ id: user.id }] };
     }
 
     if (q.startsWith("INSERT INTO app_secrets")) {
@@ -353,7 +362,7 @@ export class MockD1Database {
       if (existingSecret) {
         existingSecret.encrypted_value = String(encryptedValue);
         existingSecret.updated_at = String(updatedAt);
-        return { success: true, meta: { changes: 1 } };
+        return { success: true, meta: { changes: 1 }, results: [{ secret_key: normalizedKey }] };
       }
 
       this.appSecrets.push({
@@ -361,7 +370,7 @@ export class MockD1Database {
         encrypted_value: String(encryptedValue),
         updated_at: String(updatedAt),
       });
-      return { success: true, meta: { changes: 1 } };
+      return { success: true, meta: { changes: 1 }, results: [{ secret_key: normalizedKey }] };
     }
 
     if (q === "DELETE FROM app_secrets WHERE secret_key = ?") {
@@ -510,7 +519,7 @@ class MockPreparedStatement {
     return this;
   }
 
-  async run() {
+  async run<T = Record<string, unknown>>() {
     this.db.calls.push({
       query: this.query,
       values: this.values,
@@ -518,8 +527,9 @@ class MockPreparedStatement {
     });
     const result = this.db.runQuery(this.query, this.values);
     return {
-      results: [],
       ...result,
+      meta: result.meta ?? {},
+      results: (result.results ?? []) as T[],
       success: true as const,
     };
   }

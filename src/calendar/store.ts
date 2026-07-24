@@ -1,4 +1,5 @@
 import type { D1Database } from "../db-core";
+import { requireD1MutationSuccess, requireD1ReturnedRow } from "../db-core";
 
 export interface AppSecret {
   secretKey: string;
@@ -34,18 +35,21 @@ export async function getAppSecret(db: D1Database, secretKey: string): Promise<A
 }
 
 export async function upsertAppSecret(db: D1Database, secretKey: string, encryptedValue: string, updatedAt: string): Promise<void> {
-  await db
+  const result = await db
     .prepare(
       `INSERT INTO app_secrets (secret_key, encrypted_value, updated_at)
        VALUES (?, ?, ?)
        ON CONFLICT(secret_key) DO UPDATE SET
          encrypted_value = excluded.encrypted_value,
-         updated_at = excluded.updated_at`,
+         updated_at = excluded.updated_at
+       RETURNING secret_key`,
     )
     .bind(secretKey, encryptedValue, updatedAt)
-    .run();
+    .run<{ secret_key: string }>();
+  requireD1ReturnedRow(result, "Saving application secret");
 }
 
 export async function deleteAppSecret(db: D1Database, secretKey: string): Promise<void> {
-  await db.prepare("DELETE FROM app_secrets WHERE secret_key = ?").bind(secretKey).run();
+  const result = await db.prepare("DELETE FROM app_secrets WHERE secret_key = ?").bind(secretKey).run();
+  requireD1MutationSuccess(result, "Deleting application secret");
 }

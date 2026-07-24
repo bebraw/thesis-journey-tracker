@@ -1,6 +1,6 @@
 import type { AccessRole } from "./types";
 import type { D1Database } from "../db-core";
-import { parseDbNumber } from "../db-core";
+import { parseDbNumber, requireD1MutationSuccess, requireD1ReturnedId, requireD1ReturnedRow } from "../db-core";
 
 export interface StoredAuthUser {
   id: number;
@@ -30,6 +30,14 @@ interface AuthUserRow {
   password_hash: string;
   role: AccessRole;
   session_version: number | string;
+}
+
+interface ReturnedIdRow {
+  id: number | string;
+}
+
+interface ReturnedAttemptKeyRow {
+  attempt_key: string;
 }
 
 interface LoginAttemptRow {
@@ -66,29 +74,13 @@ export async function upsertAuthUser(db: D1Database, input: UpsertAuthUserInput)
        ON CONFLICT(name) DO UPDATE SET
          password_hash = excluded.password_hash,
          role = excluded.role,
-         session_version = app_users.session_version + 1`,
+         session_version = app_users.session_version + 1
+       RETURNING id`,
     )
     .bind(input.name, input.passwordHash, input.role)
-    .run();
+    .run<ReturnedIdRow>();
 
-  if (!result.success) {
-    throw new Error("Failed to save auth user.");
-  }
-
-  const row = await db
-    .prepare(
-      `SELECT id, name, password_hash, role, session_version
-       FROM app_users
-       WHERE name = ? COLLATE NOCASE`,
-    )
-    .bind(input.name)
-    .first<AuthUserRow>();
-
-  if (!row) {
-    throw new Error("Failed to read saved auth user.");
-  }
-
-  return parseDbNumber(row.id);
+  return requireD1ReturnedId(result, "Saving auth user");
 }
 
 export async function revokeAuthUserSessions(db: D1Database, userId: number): Promise<void> {
@@ -96,14 +88,13 @@ export async function revokeAuthUserSessions(db: D1Database, userId: number): Pr
     .prepare(
       `UPDATE app_users
        SET session_version = session_version + 1
-       WHERE id = ?`,
+       WHERE id = ?
+       RETURNING id`,
     )
     .bind(userId)
-    .run();
+    .run<ReturnedIdRow>();
 
-  if (!result.success || (result.meta.changes ?? 0) < 1) {
-    throw new Error("Failed to revoke auth user sessions.");
-  }
+  requireD1ReturnedId(result, "Revoking auth user sessions");
 }
 
 export async function getLoginAttempt(db: D1Database, attemptKey: string): Promise<LoginAttempt | null> {
@@ -168,7 +159,8 @@ export async function recordLoginFailures(
            locked_until = CASE
              WHEN login_attempts.last_failed_at >= ? AND login_attempts.failure_count + 1 >= ? THEN ?
              ELSE NULL
-           END`,
+           END
+         RETURNING attempt_key`,
       )
       .bind(
         failure.attemptKey,
@@ -183,9 +175,12 @@ export async function recordLoginFailures(
         failure.lockedUntil,
       ),
   );
-  const results = await db.batch(statements);
-  if (results.some((result) => !result.success)) {
-    throw new Error("Failed to record login failures.");
+  const results = await db.batch<ReturnedAttemptKeyRow>(statements);
+  if (results.length !== failures.length) {
+    throw new Error("Recording login failures returned an incomplete database batch.");
+  }
+  for (const result of results) {
+    requireD1ReturnedRow(result, "Recording login failure");
   }
 
   const attempts = await Promise.all(failures.map((failure) => getLoginAttempt(db, failure.attemptKey)));
@@ -196,14 +191,15 @@ export async function recordLoginFailures(
 }
 
 export async function clearLoginAttempt(db: D1Database, attemptKey: string): Promise<void> {
-  await db.prepare("DELETE FROM login_attempts WHERE attempt_key = ?").bind(attemptKey).run();
+  const result = await db.prepare("DELETE FROM login_attempts WHERE attempt_key = ?").bind(attemptKey).run();
+  requireD1MutationSuccess(result, "Clearing login attempt");
 }
 
 export async function pruneExpiredLoginAttempts(
   db: D1Database,
   options: { lastFailureBefore: string; now: string; limit: number },
 ): Promise<void> {
-  await db
+  const result = await db
     .prepare(
       `DELETE FROM login_attempts
        WHERE attempt_key IN (
@@ -217,6 +213,7 @@ export async function pruneExpiredLoginAttempts(
     )
     .bind(options.lastFailureBefore, options.now, options.limit)
     .run();
+  requireD1MutationSuccess(result, "Pruning login attempts");
 }
 
 function mapLoginAttemptRow(row: LoginAttemptRow): LoginAttempt {

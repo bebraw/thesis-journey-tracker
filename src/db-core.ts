@@ -36,3 +36,32 @@ export function parseDbNumber(value: number | string | null | undefined): number
   }
   return 0;
 }
+
+export function requireD1ReturnedRow<T>(
+  result: D1ExecResult & { results?: T[] },
+  operation: string,
+): T {
+  const row = result.results?.[0];
+  if (!result.success || !row) {
+    throw new Error(`${operation} did not affect the expected database row.`);
+  }
+  return row;
+}
+
+export function requireD1MutationSuccess(result: D1ExecResult, operation: string): void {
+  if (!result.success) {
+    throw new Error(`${operation} failed.`);
+  }
+}
+
+export function requireD1ReturnedId(
+  result: D1ExecResult & { results?: Array<{ id: number | string }> },
+  operation: string,
+): number {
+  const row = requireD1ReturnedRow(result, operation);
+  const id = parseDbNumber(row.id);
+  if (!Number.isSafeInteger(id) || id < 1) {
+    throw new Error(`${operation} returned an invalid database row ID.`);
+  }
+  return id;
+}

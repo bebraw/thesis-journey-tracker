@@ -616,7 +616,7 @@ describe("multi-user access control", () => {
     expect(env.DB.meetingLogs).toHaveLength(0);
     expect(env.DB.students[0]?.next_meeting_at).toBeNull();
 
-    env.DB.failQueries = ["UPDATE students SET next_meeting_at = ? WHERE id = ?"];
+    env.DB.failQueries = ["UPDATE students SET next_meeting_at = ? WHERE id = ? RETURNING id"];
     const addLogWithMeetingUpdateResponse = await fetchHandler(
       sameOriginRequest("http://localhost/actions/add-log/1", {
         method: "POST",
@@ -640,7 +640,7 @@ describe("multi-user access control", () => {
     expect(env.DB.meetingLogs).toHaveLength(0);
     expect(env.DB.students[0]?.next_meeting_at).toBeNull();
 
-    env.DB.failQueries = ["UPDATE students SET archived_at = ? WHERE id = ? AND archived_at IS NULL"];
+    env.DB.failQueries = ["UPDATE students SET archived_at = ? WHERE id = ? AND archived_at IS NULL RETURNING id"];
     const archiveResponse = await fetchHandler(
       sameOriginRequest("http://localhost/actions/archive-student/1", {
         method: "POST",
