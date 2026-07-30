@@ -29,6 +29,7 @@ describe("dashboard gantt", () => {
       ],
       null,
       {
+        scope: "active",
         search: "",
         degree: "",
         phase: "",
@@ -61,6 +62,7 @@ describe("dashboard gantt", () => {
       [buildStudent({ startDate: null })],
       null,
       {
+        scope: "active",
         search: "",
         degree: "",
         phase: "",
@@ -89,6 +91,7 @@ describe("dashboard gantt", () => {
       ],
       null,
       {
+        scope: "active",
         search: "",
         degree: "",
         phase: "",

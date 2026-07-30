@@ -14,6 +14,7 @@ import {
   listLogsForStudent,
   listPhaseAuditEntriesForStudent,
   listStudents,
+  restoreStudent,
   updateStudent,
   updateStudentWithPhaseAudit,
 } from "../src/students/store";
@@ -278,6 +279,10 @@ describe("D1-backed db helpers", () => {
     expect(student?.name).toBe("Updated Mutation Student");
     expect(student?.archivedAt).toBe("2026-04-01T10:00:00.000Z");
 
+    await expect(restoreStudent(platform.env.DB, studentId)).resolves.toBeUndefined();
+    const restoredStudent = await getStudentById(platform.env.DB, studentId);
+    expect(restoredStudent?.archivedAt).toBeNull();
+
     await expect(
       updateStudent(platform.env.DB, 999_999, {
         name: "Missing Student",
@@ -293,6 +298,7 @@ describe("D1-backed db helpers", () => {
     await expect(archiveStudent(platform.env.DB, 999_999, "2026-04-01T10:00:00.000Z")).rejects.toThrow(
       "did not affect the expected database row",
     );
+    await expect(restoreStudent(platform.env.DB, 999_999)).rejects.toThrow("did not affect the expected database row");
   });
 
   it("validates application secret upserts while keeping deletion idempotent", async () => {

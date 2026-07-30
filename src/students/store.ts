@@ -225,6 +225,14 @@ export async function archiveStudent(db: D1Database, studentId: number, archived
   requireD1ReturnedId(result, "Archiving student");
 }
 
+export async function restoreStudent(db: D1Database, studentId: number): Promise<void> {
+  const result = await db
+    .prepare("UPDATE students SET archived_at = NULL WHERE id = ? AND archived_at IS NOT NULL RETURNING id")
+    .bind(studentId)
+    .run<{ id: number | string }>();
+  requireD1ReturnedId(result, "Restoring student");
+}
+
 export async function deleteAllStudents(db: D1Database): Promise<void> {
   const result = await db.prepare("DELETE FROM students").run();
   requireD1MutationSuccess(result, "Deleting all students");

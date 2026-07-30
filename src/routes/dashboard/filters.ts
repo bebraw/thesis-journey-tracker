@@ -4,34 +4,44 @@ import { readFormData } from "../../http/request-body";
 const DEFAULT_DASHBOARD_SORT_KEY = "nextMeeting";
 const DEFAULT_DASHBOARD_SORT_DIRECTION: DashboardFilters["sortDirection"] = "asc";
 const DEFAULT_DASHBOARD_VIEW_MODE: DashboardFilters["viewMode"] = "list";
-const DASHBOARD_SORT_KEYS = new Set(["student", "degree", "phase", "target", "nextMeeting", "logs"]);
+const DASHBOARD_SORT_KEYS = new Set(["student", "degree", "phase", "target", "nextMeeting", "archived", "logs"]);
 
 export function getDashboardFilters(searchParams: URLSearchParams): DashboardFilters {
+  const scope: DashboardFilters["scope"] = searchParams.get("scope") === "archived" ? "archived" : "active";
   const rawSortKey = searchParams.get("sort") || "";
   const rawSortDirection = searchParams.get("dir") === "desc" ? "desc" : "asc";
   const sortKey = DASHBOARD_SORT_KEYS.has(rawSortKey) ? rawSortKey : DEFAULT_DASHBOARD_SORT_KEY;
 
   return {
+    scope,
     search: (searchParams.get("search") || "").trim(),
     degree: searchParams.get("degree") || "",
     phase: searchParams.get("phase") || "",
     status: searchParams.get("status") || "",
     viewMode:
-      searchParams.get("view") === "phases"
-        ? "phases"
-        : searchParams.get("view") === "gantt"
-          ? "gantt"
-          : DEFAULT_DASHBOARD_VIEW_MODE,
+      scope === "archived"
+        ? "list"
+        : searchParams.get("view") === "phases"
+          ? "phases"
+          : searchParams.get("view") === "gantt"
+            ? "gantt"
+            : DEFAULT_DASHBOARD_VIEW_MODE,
     sortKey,
     sortDirection: rawSortDirection,
   };
 }
 
-export function buildDashboardPath(filters: DashboardFilters, options: { selectedId?: number; notice?: string; error?: string } = {}): string {
+export function buildDashboardPath(
+  filters: DashboardFilters,
+  options: { selectedId?: number; notice?: string; error?: string } = {},
+): string {
   const searchParams = new URLSearchParams();
 
   if (options.selectedId) {
     searchParams.set("selected", String(options.selectedId));
+  }
+  if (filters.scope === "archived") {
+    searchParams.set("scope", "archived");
   }
   if (filters.search) {
     searchParams.set("search", filters.search);

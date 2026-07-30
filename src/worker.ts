@@ -21,6 +21,7 @@ import {
   handleAddLog,
   handleAddStudent,
   handleArchiveStudent,
+  handleRestoreStudent,
   getDashboardReturnPath,
   handleUpdateStudent,
   renderAddStudent,
@@ -349,6 +350,13 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const readonlyResponse = ensureEditor(await getDashboardReturnPath(request, { selectedId: Number(archiveMatch[1]) }));
     if (readonlyResponse) return readonlyResponse;
     return await handleArchiveStudent(request, env, Number(archiveMatch[1]));
+  }
+
+  const restoreMatch = pathname.match(/^\/actions\/restore-student\/(\d+)$/);
+  if (restoreMatch && request.method === "POST") {
+    const readonlyResponse = ensureEditor(await getDashboardReturnPath(request));
+    if (readonlyResponse) return readonlyResponse;
+    return await handleRestoreStudent(request, env, Number(restoreMatch[1]));
   }
 
   return new Response("Not found", { status: 404 });

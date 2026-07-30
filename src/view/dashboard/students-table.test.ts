@@ -23,6 +23,7 @@ function buildStudent(overrides: Partial<Student> = {}): Student {
 }
 
 const DEFAULT_FILTERS: DashboardFilters = {
+  scope: "active",
   search: "",
   degree: "",
   phase: "",
@@ -120,5 +121,28 @@ describe("students table", () => {
 
     expect(html).toContain('data-workspace-view-button="gantt"');
     expect(html).toContain('aria-pressed="true"><span class="leading-tight">Gantt</span>');
+  });
+
+  it("renders archived students as a history-focused list with archive dates", () => {
+    const html = renderStudentsTable(
+      [buildStudent({ name: "Archived Student", archivedAt: "2026-06-18T09:00:00.000Z", logCount: 7 })],
+      null,
+      { ...DEFAULT_FILTERS, scope: "archived", sortKey: "archived", sortDirection: "desc" },
+      getDefaultDashboardLanes(),
+      "<div>Metrics</div>",
+      "<div>Gantt</div>",
+      "<div>Phases</div>",
+      "<div>Panel</div>",
+      "<div>Empty</div>",
+      { canEdit: true, timeZone: "UTC", activeStudentCount: 3, archivedStudentCount: 1 },
+    );
+
+    expect(html).toContain("Archived students");
+    expect(html).toContain("Archived (local)");
+    expect(html).toContain("18 Jun 2026, 09:00 UTC");
+    expect(html).toContain('href="/?scope=archived&amp;sort=archived&amp;dir=desc"');
+    expect(html).not.toContain("Meeting status");
+    expect(html).not.toContain("<div>Metrics</div>");
+    expect(html).not.toContain('data-workspace-view-button="gantt"');
   });
 });

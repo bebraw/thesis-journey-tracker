@@ -122,6 +122,7 @@ function applySortFromLocation() {
     sortKey === "phase" ||
     sortKey === "target" ||
     sortKey === "nextMeeting" ||
+    sortKey === "archived" ||
     sortKey === "logs";
 
   currentSortKey = isKnownSortKey ? sortKey : defaultSortKey;
@@ -219,6 +220,11 @@ function compareRowsByKey(a, b, key, direction) {
       Number.parseInt(b.getAttribute("data-log-count") || "0", 10),
     );
     return direction === "asc" ? logComparison : logComparison * -1;
+  }
+
+  if (key === "archived") {
+    var archivedComparison = toTimestamp(a.getAttribute("data-archived-at")) - toTimestamp(b.getAttribute("data-archived-at"));
+    return direction === "asc" ? archivedComparison : archivedComparison * -1;
   }
 
   var aMeeting = a.getAttribute("data-next-meeting-date") || "";

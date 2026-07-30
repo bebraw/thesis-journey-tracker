@@ -11,6 +11,7 @@ import {
   createMeetingLogWithNextMeeting,
   createStudent,
   getStudentById,
+  restoreStudent,
   studentExists,
   updateStudent,
   updateStudentWithPhaseAudit,
@@ -130,7 +131,23 @@ export async function handleArchiveStudent(request: Request, env: Env, studentId
     return redirect(appendDashboardMessage(returnPath, { error: "Failed to archive student" }));
   }
 
-  return redirect(appendDashboardMessage(returnPath, { notice: "Student archived" }));
+  return redirect("/?scope=archived&notice=Student+archived");
+}
+
+export async function handleRestoreStudent(request: Request, env: Env, studentId: number): Promise<Response> {
+  const returnPath = await getDashboardReturnPath(request);
+  if (!(await studentExists(env.DB, studentId, { onlyArchived: true }))) {
+    return redirect(appendDashboardMessage(returnPath, { error: "Archived student not found" }));
+  }
+
+  try {
+    await restoreStudent(env.DB, studentId);
+  } catch (error) {
+    logError("student.restore_failed", error);
+    return redirect(appendDashboardMessage(returnPath, { error: "Failed to restore student" }));
+  }
+
+  return redirect("/?notice=Student+restored");
 }
 
 async function resolveDashboardTimeZone(env: Env): Promise<string> {

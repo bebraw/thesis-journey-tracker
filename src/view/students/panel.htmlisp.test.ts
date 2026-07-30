@@ -61,4 +61,19 @@ describe("renderSelectedStudentPanel", () => {
     expect(html).not.toContain("window.confirm");
     expect(html).not.toContain("<script>");
   });
+
+  it("renders archived students read-only with a restore action for editors", () => {
+    const html = renderSelectedStudentPanel(
+      { ...BASE_STUDENT, archivedAt: "2026-06-18T09:00:00.000Z" },
+      [],
+      [],
+      { filters: { scope: "archived", search: "", degree: "", phase: "", status: "", viewMode: "list", sortKey: "archived", sortDirection: "desc" }, timeZone: "UTC" },
+    );
+
+    expect(html).toContain("Archived 18 Jun 2026, 09:00 UTC");
+    expect(html).toContain('action="/actions/restore-student/1"');
+    expect(html).toContain("Restore to active students");
+    expect(html).not.toContain("Save student updates");
+    expect(html).not.toContain("Save log entry");
+  });
 });

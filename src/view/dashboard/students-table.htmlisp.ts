@@ -4,11 +4,13 @@ import type { Student } from "../../students/store";
 import {
   FIELD_CONTROL_WITH_MARGIN,
   FILTER_LABEL,
+  FOCUS_RING,
   MUTED_TEXT_XS,
   SURFACE_CARD,
   TABLE_CELL,
   TABLE_HEADER_ROW,
   TEXT_LINK,
+  TOGGLE_BUTTON_SEGMENTED,
   TOGGLE_GROUP_SEGMENTED,
   TOPIC_TEXT_SM,
   renderBadge,
@@ -45,6 +47,7 @@ interface PreparedStudentRow {
   dataStatusId: string;
   dataTargetDate: string;
   dataNextMeetingDate: string;
+  dataArchivedAt: string;
   dataLogCount: string;
   summaryHtml: unknown;
   mobileDetailsHtml: unknown;
@@ -54,6 +57,7 @@ interface PreparedStudentRow {
   phaseLabel: string;
   targetDate: string;
   nextMeetingText: string;
+  archivedAtText: string;
   logCountText: string;
   statusLabel: string;
 }
@@ -76,6 +80,9 @@ function buildDashboardHref(filters: DashboardFilters, selectedId?: number): str
 
   if (selectedId) {
     searchParams.set("selected", String(selectedId));
+  }
+  if (filters.scope === "archived") {
+    searchParams.set("scope", "archived");
   }
   if (filters.search) {
     searchParams.set("search", filters.search);
@@ -148,14 +155,12 @@ function prepareStudentRows(
     );
 
     return {
-      rowClass:
-        `${isSelected ? "bg-app-brand-soft dark:bg-app-brand-soft-dark/20" : "hover:bg-app-surface-soft dark:hover:bg-app-surface-soft-dark/35"} cursor-pointer transition-colors`,
-      mobileCardClass:
-        `rounded-card border p-panel-sm transition ${
-          isSelected
-            ? "border-app-brand bg-app-brand-soft/80 dark:border-app-brand-ring dark:bg-app-brand-soft-dark/20"
-            : "border-app-line bg-app-surface hover:border-app-line-strong hover:bg-app-surface-soft dark:border-app-line-dark dark:bg-app-surface-dark dark:hover:border-app-line-dark-strong dark:hover:bg-app-surface-soft-dark/40"
-        }`,
+      rowClass: `${isSelected ? "bg-app-brand-soft dark:bg-app-brand-soft-dark/20" : "hover:bg-app-surface-soft dark:hover:bg-app-surface-soft-dark/35"} cursor-pointer transition-colors`,
+      mobileCardClass: `rounded-card border p-panel-sm transition ${
+        isSelected
+          ? "border-app-brand bg-app-brand-soft/80 dark:border-app-brand-ring dark:bg-app-brand-soft-dark/20"
+          : "border-app-line bg-app-surface hover:border-app-line-strong hover:bg-app-surface-soft dark:border-app-line-dark dark:bg-app-surface-dark dark:hover:border-app-line-dark-strong dark:hover:bg-app-surface-soft-dark/40"
+      }`,
       selectedAttr: isSelected ? "true" : "false",
       selectHref: buildDashboardHref(filters, student.id),
       studentIdAttr: String(student.id),
@@ -170,40 +175,54 @@ function prepareStudentRows(
       dataStatusId: statusId,
       dataTargetDate: targetSubmissionDate || "",
       dataNextMeetingDate: student.nextMeetingAt || "",
+      dataArchivedAt: student.archivedAt || "",
       dataLogCount: String(student.logCount),
       summaryHtml: raw(summaryHtml),
-      mobileDetailsHtml: raw(renderMetadataList({
-        items: [
-          { label: "Target", value: targetSubmissionDate || "Not set" },
-          { label: "Next meeting", value: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked" },
-          { label: "Logs", value: String(student.logCount) },
-          {
-            label: "Status",
-            value:
-              statusId === "overdue"
-                ? "Overdue"
-                : statusId === "not_booked"
-                  ? "Not booked"
-                  : statusId === "within_2_weeks"
-                    ? "Meeting soon"
-                    : "Scheduled",
-          },
-        ],
-        className: "mt-stack-xs grid-cols-2 gap-x-stack-xs gap-y-badge-y text-xs sm:grid-cols-2",
-        itemClassName: "",
-        termClassName: "text-app-text-muted dark:text-app-text-muted-dark",
-        valueClassName: "mt-1 font-medium",
-      })),
-      degreeBadgeHtml: raw(renderBadge({
-        label: degreeLabel,
-      })),
-      phaseBadgeHtml: raw(renderBadge({
-        label: phaseLabel,
-      })),
+      mobileDetailsHtml: raw(
+        renderMetadataList({
+          items:
+            filters.scope === "archived"
+              ? [
+                  { label: "Archived", value: student.archivedAt ? formatDateTime(student.archivedAt, timeZone) : "Unknown" },
+                  { label: "Logs", value: String(student.logCount) },
+                ]
+              : [
+                  { label: "Target", value: targetSubmissionDate || "Not set" },
+                  { label: "Next meeting", value: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked" },
+                  { label: "Logs", value: String(student.logCount) },
+                  {
+                    label: "Status",
+                    value:
+                      statusId === "overdue"
+                        ? "Overdue"
+                        : statusId === "not_booked"
+                          ? "Not booked"
+                          : statusId === "within_2_weeks"
+                            ? "Meeting soon"
+                            : "Scheduled",
+                  },
+                ],
+          className: "mt-stack-xs grid-cols-2 gap-x-stack-xs gap-y-badge-y text-xs sm:grid-cols-2",
+          itemClassName: "",
+          termClassName: "text-app-text-muted dark:text-app-text-muted-dark",
+          valueClassName: "mt-1 font-medium",
+        }),
+      ),
+      degreeBadgeHtml: raw(
+        renderBadge({
+          label: degreeLabel,
+        }),
+      ),
+      phaseBadgeHtml: raw(
+        renderBadge({
+          label: phaseLabel,
+        }),
+      ),
       degreeLabel,
       phaseLabel,
       targetDate: targetSubmissionDate || "Not set",
       nextMeetingText: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked",
+      archivedAtText: student.archivedAt ? formatDateTime(student.archivedAt, timeZone) : "Unknown",
       logCountText: String(student.logCount),
       statusLabel:
         statusId === "overdue"
@@ -227,9 +246,10 @@ export function renderStudentsTable(
   phaseLanesHtml: string,
   selectedPanel: string,
   emptySelectedPanel: string,
-  options: { canEdit?: boolean; timeZone?: string } = {},
+  options: { canEdit?: boolean; timeZone?: string; activeStudentCount?: number; archivedStudentCount?: number } = {},
 ): string {
-  const { canEdit = false, timeZone } = options;
+  const { canEdit = false, timeZone, activeStudentCount = students.length, archivedStudentCount = 0 } = options;
+  const isArchivedScope = filters.scope === "archived";
   const degreeFilterOptions = prepareFilterOptions(
     [
       { value: "", label: "All degree types" },
@@ -261,17 +281,25 @@ export function renderStudentsTable(
     filters.status,
   );
   const studentRows = prepareStudentRows(students, selectedStudent, filters, dashboardLanes, timeZone);
-  const sortHeaders: PreparedSortHeader[] = [
-    { key: "student", label: "Student" },
-    { key: "degree", label: "Degree" },
-    { key: "phase", label: "Phase" },
-    { key: "target", label: "Target" },
-    { key: "nextMeeting", label: "Next meeting (local)" },
-    { key: "logs", label: "Logs" },
-  ];
+  const sortHeaders: PreparedSortHeader[] = isArchivedScope
+    ? [
+        { key: "student", label: "Student" },
+        { key: "degree", label: "Degree" },
+        { key: "phase", label: "Last phase" },
+        { key: "archived", label: "Archived (local)" },
+        { key: "logs", label: "Logs" },
+      ]
+    : [
+        { key: "student", label: "Student" },
+        { key: "degree", label: "Degree" },
+        { key: "phase", label: "Phase" },
+        { key: "target", label: "Target" },
+        { key: "nextMeeting", label: "Next meeting (local)" },
+        { key: "logs", label: "Logs" },
+      ];
   const filtersPanelHtml = renderInsetCard(
     renderView(
-      `<div class="grid grid-cols-1 gap-stack-xs sm:grid-cols-2 xl:grid-cols-4">
+      `<div &class="filterGridClass">
         <label &class="filterLabelClass">
           Search
           <input
@@ -299,7 +327,7 @@ export function renderStudentsTable(
             </fragment>
           </select>
         </label>
-        <label &class="filterLabelClass">
+        <label &visibleIf="showMeetingStatusFilter" &class="filterLabelClass">
           Meeting status
           <select id="statusFilter" &class="filterControlClass">
             <fragment &foreach="statusFilterOptions as option">
@@ -310,6 +338,8 @@ export function renderStudentsTable(
       </div>`,
       {
         filterLabelClass: FILTER_LABEL,
+        filterGridClass: `grid grid-cols-1 gap-stack-xs sm:grid-cols-2 ${isArchivedScope ? "xl:grid-cols-3" : "xl:grid-cols-4"}`,
+        showMeetingStatusFilter: !isArchivedScope,
         filterControlClass: FIELD_CONTROL_WITH_MARGIN,
         searchValue: filters.search,
         degreeFilterOptions,
@@ -319,11 +349,9 @@ export function renderStudentsTable(
     ),
     "mb-panel-sm",
   );
-  const activeFiltersPanelHtml = renderInsetCard(
-    "",
-    "mb-panel-sm hidden bg-app-surface-soft/55 dark:bg-app-surface-soft-dark/25",
-    { id: "activeDashboardFilters" },
-  );
+  const activeFiltersPanelHtml = renderInsetCard("", "mb-panel-sm hidden bg-app-surface-soft/55 dark:bg-app-surface-soft-dark/25", {
+    id: "activeDashboardFilters",
+  });
   const workspaceViewToggleHtml = renderToggleGroup({
     className: TOGGLE_GROUP_SEGMENTED,
     items: [
@@ -350,19 +378,40 @@ export function renderStudentsTable(
       },
     ],
   });
+  const scopeToggleHtml = renderView(
+    `<nav aria-label="Student scope" &class="toggleGroupClass">
+      <a href="/" &class="toggleButtonClass" &aria-pressed="activePressed">Active <span &children="activeCount"></span></a>
+      <a href="/?scope=archived&sort=archived&dir=desc" &class="toggleButtonClass" &aria-pressed="archivedPressed">Archived <span &children="archivedCount"></span></a>
+    </nav>`,
+    {
+      toggleGroupClass: TOGGLE_GROUP_SEGMENTED,
+      toggleButtonClass: `${TOGGLE_BUTTON_SEGMENTED} ${FOCUS_RING}`,
+      activePressed: isArchivedScope ? "false" : "true",
+      archivedPressed: isArchivedScope ? "true" : "false",
+      activeCount: String(activeStudentCount),
+      archivedCount: String(archivedStudentCount),
+    },
+  );
 
   return renderView(
     `<section id="dashboardWorkspace">
       <article &class="studentsCardClass">
-        <div class="mb-panel-sm">
+        <div class="mb-panel-sm" &visibleIf="showMetrics">
           <div id="workspaceMetricStrip"><fragment &children="metricsHtml"></fragment></div>
+        </div>
+        <div class="mb-panel-sm flex flex-col gap-stack-xs sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold" &children="scopeHeading"></h2>
+            <p class="mt-1 text-sm text-app-text-muted dark:text-app-text-muted-dark" &children="scopeDescription"></p>
+          </div>
+          <fragment &children="scopeToggleHtml"></fragment>
         </div>
         <fragment &children="filtersPanelHtml"></fragment>
         <fragment &children="activeFiltersPanelHtml"></fragment>
         <div class="mb-stack flex flex-col gap-stack-xs lg:flex-row lg:items-center lg:justify-between">
           <p id="studentResultsMeta" class="min-w-0 text-sm font-medium text-app-text-muted dark:text-app-text-muted-dark"></p>
           <div class="flex w-full flex-col gap-stack sm:w-auto sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
-            <fragment &children="workspaceViewToggleHtml"></fragment>
+            <fragment &visibleIf="showWorkspaceViews" &children="workspaceViewToggleHtml"></fragment>
             <div class="flex w-full flex-col gap-stack-xs sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
               <fragment &children="addStudentButtonHtml"></fragment>
               <fragment &children="panelToggleButtonHtml"></fragment>
@@ -392,6 +441,7 @@ export function renderStudentsTable(
                   &data-status-id="row.dataStatusId"
                   &data-target-date="row.dataTargetDate"
                   &data-next-meeting-date="row.dataNextMeetingDate"
+                  &data-archived-at="row.dataArchivedAt"
                   &data-log-count="row.dataLogCount"
                   &aria-selected="row.selectedAttr"
                   tabindex="0"
@@ -407,9 +457,7 @@ export function renderStudentsTable(
                 </article>
               </fragment>
             </fragment>
-            <p &visibleIf="showEmptyRow" class="rounded-card border border-app-line bg-app-surface-soft/55 px-panel-sm py-stack-xs text-sm text-app-text-muted dark:border-app-line-dark dark:bg-app-surface-soft-dark/25 dark:text-app-text-muted-dark">
-              No students yet.
-            </p>
+            <p &visibleIf="showEmptyRow" class="rounded-card border border-app-line bg-app-surface-soft/55 px-panel-sm py-stack-xs text-sm text-app-text-muted dark:border-app-line-dark dark:bg-app-surface-soft-dark/25 dark:text-app-text-muted-dark" &children="emptyStateText"></p>
           </div>
           <div class="hidden overflow-x-auto rounded-card border border-app-line bg-app-surface-soft/35 dark:border-app-line-dark dark:bg-app-surface-soft-dark/20 sm:block">
             <table class="w-full min-w-table divide-y divide-app-line text-sm dark:divide-app-line-dark">
@@ -449,6 +497,7 @@ export function renderStudentsTable(
                       &data-status-id="row.dataStatusId"
                       &data-target-date="row.dataTargetDate"
                       &data-next-meeting-date="row.dataNextMeetingDate"
+                      &data-archived-at="row.dataArchivedAt"
                       &data-log-count="row.dataLogCount"
                       &aria-selected="row.selectedAttr"
                       tabindex="0"
@@ -456,14 +505,17 @@ export function renderStudentsTable(
                       <td &class="studentCellClass"><fragment &children="row.summaryHtml"></fragment></td>
                       <td &class="cellClass" &children="row.degreeLabel"></td>
                       <td &class="cellClass" &children="row.phaseLabel"></td>
-                      <td &class="cellClass" &children="row.targetDate"></td>
-                      <td &class="cellClass" &children="row.nextMeetingText"></td>
+                      <fragment &visibleIf="showActiveColumns">
+                        <td &class="cellClass" &children="row.targetDate"></td>
+                        <td &class="cellClass" &children="row.nextMeetingText"></td>
+                      </fragment>
+                      <td &visibleIf="showArchivedColumn" &class="cellClass" &children="row.archivedAtText"></td>
                       <td &class="cellClass" &children="row.logCountText"></td>
                     </tr>
                   </fragment>
                 </fragment>
                 <tr &visibleIf="showEmptyRow">
-                  <td colspan="6" class="px-cell-x py-stack-xs text-sm text-app-text-muted dark:text-app-text-muted-dark">No students yet.</td>
+                  <td &colspan="emptyColumnCount" class="px-cell-x py-stack-xs text-sm text-app-text-muted dark:text-app-text-muted-dark" &children="emptyStateText"></td>
                 </tr>
               </tbody>
             </table>
@@ -484,6 +536,13 @@ export function renderStudentsTable(
       studentCellClass: `${TABLE_CELL} w-[30%] min-w-[18rem] max-w-[22rem] align-top pr-panel-sm`,
       mutedTextXs: MUTED_TEXT_XS,
       workspaceViewToggleHtml: raw(workspaceViewToggleHtml),
+      scopeToggleHtml: raw(scopeToggleHtml),
+      showMetrics: !isArchivedScope,
+      showWorkspaceViews: !isArchivedScope,
+      scopeHeading: isArchivedScope ? "Archived students" : "Active students",
+      scopeDescription: isArchivedScope
+        ? "Review retained supervision history or restore a student to active work."
+        : "Track current thesis progress, meetings, and next actions.",
       listViewClass: `${filters.viewMode === "list" ? "" : "hidden "}space-y-stack-xs`,
       phaseViewClass: filters.viewMode === "phases" ? "" : "hidden ",
       ganttViewClass: filters.viewMode === "gantt" ? "" : "hidden ",
@@ -502,18 +561,24 @@ export function renderStudentsTable(
             })
           : "",
       ),
-      panelToggleButtonHtml: raw(renderButton({
-        label: selectedStudent ? "Hide details" : "Show details",
-        type: "button",
-        variant: "neutral",
-        className: "inline-flex w-full min-w-[9.5rem] justify-center sm:w-auto xl:hidden",
-        attrs: {
-          id: "toggleStudentPanelButton",
-          "aria-expanded": selectedStudent ? "true" : "false",
-        },
-      })),
+      panelToggleButtonHtml: raw(
+        renderButton({
+          label: selectedStudent ? "Hide details" : "Show details",
+          type: "button",
+          variant: "neutral",
+          className: "inline-flex w-full min-w-[9.5rem] justify-center sm:w-auto xl:hidden",
+          attrs: {
+            id: "toggleStudentPanelButton",
+            "aria-expanded": selectedStudent ? "true" : "false",
+          },
+        }),
+      ),
       selectedPanelShellClass: `${selectedStudent ? "" : "hidden "}mb-panel-sm`,
       showEmptyRow: studentRows.length === 0,
+      showActiveColumns: !isArchivedScope,
+      showArchivedColumn: isArchivedScope,
+      emptyColumnCount: isArchivedScope ? "5" : "6",
+      emptyStateText: isArchivedScope ? "No archived students." : "No students yet.",
       studentRows,
       metricsHtml: raw(metricsHtml),
       ganttHtml: raw(ganttHtml),

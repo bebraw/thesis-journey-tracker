@@ -14,6 +14,7 @@ export interface Metrics {
 }
 
 export interface DashboardFilters {
+  scope: "active" | "archived";
   search: string;
   degree: string;
   phase: string;
@@ -34,6 +35,8 @@ export interface DashboardPageData {
   notice: string | null;
   error: string | null;
   metrics: Metrics;
+  activeStudentCount: number;
+  archivedStudentCount: number;
   timeZone: string;
   showStyleGuide: boolean;
 }

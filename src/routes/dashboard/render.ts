@@ -9,12 +9,14 @@ import { renderAddStudentPage, renderDashboardPage, renderEmptySelectedPanel, re
 import { getDashboardFilters } from "./filters";
 
 export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser, showStyleGuide: boolean): Promise<Response> {
-  const [students, calendarSource, dashboardLanes] = await Promise.all([
+  const filters = getDashboardFilters(url.searchParams);
+  const [activeStudents, archivedStudents, calendarSource, dashboardLanes] = await Promise.all([
     listStudents(env.DB),
+    listStudents(env.DB, { onlyArchived: true }),
     resolveGoogleCalendarSourceForApp(env),
     resolveDashboardLanesForApp(env),
   ]);
-  const filters = getDashboardFilters(url.searchParams);
+  const students = filters.scope === "archived" ? archivedStudents : activeStudents;
   const timeZone = resolveScheduleTimeZone(calendarSource?.timeZone);
 
   const selectedIdParam = url.searchParams.get("selected");
@@ -50,6 +52,8 @@ export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUs
       notice,
       error,
       metrics,
+      activeStudentCount: activeStudents.length,
+      archivedStudentCount: archivedStudents.length,
       timeZone,
       showStyleGuide,
     }),
@@ -76,8 +80,9 @@ export async function renderAddStudent(env: Env, url: URL, sessionUser: SessionU
 }
 
 export async function renderStudentPanelPartial(env: Env, url: URL, studentId: number, sessionUser: SessionUser): Promise<Response> {
+  const filters = getDashboardFilters(url.searchParams);
   const [selectedStudent, calendarSource, dashboardLanes] = await Promise.all([
-    getStudentById(env.DB, studentId),
+    getStudentById(env.DB, studentId, filters.scope === "archived" ? { onlyArchived: true } : {}),
     resolveGoogleCalendarSourceForApp(env),
     resolveDashboardLanesForApp(env),
   ]);
@@ -92,7 +97,7 @@ export async function renderStudentPanelPartial(env: Env, url: URL, studentId: n
     renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, {
       canEdit: sessionUser.role !== "readonly",
       dashboardLanes,
-      filters: getDashboardFilters(url.searchParams),
+      filters,
       timeZone: resolveScheduleTimeZone(calendarSource?.timeZone),
     }),
   );

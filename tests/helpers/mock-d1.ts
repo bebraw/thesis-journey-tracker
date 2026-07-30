@@ -193,6 +193,16 @@ export class MockD1Database {
       return { success: true, meta: { changes: 1 }, results: [{ id: row.id }] };
     }
 
+    if (q === "UPDATE students SET archived_at = NULL WHERE id = ? AND archived_at IS NOT NULL RETURNING id") {
+      const id = Number(values[0]);
+      const row = this.students.find((student) => student.id === id && Boolean(student.archived_at));
+      if (!row) {
+        return { success: true, meta: { changes: 0 }, results: [] };
+      }
+      row.archived_at = null;
+      return { success: true, meta: { changes: 1 }, results: [{ id: row.id }] };
+    }
+
     if (q === "UPDATE students SET next_meeting_at = ? WHERE id = ? RETURNING id") {
       const nextMeetingAt = values[0] === null ? null : String(values[0]);
       const id = Number(values[1]);

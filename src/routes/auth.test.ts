@@ -211,6 +211,31 @@ describe("multi-user access control", () => {
     expect(body).toMatch(/Students tracked[\s\S]*?text-2xl[^>]*>1<\/p>[\s\S]*?Active thesis records\./);
     expect(body).not.toContain("All active and archived thesis records.");
     expect(body).not.toContain("Archived Student");
+
+    const archivedResponse = await fetchHandler(
+      new Request("http://localhost/?scope=archived&sort=archived&dir=desc", {
+        headers: { cookie },
+      }),
+      env,
+    );
+    const archivedBody = await archivedResponse.text();
+    expect(archivedResponse.status).toBe(200);
+    expect(archivedBody).toContain("Archived students");
+    expect(archivedBody).toContain("Archived Student");
+    expect(archivedBody).not.toContain("Base Student");
+    expect(archivedBody).not.toContain("Students tracked");
+
+    const restoreResponse = await fetchHandler(
+      sameOriginRequest("http://localhost/actions/restore-student/2", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded", cookie },
+        body: new URLSearchParams({ returnTo: "/?scope=archived&selected=2" }),
+      }),
+      env,
+    );
+    expect(restoreResponse.status).toBe(302);
+    expect(restoreResponse.headers.get("location")).toBe("/?notice=Student+restored");
+    expect(env.DB.students[1]?.archived_at).toBeNull();
   });
 
   it("renders the student partial for readonly accounts", async () => {

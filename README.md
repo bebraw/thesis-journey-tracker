@@ -54,7 +54,7 @@ The project is intentionally small and server-rendered, with a focused workflow 
 - Follow upcoming meetings from the dashboard, and clear a cancelled meeting until a new time is booked.
 - Use quick stats on the dashboard to jump straight into filtered student views that need attention.
 - Use the Gantt view to estimate advisor workload visually from student start dates and degree-based thesis duration assumptions.
-- Archive completed or inactive students without deleting their supervision history.
+- Archive completed or inactive students without deleting their supervision history, review them from the dashboard's `Archived` scope, and restore them when supervision resumes.
 - Open a weekly Google Calendar scheduling view where existing entries appear only as busy times, choose a student to update the week immediately, and send meeting invites without copying internal student notes into invitation defaults. If you want a lower-friction setup, the app also supports a read-only Google Calendar iCal fallback for availability.
 - Export or restore the dataset as JSON backups, and download an email-ready Markdown status report.
 - Store automated Cloudflare backups in R2 when deployed with the scheduled backup setup.

@@ -23,6 +23,7 @@ function buildStudent(overrides: Partial<Student> = {}): Student {
 }
 
 const DEFAULT_FILTERS: DashboardFilters = {
+  scope: "active",
   search: "",
   degree: "",
   phase: "",

@@ -235,6 +235,9 @@ export function renderSelectedStudentPanel(
   const { canEdit = true, dashboardLanes = [], filters, timeZone } = options;
   const returnSearchParams = new URLSearchParams();
   returnSearchParams.set("selected", String(student.id));
+  if (filters?.scope === "archived") {
+    returnSearchParams.set("scope", "archived");
+  }
   if (filters?.search) {
     returnSearchParams.set("search", filters.search);
   }
@@ -363,6 +366,67 @@ export function renderSelectedStudentPanel(
     preparedLogs,
     preparedPhaseAudit,
   );
+
+  if (student.archivedAt) {
+    const restoreActionHtml = canEdit
+      ? renderView(
+          `<form &action="action" method="post" &data-confirm-message="confirmMessage">
+            <input type="hidden" name="returnTo" &value="returnTo" />
+            <fragment &children="restoreButtonHtml"></fragment>
+          </form>`,
+          {
+            action: `/actions/restore-student/${student.id}`,
+            returnTo,
+            confirmMessage: `Restore ${student.name} to active students?`,
+            restoreButtonHtml: raw(renderButton({
+              label: "Restore to active students",
+              type: "submit",
+              variant: "primary",
+            })),
+          },
+        )
+      : "";
+
+    return renderView(
+      `<article &class="cardClass">
+        <section>
+          <div class="flex items-start justify-between gap-stack-xs">
+            <div class="min-w-0">
+              <h2 data-selected-student-heading="1" tabindex="-1" class="text-lg font-semibold" &children="selectedHeadingText"></h2>
+              <p &visibleIf="topicVisible" &class="topicTextClass" &children="topic"></p>
+            </div>
+            <fragment &children="closeButtonHtml"></fragment>
+          </div>
+          <div class="mt-stack-xs flex flex-wrap items-center justify-between gap-stack-xs rounded-card border border-app-line bg-app-surface-soft/55 px-panel-sm py-stack-xs dark:border-app-line-dark dark:bg-app-surface-soft-dark/25">
+            <div>
+              <p class="text-sm font-semibold">Archived student</p>
+              <p class="mt-1 text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="archivedAtText"></p>
+            </div>
+            <fragment &children="restoreActionHtml"></fragment>
+          </div>
+        </section>
+        <fragment &children="summaryHtml"></fragment>
+        <fragment &children="historyPanelHtml"></fragment>
+      </article>`,
+      {
+        cardClass: `${PANEL_STACK} ${SURFACE_CARD}`,
+        selectedHeadingText: `Selected student: ${student.name}`,
+        topicVisible: Boolean(student.thesisTopic),
+        topic: student.thesisTopic || "",
+        topicTextClass: TOPIC_TEXT,
+        archivedAtText: `Archived ${formatDateTime(student.archivedAt, timeZone)}`,
+        restoreActionHtml: raw(restoreActionHtml),
+        closeButtonHtml: raw(renderButton({
+          label: "Close",
+          type: "button",
+          variant: "inline",
+          attrs: { id: "closeSelectedStudentPanelButton", "aria-label": "Close student workspace" },
+        })),
+        summaryHtml: raw(renderReadonlyStudentSummary(student, dashboardLanes, timeZone)),
+        historyPanelHtml: raw(renderInsetCard(historyContentHtml, "bg-app-surface-soft/60 dark:bg-app-surface-soft-dark/30")),
+      },
+    );
+  }
 
   if (!canEdit) {
     return renderView(
