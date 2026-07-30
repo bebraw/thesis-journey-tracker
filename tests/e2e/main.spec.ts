@@ -530,8 +530,10 @@ test.describe("dashboard e2e", () => {
 
     await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Student archived");
     await expect.poll(() => new URL(page.url()).searchParams.get("notice")).toBeNull();
+    await expect.poll(() => new URL(page.url()).searchParams.get("scope")).toBe("archived");
+    await expect(page.getByRole("heading", { name: "Archived students" })).toBeVisible();
     await page.locator("#studentSearch").fill(secondaryStudentName);
-    await expect(page.locator("[data-student-row]", { hasText: secondaryStudentName })).toHaveCount(0);
+    await expect(page.locator("[data-student-row]", { hasText: secondaryStudentName })).toHaveCount(1);
     await expect(page.locator("#selectedStudentPanel")).toContainText(
       "Select a student from the table to edit details and view/add supervision logs.",
     );

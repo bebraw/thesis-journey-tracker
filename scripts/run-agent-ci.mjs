@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-export const AGENT_CI_VERSION = "0.17.0";
+export const AGENT_CI_VERSION = "0.17.1";
 export const RUNNER_IMAGE_ALIAS = "ghcr.io/actions/actions-runner:latest";
 export const RUNNER_IMAGE_DIGEST = "sha256:08c30b0a7105f64bddfc485d2487a22aa03932a791402393352fdf674bda2c29";
 export const RUNNER_IMAGE_REFERENCE = `ghcr.io/actions/actions-runner@${RUNNER_IMAGE_DIGEST}`;
@@ -169,7 +169,7 @@ export async function runAgentCi(args, options = {}) {
   configModule.applyAgentCiEnv(root);
 
   if (environment.DOCKER_HOST) {
-    throw new Error("DOCKER_HOST is unsupported by Agent CI 0.17.0; use AGENT_CI_DOCKER_HOST instead.");
+    throw new Error("DOCKER_HOST is unsupported by Agent CI 0.17.1; use AGENT_CI_DOCKER_HOST instead.");
   }
   if (args[0] === "run") {
     (options.prepareRunner || ensurePinnedRunnerAlias)({
