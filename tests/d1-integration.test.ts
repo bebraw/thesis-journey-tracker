@@ -8,6 +8,7 @@ import { deleteAppSecret, getAppSecret, upsertAppSecret } from "../src/calendar/
 import {
   archiveStudent,
   createMeetingLog,
+  createMeetingLogWithNextMeeting,
   createPhaseAuditEntry,
   createStudent,
   getStudentById,
@@ -170,6 +171,37 @@ describe("D1-backed db helpers", () => {
     expect(student?.lastLogAt).toBe("2026-03-22T09:00:00.000Z");
     expect(logs[0]?.discussed).toBe("Integration test log");
     expect(phaseAudit[0]?.toPhase).toBe("researching");
+  });
+
+  it("clears a saved next meeting when a meeting log has no follow-up time", async () => {
+    const studentId = await createStudent(platform.env.DB, {
+      name: "Unscheduled Follow-up Student",
+      email: null,
+      degreeType: "msc",
+      thesisTopic: null,
+      studentNotes: null,
+      startDate: "2026-01-15",
+      currentPhase: "researching",
+      nextMeetingAt: "2026-04-10T09:00:00.000Z",
+    });
+
+    await createMeetingLogWithNextMeeting(
+      platform.env.DB,
+      {
+        studentId,
+        happenedAt: "2026-04-10T09:00:00.000Z",
+        discussed: "Reviewed current draft",
+        agreedPlan: "Continue revisions before scheduling the next meeting",
+        nextStepDeadline: null,
+      },
+      null,
+    );
+
+    const student = await getStudentById(platform.env.DB, studentId);
+    const logs = await listLogsForStudent(platform.env.DB, studentId);
+
+    expect(logs).toHaveLength(1);
+    expect(student?.nextMeetingAt).toBeNull();
   });
 
   it("rolls back the student update when the phase audit insert fails in a D1 batch", async () => {

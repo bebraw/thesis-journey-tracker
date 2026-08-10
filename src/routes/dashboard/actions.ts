@@ -7,7 +7,6 @@ import { logError } from "../../observability/error-logging";
 import { parseStudentFormSubmission } from "../../students";
 import {
   archiveStudent,
-  createMeetingLog,
   createMeetingLogWithNextMeeting,
   createStudent,
   getStudentById,
@@ -105,11 +104,7 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
       nextStepDeadline,
     };
 
-    if (nextMeetingAt) {
-      await createMeetingLogWithNextMeeting(env.DB, logInput, nextMeetingAt);
-    } else {
-      await createMeetingLog(env.DB, logInput);
-    }
+    await createMeetingLogWithNextMeeting(env.DB, logInput, nextMeetingAt);
   } catch (error) {
     logError("meeting_log.create_failed", error);
     return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Failed to save log" }));

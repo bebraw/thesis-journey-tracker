@@ -243,7 +243,7 @@ export async function createMeetingLog(db: D1Database, input: CreateLogInput): P
   requireD1ReturnedId(result, "Creating meeting log");
 }
 
-export async function createMeetingLogWithNextMeeting(db: D1Database, input: CreateLogInput, nextMeetingAt: string): Promise<void> {
+export async function createMeetingLogWithNextMeeting(db: D1Database, input: CreateLogInput, nextMeetingAt: string | null): Promise<void> {
   const results = await db.batch<{ id: number | string }>([
     buildCreateMeetingLogStatement(db, input),
     buildUpdateStudentNextMeetingStatement(db, input.studentId, nextMeetingAt),

@@ -41,6 +41,9 @@ describe("renderSelectedStudentPanel", () => {
     expect(addLogFormHtml).toMatch(/Meeting date\/time[\s\S]*?<input[^>]*name="happenedAt"[^>]*value="2026-04-10T12:00"/);
     expect(nextMeetingInputHtml).toBeDefined();
     expect(nextMeetingInputHtml).not.toContain(' value="');
+    expect(addLogFormHtml).toContain(
+      "Leave blank if no next meeting was scheduled. Saving clears any previously saved next-meeting time.",
+    );
   });
 
   it("formats stored timestamps using the explicit panel timezone", () => {

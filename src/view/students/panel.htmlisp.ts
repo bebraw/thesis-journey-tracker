@@ -7,6 +7,7 @@ import {
   EMPTY_STATE_CARD,
   FIELD_CONTROL,
   FORM_STACK,
+  MUTED_TEXT_XS,
   PANEL_STACK,
   SOFT_SURFACE_CARD,
   SUBTLE_TEXT,
@@ -315,7 +316,12 @@ export function renderSelectedStudentPanel(
     `<form &action="action" method="post" &class="formStack">
       <input type="hidden" name="returnTo" &value="returnTo" />
       <fragment &children="happenedAtField"></fragment>
-      <fragment &children="nextMeetingField"></fragment>
+      <div>
+        <fragment &children="nextMeetingField"></fragment>
+        <p &class="nextMeetingHintClass">
+          Leave blank if no next meeting was scheduled. Saving clears any previously saved next-meeting time.
+        </p>
+      </div>
       <fragment &children="discussedField"></fragment>
       <fragment &children="agreedPlanField"></fragment>
       <fragment &children="submitButton"></fragment>
@@ -339,6 +345,7 @@ export function renderSelectedStudentPanel(
         className: FIELD_CONTROL,
         attrs: DATETIME_LOCAL_HALF_HOUR_STEP,
       })),
+      nextMeetingHintClass: `mt-2 ${MUTED_TEXT_XS}`,
       discussedField: raw(renderTextareaField({
         label: "What was discussed",
         name: "discussed",

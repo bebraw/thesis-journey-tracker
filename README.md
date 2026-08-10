@@ -50,7 +50,7 @@ The project is intentionally small and server-rendered, with a focused workflow 
 - Track each student through thesis phases from planning to submission.
 - Configure the dashboard lane labels at the app level while keeping the original four-phase board structure as the default.
 - Switch between `List`, `Phases`, and `Gantt` views depending on whether you need detail, workflow stage, or workload shape.
-- Store supervision logs with discussion notes, action items, and an optional follow-up meeting time in one save.
+- Store supervision logs with discussion notes, action items, and an optional follow-up meeting time in one save; leaving the follow-up blank marks the next meeting as not booked.
 - Follow upcoming meetings from the dashboard, and clear a cancelled meeting until a new time is booked.
 - Use quick stats on the dashboard to jump straight into filtered student views that need attention.
 - Use the Gantt view to estimate advisor workload visually from student start dates and degree-based thesis duration assumptions.

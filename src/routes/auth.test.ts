@@ -589,6 +589,44 @@ describe("multi-user access control", () => {
     expect(env.DB.students[0]?.next_meeting_at).toBe("2026-04-08T09:00:00.000Z");
   });
 
+  it.each([
+    ["blank", ""],
+    ["omitted", null],
+  ] as const)("clears the saved next meeting when the follow-up time is %s", async (_submission, nextMeetingAt) => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    expect(cookie.startsWith("thesis_session=")).toBe(true);
+
+    env.DB.students[0].next_meeting_at = "2026-04-10T09:00:00.000Z";
+
+    const body = new URLSearchParams({
+      returnTo: "/?selected=1",
+      happenedAt: "2026-04-10T12:00",
+      discussed: "Reviewed current draft",
+      agreedPlan: "Continue revisions before scheduling the next meeting",
+      nextStepDeadline: "",
+    });
+    if (nextMeetingAt !== null) {
+      body.set("nextMeetingAt", nextMeetingAt);
+    }
+
+    const response = await fetchHandler(
+      sameOriginRequest("http://localhost/actions/add-log/1", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie,
+        },
+        body,
+      }),
+      env,
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/?selected=1&notice=Log+saved");
+    expect(env.DB.meetingLogs).toHaveLength(1);
+    expect(env.DB.students[0]?.next_meeting_at).toBeNull();
+  });
+
   it("returns user-facing errors when dashboard mutations fail", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
