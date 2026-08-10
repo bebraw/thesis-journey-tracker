@@ -23,7 +23,7 @@ This guide collects the commands and workflows you are likely to need while work
 - `npm run quality:gate`: run the full local verification workflow through Agent CI
 - `npm run lighthouse`: run the authenticated Lighthouse performance check
 - `npm run readme:screenshots`: refresh the checked-in README screenshots from the local app running on `127.0.0.1:8788`
-- `npm run deploy`: upload and immediately promote the Worker; use only for an intentional direct deployment after completing the checks in the [production release procedure](./deployment.md#deploying-to-cloudflare)
+- `npm run deploy`: directly upload and promote the Worker as a fallback when the normal `main`-branch Cloudflare build is unavailable; complete the checks in the [production release procedure](./deployment.md#deploying-to-cloudflare) first
 
 ## Testing
 

@@ -6,7 +6,7 @@ This guide covers CI, production deployment, automated backups, and the current 
 
 GitHub Actions runs the workflow in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on pushes to `main` and on pull requests. The same workflow can also be run locally with `npm run ci:local` or `npm run ci:local:quiet`.
 
-GitHub Actions validates the repository but does not publish or promote Worker versions. The connected Cloudflare Git build runs independently and is configured with both its production deploy command and version command set to `npx wrangler versions upload`. Pushes therefore create deployable versions without changing the active production deployment before GitHub CI finishes.
+GitHub Actions validates the repository but does not publish Worker versions. The connected Cloudflare Git build runs independently: its `main` production trigger uses `npx wrangler deploy`, while non-production branches use `npx wrangler versions upload`. A successful Cloudflare build from `main` therefore promotes the new version to production automatically. Because Cloudflare Builds is not gated on GitHub Actions, treat every push to `main` as a production release and complete the relevant checks before pushing.
 
 The workflow keeps Node.js `24.18.0` LTS aligned with [`.nvmrc`](../.nvmrc) so local `nvm use` and CI stay aligned.
 
@@ -73,16 +73,13 @@ The command reads a password of at least 15 characters from a hidden interactive
 
 The `100000` PBKDF2 work factor is the current Workers runtime compatibility ceiling used by this project. Together with the app's session controls and login throttling, it is accepted for private personal or small-team use. Application throttling is not an edge denial-of-service boundary: sufficiently distributed traffic can still consume D1 reads and PBKDF2 work. If the app is exposed more broadly or shows abuse or unexpected cost, add Cloudflare Access, Turnstile, or an appropriate WAF or rate-limit rule.
 
-5. Upload and promote a reviewed version.
+5. Deploy a reviewed version.
 
-For the normal Git-connected release path, push the commit and wait for both GitHub Actions and the Cloudflare build to succeed. In the Cloudflare build or version details, verify that the uploaded version belongs to the same reviewed commit. Then list recent versions, replace `VERSION_ID` below with the uploaded version's ID, and promote it explicitly:
+For the normal Git-connected release path, push the reviewed commit to `main`. The connected Cloudflare build runs `npx wrangler deploy`, which uploads the version and promotes it to 100% of production traffic after that build succeeds. Monitor both GitHub Actions and the Cloudflare build because they run independently; a Cloudflare deployment can complete before GitHub Actions finishes.
 
-```bash
-npx wrangler versions list
-npx wrangler versions deploy VERSION_ID@100% -y
-```
+Keep the Worker settings under **Settings → Build** aligned with this workflow: the production branch is `main`, its deploy command is `npx wrangler deploy`, and the non-production branch deploy command remains `npx wrangler versions upload`.
 
-If a local upload is needed instead of the connected build, run `npx wrangler versions upload`, record the returned version ID, and promote it with the same `versions deploy` command only after local or GitHub CI passes. `npm run deploy` uses `wrangler deploy`, which uploads and immediately promotes a version; reserve it for an intentional direct deployment after completing the same checks.
+If the connected build is unavailable, `npm run deploy` is the direct fallback and likewise uploads and immediately promotes a version. Run the same release checks first. To stage a version without promoting it, use `npx wrangler versions upload`; that is an intentional manual-release flow rather than the default `main` behavior.
 
 [`wrangler.toml`](../wrangler.toml) explicitly disables public [versioned and aliased Preview URLs](https://developers.cloudflare.com/workers/versions-and-deployments/preview-urls/). A deploy reconciles that setting; for an existing Worker, disable Preview URLs in the Cloudflare dashboard immediately if you cannot deploy yet.
 
@@ -127,7 +124,7 @@ crons = ["30 1 * * *"]
 
 That default means the backup runs daily at `01:30 UTC`.
 
-6. After the R2 binding and lifecycle rule are configured, upload and promote a reviewed Worker version using step 5 under [Deploying To Cloudflare](#deploying-to-cloudflare).
+6. After the R2 binding and lifecycle rule are configured, deploy a reviewed Worker version using step 5 under [Deploying To Cloudflare](#deploying-to-cloudflare).
 
 For more detailed backup notes, see [backups.md](./backups.md).
 
@@ -136,7 +133,7 @@ For more detailed backup notes, see [backups.md](./backups.md).
 - The Worker configuration lives in [`wrangler.toml`](../wrangler.toml).
 - Refresh [`worker-configuration.d.ts`](../worker-configuration.d.ts) with `npm run types:generate` whenever the Worker bindings change.
 - The CSS build runs automatically before deploy through Wrangler's build configuration.
-- Connected Git builds upload versions but do not promote them. Keep production promotion manual until any future automation is explicitly gated on successful GitHub CI for the same commit.
+- Successful connected Git builds from `main` automatically promote their version to production. GitHub Actions runs independently and does not gate that promotion.
 - If you are upgrading an existing instance, make sure the latest migrations have been applied before or during deployment.
 - Automated backups are stored under the `BACKUP_PREFIX` path in the configured R2 bucket.
 - Automatic Worker traces are disabled because an outbound iCal request contains a bearer-style secret in its URL. Do not enable automatic fetch tracing without a design that redacts that URL before telemetry is stored.
