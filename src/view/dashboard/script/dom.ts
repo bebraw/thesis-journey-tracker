@@ -22,9 +22,6 @@ var selectedStudentPanelShell = null;
 var selectedStudentPanel = null;
 var selectedStudentHeading = null;
 var emptySelectedStudentPanelTemplate = null;
-var selectedStudentToolButtons = [];
-var selectedStudentToolPanels = [];
-var toggleStudentPanelButton = null;
 var closeSelectedStudentPanelButton = null;
 var defaultSortKey = "nextMeeting";
 var defaultSortDirection = "asc";
@@ -57,12 +54,5 @@ function syncDashboardDom() {
     ? selectedStudentPanel.querySelector("[data-selected-student-heading='1']")
     : null;
   emptySelectedStudentPanelTemplate = document.getElementById("emptySelectedStudentPanelTemplate");
-  selectedStudentToolButtons = selectedStudentPanel
-    ? Array.prototype.slice.call(selectedStudentPanel.querySelectorAll("[data-selected-tool-button='1']"))
-    : [];
-  selectedStudentToolPanels = selectedStudentPanel
-    ? Array.prototype.slice.call(selectedStudentPanel.querySelectorAll("[data-selected-tool-panel='1']"))
-    : [];
-  toggleStudentPanelButton = document.getElementById("toggleStudentPanelButton");
   closeSelectedStudentPanelButton = document.getElementById("closeSelectedStudentPanelButton");
 }`;

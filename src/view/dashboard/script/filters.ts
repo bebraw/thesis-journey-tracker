@@ -4,8 +4,8 @@ function createFilterChip(label, clearKey, clearAll) {
   button.type = "button";
   button.className =
     clearAll
-      ? "rounded-control border border-app-field bg-app-surface px-badge-x py-badge-pill-y text-xs font-medium text-app-text shadow-sm hover:bg-app-surface-soft dark:border-app-field-dark dark:bg-app-surface-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark/70"
-      : "rounded-control bg-app-brand-soft px-badge-x py-badge-pill-y text-xs font-medium text-app-text shadow-sm hover:bg-app-brand-soft/80 dark:bg-app-brand-soft-dark/25 dark:text-app-text-dark dark:hover:bg-app-brand-soft-dark/35";
+      ? "rounded-control border border-app-field bg-app-surface px-badge-x py-badge-pill-y text-xs font-medium text-app-text hover:bg-app-surface-soft dark:border-app-field-dark dark:bg-app-surface-dark dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark/70"
+      : "rounded-control bg-app-brand-soft px-badge-x py-badge-pill-y text-xs font-medium text-app-text hover:bg-app-brand-soft/80 dark:bg-app-brand-soft-dark/25 dark:text-app-text-dark dark:hover:bg-app-brand-soft-dark/35";
   button.textContent = label;
   button.addEventListener("click", function () {
     clearDashboardFilter(clearKey);
@@ -56,7 +56,7 @@ function renderActiveFilterSummary() {
   activeDashboardFilters.classList.remove("hidden");
 
   var label = document.createElement("p");
-  label.className = "text-xs font-medium uppercase tracking-wide text-app-text-muted dark:text-app-text-muted-dark";
+  label.className = "text-xs font-medium text-app-text-muted dark:text-app-text-muted-dark";
   label.textContent = "Active filters";
   activeDashboardFilters.appendChild(label);
 
@@ -136,7 +136,7 @@ function applyStudentFilters() {
     var matchesQuery = !query || name.indexOf(query) !== -1 || email.indexOf(query) !== -1 || topic.indexOf(query) !== -1 || notes.indexOf(query) !== -1;
     var matchesDegree = !degree || rowDegree === degree;
     var matchesPhase = !phase || rowPhase === phase;
-    var matchesStatus = !status || rowStatus === status;
+    var matchesStatus = !status || (status === "past_target" ? row.getAttribute("data-past-target") === "1" : rowStatus === status);
     var visible = matchesQuery && matchesDegree && matchesPhase && matchesStatus;
     var matchingCard = mobileStudentCards.find(function (card) {
       return getMobileCardStudentId(card) === getRowStudentId(row);
@@ -185,6 +185,8 @@ function applyStudentFilters() {
     studentResultsMeta.textContent = "Showing " + visibleCount + " of " + studentRows.length + " students";
   }
 
+  var empty = document.getElementById("noMatchingStudents");
+  if (empty) empty.classList.toggle("hidden", visibleCount > 0 || studentRows.length === 0);
   renderActiveFilterSummary();
 }
 

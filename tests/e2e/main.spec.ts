@@ -31,17 +31,22 @@ async function selectStudentFromTable(page: Page, studentName: string) {
 }
 
 async function showStudentPanel(page: Page) {
-  const panelShell = page.locator("#selectedStudentPanelShell");
-  if (await panelShell.isVisible()) {
-    return;
-  }
+  await expect(page.locator("#selectedStudentPanelShell")).toBeVisible();
+}
 
-  await page.getByRole("button", { name: /Show (details|editing)/ }).click();
-  await expect(panelShell).toBeVisible();
+async function ensureFiltersOpen(page: Page) {
+  const details = page.locator("details", { has: page.locator("#degreeFilter") });
+  if (!(await details.evaluate((element: HTMLDetailsElement) => element.open))) await details.locator("summary").click();
 }
 
 async function openSelectedStudentTool(page: Page, label: "Edit" | "Add log" | "History") {
-  await page.locator("#selectedStudentPanel").getByRole("button", { name: label }).click();
+  if (label === "Add log") return;
+  const panel = page.locator("#selectedStudentPanel");
+  const labels = label === "Edit" ? ["Edit details"] : ["Earlier notes", "Phase history"];
+  for (const text of labels) {
+    const details = panel.locator("details", { has: page.locator("summary", { hasText: text }) });
+    if (!(await details.evaluate((element: HTMLDetailsElement) => element.open))) await details.locator("summary").click();
+  }
 }
 
 async function addStudent(
@@ -189,12 +194,14 @@ test.describe("dashboard e2e", () => {
 
     await selectStudentFromTable(page, createdStudentName);
     await expect(page.locator("[data-student-row]", { hasText: createdStudentName })).toContainText("BSc");
-    await expect(page.locator("[data-student-row]", { hasText: createdStudentName })).toContainText(`Topic ${suffix} A`);
+    await expect(page.locator("#selectedStudentPanel")).toContainText(`Topic ${suffix} A`);
     await page.locator("#studentSearch").fill("");
 
+    await ensureFiltersOpen(page);
     await page.locator("#degreeFilter").selectOption({ label: "DSc" });
     await expect(page.locator("[data-student-row]", { hasText: secondaryStudentName })).toHaveCount(1);
     await expect(page.locator("[data-student-row]", { hasText: createdStudentName })).toBeHidden();
+    await ensureFiltersOpen(page);
     await page.locator("#degreeFilter").selectOption({
       label: "All degree types",
     });
@@ -205,18 +212,18 @@ test.describe("dashboard e2e", () => {
     await lanePartialResponse;
 
     await expect(page.locator("#selectedStudentPanelShell")).toBeVisible();
-    await expect(page.locator("#selectedStudentPanel")).toContainText(`Selected student: ${secondaryStudentName}`);
+    await expect(page.locator("#selectedStudentPanel")).toContainText(secondaryStudentName);
     await expect.poll(() => new URL(page.url()).searchParams.get("selected")).not.toBeNull();
     await expect.poll(() => new URL(page.url()).searchParams.get("view")).toBe("phases");
 
     const laneLogSuffix = Date.now().toString();
     await openSelectedStudentTool(page, "Add log");
-    await page.locator("#selectedStudentPanel").getByLabel("What was discussed").fill(`Lane discussion ${laneLogSuffix}`);
-    await page.locator("#selectedStudentPanel").getByLabel("Agreed plan / next actions").fill(`Lane plan ${laneLogSuffix}`);
+    await page.locator("#selectedStudentPanel").getByLabel("Discussion").fill(`Lane discussion ${laneLogSuffix}`);
+    await page.locator("#selectedStudentPanel").getByLabel("Next actions").fill(`Lane plan ${laneLogSuffix}`);
     await page.evaluate(() => {
       (window as Window & { __laneLogNoReloadMarker?: number }).__laneLogNoReloadMarker = 1;
     });
-    await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save log entry" }).click();
+    await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save note" }).click();
 
     await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Log saved");
     await expect.poll(() => new URL(page.url()).searchParams.get("notice")).toBeNull();
@@ -229,6 +236,7 @@ test.describe("dashboard e2e", () => {
     await login(page);
 
     await page.locator("#studentSearch").fill(secondaryStudentName);
+    await ensureFiltersOpen(page);
     await page.locator("#degreeFilter").selectOption("dsc");
 
     await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe(secondaryStudentName);
@@ -252,6 +260,76 @@ test.describe("dashboard e2e", () => {
     await expect.poll(() => new URL(page.url()).searchParams.get("selected")).not.toBeNull();
   });
 
+  test("keeps note and edit drafts across selection, close, history, and failed saves", async ({ page }) => {
+    await login(page);
+    await selectStudentFromTable(page, "Mia Koskinen");
+    const miaId = new URL(page.url()).searchParams.get("selected");
+    const panel = page.locator("#selectedStudentPanel");
+    await expect(panel.getByRole("button", { name: "Save note" })).toBeVisible();
+    await panel.getByLabel("Discussion", { exact: true }).fill("Mia draft discussion");
+    await panel.getByLabel("Next actions", { exact: true }).fill("Mia draft actions");
+    await openSelectedStudentTool(page, "Edit");
+    await panel.getByLabel("Student notes (optional)").fill("Unsaved student details");
+    await selectStudentFromTable(page, "Noah Virtanen");
+    await expect(panel.getByLabel("Discussion", { exact: true })).toHaveValue("");
+    await panel.getByLabel("Discussion", { exact: true }).fill("Noah draft discussion");
+    await page.goBack();
+    await expect.poll(() => panel.getByLabel("Discussion", { exact: true }).inputValue()).toBe("Mia draft discussion");
+    await panel.getByRole("button", { name: "Close student workspace" }).click();
+    await expect(page.locator("#selectedStudentPanelShell")).toBeHidden();
+    await selectStudentFromTable(page, "Mia Koskinen");
+    await expect(panel.getByLabel("Next actions", { exact: true })).toHaveValue("Mia draft actions");
+    await openSelectedStudentTool(page, "Edit");
+    await expect(panel.getByLabel("Student notes (optional)")).toHaveValue("Unsaved student details");
+    await page.route("**/actions/add-log/*", (route) => route.abort());
+    await panel.getByRole("button", { name: "Save note" }).click();
+    await expect(panel.getByRole("alert")).toContainText("draft is still here");
+    await expect(panel.getByLabel("Discussion", { exact: true })).toHaveValue("Mia draft discussion");
+    await page.unroute("**/actions/add-log/*");
+    await page.route("**/actions/add-log/*", (route) => route.fulfill({ status: 302, headers: { location: "/?error=Invalid+log+input" } }));
+    await panel.getByRole("button", { name: "Save note" }).click();
+    await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Invalid log input");
+    await expect(panel.getByLabel("Discussion", { exact: true })).toHaveValue("Mia draft discussion");
+    await expect(panel.getByLabel("Student notes (optional)")).toHaveValue("Unsaved student details");
+    await page.unroute("**/actions/add-log/*");
+    const nextMeeting = await page.locator('[data-student-row][data-student-id="' + miaId + '"]').getAttribute("data-next-meeting-date");
+    await panel.getByRole("button", { name: "Save note" }).click();
+    await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Log saved");
+    await expect(panel.getByLabel("Discussion", { exact: true })).toHaveValue("");
+    await expect(page.locator('[data-student-row][data-student-id="' + miaId + '"]')).toHaveAttribute(
+      "data-next-meeting-date",
+      nextMeeting!,
+    );
+    await openSelectedStudentTool(page, "Edit");
+    await expect(panel.getByLabel("Student notes (optional)")).toHaveValue("Unsaved student details");
+    await selectStudentFromTable(page, "Noah Virtanen");
+    await expect(panel.getByLabel("Discussion", { exact: true })).toHaveValue("Noah draft discussion");
+    page.once("dialog", async (dialog) => {
+      expect(dialog.message()).toContain("discard unsaved changes");
+      await dialog.dismiss();
+    });
+    await page.getByRole("link", { name: "Schedule", exact: true }).click();
+    await expect(page).toHaveURL(/selected=/);
+  });
+
+  test("offers recovery from empty results and filters only unfinished past-target theses", async ({ page }) => {
+    await login(page);
+    await page.locator("#studentSearch").fill("No such student");
+    await expect(page.locator("#noMatchingStudents")).toBeVisible();
+    await page.locator("#noMatchingStudents").getByRole("button", { name: "Clear filters" }).click();
+    await expect(page.locator("#studentResultsMeta")).not.toContainText("Showing 0");
+    await ensureFiltersOpen(page);
+    await page.locator("#statusFilter").selectOption("past_target");
+    const rows = page.locator("[data-student-row]:visible");
+    expect(await rows.count()).toBeGreaterThan(0);
+    for (let i = 0; i < (await rows.count()); i++) {
+      await expect(rows.nth(i)).toHaveAttribute("data-degree", "msc");
+      await expect(rows.nth(i)).not.toHaveAttribute("data-phase", "submitted");
+      await expect(rows.nth(i)).toHaveAttribute("data-past-target", "1");
+    }
+    await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBe("past_target");
+  });
+
   test("can clear the current student selection", async ({ page }) => {
     await login(page);
 
@@ -260,28 +338,31 @@ test.describe("dashboard e2e", () => {
 
     await page.locator("[data-student-row]", { hasText: "Mia Koskinen" }).first().click();
 
+    await expect(page.locator("#selectedStudentPanelShell")).toBeVisible();
+    await page.locator("#closeSelectedStudentPanelButton").click();
     await expect.poll(() => new URL(page.url()).searchParams.get("selected")).toBeNull();
     await expect(page.locator("#selectedStudentPanelShell")).toBeHidden();
     await expect(page.locator("[data-student-row][aria-selected='true']")).toHaveCount(0);
   });
 
-  test("can close the student workspace without clearing selection", async ({ page }) => {
+  test("clears selection and returns focus when closing the student workspace", async ({ page }) => {
     await login(page);
 
     await selectStudentFromTable(page, "Mia Koskinen");
     await expect(page.locator("#selectedStudentPanelShell")).toBeVisible();
 
-    const selectedId = new URL(page.url()).searchParams.get("selected");
-    await page.locator("#selectedStudentPanel").getByRole("button", { name: "Close" }).click();
+    await page.locator("#selectedStudentPanel").getByRole("button", { name: "Close student workspace" }).click();
 
     await expect(page.locator("#selectedStudentPanelShell")).toBeHidden();
-    await expect.poll(() => new URL(page.url()).searchParams.get("selected")).toBe(selectedId);
-    await expect(page.locator("[data-student-row][aria-selected='true']")).toContainText("Mia Koskinen");
+    await expect.poll(() => new URL(page.url()).searchParams.get("selected")).toBeNull();
+    await expect(page.locator("[data-student-row][aria-selected='true']")).toHaveCount(0);
+    await expect(page.locator("[data-student-row]", { hasText: "Mia Koskinen" })).toBeFocused();
   });
 
   test("updates filter query params from click-driven filter interactions", async ({ page }) => {
     await login(page);
 
+    await ensureFiltersOpen(page);
     const degreeFilter = page.locator("#degreeFilter");
     await degreeFilter.click();
     await degreeFilter.selectOption("bsc");
@@ -306,7 +387,7 @@ test.describe("dashboard e2e", () => {
     await expect(page.locator("#activeDashboardFilters")).toContainText("Phase: Planning research");
     await expect(page.locator("#activeDashboardFilters")).toContainText("Status: Not booked");
 
-    await page.getByRole("button", { name: "Clear filters" }).click();
+    await page.locator("#activeDashboardFilters").getByRole("button", { name: "Clear filters" }).click();
 
     await expect.poll(() => new URL(page.url()).searchParams.get("degree")).toBeNull();
     await expect.poll(() => new URL(page.url()).searchParams.get("phase")).toBeNull();
@@ -366,7 +447,7 @@ test.describe("dashboard e2e", () => {
     });
 
     await showStudentPanel(page);
-    await expect(page.locator("#selectedStudentPanel")).toContainText(`Selected student: ${noStartDateStudentName}`);
+    await expect(page.locator("#selectedStudentPanel")).toContainText(noStartDateStudentName);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Start date (optional)")).toHaveValue("");
     await expect(page.locator("[data-student-row]", { hasText: noStartDateStudentName })).toContainText("Not set");
   });
@@ -382,6 +463,7 @@ test.describe("dashboard e2e", () => {
 
     await selectStudentFromTable(page, createdStudentName);
     await showStudentPanel(page);
+    await ensureFiltersOpen(page);
     await page.locator("#statusFilter").selectOption("not_booked");
     await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBe("not_booked");
 
@@ -390,7 +472,7 @@ test.describe("dashboard e2e", () => {
     const updatedEmail = `updated-${suffix}@example.edu`;
     const updatedTopic = `Updated thesis topic ${suffix}`;
     const updatedNotes = `Updated student note ${suffix}`;
-    const finalPhaseTransitionText = "Editing -> Submitted";
+    const finalPhaseTransitionText = "Editing → Submitted";
     const discussedText = `Discussed milestone ${suffix}`;
     const agreedPlanText = `Agreed action plan ${suffix}`;
 
@@ -409,22 +491,14 @@ test.describe("dashboard e2e", () => {
     await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Student updated");
     await expect.poll(() => new URL(page.url()).searchParams.get("notice")).toBeNull();
     await expect
-      .poll(() =>
-        page.evaluate(() => (window as Window & { __studentEditNoReloadMarker?: number }).__studentEditNoReloadMarker ?? 0),
-      )
+      .poll(() => page.evaluate(() => (window as Window & { __studentEditNoReloadMarker?: number }).__studentEditNoReloadMarker ?? 0))
       .toBe(1);
     await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBe("not_booked");
     await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
     await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("desc");
     await showStudentPanel(page);
-    await expect(page.locator("#selectedStudentPanel").getByRole("button", { name: "Edit" })).toHaveAttribute("aria-pressed", "false");
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () => document.activeElement?.getAttribute("data-selected-student-heading") || "",
-        ),
-      )
-      .toBe("1");
+    await expect(page.locator("#selectedStudentPanel").locator("[data-student-details]")).not.toHaveAttribute("open");
+    await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute("data-selected-student-heading") || "")).toBe("1");
     await openSelectedStudentTool(page, "Edit");
     await expect(page.locator("#selectedStudentPanel").getByLabel("Name")).toHaveValue(updatedStudentName);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Email")).toHaveValue(updatedEmail);
@@ -432,7 +506,7 @@ test.describe("dashboard e2e", () => {
     await expect(page.locator("#selectedStudentPanel").getByLabel("Phase")).toHaveValue("editing");
     await expect(page.locator("#selectedStudentPanel").getByLabel("Thesis topic (optional)")).toHaveValue(updatedTopic);
     await expect(page.locator("#selectedStudentPanel").getByLabel("Student notes (optional)")).toHaveValue(updatedNotes);
-    await expect(page.locator("[data-student-row]", { hasText: updatedStudentName })).toContainText(updatedNotes);
+    await expect(page.locator("#selectedStudentPanel").getByLabel("Student notes (optional)")).toHaveValue(updatedNotes);
 
     await page.locator("#studentSearch").fill(updatedNotes);
     await expect(page.locator("[data-student-row]", { hasText: updatedStudentName })).toHaveCount(1);
@@ -440,36 +514,28 @@ test.describe("dashboard e2e", () => {
     await page.locator("#studentSearch").fill("");
 
     await openSelectedStudentTool(page, "Add log");
-    await page.locator("#selectedStudentPanel").getByLabel("What was discussed").fill(discussedText);
-    await page.locator("#selectedStudentPanel").getByLabel("Agreed plan / next actions").fill(agreedPlanText);
+    await page.locator("#selectedStudentPanel").getByLabel("Discussion").fill(discussedText);
+    await page.locator("#selectedStudentPanel").getByLabel("Next actions").fill(agreedPlanText);
     await page.evaluate(() => {
       (window as Window & { __studentLogNoReloadMarker?: number }).__studentLogNoReloadMarker = 1;
     });
-    await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save log entry" }).click();
+    await page.locator("#selectedStudentPanel").getByRole("button", { name: "Save note" }).click();
 
     await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Log saved");
     await expect.poll(() => new URL(page.url()).searchParams.get("notice")).toBeNull();
     await expect
-      .poll(() =>
-        page.evaluate(() => (window as Window & { __studentLogNoReloadMarker?: number }).__studentLogNoReloadMarker ?? 0),
-      )
+      .poll(() => page.evaluate(() => (window as Window & { __studentLogNoReloadMarker?: number }).__studentLogNoReloadMarker ?? 0))
       .toBe(1);
     await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBe("not_booked");
     await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("student");
     await expect.poll(() => new URL(page.url()).searchParams.get("dir")).toBe("desc");
     await showStudentPanel(page);
-    await expect(page.locator("#selectedStudentPanel").getByRole("button", { name: "Add log" })).toHaveAttribute("aria-pressed", "false");
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () => document.activeElement?.getAttribute("data-selected-student-heading") || "",
-        ),
-      )
-      .toBe("1");
+    await expect(page.locator("#selectedStudentPanel").getByRole("button", { name: "Save note" })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute("data-selected-student-heading") || "")).toBe("1");
     await openSelectedStudentTool(page, "History");
     await expect(page.locator("#selectedStudentPanel")).toContainText(discussedText);
     await expect(page.locator("#selectedStudentPanel")).toContainText(agreedPlanText);
-    await expect(page.locator("#selectedStudentPanel")).toContainText("Planning research -> Editing");
+    await expect(page.locator("#selectedStudentPanel")).toContainText("Planning research → Editing");
 
     const phaseField = page.locator("#selectedStudentPanel").getByLabel("Phase");
     if (!(await phaseField.isVisible())) {
@@ -484,28 +550,20 @@ test.describe("dashboard e2e", () => {
     await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Student updated");
     await expect.poll(() => new URL(page.url()).searchParams.get("notice")).toBeNull();
     await expect
-      .poll(() =>
-        page.evaluate(() => (window as Window & { __studentEditNoReloadMarker?: number }).__studentEditNoReloadMarker ?? 0),
-      )
+      .poll(() => page.evaluate(() => (window as Window & { __studentEditNoReloadMarker?: number }).__studentEditNoReloadMarker ?? 0))
       .toBe(2);
     await showStudentPanel(page);
-    await expect(page.locator("#selectedStudentPanel").getByRole("button", { name: "Edit" })).toHaveAttribute("aria-pressed", "false");
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () => document.activeElement?.getAttribute("data-selected-student-heading") || "",
-        ),
-      )
-      .toBe("1");
+    await expect(page.locator("#selectedStudentPanel").locator("[data-student-details]")).not.toHaveAttribute("open");
+    await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute("data-selected-student-heading") || "")).toBe("1");
     await openSelectedStudentTool(page, "Edit");
     await expect(page.locator("#selectedStudentPanel").getByLabel("Phase")).toHaveValue("submitted");
     await openSelectedStudentTool(page, "History");
     await expect(page.locator("#selectedStudentPanel")).toContainText(finalPhaseTransitionText);
-    await expect(page.locator("#selectedStudentPanel")).toContainText("Planning research -> Editing");
+    await expect(page.locator("#selectedStudentPanel")).toContainText("Planning research → Editing");
     const phaseAuditText = (await page.locator("#selectedStudentPanel").textContent()) || "";
     expect(phaseAuditText.indexOf(finalPhaseTransitionText)).toBeGreaterThan(-1);
-    expect(phaseAuditText.indexOf("Planning research -> Editing")).toBeGreaterThan(-1);
-    expect(phaseAuditText.indexOf(finalPhaseTransitionText)).toBeLessThan(phaseAuditText.indexOf("Planning research -> Editing"));
+    expect(phaseAuditText.indexOf("Planning research → Editing")).toBeGreaterThan(-1);
+    expect(phaseAuditText.indexOf(finalPhaseTransitionText)).toBeLessThan(phaseAuditText.indexOf("Planning research → Editing"));
   });
 
   test("can archive a student after confirmation", async ({ page }) => {
@@ -550,10 +608,11 @@ test.describe("dashboard e2e", () => {
     await openSelectedStudentTool(page, "Add log");
 
     const panel = page.locator("#selectedStudentPanel");
-    const fieldLabels = ["Meeting date/time"];
+    await panel.getByLabel("Follow-up").selectOption("set");
+    const fieldLabels = ["Meeting time", "Next meeting"];
 
     for (const label of fieldLabels) {
-      const field = panel.getByLabel(label);
+      const field = panel.locator("form[data-student-draft=log]").getByLabel(label, { exact: true });
       await expect(field).toBeVisible();
       expect(await field.evaluate((input) => input.scrollWidth <= input.clientWidth + 1)).toBe(true);
 
@@ -562,5 +621,14 @@ test.describe("dashboard e2e", () => {
       expect(fieldBox).not.toBeNull();
       expect(fieldBox!.x + fieldBox!.width).toBeLessThanOrEqual(panelBox!.x + panelBox!.width + 1);
     }
+    await panel.getByLabel("Discussion", { exact: true }).fill("Mobile draft");
+    await panel.getByRole("button", { name: "← Back to students" }).click();
+    await expect(page.locator("#selectedStudentPanelShell")).toBeHidden();
+    const mobileRow = page.locator("[data-mobile-student-card]", { hasText: updatedStudentName });
+    await expect(mobileRow).toBeFocused();
+    await mobileRow.click();
+    await expect(panel.getByLabel("Discussion", { exact: true })).toHaveValue("Mobile draft");
+    await expect(panel.getByLabel("Follow-up")).toHaveValue("set");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderSelectedStudentPanel } from "./panel.htmlisp";
 import type { Student } from "../../students/store";
 
@@ -32,18 +32,21 @@ describe("renderSelectedStudentPanel", () => {
     expect(html).not.toContain('<option value="submitted">Submitted</option>');
   });
 
-  it("defaults the add-log meeting date/time field to the saved next meeting time", () => {
+  it("defaults meeting notes to the recording time and keeps the current follow-up", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-02T12:00:00Z"));
     const html = renderSelectedStudentPanel(BASE_STUDENT, [], []);
+    vi.useRealTimers();
     const addLogFormHtml = html.match(/<form action="\/actions\/add-log\/1"[\s\S]*?<\/form>/)?.[0];
     const nextMeetingInputHtml = addLogFormHtml?.match(/<input[^>]*name="nextMeetingAt"[^>]*><\/input>/)?.[0];
 
     expect(addLogFormHtml).toBeDefined();
-    expect(addLogFormHtml).toMatch(/Meeting date\/time[\s\S]*?<input[^>]*name="happenedAt"[^>]*value="2026-04-10T12:00"/);
+    expect(addLogFormHtml).toMatch(/Meeting time[\s\S]*?<input[^>]*name="happenedAt"[^>]*value="2026-10-02T15:00"/);
     expect(nextMeetingInputHtml).toBeDefined();
     expect(nextMeetingInputHtml).not.toContain(' value="');
-    expect(addLogFormHtml).toContain(
-      "Leave blank if no next meeting was scheduled. Saving clears any previously saved next-meeting time.",
-    );
+    expect(addLogFormHtml).toContain('<option value="keep">Keep current meeting</option>');
+    expect(addLogFormHtml).toContain('<option value="clear">Not booked</option>');
+    expect(addLogFormHtml).toContain('<option value="set">Set new meeting</option>');
   });
 
   it("formats stored timestamps using the explicit panel timezone", () => {
@@ -66,12 +69,19 @@ describe("renderSelectedStudentPanel", () => {
   });
 
   it("renders archived students read-only with a restore action for editors", () => {
-    const html = renderSelectedStudentPanel(
-      { ...BASE_STUDENT, archivedAt: "2026-06-18T09:00:00.000Z" },
-      [],
-      [],
-      { filters: { scope: "archived", search: "", degree: "", phase: "", status: "", viewMode: "list", sortKey: "archived", sortDirection: "desc" }, timeZone: "UTC" },
-    );
+    const html = renderSelectedStudentPanel({ ...BASE_STUDENT, archivedAt: "2026-06-18T09:00:00.000Z" }, [], [], {
+      filters: {
+        scope: "archived",
+        search: "",
+        degree: "",
+        phase: "",
+        status: "",
+        viewMode: "list",
+        sortKey: "archived",
+        sortDirection: "desc",
+      },
+      timeZone: "UTC",
+    });
 
     expect(html).toContain("Archived 18 Jun 2026, 09:00 UTC");
     expect(html).toContain('action="/actions/restore-student/1"');

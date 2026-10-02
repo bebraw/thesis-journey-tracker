@@ -27,13 +27,13 @@ The project is intentionally small and server-rendered, with a focused workflow 
   </tr>
   <tr>
     <td colspan="2" align="center">
-      <img src="./docs/screenshots/student-panel.png" alt="Selected student area with editing controls, meeting log history, and phase audit." />
+      <img src="./docs/screenshots/student-panel.png" alt="Student workspace with the last meeting, new notes, and secondary detail and history controls." />
     </td>
   </tr>
   <tr>
     <td colspan="2" align="center">
       <strong>Student workspace</strong><br />
-      Review the current student state, add supervision notes, and inspect phase history without leaving the dashboard.
+      Read the last meeting and record the next one immediately. Edit details, earlier notes, phase history, and record actions expand when needed.
     </td>
   </tr>
 </table>
@@ -50,9 +50,11 @@ The project is intentionally small and server-rendered, with a focused workflow 
 - Track each student through thesis phases from planning to submission.
 - Configure the dashboard lane labels at the app level while keeping the original four-phase board structure as the default.
 - Switch between `List`, `Phases`, and `Gantt` views depending on whether you need detail, workflow stage, or workload shape.
-- Store supervision logs with discussion notes, action items, and an optional follow-up meeting time in one save; leaving the follow-up blank marks the next meeting as not booked.
+- Open a student directly into their last meeting and a new-note form. The list stays alongside on desktop; phones show a focused student view with a return action.
+- Save discussion notes and next actions together. Follow-up defaults to keeping the current meeting; choose `Not booked` to clear it or `Set new meeting` to book another time.
+- Keep unsaved note and detail drafts when switching or closing students. Drafts stay in memory for the current page; leaving or reloading prompts before discarding them.
 - Follow upcoming meetings from the dashboard, and clear a cancelled meeting until a new time is booked.
-- Use quick stats on the dashboard to jump straight into filtered student views that need attention.
+- Search students and filter by degree, phase, meeting status, or unfinished MSc theses past their target.
 - Use the Gantt view to estimate advisor workload visually from student start dates and degree-based thesis duration assumptions.
 - Archive completed or inactive students without deleting their supervision history, review them from the dashboard's `Archived` scope, and restore them when supervision resumes.
 - Open a weekly Google Calendar scheduling view where existing entries appear only as busy times, choose a student to update the week immediately, and send meeting invites without copying internal student notes into invitation defaults. If you want a lower-friction setup, the app also supports a read-only Google Calendar iCal fallback for availability.

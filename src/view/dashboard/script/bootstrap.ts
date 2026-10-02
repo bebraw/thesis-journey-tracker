@@ -10,4 +10,5 @@ applySelectedRowState(getSelectedStudentIdFromLocation());
 applySelectedLaneState(getSelectedStudentIdFromLocation());
 applySelectedGanttState(getSelectedStudentIdFromLocation());
 bindHistorySelection();
+bindDraftNavigationGuard();
 rebindDashboardUi();`;

@@ -39,6 +39,10 @@ describe("multi-user access control", () => {
     expect(loginResponse.headers.get("x-content-type-options")).toBe("nosniff");
     expect(loginResponse.headers.has("strict-transport-security")).toBe(false);
     expect(loginBody).toContain('<script src="/app.js"></script>');
+    expect(loginBody).toContain('<link rel="stylesheet" href="/styles.css?v=2">');
+    const stylesResponse = await fetchHandler(new Request("http://localhost/styles.css?v=2"), env);
+    expect(stylesResponse.status).toBe(200);
+    expect(stylesResponse.headers.get("cache-control")).toBe("no-cache");
     expect(loginBody).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/);
     expect(loginBody).not.toMatch(/\son[a-z]+=/i);
 
@@ -68,9 +72,7 @@ describe("multi-user access control", () => {
     );
 
     expect(response.status).toBe(308);
-    expect(response.headers.get("location")).toBe(
-      "https://tracker.example.edu/actions/add-student?return=%2F%3Fview%3Dphases",
-    );
+    expect(response.headers.get("location")).toBe("https://tracker.example.edu/actions/add-student?return=%2F%3Fview%3Dphases");
     await expect(response.text()).resolves.toBe("");
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("content-security-policy")).toContain("default-src 'none'");
@@ -182,7 +184,7 @@ describe("multi-user access control", () => {
     expect(body).toContain("Select a student from the table to view details, supervision logs, and phase history.");
   });
 
-  it("counts only active students in the dashboard tracked metric", async () => {
+  it("shows separate active and archived student counts", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
@@ -208,7 +210,8 @@ describe("multi-user access control", () => {
 
     const body = await response.text();
     expect(response.status).toBe(200);
-    expect(body).toMatch(/Students tracked[\s\S]*?text-2xl[^>]*>1<\/p>[\s\S]*?Active thesis records\./);
+    expect(body).toContain("Active <span>1</span>");
+    expect(body).toContain("Archived <span>1</span>");
     expect(body).not.toContain("All active and archived thesis records.");
     expect(body).not.toContain("Archived Student");
 
@@ -267,15 +270,15 @@ describe("multi-user access control", () => {
 
     const body = await response.text();
     expect(response.status).toBe(200);
-    expect(body).toContain("Student Overview");
-    expect(body).toContain("Read-only access to details, supervision logs, and the phase timeline.");
+    expect(body).toContain("Student details");
+    expect(body).toContain("Read-only");
     expect(body).toContain("Base Student");
     expect(body).toContain("base@example.edu");
     expect(body).toContain("Baseline supervision topic");
     expect(body).toContain("Baseline student note");
     expect(body).toContain("2026-07-01");
     expect(body).toContain("Initial review");
-    expect(body).toContain("Planning research -&gt; Researching");
+    expect(body).toContain("Planning research → Researching");
     expect(body).not.toContain("Save student updates");
     expect(body).not.toContain("Delete Student");
     expect(body).not.toContain("Archive Student");
@@ -625,6 +628,57 @@ describe("multi-user access control", () => {
     expect(response.headers.get("location")).toBe("/?selected=1&notice=Log+saved");
     expect(env.DB.meetingLogs).toHaveLength(1);
     expect(env.DB.students[0]?.next_meeting_at).toBeNull();
+  });
+
+  it.each([
+    ["keep", "2026-04-10T09:00:00.000Z"],
+    ["clear", null],
+    ["set", "2026-04-08T09:00:00.000Z"],
+  ] as const)("applies the explicit %s follow-up choice when saving a note", async (followUpAction, expectedMeeting) => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    env.DB.students[0].next_meeting_at = "2026-04-10T09:00:00.000Z";
+    // Keep must not write back a stale meeting value after another request schedules a meeting.
+    if (followUpAction === "keep") env.DB.failQueries = ["UPDATE students SET next_meeting_at = ? WHERE id = ? RETURNING id"];
+    const response = await fetchHandler(
+      sameOriginRequest("http://localhost/actions/add-log/1", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded", cookie },
+        body: new URLSearchParams({
+          happenedAt: "2026-04-01T10:00",
+          discussed: "Reviewed draft",
+          agreedPlan: "Revise introduction",
+          followUpAction,
+          ...(followUpAction === "set" ? { nextMeetingAt: "2026-04-08T12:00" } : {}),
+        }),
+      }),
+      env,
+    );
+    expect(response.headers.get("location")).toContain("notice=Log+saved");
+    expect(env.DB.meetingLogs).toHaveLength(1);
+    expect(env.DB.students[0].next_meeting_at).toBe(expectedMeeting);
+  });
+
+  it.each([
+    { followUpAction: "set", nextMeetingAt: "" },
+    { followUpAction: "unexpected", nextMeetingAt: "2026-04-08T12:00" },
+    { followUpAction: "set", nextMeetingAt: "invalid" },
+  ])("rejects invalid follow-up choices without saving a note: %j", async (followUp) => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    const response = await fetchHandler(
+      sameOriginRequest("http://localhost/actions/add-log/1", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded", cookie },
+        body: new URLSearchParams({
+          happenedAt: "2026-04-01T10:00",
+          discussed: "Reviewed draft",
+          agreedPlan: "Revise introduction",
+          ...followUp,
+        }),
+      }),
+      env,
+    );
+    expect(response.headers.get("location")).toContain("error=Invalid+log+input");
+    expect(env.DB.meetingLogs).toHaveLength(0);
   });
 
   it("returns user-facing errors when dashboard mutations fail", async () => {
@@ -1100,18 +1154,12 @@ describe("multi-user access control", () => {
     const advisor = env.DB.appUsers.find((user) => user.name === "Advisor")!;
     advisor.role = "readonly";
 
-    const roleChangedResponse = await fetchHandler(
-      new Request("http://localhost/data-tools", { headers: { cookie } }),
-      env,
-    );
+    const roleChangedResponse = await fetchHandler(new Request("http://localhost/data-tools", { headers: { cookie } }), env);
     expect(roleChangedResponse.status).toBe(302);
     expect(roleChangedResponse.headers.get("location")).toBe("/?error=Read-only+access");
 
     env.DB.appUsers = env.DB.appUsers.filter((user) => user.id !== advisor.id);
-    const deletedAccountResponse = await fetchHandler(
-      new Request("http://localhost/", { headers: { cookie } }),
-      env,
-    );
+    const deletedAccountResponse = await fetchHandler(new Request("http://localhost/", { headers: { cookie } }), env);
     expect(deletedAccountResponse.status).toBe(302);
     expect(deletedAccountResponse.headers.get("location")).toBe("/login");
   });

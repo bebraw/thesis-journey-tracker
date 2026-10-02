@@ -36,14 +36,10 @@ const DEFAULT_FILTERS: DashboardFilters = {
 describe("students table", () => {
   it("renders the selected row with the same highlight classes used by client-side selection", () => {
     const html = renderStudentsTable(
-      [
-        buildStudent({ id: 13, name: "Selected Student" }),
-        buildStudent({ id: 14, name: "Other Student", currentPhase: "editing" }),
-      ],
+      [buildStudent({ id: 13, name: "Selected Student" }), buildStudent({ id: 14, name: "Other Student", currentPhase: "editing" })],
       buildStudent({ id: 13, name: "Selected Student" }),
       DEFAULT_FILTERS,
       getDefaultDashboardLanes(),
-      "<div>Metrics</div>",
       "<div>Gantt</div>",
       "<div>Phases</div>",
       "<div>Panel</div>",
@@ -51,7 +47,9 @@ describe("students table", () => {
       { canEdit: true },
     );
 
-    const selectedRowMatch = html.match(/<tr class="([^"]+)" data-student-row data-select-href="\/\?selected=13" data-student-id="13"[\s\S]*?aria-selected="true"/);
+    const selectedRowMatch = html.match(
+      /<tr class="([^"]+)" data-student-row data-select-href="\/\?selected=13" data-student-id="13"[\s\S]*?aria-selected="true"/,
+    );
     expect(selectedRowMatch).not.toBeNull();
 
     const selectedRowClass = selectedRowMatch?.[1] || "";
@@ -63,13 +61,10 @@ describe("students table", () => {
 
   it("formats next meetings using the explicit table timezone", () => {
     const html = renderStudentsTable(
-      [
-        buildStudent({ id: 13, name: "Selected Student", nextMeetingAt: "2026-04-10T09:00:00.000Z" }),
-      ],
+      [buildStudent({ id: 13, name: "Selected Student", nextMeetingAt: "2026-04-10T09:00:00.000Z" })],
       null,
       DEFAULT_FILTERS,
       getDefaultDashboardLanes(),
-      "<div>Metrics</div>",
       "<div>Gantt</div>",
       "<div>Phases</div>",
       "<div>Panel</div>",
@@ -83,9 +78,7 @@ describe("students table", () => {
 
   it("uses customized phase labels in the list view and phase filter", () => {
     const html = renderStudentsTable(
-      [
-        buildStudent({ id: 13, name: "Selected Student", currentPhase: "researching" }),
-      ],
+      [buildStudent({ id: 13, name: "Selected Student", currentPhase: "researching" })],
       null,
       DEFAULT_FILTERS,
       [
@@ -94,7 +87,6 @@ describe("students table", () => {
         { label: "Editing", phaseId: "editing" },
         { label: "Submitted", phaseId: "submitted" },
       ],
-      "<div>Metrics</div>",
       "<div>Gantt</div>",
       "<div>Phases</div>",
       "<div>Panel</div>",
@@ -112,7 +104,6 @@ describe("students table", () => {
       null,
       { ...DEFAULT_FILTERS, viewMode: "gantt" },
       getDefaultDashboardLanes(),
-      "<div>Metrics</div>",
       "<div>Gantt</div>",
       "<div>Phases</div>",
       "<div>Panel</div>",
@@ -129,7 +120,6 @@ describe("students table", () => {
       null,
       { ...DEFAULT_FILTERS, scope: "archived", sortKey: "archived", sortDirection: "desc" },
       getDefaultDashboardLanes(),
-      "<div>Metrics</div>",
       "<div>Gantt</div>",
       "<div>Phases</div>",
       "<div>Panel</div>",

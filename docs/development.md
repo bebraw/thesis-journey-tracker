@@ -121,3 +121,11 @@ For extension-specific details, see [`editor-support/vscode-htmlisp/README.md`](
 - Shared UI pieces live in [`src/ui/`](../src/ui).
 - Dashboard-specific rendering lives in [`src/view/dashboard/`](../src/view/dashboard).
 - Shared student-domain code such as form parsing, thesis phases, and degree types lives in [`src/students/`](../src/students).
+
+### Meeting-note UI checks
+
+Browser regressions cover draft retention across selection, closing, and history; failed-save recovery; successful saves retaining other drafts and the current meeting; empty results; explicit follow-up validation; and narrow-screen controls. For visual checks, use isolated sample data and review the dashboard plus `/style-guide` on desktop and mobile in both themes.
+
+`SCREENSHOT_BASE_URL=http://127.0.0.1:8790 npm run readme:screenshots` can capture an already-running isolated sample app. The default remains the dedicated E2E server on port 8788. Captures use the real layout without hiding rows or forcing panel visibility.
+
+Stylesheets use `Cache-Control: no-cache` so each page load revalidates the current UI. The `v=2` stylesheet query bypasses the earlier 24-hour browser cache during the utilitarian redesign rollout. JavaScript already revalidates on each load.

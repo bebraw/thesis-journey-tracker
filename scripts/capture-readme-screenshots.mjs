@@ -2,7 +2,7 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "@playwright/test";
 
-const BASE_URL = "http://127.0.0.1:8788";
+const BASE_URL = process.env.SCREENSHOT_BASE_URL || "http://127.0.0.1:8788";
 const OUTPUT_DIR = path.resolve("docs/screenshots");
 const LOGIN_NAME = "Advisor";
 const LOGIN_PASSWORD = "e2e-password-long";
@@ -21,79 +21,46 @@ async function showStudentPanel(page, studentName) {
   const panelShell = page.locator("#selectedStudentPanelShell");
   await page.locator("#studentSearch").fill(studentName);
   await page.locator("[data-student-row]", { hasText: studentName }).first().click();
-  if (!(await panelShell.isVisible())) {
-    await page.waitForTimeout(250);
-  }
-  if (!(await panelShell.isVisible())) {
-    const toggleButton = page.locator("#toggleStudentPanelButton");
-    if (await toggleButton.isVisible()) {
-      await toggleButton.click();
-    }
-  }
   await panelShell.waitFor({ state: "visible" });
   await page.locator("#studentSearch").fill("");
   await page.waitForLoadState("networkidle");
 }
 
-async function addScreenshotPadding(page, options = {}) {
-  const { limitStudentRows = false } = options;
-  await page.addStyleTag({
-    content: `
-      body { background: #f6f7f4 !important; }
-      #selectedStudentPanelShell { display: block !important; }
-      ${limitStudentRows ? "[data-student-row]:nth-of-type(n+7) { display: none !important; }" : ""}
-    `,
-  });
-}
-
 async function screenshotViewport(page, outputPath) {
-  await page.screenshot({ path: outputPath });
+  await page.screenshot({ path: outputPath, animations: "disabled" });
 }
 
 async function switchWorkspaceView(page, viewMode) {
   await page.locator(`[data-workspace-view-button="${viewMode}"]`).click();
-  await page.waitForFunction(
-    (expectedView) => {
-      const url = new URL(window.location.href);
-      const currentView = url.searchParams.get("view") ?? "list";
-      return currentView === expectedView;
-    },
-    viewMode,
-  );
+  await page.waitForFunction((expectedView) => {
+    const url = new URL(window.location.href);
+    const currentView = url.searchParams.get("view") ?? "list";
+    return currentView === expectedView;
+  }, viewMode);
   await page.waitForLoadState("networkidle");
 }
 
 async function captureDashboard(page) {
   await login(page);
-  await showStudentPanel(page, "Aino Lehtinen");
-  await page.locator("#selectedStudentPanel").getByRole("button", { name: "History" }).click();
-  await addScreenshotPadding(page, { limitStudentRows: true });
+  await showStudentPanel(page, "Emma Nieminen");
   await page.evaluate(() => window.scrollTo(0, 0));
   await screenshotViewport(page, path.join(OUTPUT_DIR, "dashboard-overview.png"));
 }
 
 async function captureGanttView(page) {
   await login(page);
-  await showStudentPanel(page, "Aino Lehtinen");
+  await showStudentPanel(page, "Emma Nieminen");
   await switchWorkspaceView(page, "gantt");
-  await addScreenshotPadding(page);
-  await page.addStyleTag({
-    content: `
-      [data-gantt-student-row]:nth-of-type(n+6) { display: none !important; }
-      #ganttStudentRows { max-width: 100% !important; }
-    `,
-  });
   await page.evaluate(() => window.scrollTo(0, 0));
   await screenshotViewport(page, path.join(OUTPUT_DIR, "dashboard-gantt-view.png"));
 }
 
 async function captureStudentPanel(page) {
   await login(page);
-  await showStudentPanel(page, "Aino Lehtinen");
-  await page.locator("#selectedStudentPanel").getByRole("button", { name: "History" }).click();
-  await addScreenshotPadding(page);
+  await showStudentPanel(page, "Emma Nieminen");
   await page.locator("#selectedStudentPanel").screenshot({
     path: path.join(OUTPUT_DIR, "student-panel.png"),
+    animations: "disabled",
   });
 }
 
@@ -105,7 +72,6 @@ async function captureDataTools(page) {
   if (exportHeadingBox) {
     await page.evaluate((y) => window.scrollTo(0, Math.max(y - 120, 0)), exportHeadingBox.y);
   }
-  await addScreenshotPadding(page);
   await screenshotViewport(page, path.join(OUTPUT_DIR, "data-tools.png"));
 }
 
@@ -118,7 +84,6 @@ async function main() {
       const context = await browser.newContext({
         viewport: { width: 1600, height: 1200 },
         colorScheme: "light",
-        bypassCSP: true,
       });
       const page = await context.newPage();
       await capture(page);

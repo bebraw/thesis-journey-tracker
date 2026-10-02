@@ -1,4 +1,5 @@
 import { DASHBOARD_BOOTSTRAP_SECTION } from "./script/bootstrap";
+import { DASHBOARD_DRAFT_SECTION } from "./script/drafts";
 import { DASHBOARD_DOM_SECTION } from "./script/dom";
 import { DASHBOARD_EVENT_SECTION } from "./script/events";
 import { DASHBOARD_FILTER_SECTION } from "./script/filters";
@@ -12,6 +13,7 @@ function joinScriptSections(sections: string[]): string {
 export const DASHBOARD_INTERACTION_SCRIPT = joinScriptSections([
   DASHBOARD_DOM_SECTION,
   DASHBOARD_HELPERS_SECTION,
+  DASHBOARD_DRAFT_SECTION,
   DASHBOARD_FILTER_SECTION,
   DASHBOARD_SELECTION_SECTION,
   DASHBOARD_EVENT_SECTION,

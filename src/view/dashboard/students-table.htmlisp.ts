@@ -5,22 +5,24 @@ import {
   FIELD_CONTROL_WITH_MARGIN,
   FILTER_LABEL,
   FOCUS_RING,
-  MUTED_TEXT_XS,
-  SURFACE_CARD,
   TABLE_CELL,
   TABLE_HEADER_ROW,
   TEXT_LINK,
   TOGGLE_BUTTON_SEGMENTED,
   TOGGLE_GROUP_SEGMENTED,
-  TOPIC_TEXT_SM,
-  renderBadge,
   renderButton,
-  renderInsetCard,
-  renderMetadataList,
   renderToggleGroup,
 } from "../../ui";
-import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getTargetSubmissionDate, meetingStatusId, PHASES } from "../../students";
-import { formatDateTime } from "../../formatting";
+import {
+  DEGREE_TYPES,
+  getDegreeLabel,
+  getPhaseLabel,
+  getTargetSubmissionDate,
+  meetingStatusId,
+  isPastTargetSubmissionDate,
+  PHASES,
+} from "../../students";
+import { formatCompactDateTime, formatDateTime } from "../../formatting";
 import { renderView } from "../shared.htmlisp";
 import type { DashboardFilters } from "../types";
 
@@ -46,17 +48,18 @@ interface PreparedStudentRow {
   dataPhaseLabel: string;
   dataStatusId: string;
   dataTargetDate: string;
+  dataPastTarget: string;
   dataNextMeetingDate: string;
   dataArchivedAt: string;
   dataLogCount: string;
   summaryHtml: unknown;
-  mobileDetailsHtml: unknown;
-  degreeBadgeHtml: unknown;
-  phaseBadgeHtml: unknown;
   degreeLabel: string;
   phaseLabel: string;
   targetDate: string;
   nextMeetingText: string;
+  nextMeetingTitle: string;
+  meetingTextClass: string;
+  hasStatusLabel: boolean;
   archivedAtText: string;
   logCountText: string;
   statusLabel: string;
@@ -124,43 +127,22 @@ function prepareStudentRows(
     const phaseLabel = phaseLabelMap.get(student.currentPhase) || getPhaseLabel(student.currentPhase, PHASES);
     const isSelected = selectedStudent ? selectedStudent.id === student.id : false;
     const summaryHtml = renderView(
-      `<div class="min-w-0 max-w-[21rem] space-y-1 pr-badge-y p-2">
-        <div>
-          <a &class="linkClass" &href="href" data-inline-select="1" &data-student-id="studentIdAttr" &children="name"></a>
-        </div>
-        <div
-          &visibleIf="topicVisible"
-          &class="topicTextClass"
-          style="-webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;"
-          &children="topic"
-        ></div>
-        <div
-          &visibleIf="notesVisible"
-          class="mt-1 text-xs text-app-text-muted dark:text-app-text-muted-dark"
-          style="-webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;"
-          &children="notes"
-        ></div>
+      `<div class="min-w-0">
+        <a &class="linkClass" &href="href" data-inline-select="1" &data-student-id="studentIdAttr" &children="name"></a>
+        <span class="mt-0.5 block text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="degreeLabel"></span>
       </div>`,
       {
-        linkClass: `block text-[15px] leading-6 font-medium ${TEXT_LINK}`,
+        linkClass: `block text-sm leading-5 font-medium ${TEXT_LINK}`,
         href: buildDashboardHref(filters, student.id),
         studentIdAttr: String(student.id),
         name: student.name,
-        topicVisible: Boolean(student.thesisTopic),
-        topic: student.thesisTopic || "",
-        notesVisible: Boolean(student.studentNotes),
-        notes: student.studentNotes || "",
-        topicTextClass: TOPIC_TEXT_SM,
+        degreeLabel,
       },
     );
 
     return {
       rowClass: `${isSelected ? "bg-app-brand-soft dark:bg-app-brand-soft-dark/20" : "hover:bg-app-surface-soft dark:hover:bg-app-surface-soft-dark/35"} cursor-pointer transition-colors`,
-      mobileCardClass: `rounded-card border p-panel-sm transition ${
-        isSelected
-          ? "border-app-brand bg-app-brand-soft/80 dark:border-app-brand-ring dark:bg-app-brand-soft-dark/20"
-          : "border-app-line bg-app-surface hover:border-app-line-strong hover:bg-app-surface-soft dark:border-app-line-dark dark:bg-app-surface-dark dark:hover:border-app-line-dark-strong dark:hover:bg-app-surface-soft-dark/40"
-      }`,
+      mobileCardClass: `grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2 border-b border-app-line py-3 text-sm dark:border-app-line-dark cursor-pointer ${isSelected ? "bg-app-brand-soft dark:bg-app-brand-soft-dark/20" : "hover:bg-app-surface-soft dark:hover:bg-app-surface-soft-dark/35"}`,
       selectedAttr: isSelected ? "true" : "false",
       selectHref: buildDashboardHref(filters, student.id),
       studentIdAttr: String(student.id),
@@ -174,54 +156,18 @@ function prepareStudentRows(
       dataPhaseLabel: phaseLabel.toLowerCase(),
       dataStatusId: statusId,
       dataTargetDate: targetSubmissionDate || "",
+      dataPastTarget: isPastTargetSubmissionDate(student, new Date().toISOString().slice(0, 10)) ? "1" : "0",
       dataNextMeetingDate: student.nextMeetingAt || "",
       dataArchivedAt: student.archivedAt || "",
       dataLogCount: String(student.logCount),
       summaryHtml: raw(summaryHtml),
-      mobileDetailsHtml: raw(
-        renderMetadataList({
-          items:
-            filters.scope === "archived"
-              ? [
-                  { label: "Archived", value: student.archivedAt ? formatDateTime(student.archivedAt, timeZone) : "Unknown" },
-                  { label: "Logs", value: String(student.logCount) },
-                ]
-              : [
-                  { label: "Target", value: targetSubmissionDate || "Not set" },
-                  { label: "Next meeting", value: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked" },
-                  { label: "Logs", value: String(student.logCount) },
-                  {
-                    label: "Status",
-                    value:
-                      statusId === "overdue"
-                        ? "Overdue"
-                        : statusId === "not_booked"
-                          ? "Not booked"
-                          : statusId === "within_2_weeks"
-                            ? "Meeting soon"
-                            : "Scheduled",
-                  },
-                ],
-          className: "mt-stack-xs grid-cols-2 gap-x-stack-xs gap-y-badge-y text-xs sm:grid-cols-2",
-          itemClassName: "",
-          termClassName: "text-app-text-muted dark:text-app-text-muted-dark",
-          valueClassName: "mt-1 font-medium",
-        }),
-      ),
-      degreeBadgeHtml: raw(
-        renderBadge({
-          label: degreeLabel,
-        }),
-      ),
-      phaseBadgeHtml: raw(
-        renderBadge({
-          label: phaseLabel,
-        }),
-      ),
       degreeLabel,
       phaseLabel,
       targetDate: targetSubmissionDate || "Not set",
-      nextMeetingText: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked",
+      nextMeetingText: student.nextMeetingAt ? formatCompactDateTime(student.nextMeetingAt, timeZone) : "Not booked",
+      nextMeetingTitle: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked",
+      meetingTextClass: statusId === "overdue" ? "text-app-danger-text dark:text-app-danger-text-dark" : "",
+      hasStatusLabel: Boolean(student.nextMeetingAt) && statusId !== "not_booked",
       archivedAtText: student.archivedAt ? formatDateTime(student.archivedAt, timeZone) : "Unknown",
       logCountText: String(student.logCount),
       statusLabel:
@@ -241,7 +187,6 @@ export function renderStudentsTable(
   selectedStudent: Student | null,
   filters: DashboardFilters,
   dashboardLanes: DashboardLaneDefinition[],
-  metricsHtml: string,
   ganttHtml: string,
   phaseLanesHtml: string,
   selectedPanel: string,
@@ -277,6 +222,7 @@ export function renderStudentsTable(
       { value: "overdue", label: "Overdue" },
       { value: "within_2_weeks", label: "Meeting soon" },
       { value: "scheduled", label: "Scheduled" },
+      { value: "past_target", label: "Past MSc target" },
     ],
     filters.status,
   );
@@ -284,33 +230,31 @@ export function renderStudentsTable(
   const sortHeaders: PreparedSortHeader[] = isArchivedScope
     ? [
         { key: "student", label: "Student" },
-        { key: "degree", label: "Degree" },
         { key: "phase", label: "Last phase" },
         { key: "archived", label: "Archived (local)" },
-        { key: "logs", label: "Logs" },
       ]
     : [
         { key: "student", label: "Student" },
-        { key: "degree", label: "Degree" },
         { key: "phase", label: "Phase" },
+        { key: "nextMeeting", label: "Next meeting" },
         { key: "target", label: "Target" },
-        { key: "nextMeeting", label: "Next meeting (local)" },
-        { key: "logs", label: "Logs" },
       ];
-  const filtersPanelHtml = renderInsetCard(
-    renderView(
-      `<div &class="filterGridClass">
-        <label &class="filterLabelClass">
+  const filtersPanelHtml = renderView(
+    `<div class="flex flex-wrap items-start gap-3">
+        <label class="min-w-0 flex-1 text-xs font-medium">
           Search
           <input
             id="studentSearch"
             type="search"
-            placeholder="Name, email, topic, or notes"
+            placeholder="Search students"
             aria-describedby="studentResultsMeta"
             &class="filterControlClass"
             &value="searchValue"
           />
         </label>
+        <details class="min-w-0 pt-5">
+          <summary class="cursor-pointer text-sm font-medium">Filters</summary>
+          <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <label &class="filterLabelClass">
           Degree type
           <select id="degreeFilter" &class="filterControlClass">
@@ -335,23 +279,20 @@ export function renderStudentsTable(
             </fragment>
           </select>
         </label>
+          </div>
+        </details>
       </div>`,
-      {
-        filterLabelClass: FILTER_LABEL,
-        filterGridClass: `grid grid-cols-1 gap-stack-xs sm:grid-cols-2 ${isArchivedScope ? "xl:grid-cols-3" : "xl:grid-cols-4"}`,
-        showMeetingStatusFilter: !isArchivedScope,
-        filterControlClass: FIELD_CONTROL_WITH_MARGIN,
-        searchValue: filters.search,
-        degreeFilterOptions,
-        phaseFilterOptions,
-        statusFilterOptions,
-      },
-    ),
-    "mb-panel-sm",
+    {
+      filterLabelClass: FILTER_LABEL,
+      showMeetingStatusFilter: !isArchivedScope,
+      filterControlClass: FIELD_CONTROL_WITH_MARGIN,
+      searchValue: filters.search,
+      degreeFilterOptions,
+      phaseFilterOptions,
+      statusFilterOptions,
+    },
   );
-  const activeFiltersPanelHtml = renderInsetCard("", "mb-panel-sm hidden bg-app-surface-soft/55 dark:bg-app-surface-soft-dark/25", {
-    id: "activeDashboardFilters",
-  });
+  const activeFiltersPanelHtml = '<div id="activeDashboardFilters" class="mb-3 hidden"></div>';
   const workspaceViewToggleHtml = renderToggleGroup({
     className: TOGGLE_GROUP_SEGMENTED,
     items: [
@@ -394,35 +335,30 @@ export function renderStudentsTable(
   );
 
   return renderView(
-    `<section id="dashboardWorkspace">
-      <article &class="studentsCardClass">
-        <div class="mb-panel-sm" &visibleIf="showMetrics">
-          <div id="workspaceMetricStrip"><fragment &children="metricsHtml"></fragment></div>
-        </div>
-        <div class="mb-panel-sm flex flex-col gap-stack-xs sm:flex-row sm:items-center sm:justify-between">
+    `<section id="dashboardWorkspace" &class="workspaceClass">
+      <article class="student-cohort min-w-0">
+        <div class="mb-panel-sm flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold" &children="scopeHeading"></h2>
-            <p class="mt-1 text-sm text-app-text-muted dark:text-app-text-muted-dark" &children="scopeDescription"></p>
           </div>
           <fragment &children="scopeToggleHtml"></fragment>
         </div>
         <fragment &children="filtersPanelHtml"></fragment>
         <fragment &children="activeFiltersPanelHtml"></fragment>
-        <div class="mb-stack flex flex-col gap-stack-xs lg:flex-row lg:items-center lg:justify-between">
-          <p id="studentResultsMeta" class="min-w-0 text-sm font-medium text-app-text-muted dark:text-app-text-muted-dark"></p>
-          <div class="flex w-full flex-col gap-stack sm:w-auto sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
+        <div class="my-3 flex flex-wrap items-center justify-between gap-3">
+          <p id="studentResultsMeta" class="sr-only min-w-0 text-sm sm:not-sr-only font-medium text-app-text-muted dark:text-app-text-muted-dark"></p>
+          <div class="flex flex-wrap items-center gap-2">
             <fragment &visibleIf="showWorkspaceViews" &children="workspaceViewToggleHtml"></fragment>
-            <div class="flex w-full flex-col gap-stack-xs sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+            <div class="flex items-center gap-2">
               <fragment &children="addStudentButtonHtml"></fragment>
-              <fragment &children="panelToggleButtonHtml"></fragment>
             </div>
           </div>
         </div>
-        <div id="selectedStudentPanelShell" &class="selectedPanelShellClass">
-          <div id="selectedStudentPanel"><fragment &children="selectedPanel"></fragment></div>
-        </div>
         <div id="workspaceListView" &class="listViewClass">
-          <div id="mobileStudentCardList" class="space-y-stack-xs sm:hidden">
+          <div class="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2 border-b border-app-line pb-2 text-xs text-app-text-muted dark:border-app-line-dark dark:text-app-text-muted-dark sm:hidden" aria-hidden="true">
+            <span>Student</span><span &children="phaseColumnLabel"></span><span &children="meetingColumnLabel"></span>
+          </div>
+          <div id="mobileStudentCardList" class="sm:hidden">
             <fragment &visibleIf="hasStudentRows">
               <fragment &foreach="studentRows as row">
                 <article
@@ -440,27 +376,27 @@ export function renderStudentsTable(
                   &data-phase-label="row.dataPhaseLabel"
                   &data-status-id="row.dataStatusId"
                   &data-target-date="row.dataTargetDate"
+                  &data-past-target="row.dataPastTarget"
                   &data-next-meeting-date="row.dataNextMeetingDate"
                   &data-archived-at="row.dataArchivedAt"
                   &data-log-count="row.dataLogCount"
                   &aria-selected="row.selectedAttr"
                   tabindex="0"
                 >
-                  <div class="flex items-start justify-between gap-stack-xs">
-                    <div class="min-w-0 flex-1"><fragment &children="row.summaryHtml"></fragment></div>
-                    <div class="shrink-0 flex flex-col items-end gap-badge-y">
-                      <fragment &children="row.degreeBadgeHtml"></fragment>
-                      <fragment &children="row.phaseBadgeHtml"></fragment>
-                    </div>
+                  <div class="min-w-0"><fragment &children="row.summaryHtml"></fragment></div>
+                  <p class="min-w-0 text-xs" &children="row.phaseLabel"></p>
+                  <div class="min-w-0 text-xs">
+                    <p &visibleIf="showActiveColumns" &class="row.meetingTextClass" &title="row.nextMeetingTitle" &children="row.nextMeetingText"></p>
+                    <p &visibleIf="showArchivedColumn" &children="row.archivedAtText"></p>
+                    <p &visibleIf="row.hasStatusLabel" &class="row.meetingTextClass" &children="row.statusLabel"></p>
                   </div>
-                  <fragment &children="row.mobileDetailsHtml"></fragment>
                 </article>
               </fragment>
             </fragment>
             <p &visibleIf="showEmptyRow" class="rounded-card border border-app-line bg-app-surface-soft/55 px-panel-sm py-stack-xs text-sm text-app-text-muted dark:border-app-line-dark dark:bg-app-surface-soft-dark/25 dark:text-app-text-muted-dark" &children="emptyStateText"></p>
           </div>
-          <div class="hidden overflow-x-auto rounded-card border border-app-line bg-app-surface-soft/35 dark:border-app-line-dark dark:bg-app-surface-soft-dark/20 sm:block">
-            <table class="w-full min-w-table divide-y divide-app-line text-sm dark:divide-app-line-dark">
+          <div class="hidden sm:block">
+            <table class="student-table divide-y divide-app-line text-sm dark:divide-app-line-dark">
               <thead>
                 <tr &class="tableHeaderClass">
                   <fragment &foreach="sortHeaders as header">
@@ -496,6 +432,7 @@ export function renderStudentsTable(
                       &data-phase-label="row.dataPhaseLabel"
                       &data-status-id="row.dataStatusId"
                       &data-target-date="row.dataTargetDate"
+                  &data-past-target="row.dataPastTarget"
                       &data-next-meeting-date="row.dataNextMeetingDate"
                       &data-archived-at="row.dataArchivedAt"
                       &data-log-count="row.dataLogCount"
@@ -503,14 +440,15 @@ export function renderStudentsTable(
                       tabindex="0"
                     >
                       <td &class="studentCellClass"><fragment &children="row.summaryHtml"></fragment></td>
-                      <td &class="cellClass" &children="row.degreeLabel"></td>
                       <td &class="cellClass" &children="row.phaseLabel"></td>
                       <fragment &visibleIf="showActiveColumns">
+                        <td &class="cellClass">
+                          <p &class="row.meetingTextClass" &title="row.nextMeetingTitle" &children="row.nextMeetingText"></p>
+                          <p &visibleIf="row.hasStatusLabel" class="mt-1 text-xs" &children="row.statusLabel"></p>
+                        </td>
                         <td &class="cellClass" &children="row.targetDate"></td>
-                        <td &class="cellClass" &children="row.nextMeetingText"></td>
                       </fragment>
                       <td &visibleIf="showArchivedColumn" &class="cellClass" &children="row.archivedAtText"></td>
-                      <td &class="cellClass" &children="row.logCountText"></td>
                     </tr>
                   </fragment>
                 </fragment>
@@ -527,22 +465,26 @@ export function renderStudentsTable(
         <div id="workspaceGanttView" &class="ganttViewClass">
           <fragment &children="ganttHtml"></fragment>
         </div>
+        <div id="noMatchingStudents" class="hidden border-t border-app-line py-6 text-sm dark:border-app-line-dark" role="status">
+          <p>No matching students.</p>
+          <button type="button" data-clear-filters class="mt-2 text-app-brand underline dark:text-app-brand-ring">Clear filters</button>
+        </div>
       </article>
+      <aside id="selectedStudentPanelShell" &class="selectedPanelShellClass" aria-label="Student workspace">
+        <div id="selectedStudentPanel"><fragment &children="selectedPanel"></fragment></div>
+      </aside>
       <template id="emptySelectedStudentPanelTemplate"><fragment &children="emptySelectedPanel"></fragment></template>
     </section>`,
     {
-      studentsCardClass: `min-w-0 flex-1 overflow-hidden ${SURFACE_CARD}`,
+      workspaceClass: `dashboard-workspace${selectedStudent ? " has-selection" : ""}`,
       cellClass: TABLE_CELL,
-      studentCellClass: `${TABLE_CELL} w-[30%] min-w-[18rem] max-w-[22rem] align-top pr-panel-sm`,
-      mutedTextXs: MUTED_TEXT_XS,
+      studentCellClass: `${TABLE_CELL} pr-3`,
       workspaceViewToggleHtml: raw(workspaceViewToggleHtml),
       scopeToggleHtml: raw(scopeToggleHtml),
-      showMetrics: !isArchivedScope,
       showWorkspaceViews: !isArchivedScope,
-      scopeHeading: isArchivedScope ? "Archived students" : "Active students",
-      scopeDescription: isArchivedScope
-        ? "Review retained supervision history or restore a student to active work."
-        : "Track current thesis progress, meetings, and next actions.",
+      scopeHeading: isArchivedScope ? "Archived students" : "Students",
+      phaseColumnLabel: isArchivedScope ? "Last phase" : "Phase",
+      meetingColumnLabel: isArchivedScope ? "Archived" : "Next meeting",
       listViewClass: `${filters.viewMode === "list" ? "" : "hidden "}space-y-stack-xs`,
       phaseViewClass: filters.viewMode === "phases" ? "" : "hidden ",
       ganttViewClass: filters.viewMode === "gantt" ? "" : "hidden ",
@@ -556,31 +498,18 @@ export function renderStudentsTable(
           ? renderButton({
               label: "Add student",
               href: "/students/new",
-              variant: "primary",
-              className: "inline-flex w-full min-w-[9.5rem] justify-center sm:w-auto",
+              variant: "neutral",
+              className: "inline-flex justify-center",
             })
           : "",
       ),
-      panelToggleButtonHtml: raw(
-        renderButton({
-          label: selectedStudent ? "Hide details" : "Show details",
-          type: "button",
-          variant: "neutral",
-          className: "inline-flex w-full min-w-[9.5rem] justify-center sm:w-auto xl:hidden",
-          attrs: {
-            id: "toggleStudentPanelButton",
-            "aria-expanded": selectedStudent ? "true" : "false",
-          },
-        }),
-      ),
-      selectedPanelShellClass: `${selectedStudent ? "" : "hidden "}mb-panel-sm`,
+      selectedPanelShellClass: `${selectedStudent ? "" : "hidden "}student-workspace`,
       showEmptyRow: studentRows.length === 0,
       showActiveColumns: !isArchivedScope,
       showArchivedColumn: isArchivedScope,
-      emptyColumnCount: isArchivedScope ? "5" : "6",
+      emptyColumnCount: isArchivedScope ? "3" : "4",
       emptyStateText: isArchivedScope ? "No archived students." : "No students yet.",
       studentRows,
-      metricsHtml: raw(metricsHtml),
       ganttHtml: raw(ganttHtml),
       phaseLanesHtml: raw(phaseLanesHtml),
       selectedPanel: raw(selectedPanel),

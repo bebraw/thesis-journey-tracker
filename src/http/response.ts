@@ -21,7 +21,7 @@ export function cssResponse(css: string): Response {
   return new Response(css, {
     headers: {
       "content-type": "text/css; charset=utf-8",
-      "cache-control": "public, max-age=86400",
+      "cache-control": "no-cache",
     },
   });
 }

@@ -2,7 +2,6 @@ import {
   FIELD_CONTROL,
   FIELD_CONTROL_SM,
   FORM_LABEL,
-  MUTED_TEXT_XS,
   renderInputField,
   renderSelectField,
   renderTextareaField,
@@ -71,13 +70,13 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
             value="yes"
             class="mt-0.5 h-4 w-4 rounded-sm border-app-field text-app-brand focus:ring-app-brand dark:border-app-field-dark"
           />
-          <span>Remove the saved meeting time if this meeting was cancelled or is not booked yet.</span>
+          <span>Clear next meeting</span>
         </label>`,
         {
           fieldName: STUDENT_FORM_FIELDS.clearNextMeetingAt,
         },
       )
-    : `<p class="mt-2 ${MUTED_TEXT_XS}">Leave this blank until the next meeting is confirmed.</p>`;
+    : "";
 
   return {
     nameField: renderInputField({

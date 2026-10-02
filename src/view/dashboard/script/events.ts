@@ -5,10 +5,6 @@ function bindInlineSelectionLinks() {
       event.preventDefault();
       var studentId = parseStudentId(link.getAttribute("data-student-id"));
       if (!studentId) return;
-      if (studentId === getSelectedStudentIdFromLocation()) {
-        clearSelectedStudentSelection(true);
-        return;
-      }
       void selectStudentWithoutRefresh(studentId, true);
     });
   });
@@ -22,10 +18,6 @@ function bindStudentRowSelection() {
         return;
       }
       var studentId = getRowStudentId(row);
-      if (studentId === getSelectedStudentIdFromLocation()) {
-        clearSelectedStudentSelection(true);
-        return;
-      }
       void selectStudentWithoutRefresh(studentId, true);
     });
 
@@ -33,10 +25,6 @@ function bindStudentRowSelection() {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       var studentId = getRowStudentId(row);
-      if (studentId === getSelectedStudentIdFromLocation()) {
-        clearSelectedStudentSelection(true);
-        return;
-      }
       void selectStudentWithoutRefresh(studentId, true);
     });
   });
@@ -50,10 +38,6 @@ function bindMobileStudentCardSelection() {
         return;
       }
       var studentId = getMobileCardStudentId(card);
-      if (studentId === getSelectedStudentIdFromLocation()) {
-        clearSelectedStudentSelection(true);
-        return;
-      }
       void selectStudentWithoutRefresh(studentId, true);
     });
 
@@ -61,10 +45,6 @@ function bindMobileStudentCardSelection() {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       var studentId = getMobileCardStudentId(card);
-      if (studentId === getSelectedStudentIdFromLocation()) {
-        clearSelectedStudentSelection(true);
-        return;
-      }
       void selectStudentWithoutRefresh(studentId, true);
     });
   });
@@ -78,10 +58,6 @@ function bindLaneSelection() {
         return;
       }
       var studentId = getLaneStudentId(card);
-      if (studentId === getSelectedStudentIdFromLocation()) {
-        clearSelectedStudentSelection(true);
-        return;
-      }
       void selectStudentWithoutRefresh(studentId, true);
     });
 
@@ -89,10 +65,6 @@ function bindLaneSelection() {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       var studentId = getLaneStudentId(card);
-      if (studentId === getSelectedStudentIdFromLocation()) {
-        clearSelectedStudentSelection(true);
-        return;
-      }
       void selectStudentWithoutRefresh(studentId, true);
     });
   });
@@ -106,10 +78,6 @@ function bindGanttSelection() {
         return;
       }
       var studentId = getRowStudentId(row);
-      if (studentId === getSelectedStudentIdFromLocation()) {
-        clearSelectedStudentSelection(true);
-        return;
-      }
       void selectStudentWithoutRefresh(studentId, true);
     });
 
@@ -117,10 +85,6 @@ function bindGanttSelection() {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       var studentId = getRowStudentId(row);
-      if (studentId === getSelectedStudentIdFromLocation()) {
-        clearSelectedStudentSelection(true);
-        return;
-      }
       void selectStudentWithoutRefresh(studentId, true);
     });
   });
@@ -135,6 +99,7 @@ function bindHistorySelection() {
     syncInteractiveUrls();
     var selectedId = getSelectedStudentIdFromLocation();
     if (!selectedId) {
+      captureStudentDrafts();
       setEmptySelectedPanel();
       setPanelVisibility(false);
       return;
@@ -191,32 +156,11 @@ function bindStudentSort() {
   });
 }
 
-function bindPanelToggle() {
-  if (!toggleStudentPanelButton || !selectedStudentPanelShell) return;
-  toggleStudentPanelButton.addEventListener("click", function () {
-    var isVisible = !selectedStudentPanelShell.classList.contains("hidden");
-    setPanelVisibility(!isVisible);
-  });
-}
-
 function bindCloseSelectedPanel() {
   if (!closeSelectedStudentPanelButton) return;
-  closeSelectedStudentPanelButton.addEventListener("click", function () {
-    setPanelVisibility(false);
-  });
-}
-
-function bindSelectedStudentToolToggle() {
-  selectedStudentToolButtons.forEach(function (button) {
-    if (button.getAttribute("data-tool-bound") === "1") return;
-    button.setAttribute("data-tool-bound", "1");
-
-    button.addEventListener("click", function () {
-      var toolKey = button.getAttribute("data-tool-key") || "";
-      if (!toolKey) return;
-      var nextTool = getActiveSelectedStudentTool() === toolKey ? "" : toolKey;
-      setActiveSelectedStudentTool(nextTool);
-    });
+  closeSelectedStudentPanelButton.addEventListener("click", function () { clearSelectedStudentSelection(true); });
+  selectedStudentPanel.querySelectorAll("[data-back-to-students]").forEach(function (button) {
+    button.addEventListener("click", function () { clearSelectedStudentSelection(true); });
   });
 }
 
@@ -246,116 +190,55 @@ function bindDashboardToasts() {
   }
 }
 
-function bindInlineStudentUpdateForm() {
+function bindInlineStudentUpdateForm() { bindInlineDraftSave("edit"); }
+function bindInlineLogEntryForm() { bindInlineDraftSave("log"); }
+
+function bindInlineDraftSave(kind) {
   if (!selectedStudentPanel) return;
-
-  var updateForm = selectedStudentPanel.querySelector("form[action^='/actions/update-student/']");
-  if (!updateForm || updateForm.getAttribute("data-inline-bound") === "1") return;
-
-  updateForm.setAttribute("data-inline-bound", "1");
-  updateForm.addEventListener("submit", function (event) {
+  var form = selectedStudentPanel.querySelector("form[data-student-draft='" + kind + "']");
+  if (!form || form.getAttribute("data-inline-bound") === "1") return;
+  form.setAttribute("data-inline-bound", "1");
+  form.addEventListener("submit", async function (event) {
     event.preventDefault();
-
-    var form = event.currentTarget;
-    var action = form.getAttribute("action");
-    if (!action) {
-      form.submit();
-      return;
-    }
-
-    var selectedId = getSelectedStudentIdFromLocation();
-    var panelWasVisible = selectedStudentPanelShell ? !selectedStudentPanelShell.classList.contains("hidden") : false;
-    var submitButton = form.querySelector("button[type='submit']");
-    var previousButtonState = setSubmitButtonBusy(submitButton, "Saving updates...");
+    if (dashboardSaving) return;
+    captureStudentDrafts();
+    var studentId = getPanelStudentId();
+    var body = new FormData(form);
+    selectionRequest += 1;
+    var button = form.querySelector("button[type='submit']");
+    var buttonState = setSubmitButtonBusy(button, "Saving…");
+    var fields = Array.prototype.map.call(form.elements, function (field) {
+      var state = { field: field, disabled: field.disabled };
+      field.disabled = true;
+      return state;
+    });
+    dashboardSaving = true;
     form.setAttribute("aria-busy", "true");
-
-    fetch(action, {
-      method: "POST",
-      headers: {
-        "X-Requested-With": "fetch"
-      },
-      body: new FormData(form)
-    })
-      .then(function (response) {
-        var responseUrl = new URL(response.url, window.location.origin);
-
-        if (!response.ok || responseUrl.pathname !== "/") {
-          window.location.href = responseUrl.pathname + responseUrl.search;
-          return null;
-        }
-
-        return response.text().then(function (htmlText) {
-          applyDashboardHtml(htmlText, response.url, {
-            selectedId: selectedId,
-            panelWasVisible: panelWasVisible,
-            activeTool: "",
-            focusSummary: true
-          });
-        });
-      })
-      .catch(function () {
-        form.submit();
-      })
-      .finally(function () {
-        form.removeAttribute("aria-busy");
-        restoreSubmitButton(submitButton, previousButtonState);
-      });
-  });
-}
-
-function bindInlineLogEntryForm() {
-  if (!selectedStudentPanel) return;
-
-  var addLogForm = selectedStudentPanel.querySelector("form[action^='/actions/add-log/']");
-  if (!addLogForm || addLogForm.getAttribute("data-inline-bound") === "1") return;
-
-  addLogForm.setAttribute("data-inline-bound", "1");
-  addLogForm.addEventListener("submit", function (event) {
-    event.preventDefault();
-
-    var form = event.currentTarget;
-    var action = form.getAttribute("action");
-    if (!action) {
-      form.submit();
-      return;
+    try {
+      var response = await fetch(form.action, { method: "POST", headers: { "X-Requested-With": "fetch" }, body: body });
+      var responseUrl = new URL(response.url, window.location.origin);
+      if (!response.ok || responseUrl.pathname !== "/") throw new Error("Could not save. Your draft is still here.");
+      var htmlText = await response.text();
+      var failed = responseUrl.searchParams.has("error");
+      if (!failed && !responseUrl.searchParams.has("notice")) throw new Error("Could not confirm the save. Check the history before retrying.");
+      if (failed) {
+        var errorDocument = new DOMParser().parseFromString(htmlText, "text/html");
+        replaceDashboardSection(errorDocument, "dashboardFlashMessages");
+        bindDashboardToasts();
+      } else {
+        discardSavedDraft(studentId, kind);
+        applyDashboardHtml(htmlText, response.url, { selectedId: studentId, panelWasVisible: true, focusSummary: true });
+      }
+    } catch (error) {
+      var message = form.querySelector("[data-save-error]");
+      if (!message) { message = document.createElement("p"); message.setAttribute("role", "alert"); form.appendChild(message); }
+      message.className = "text-sm text-app-danger-text dark:text-app-danger-text-dark";
+      message.textContent = error instanceof TypeError ? "Could not confirm the save. Your draft is still here. Check the history before retrying." : error.message || "Could not confirm the save. Check the history before retrying.";
+    } finally {
+      dashboardSaving = false;
+      form.removeAttribute("aria-busy");
+      fields.forEach(function (state) { state.field.disabled = state.disabled; });
+      restoreSubmitButton(button, buttonState);
     }
-
-    var selectedId = getSelectedStudentIdFromLocation();
-    var panelWasVisible = selectedStudentPanelShell ? !selectedStudentPanelShell.classList.contains("hidden") : false;
-    var submitButton = form.querySelector("button[type='submit']");
-    var previousButtonState = setSubmitButtonBusy(submitButton, "Saving log...");
-    form.setAttribute("aria-busy", "true");
-
-    fetch(action, {
-      method: "POST",
-      headers: {
-        "X-Requested-With": "fetch"
-      },
-      body: new FormData(form)
-    })
-      .then(function (response) {
-        var responseUrl = new URL(response.url, window.location.origin);
-
-        if (!response.ok || responseUrl.pathname !== "/") {
-          window.location.href = responseUrl.pathname + responseUrl.search;
-          return null;
-        }
-
-        return response.text().then(function (htmlText) {
-          applyDashboardHtml(htmlText, response.url, {
-            selectedId: selectedId,
-            panelWasVisible: panelWasVisible,
-            activeTool: "",
-            focusSummary: true
-          });
-        });
-      })
-      .catch(function () {
-        form.submit();
-      })
-      .finally(function () {
-        form.removeAttribute("aria-busy");
-        restoreSubmitButton(submitButton, previousButtonState);
-      });
   });
 }`;

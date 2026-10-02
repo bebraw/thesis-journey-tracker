@@ -4,6 +4,14 @@ Reviewed on 2026-10-02. The design target is a simple, utilitarian tool for one 
 
 An [interactive concept](./ux/utilitarian-concept.html) illustrates this direction with sample data. Open the HTML file in a browser. Search, filter, open students, switch between drafts, and save a demo note. Its data and drafts live in memory and reset on reload; it does not connect to the application. It covers the student-and-notes workflow, rather than every application screen.
 
+## Implementation status — 2 October 2026
+
+The approved student-and-notes design is implemented in the application: compact cohort rows, collapsed secondary filters, a side-by-side workspace on wide screens, and a focused student view with a return action below 1100 px. Latest discussion and next actions precede an immediately available note form. Detail editing, earlier notes, phase history, and archive/restore actions use simple disclosures. Shared surfaces now use flat backgrounds, small corners, and stronger muted-text contrast.
+
+Drafts for both notes and student edits survive switching, closing/reopening, browser history, and failed saves within the current page. Leaving or reloading prompts before discarding changes. Drafts are held in memory and do not survive a reload. Saving clears only the saved form's draft. Follow-up explicitly keeps, clears, or sets the meeting; keeping does not write a stale meeting value back to the database. New note timestamps default to the recording time. The `Past MSc target` filter excludes submitted students and future targets, and empty search results offer a reset.
+
+The remaining follow-up is settings navigation and observing task completion in regular use. The findings below describe the pre-redesign app; the separate HTML concept remains the approved reference.
+
 ## Method and scope
 
 This pass combines a hands-on workflow review, inspection of the rendering and interaction code, and desk research from Nielsen Norman Group, GOV.UK, and W3C. It is an expert review, not a usability study with measured user task times. The user's preference establishes the workflow priority; the proposed layout still needs validation during actual supervision work.
@@ -87,4 +95,4 @@ Before shipping, try the following with the sole intended user, using the same r
 
 Record task completion, time, extra clicks, accidental date/meeting changes, and lost drafts. The first release should require one activation to reach the note form, no lost drafts during record switching, an unchanged cohort position when desktop details open, and matching counts for quick filters. As an initial layout target, make the first student visible without scrolling at both reviewed viewport sizes. Compare actual task times before claiming the redesign is faster.
 
-Implementation references: [shared styles](../src/ui/styles.ts), [theme tokens](../src/tailwind-input.css), [student workspace](../src/view/students/panel.htmlisp.ts), [list layout](../src/view/dashboard/students-table.htmlisp.ts), [selection behavior](../src/view/dashboard/script/selection.ts), [dashboard events](../src/view/dashboard/script/events.ts), and [metrics](../src/view/dashboard/metrics.htmlisp.ts).
+Implementation references: [shared styles](../src/ui/styles.ts), [theme tokens](../src/tailwind-input.css), [student workspace](../src/view/students/panel.htmlisp.ts), [list layout](../src/view/dashboard/students-table.htmlisp.ts), [selection behavior](../src/view/dashboard/script/selection.ts), [dashboard events](../src/view/dashboard/script/events.ts), and [filter behavior](../src/view/dashboard/script/filters.ts).

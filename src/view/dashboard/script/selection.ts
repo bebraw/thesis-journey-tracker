@@ -3,9 +3,9 @@ function revealSelectedPanel() {
   if (!selectedStudentPanelShell) return;
   setPanelVisibility(true);
 
-  if (window.matchMedia("(max-width: 1279px)").matches) {
+  if (window.matchMedia("(max-width: 1099px)").matches) {
     selectedStudentPanelShell.scrollIntoView({
-      behavior: "smooth",
+      behavior: "instant",
       block: "start"
     });
   }
@@ -23,18 +23,10 @@ function applySelectedRowState(selectedId) {
 
   mobileStudentCards.forEach(function (card) {
     var isSelected = selectedId > 0 && getMobileCardStudentId(card) === selectedId;
-    card.classList.toggle("border-app-brand", isSelected);
-    card.classList.toggle("dark:border-app-brand-ring", isSelected);
-    card.classList.toggle("bg-app-brand-soft/80", isSelected);
+    card.classList.toggle("bg-app-brand-soft", isSelected);
     card.classList.toggle("dark:bg-app-brand-soft-dark/20", isSelected);
-    card.classList.toggle("border-app-line", !isSelected);
-    card.classList.toggle("dark:border-app-line-dark", !isSelected);
-    card.classList.toggle("bg-app-surface", !isSelected);
-    card.classList.toggle("dark:bg-app-surface-dark", !isSelected);
-    card.classList.toggle("hover:border-app-line-strong", !isSelected);
     card.classList.toggle("hover:bg-app-surface-soft", !isSelected);
-    card.classList.toggle("dark:hover:border-app-line-dark-strong", !isSelected);
-    card.classList.toggle("dark:hover:bg-app-surface-soft-dark/40", !isSelected);
+    card.classList.toggle("dark:hover:bg-app-surface-soft-dark/35", !isSelected);
     card.setAttribute("aria-selected", isSelected ? "true" : "false");
   });
 }
@@ -80,63 +72,68 @@ function applySelectedGanttState(selectedId) {
 
 function setEmptySelectedPanel() {
   if (!selectedStudentPanel || !emptySelectedStudentPanelTemplate) return;
+  captureStudentDrafts();
+  selectionRequest += 1;
   selectedStudentPanel.innerHTML = emptySelectedStudentPanelTemplate.innerHTML;
   syncDashboardDom();
-  setActiveSelectedStudentTool("");
   applySelectedRowState(0);
   applySelectedLaneState(0);
   applySelectedGanttState(0);
 }
 
 function clearSelectedStudentSelection(pushHistory) {
+  if (dashboardSaving) return;
+  var previousId = getPanelStudentId();
   var clearedUrl = getDashboardUrl(0);
   setEmptySelectedPanel();
   setPanelVisibility(false);
+  if (pushHistory) window.history.pushState({ selectedId: 0 }, "", clearedUrl.pathname + clearedUrl.search);
   syncInteractiveUrls();
-
-  if (pushHistory) {
-    window.history.pushState({ selectedId: 0 }, "", clearedUrl.pathname + clearedUrl.search);
-  }
+  var narrow = window.matchMedia("(max-width: 1099px)").matches;
+  var selector = window.matchMedia("(max-width: 639px)").matches ? "[data-mobile-student-card]" : "[data-student-row]";
+  var previousRow = document.querySelector(selector + "[data-student-id='" + previousId + "']");
+  if (previousRow && previousRow.style.display !== "none") previousRow.focus({ preventScroll: true });
+  else if (searchInput) searchInput.focus({ preventScroll: true });
+  if (narrow) window.scrollTo({ top: cohortScrollY, behavior: "instant" });
 }
 
 async function selectStudentWithoutRefresh(studentId, pushHistory) {
-  if (!studentId || !selectedStudentPanel) return;
-  if (studentId === getSelectedStudentIdFromLocation()) {
-    clearSelectedStudentSelection(pushHistory);
+  if (!studentId || !selectedStudentPanel || dashboardSaving) return;
+  if (studentId === getPanelStudentId()) {
+    revealSelectedPanel();
+    focusSelectedStudentSummary();
     return;
   }
-
+  captureStudentDrafts();
+  if (!getPanelStudentId()) cohortScrollY = window.scrollY;
+  var requestId = ++selectionRequest;
+  var selectedUrl = getDashboardUrl(studentId);
   try {
-    var selectedUrl = getDashboardUrl(studentId);
     var response = await fetch("/partials/student/" + studentId + selectedUrl.search, {
-      headers: {
-        "X-Requested-With": "fetch"
-      }
+      headers: { "X-Requested-With": "fetch" }
     });
-
-    if (!response.ok) {
-      window.location.href = selectedUrl.pathname + selectedUrl.search;
-      return;
-    }
-
-    selectedStudentPanel.innerHTML = await response.text();
+    if (!response.ok || new URL(response.url).pathname !== "/partials/student/" + studentId) throw new Error("Could not open student");
+    var htmlText = await response.text();
+    if (requestId !== selectionRequest) return;
+    captureStudentDrafts();
+    selectedStudentPanel.innerHTML = htmlText;
+    if (pushHistory) window.history.pushState({ selectedId: studentId }, "", selectedUrl.pathname + selectedUrl.search);
     syncDashboardDom();
     applySelectedRowState(studentId);
     applySelectedLaneState(studentId);
     applySelectedGanttState(studentId);
-    setActiveSelectedStudentTool("");
     revealSelectedPanel();
     syncInteractiveUrls();
     bindCloseSelectedPanel();
-    bindSelectedStudentToolToggle();
     bindInlineStudentUpdateForm();
     bindInlineLogEntryForm();
-
-    if (pushHistory) {
-      window.history.pushState({ selectedId: studentId }, "", selectedUrl.pathname + selectedUrl.search);
-    }
+    bindStudentDrafts();
+    focusSelectedStudentSummary();
   } catch (_error) {
-    var fallbackUrl = getDashboardUrl(studentId);
-    window.location.href = fallbackUrl.pathname + fallbackUrl.search;
+    if (requestId !== selectionRequest) return;
+    if (!studentDrafts.size || window.confirm("Could not open the student. Reload the page and discard unsaved changes?")) {
+      studentDrafts.clear();
+      window.location.href = selectedUrl.pathname + selectedUrl.search;
+    }
   }
 }`;

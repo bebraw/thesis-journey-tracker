@@ -3,59 +3,10 @@ import { raw } from "../../htmlisp";
 import type { DashboardLaneDefinition } from "../../dashboard-lanes";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getStudentFormValues, getTargetSubmissionDate, PHASES } from "../../students";
 import type { MeetingLog, PhaseAuditEntry, Student } from "../../students/store";
-import {
-  EMPTY_STATE_CARD,
-  FIELD_CONTROL,
-  FORM_STACK,
-  MUTED_TEXT_XS,
-  PANEL_STACK,
-  SOFT_SURFACE_CARD,
-  SUBTLE_TEXT,
-  SURFACE_CARD,
-  TOGGLE_BUTTON_PANEL,
-  TOPIC_TEXT,
-  renderBadge,
-  renderButton,
-  renderInsetCard,
-  renderInputField,
-  renderMetadataList,
-  renderSectionHeader,
-  renderToggleGroup,
-  renderTextareaField,
-} from "../../ui";
+import { FIELD_CONTROL, FORM_STACK, renderButton, renderInputField, renderTextareaField } from "../../ui";
 import type { DashboardFilters } from "../types";
 import { renderView } from "../shared.htmlisp";
-import { DATETIME_LOCAL_HALF_HOUR_STEP } from "./date-time";
 import { renderStudentFormFields } from "./form-fields";
-
-export function renderEmptySelectedPanel(
-  message = "Select a student from the table to edit details and view/add supervision logs.",
-): string {
-  return renderView(
-    `<article &class="cardClass">
-      <h2 class="text-lg font-semibold">Student Details & Logs</h2>
-      <p &class="subtleText" &children="message"></p>
-    </article>`,
-    {
-      cardClass: SURFACE_CARD,
-      subtleText: `mt-2 ${SUBTLE_TEXT}`,
-      message,
-    },
-  );
-}
-
-interface PreparedLogEntry {
-  timestampText: string;
-  discussed: string;
-  agreedPlan: string;
-  hasDeadline: boolean;
-  deadlineText: string;
-}
-
-interface PreparedPhaseAuditEntry {
-  timestampText: string;
-  transitionText: string;
-}
 
 interface StudentPanelOptions {
   canEdit?: boolean;
@@ -64,167 +15,37 @@ interface StudentPanelOptions {
   timeZone?: string;
 }
 
-interface PreparedReadonlyField {
-  label: string;
-  value: string;
+export function renderEmptySelectedPanel(message = "Select a student to record meeting notes."): string {
+  return renderView('<p class="text-sm text-app-text-muted dark:text-app-text-muted-dark" &children="message"></p>', { message });
 }
 
-interface PreparedToolAction {
-  key: string;
-  label: string;
-  meta?: string;
+function phaseLabel(phaseId: string, lanes: DashboardLaneDefinition[]): string {
+  return lanes.find((lane) => lane.phaseId === phaseId)?.label || getPhaseLabel(phaseId, PHASES);
 }
 
-function prepareLogEntries(logs: MeetingLog[], timeZone?: string): PreparedLogEntry[] {
-  return logs.map((log) => ({
-    timestampText: formatDateTime(log.happenedAt, timeZone),
-    discussed: log.discussed,
-    agreedPlan: log.agreedPlan,
-    hasDeadline: Boolean(log.nextStepDeadline),
-    deadlineText: log.nextStepDeadline || "",
-  }));
-}
-
-function getDashboardPhaseLabel(phaseId: string, dashboardLanes: DashboardLaneDefinition[]): string {
-  return dashboardLanes.find((lane) => lane.phaseId === phaseId)?.label || getPhaseLabel(phaseId, PHASES);
-}
-
-function preparePhaseAuditEntries(
-  entries: PhaseAuditEntry[],
-  dashboardLanes: DashboardLaneDefinition[],
-  timeZone?: string,
-): PreparedPhaseAuditEntry[] {
-  return entries.map((entry) => ({
-    timestampText: formatDateTime(entry.changedAt, timeZone),
-    transitionText: `${getDashboardPhaseLabel(entry.fromPhase, dashboardLanes)} -> ${getDashboardPhaseLabel(entry.toPhase, dashboardLanes)}`,
-  }));
-}
-
-function prepareReadonlyFields(student: Student, dashboardLanes: DashboardLaneDefinition[], timeZone?: string): PreparedReadonlyField[] {
-  const targetSubmissionDate = getTargetSubmissionDate(student);
-  return [
-    { label: "Name", value: student.name },
-    { label: "Email", value: student.email || "Not set" },
-    { label: "Degree type", value: getDegreeLabel(student.degreeType, DEGREE_TYPES) },
-    { label: "Phase", value: getDashboardPhaseLabel(student.currentPhase, dashboardLanes) },
-    { label: "Thesis topic", value: student.thesisTopic || "Not set" },
-    { label: "Student notes", value: student.studentNotes || "Not set" },
-    { label: "Start date", value: student.startDate || "Not set" },
-    { label: "Target submission", value: targetSubmissionDate || "Not set" },
-    { label: "Next meeting", value: student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked" },
-    { label: "Saved meeting logs", value: String(student.logCount) },
-  ].map((field) => ({
-    label: field.label,
-    value: field.value,
-  }));
-}
-
-function renderReadonlyStudentSummary(student: Student, dashboardLanes: DashboardLaneDefinition[], timeZone?: string): string {
-  const readonlyFields = prepareReadonlyFields(student, dashboardLanes, timeZone);
-
+function renderLog(log: MeetingLog, timeZone?: string): string {
   return renderView(
-    `<section>
-      <h2 class="text-lg font-semibold">Student Overview</h2>
-      <p &class="currentStudentLineClass" &children="currentlyViewingText"></p>
-      <p &visibleIf="topicVisible" &class="topicTextClass" &children="topic"></p>
-      <p &class="readonlyNoticeClass">Read-only access to details, supervision logs, and the phase timeline.</p>
-      <fragment &children="metadataListHtml"></fragment>
-    </section>`,
+    `<article class="space-y-2 py-2 text-sm">
+      <p class="text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="timestamp"></p>
+      <div><h4 class="font-medium">Discussion</h4><p class="mt-1 whitespace-pre-wrap break-words" &children="discussed"></p></div>
+      <div><h4 class="font-medium">Next actions</h4><p class="mt-1 whitespace-pre-wrap break-words" &children="agreedPlan"></p></div>
+      <p &visibleIf="hasDeadline" class="text-xs">Next-step deadline: <span &children="deadline"></span></p>
+    </article>`,
     {
-      currentStudentLineClass: `mt-1 truncate ${SUBTLE_TEXT}`,
-      topicTextClass: TOPIC_TEXT,
-      readonlyNoticeClass: `mt-3 ${SUBTLE_TEXT}`,
-      metadataListHtml: raw(renderMetadataList({
-        items: readonlyFields,
-        className: "mt-stack-xs",
-      })),
-      currentlyViewingText: `Currently viewing: ${student.name}`,
-      topicVisible: Boolean(student.thesisTopic),
-      topic: student.thesisTopic || "",
+      timestamp: formatDateTime(log.happenedAt, timeZone),
+      discussed: log.discussed,
+      agreedPlan: log.agreedPlan,
+      hasDeadline: Boolean(log.nextStepDeadline),
+      deadline: log.nextStepDeadline || "",
     },
   );
 }
 
-function renderToolActions(actions: PreparedToolAction[]): string {
-  return renderToggleGroup({
-    className: "flex flex-wrap gap-badge-y",
-    buttonClassName: TOGGLE_BUTTON_PANEL,
-    items: actions.map((action) => ({
-      label: action.label,
-      meta: action.meta,
-      attrs: {
-        "data-selected-tool-button": "1",
-        "data-tool-key": action.key,
-      },
-    })),
+function disclosure(label: string, content: string, attrs = ""): string {
+  return renderView(`<details ${attrs}><summary &children="label"></summary><div class="mt-3" &children="content"></div></details>`, {
+    label,
+    content: raw(content),
   });
-}
-
-function renderStudentHistoryContent(
-  historySummaryText: string,
-  logSummaryText: string,
-  auditSummaryText: string,
-  logs: PreparedLogEntry[],
-  phaseAuditEntries: PreparedPhaseAuditEntry[],
-): string {
-  return renderView(
-    `<fragment &children="historyHeaderHtml"></fragment>
-    <div class="mt-stack-xs grid grid-cols-1 gap-stack-xs xl:grid-cols-2">
-      <section class="space-y-stack-xs">
-        <fragment &children="logHeaderHtml"></fragment>
-        <div &class="formStack" &visibleIf="hasLogs">
-          <fragment &foreach="logs as log">
-            <article &class="logEntryClass">
-              <p class="font-medium"><span &children="log.timestampText"></span></p>
-              <p class="mt-1"><span class="font-medium mr-1">Discussed:</span><span &children="log.discussed"></span></p>
-              <p class="mt-1"><span class="font-medium mr-1">Agreed:</span><span &children="log.agreedPlan"></span></p>
-              <p &visibleIf="log.hasDeadline" class="mt-1"><span class="font-medium">Next-step deadline:</span> <span &children="log.deadlineText"></span></p>
-            </article>
-          </fragment>
-        </div>
-        <p &visibleIf="showNoLogs" &class="emptyStateClass">No entries yet.</p>
-      </section>
-      <section class="space-y-stack-xs">
-        <fragment &children="auditHeaderHtml"></fragment>
-        <div &class="formStack" &visibleIf="hasPhaseAudit">
-          <fragment &foreach="phaseAuditEntries as entry">
-            <article &class="logEntryClass">
-              <p class="font-medium"><span &children="entry.timestampText"></span></p>
-              <p class="mt-1"><span class="font-medium">Phase change:</span> <span &children="entry.transitionText"></span></p>
-            </article>
-          </fragment>
-        </div>
-        <p &visibleIf="showNoPhaseAudit" &class="emptyStateClass">No phase changes recorded yet.</p>
-      </section>
-    </div>`,
-    {
-      emptyStateClass: EMPTY_STATE_CARD,
-      formStack: FORM_STACK,
-      historyHeaderHtml: raw(renderSectionHeader({
-        title: "History",
-        meta: historySummaryText,
-      })),
-      logHeaderHtml: raw(renderSectionHeader({
-        title: "Meeting log history",
-        meta: logSummaryText,
-        headingLevel: 4,
-        headingClassName: "text-sm font-semibold",
-      })),
-      auditHeaderHtml: raw(renderSectionHeader({
-        title: "Phase timeline",
-        meta: auditSummaryText,
-        headingLevel: 4,
-        headingClassName: "text-sm font-semibold",
-      })),
-      logEntryClass: SOFT_SURFACE_CARD,
-      hasLogs: logs.length > 0,
-      showNoLogs: logs.length === 0,
-      logs,
-      hasPhaseAudit: phaseAuditEntries.length > 0,
-      showNoPhaseAudit: phaseAuditEntries.length === 0,
-      phaseAuditEntries,
-    },
-  );
 }
 
 export function renderSelectedStudentPanel(
@@ -234,349 +55,215 @@ export function renderSelectedStudentPanel(
   options: StudentPanelOptions = {},
 ): string {
   const { canEdit = true, dashboardLanes = [], filters, timeZone } = options;
-  const returnSearchParams = new URLSearchParams();
-  returnSearchParams.set("selected", String(student.id));
-  if (filters?.scope === "archived") {
-    returnSearchParams.set("scope", "archived");
+  const editable = canEdit && !student.archivedAt;
+  const params = new URLSearchParams({ selected: String(student.id) });
+  if (filters) {
+    if (filters.scope === "archived") params.set("scope", "archived");
+    for (const key of ["search", "degree", "phase", "status"] as const) {
+      if (filters[key]) params.set(key, filters[key]);
+    }
+    if (filters.viewMode !== "list") params.set("view", filters.viewMode);
+    if (filters.sortKey !== "nextMeeting" || filters.sortDirection !== "asc") {
+      params.set("sort", filters.sortKey);
+      params.set("dir", filters.sortDirection);
+    }
   }
-  if (filters?.search) {
-    returnSearchParams.set("search", filters.search);
-  }
-  if (filters?.degree) {
-    returnSearchParams.set("degree", filters.degree);
-  }
-  if (filters?.phase) {
-    returnSearchParams.set("phase", filters.phase);
-  }
-  if (filters?.status) {
-    returnSearchParams.set("status", filters.status);
-  }
-  if (filters && (filters.sortKey !== "nextMeeting" || filters.sortDirection !== "asc")) {
-    returnSearchParams.set("sort", filters.sortKey);
-    returnSearchParams.set("dir", filters.sortDirection);
-  }
-  const returnTo = `/?${returnSearchParams.toString()}`;
-
-  const preparedLogs = prepareLogEntries(logs, timeZone);
-  const preparedPhaseAudit = preparePhaseAuditEntries(phaseAudit, dashboardLanes, timeZone);
-  const fields = renderStudentFormFields({
-    values: getStudentFormValues(student, timeZone),
-    dashboardLanes,
-  });
-  const targetSubmissionDate = getTargetSubmissionDate(student) || "Not set";
-  const nextMeetingText = student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked";
-  const defaultMeetingDateTimeValue = toDateTimeLocalInput(student.nextMeetingAt, timeZone);
-  const summaryBadgesHtml = raw([
-    renderBadge({ label: getDegreeLabel(student.degreeType, DEGREE_TYPES) }),
-    renderBadge({ label: getDashboardPhaseLabel(student.currentPhase, dashboardLanes) }),
-    renderBadge({ label: `Target ${targetSubmissionDate}` }),
-    renderBadge({ label: `Next ${nextMeetingText}` }),
-  ].join(""));
-  const historySummaryText = `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"} · ${preparedPhaseAudit.length} change${preparedPhaseAudit.length === 1 ? "" : "s"}`;
-  const logSummaryText = preparedLogs.length > 0 ? `${preparedLogs.length} entr${preparedLogs.length === 1 ? "y" : "ies"}` : "Empty";
-  const auditSummaryText = preparedPhaseAudit.length > 0 ? `${preparedPhaseAudit.length} change${preparedPhaseAudit.length === 1 ? "" : "s"}` : "Empty";
-
-  const editFormHtml = renderView(
-    `<form &action="action" method="post" &class="formStack">
-      <input type="hidden" name="returnTo" &value="returnTo" />
-      <p class="text-xs text-app-text-muted dark:text-app-text-muted-dark">
-        Update student details directly here without opening extra sections.
-      </p>
-      <div class="grid grid-cols-1 gap-stack-xs sm:grid-cols-2">
-        <fragment &children="nameField"></fragment>
-        <fragment &children="emailField"></fragment>
-        <fragment &children="degreeField"></fragment>
-        <fragment &children="phaseField"></fragment>
-        <fragment &children="topicField"></fragment>
-        <fragment &children="startDateField"></fragment>
+  const returnTo = `/?${params.toString()}`;
+  const hiddenReturn = renderView('<input type="hidden" name="returnTo" &value="returnTo" />', { returnTo });
+  const fields = renderStudentFormFields({ values: getStudentFormValues(student, timeZone), dashboardLanes });
+  const editForm = renderView(
+    `<form &action="action" method="post" &class="formStack" data-student-draft="edit">
+      <fragment &children="hiddenReturn"></fragment>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <fragment &children="nameField"></fragment><fragment &children="emailField"></fragment>
+        <fragment &children="degreeField"></fragment><fragment &children="phaseField"></fragment>
+        <fragment &children="topicField"></fragment><fragment &children="startDateField"></fragment>
         <fragment &children="nextMeetingField"></fragment>
       </div>
-      <div>
-        <fragment &children="notesField"></fragment>
-      </div>
-      <p class="text-xs text-app-text-muted dark:text-app-text-muted-dark">
-        MSc target submission is calculated automatically as six months from the start date.
-      </p>
-      <fragment &children="submitButton"></fragment>
+      <fragment &children="notesField"></fragment>
+      <p class="text-xs text-app-text-muted dark:text-app-text-muted-dark">MSc target: six months from the start date.</p>
+      <fragment &children="save"></fragment>
     </form>`,
     {
       action: `/actions/update-student/${student.id}`,
       formStack: FORM_STACK,
-      returnTo,
+      hiddenReturn: raw(hiddenReturn),
       ...Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, raw(value)])),
-      submitButton: raw(renderButton({
-        label: "Save student updates",
-        type: "submit",
-        variant: "primaryBlock",
-      })),
+      save: raw(renderButton({ label: "Save student updates", type: "submit", variant: "primary" })),
     },
   );
-
-  const addLogFormHtml = renderView(
-    `<form &action="action" method="post" &class="formStack">
-      <input type="hidden" name="returnTo" &value="returnTo" />
-      <fragment &children="happenedAtField"></fragment>
-      <div>
-        <fragment &children="nextMeetingField"></fragment>
-        <p &class="nextMeetingHintClass">
-          Leave blank if no next meeting was scheduled. Saving clears any previously saved next-meeting time.
-        </p>
+  const overview = renderView(
+    `<dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
+      <dt>Email</dt><dd class="break-words" &children="email"></dd>
+      <dt>Start date</dt><dd &children="startDate"></dd>
+      <dt>Target</dt><dd &children="target"></dd>
+      <dt>Student notes</dt><dd class="whitespace-pre-wrap break-words" &children="notes"></dd>
+    </dl>`,
+    {
+      email: student.email || "Not set",
+      startDate: student.startDate || "Not set",
+      target: getTargetSubmissionDate(student) || "Not set",
+      notes: student.studentNotes || "Not set",
+    },
+  );
+  const noteForm = renderView(
+    `<section class="border-t border-app-line pt-3 dark:border-app-line-dark">
+      <div class="flex items-baseline justify-between gap-2">
+        <h3 class="text-sm font-semibold">New meeting note</h3>
+        <span data-draft-status class="text-xs text-app-text-muted dark:text-app-text-muted-dark" role="status"></span>
       </div>
-      <fragment &children="discussedField"></fragment>
-      <fragment &children="agreedPlanField"></fragment>
-      <fragment &children="submitButton"></fragment>
-    </form>`,
+      <form &action="action" method="post" class="mt-3 space-y-3" data-student-draft="log">
+        <fragment &children="hiddenReturn"></fragment>
+        <fragment &children="happenedAt"></fragment>
+        <fragment &children="discussed"></fragment>
+        <fragment &children="agreedPlan"></fragment>
+        <label class="block text-sm">Follow-up
+          <select name="followUpAction" &class="selectClass">
+            <option value="keep">Keep current meeting</option>
+            <option value="clear">Not booked</option>
+            <option value="set">Set new meeting</option>
+          </select>
+        </label>
+        <div data-next-meeting-field><fragment &children="nextMeeting"></fragment></div>
+        <fragment &children="save"></fragment>
+        <p data-save-error class="hidden text-sm text-app-danger-text dark:text-app-danger-text-dark" role="alert"></p>
+      </form>
+    </section>`,
     {
       action: `/actions/add-log/${student.id}`,
-      formStack: FORM_STACK,
-      returnTo,
-      happenedAtField: raw(renderInputField({
-        label: "Meeting date/time",
-        name: "happenedAt",
-        type: "datetime-local",
-        value: defaultMeetingDateTimeValue,
-        className: FIELD_CONTROL,
-        attrs: DATETIME_LOCAL_HALF_HOUR_STEP,
-      })),
-      nextMeetingField: raw(renderInputField({
-        label: "Possible next meeting (optional)",
-        name: "nextMeetingAt",
-        type: "datetime-local",
-        className: FIELD_CONTROL,
-        attrs: DATETIME_LOCAL_HALF_HOUR_STEP,
-      })),
-      nextMeetingHintClass: `mt-2 ${MUTED_TEXT_XS}`,
-      discussedField: raw(renderTextareaField({
-        label: "What was discussed",
-        name: "discussed",
-        required: true,
-        className: FIELD_CONTROL,
-      })),
-      agreedPlanField: raw(renderTextareaField({
-        label: "Agreed plan / next actions",
-        name: "agreedPlan",
-        required: true,
-        className: FIELD_CONTROL,
-      })),
-      submitButton: raw(renderButton({
-        label: "Save log entry",
-        type: "submit",
-        variant: "successBlock",
-      })),
+      hiddenReturn: raw(hiddenReturn),
+      selectClass: `mt-1 ${FIELD_CONTROL}`,
+      happenedAt: raw(
+        renderInputField({
+          label: "Meeting time",
+          name: "happenedAt",
+          type: "datetime-local",
+          required: true,
+          value: toDateTimeLocalInput(new Date().toISOString(), timeZone),
+          className: FIELD_CONTROL,
+          attrs: { step: "60" },
+        }),
+      ),
+      discussed: raw(
+        renderTextareaField({ label: "Discussion", name: "discussed", required: true, className: FIELD_CONTROL, attrs: { rows: "3" } }),
+      ),
+      agreedPlan: raw(
+        renderTextareaField({ label: "Next actions", name: "agreedPlan", required: true, className: FIELD_CONTROL, attrs: { rows: "3" } }),
+      ),
+      nextMeeting: raw(
+        renderInputField({
+          label: "Next meeting",
+          name: "nextMeetingAt",
+          type: "datetime-local",
+          className: FIELD_CONTROL,
+          attrs: { step: "1800" },
+        }),
+      ),
+      save: raw(renderButton({ label: "Save note", type: "submit", variant: "primary" })),
     },
   );
-
-  const historyContentHtml = renderStudentHistoryContent(
-    historySummaryText,
-    logSummaryText,
-    auditSummaryText,
-    preparedLogs,
-    preparedPhaseAudit,
+  const latestLog = logs[0];
+  const lastMeeting = renderView(
+    `<section><h3 class="text-xs font-semibold uppercase tracking-wide">Last meeting</h3><fragment &children="content"></fragment></section>`,
+    {
+      content: raw(
+        latestLog
+          ? renderLog(latestLog, timeZone)
+          : '<p class="py-3 text-sm text-app-text-muted dark:text-app-text-muted-dark">No meeting notes yet.</p>',
+      ),
+    },
   );
-
-  if (student.archivedAt) {
-    const restoreActionHtml = canEdit
-      ? renderView(
-          `<form &action="action" method="post" &data-confirm-message="confirmMessage">
-            <input type="hidden" name="returnTo" &value="returnTo" />
-            <fragment &children="restoreButtonHtml"></fragment>
-          </form>`,
+  const audit =
+    phaseAudit
+      .map((entry) =>
+        renderView(
+          '<p class="py-2 text-sm"><span class="block text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="timestamp"></span><span &children="transition"></span></p>',
           {
-            action: `/actions/restore-student/${student.id}`,
-            returnTo,
-            confirmMessage: `Restore ${student.name} to active students?`,
-            restoreButtonHtml: raw(renderButton({
-              label: "Restore to active students",
-              type: "submit",
-              variant: "primary",
-            })),
+            timestamp: formatDateTime(entry.changedAt, timeZone),
+            transition: `${phaseLabel(entry.fromPhase, dashboardLanes)} → ${phaseLabel(entry.toPhase, dashboardLanes)}`,
           },
-        )
-      : "";
+        ),
+      )
+      .join("") || '<p class="text-sm">No phase changes recorded yet.</p>';
+  const archiveAction = canEdit
+    ? renderView(
+        `<form &action="action" method="post" &data-confirm-message="confirmMessage">
+      <fragment &children="hiddenReturn"></fragment><fragment &children="button"></fragment>
+    </form>`,
+        {
+          action: `/actions/${student.archivedAt ? "restore" : "archive"}-student/${student.id}`,
+          hiddenReturn: raw(hiddenReturn),
+          confirmMessage: student.archivedAt
+            ? `Restore ${student.name} to active students?`
+            : `Archive ${student.name}? Supervision history will be retained.`,
+          button: raw(
+            renderButton({
+              label: student.archivedAt ? "Restore to active students" : "Archive student",
+              type: "submit",
+              variant: "neutral",
+            }),
+          ),
+        },
+      )
+    : "";
 
-    return renderView(
-      `<article &class="cardClass">
-        <section>
-          <div class="flex items-start justify-between gap-stack-xs">
-            <div class="min-w-0">
-              <h2 data-selected-student-heading="1" tabindex="-1" class="text-lg font-semibold" &children="selectedHeadingText"></h2>
-              <p &visibleIf="topicVisible" &class="topicTextClass" &children="topic"></p>
-            </div>
-            <fragment &children="closeButtonHtml"></fragment>
-          </div>
-          <div class="mt-stack-xs flex flex-wrap items-center justify-between gap-stack-xs rounded-card border border-app-line bg-app-surface-soft/55 px-panel-sm py-stack-xs dark:border-app-line-dark dark:bg-app-surface-soft-dark/25">
-            <div>
-              <p class="text-sm font-semibold">Archived student</p>
-              <p class="mt-1 text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="archivedAtText"></p>
-            </div>
-            <fragment &children="restoreActionHtml"></fragment>
-          </div>
-        </section>
-        <fragment &children="summaryHtml"></fragment>
-        <fragment &children="historyPanelHtml"></fragment>
-      </article>`,
-      {
-        cardClass: `${PANEL_STACK} ${SURFACE_CARD}`,
-        selectedHeadingText: `Selected student: ${student.name}`,
-        topicVisible: Boolean(student.thesisTopic),
-        topic: student.thesisTopic || "",
-        topicTextClass: TOPIC_TEXT,
-        archivedAtText: `Archived ${formatDateTime(student.archivedAt, timeZone)}`,
-        restoreActionHtml: raw(restoreActionHtml),
-        closeButtonHtml: raw(renderButton({
+  return renderView(
+    `<article class="space-y-3" &data-panel-student-id="studentId">
+      <div class="back-to-students"><button type="button" data-back-to-students class="text-sm text-app-brand underline dark:text-app-brand-ring">← Back to students</button></div>
+      <header>
+        <div class="flex items-start justify-between gap-3">
+          <h2 data-selected-student-heading="1" tabindex="-1" class="text-xl font-semibold break-words" &children="name"></h2>
+          <fragment &children="close"></fragment>
+        </div>
+        <p &visibleIf="hasTopic" class="mt-1 text-sm text-app-text-muted dark:text-app-text-muted-dark break-words" &children="topic"></p>
+        <p class="mt-2 text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="summary"></p>
+        <p class="mt-1 text-xs text-app-text-muted dark:text-app-text-muted-dark" &children="meeting"></p>
+        <p &visibleIf="archived" class="mt-2 text-sm font-medium" &children="archiveDate"></p>
+        <p &visibleIf="readonly" class="mt-2 text-xs">Read-only</p>
+      </header>
+      <fragment &children="lastMeeting"></fragment>
+      <fragment &visibleIf="editable" &children="noteForm"></fragment>
+      <div>
+        <fragment &children="details"></fragment>
+        <fragment &children="earlierNotes"></fragment>
+        <fragment &children="phaseHistory"></fragment>
+        <fragment &visibleIf="canEdit" &children="recordActions"></fragment>
+      </div>
+    </article>`,
+    {
+      studentId: String(student.id),
+      name: student.name,
+      hasTopic: Boolean(student.thesisTopic),
+      topic: student.thesisTopic || "",
+      summary: `${getDegreeLabel(student.degreeType, DEGREE_TYPES)} · ${phaseLabel(student.currentPhase, dashboardLanes)} · Target ${getTargetSubmissionDate(student) || "not set"}`,
+      meeting: `Next meeting: ${student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked"}`,
+      archived: Boolean(student.archivedAt),
+      archiveDate: student.archivedAt ? `Archived ${formatDateTime(student.archivedAt, timeZone)}` : "",
+      readonly: !canEdit,
+      editable,
+      canEdit,
+      close: raw(
+        renderButton({
           label: "Close",
           type: "button",
           variant: "inline",
           attrs: { id: "closeSelectedStudentPanelButton", "aria-label": "Close student workspace" },
-        })),
-        summaryHtml: raw(renderReadonlyStudentSummary(student, dashboardLanes, timeZone)),
-        historyPanelHtml: raw(renderInsetCard(historyContentHtml, "bg-app-surface-soft/60 dark:bg-app-surface-soft-dark/30")),
-      },
-    );
-  }
-
-  if (!canEdit) {
-    return renderView(
-      `<article &class="cardClass">
-        <fragment &children="summaryHtml"></fragment>
-        <fragment &children="historyPanelHtml"></fragment>
-      </article>`,
-      {
-        cardClass: `${PANEL_STACK} ${SURFACE_CARD}`,
-        summaryHtml: raw(renderReadonlyStudentSummary(student, dashboardLanes, timeZone)),
-        historyPanelHtml: raw(renderInsetCard(
-          historyContentHtml,
-          "bg-app-surface-soft/60 dark:bg-app-surface-soft-dark/30",
-        )),
-      },
-    );
-  }
-
-  const editPanelHtml = renderInsetCard(
-    renderView(
-      `<fragment &children="headerHtml"></fragment>
-      <div class="mt-stack-xs">
-        <fragment &children="editFormHtml"></fragment>
-      </div>`,
-      {
-        headerHtml: raw(renderSectionHeader({
-          title: "Edit student",
-          meta: "Core details",
-        })),
-        editFormHtml: raw(editFormHtml),
-      },
-    ),
-    "hidden bg-app-surface-soft/60 dark:bg-app-surface-soft-dark/30",
-    {
-      "data-selected-tool-panel": "1",
-      "data-tool-key": "edit",
-    },
-  );
-
-  const logPanelHtml = renderInsetCard(
-    renderView(
-      `<fragment &children="headerHtml"></fragment>
-      <div class="mt-stack-xs">
-        <fragment &children="addLogFormHtml"></fragment>
-      </div>`,
-      {
-        headerHtml: raw(renderSectionHeader({
-          title: "Add log entry",
-          meta: "Meeting notes",
-        })),
-        addLogFormHtml: raw(addLogFormHtml),
-      },
-    ),
-    "hidden bg-app-surface-soft/60 dark:bg-app-surface-soft-dark/30",
-    {
-      "data-selected-tool-panel": "1",
-      "data-tool-key": "log",
-    },
-  );
-
-  const historyPanelHtml = renderInsetCard(
-    historyContentHtml,
-    "hidden bg-app-surface-soft/60 dark:bg-app-surface-soft-dark/30",
-    {
-      "data-selected-tool-panel": "1",
-      "data-tool-key": "history",
-    },
-  );
-
-  return renderView(
-    `<article &class="cardClass">
-      <section>
-        <div class="flex items-start justify-between gap-stack-xs">
-          <div class="min-w-0">
-            <h2
-              data-selected-student-heading="1"
-              tabindex="-1"
-              class="text-lg font-semibold focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-app-brand focus-visible:ring-offset-2 dark:focus-visible:ring-offset-app-surface-dark"
-              &children="selectedHeadingText"
-            ></h2>
-          </div>
-          <fragment &children="closeButtonHtml"></fragment>
-        </div>
-        <p &visibleIf="topicVisible" &class="topicTextClass" &children="topic"></p>
-        <div class="mt-3 flex flex-wrap gap-badge-y">
-          <fragment &children="summaryBadgesHtml"></fragment>
-        </div>
-        <div class="mt-3 flex flex-wrap items-center justify-between gap-badge-y gap-stack-xs">
-          <fragment &children="toolActionsHtml"></fragment>
-          <fragment &children="archiveActionHtml"></fragment>
-        </div>
-      </section>
-      <fragment &children="editPanelHtml"></fragment>
-      <fragment &children="logPanelHtml"></fragment>
-      <fragment &children="historyPanelHtml"></fragment>
-    </article>`,
-    {
-      cardClass: `${PANEL_STACK} ${SURFACE_CARD}`,
-      topicTextClass: TOPIC_TEXT,
-      selectedHeadingText: `Selected student: ${student.name}`,
-      topicVisible: Boolean(student.thesisTopic),
-      topic: student.thesisTopic || "",
-      summaryBadgesHtml,
-      toolActionsHtml: raw(renderToolActions([
-        { key: "edit", label: "Edit" },
-        { key: "log", label: "Add log" },
-        { key: "history", label: "History", meta: historySummaryText },
-      ])),
-      archiveActionHtml: raw(renderView(
-        `<form
-          &action="deleteAction"
-          method="post"
-          class="shrink-0"
-          &data-confirm-message="deleteConfirm"
-        >
-          <input type="hidden" name="returnTo" &value="returnTo" />
-          <fragment &children="deleteButtonHtml"></fragment>
-        </form>`,
-        {
-          deleteAction: `/actions/archive-student/${student.id}`,
-          returnTo,
-          deleteConfirm: `Archive ${student.name}? This will hide the student from the active dashboard but keep the history intact.`,
-          deleteButtonHtml: raw(renderButton({
-            label: "Archive",
-            type: "submit",
-            variant: "inline",
-            className:
-              "border-app-danger-line bg-app-surface text-app-danger-text hover:bg-app-danger-soft/75 dark:border-app-danger-soft-dark/65 dark:bg-app-surface-dark dark:text-app-danger-text-dark dark:hover:bg-app-danger-soft-dark/35",
-          })),
-        },
-      )),
-      closeButtonHtml: raw(renderButton({
-        label: "Close",
-        type: "button",
-        variant: "inline",
-        attrs: {
-          id: "closeSelectedStudentPanelButton",
-          "aria-label": "Close student workspace",
-        },
-      })),
-      editPanelHtml: raw(editPanelHtml),
-      logPanelHtml: raw(logPanelHtml),
-      historyPanelHtml: raw(historyPanelHtml),
+        }),
+      ),
+      lastMeeting: raw(lastMeeting),
+      noteForm: raw(noteForm),
+      details: raw(disclosure(editable ? "Edit details" : "Student details", editable ? editForm : overview, "data-student-details")),
+      earlierNotes: raw(
+        disclosure(
+          `Earlier notes (${Math.max(0, logs.length - 1)})`,
+          logs
+            .slice(1)
+            .map((log) => renderLog(log, timeZone))
+            .join("") || '<p class="text-sm">No earlier notes.</p>',
+        ),
+      ),
+      phaseHistory: raw(disclosure(`Phase history (${phaseAudit.length})`, audit)),
+      recordActions: raw(disclosure("Record actions", archiveAction)),
     },
   );
 }

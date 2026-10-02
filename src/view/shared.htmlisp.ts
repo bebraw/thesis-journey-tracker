@@ -21,7 +21,7 @@ export function renderDocument(title: string, bodyContent: string, bodyClass = B
     <title &children="title"></title>
     <script src="/app.js"></script>
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=2" />
   </head>
   <body &class="bodyClass">
     <fragment &children="bodyContent"></fragment>

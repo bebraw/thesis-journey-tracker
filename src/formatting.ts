@@ -16,6 +16,20 @@ export function formatDateTime(isoValue: string, timeZone = DEFAULT_SCHEDULE_TIM
   }).format(date);
 }
 
+export function formatCompactDateTime(isoValue: string, timeZone = DEFAULT_SCHEDULE_TIMEZONE): string {
+  const date = new Date(isoValue);
+  if (Number.isNaN(date.getTime())) return isoValue;
+  const year = new Intl.DateTimeFormat("en-GB", { year: "numeric", timeZone });
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone,
+    ...(year.format(date) !== year.format(new Date()) ? { year: "numeric" as const } : {}),
+  }).format(date);
+}
+
 export function toDateTimeLocalInput(isoValue: string | null, timeZone = DEFAULT_SCHEDULE_TIMEZONE): string {
   if (!isoValue) {
     return "";

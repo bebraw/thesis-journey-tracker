@@ -279,34 +279,12 @@ function restoreSubmitButton(submitButton, previousState) {
 function setPanelVisibility(visible) {
   if (!selectedStudentPanelShell) return;
   selectedStudentPanelShell.classList.toggle("hidden", !visible);
-  if (toggleStudentPanelButton) {
-    toggleStudentPanelButton.textContent = visible ? "Hide details" : "Show details";
-    toggleStudentPanelButton.setAttribute("aria-expanded", visible ? "true" : "false");
-  }
+  document.getElementById("dashboardWorkspace").classList.toggle("has-selection", visible);
 }
 
 function focusSelectedStudentSummary() {
   if (!selectedStudentHeading || !selectedStudentPanelShell || selectedStudentPanelShell.classList.contains("hidden")) return;
   selectedStudentHeading.focus({ preventScroll: true });
-}
-
-function getActiveSelectedStudentTool() {
-  var activeButton = selectedStudentToolButtons.find(function (button) {
-    return button.getAttribute("aria-pressed") === "true";
-  });
-  return activeButton ? activeButton.getAttribute("data-tool-key") || "" : "";
-}
-
-function setActiveSelectedStudentTool(toolKey) {
-  selectedStudentToolButtons.forEach(function (button) {
-    var isActive = Boolean(toolKey) && button.getAttribute("data-tool-key") === toolKey;
-    button.setAttribute("aria-pressed", isActive ? "true" : "false");
-  });
-
-  selectedStudentToolPanels.forEach(function (panel) {
-    var isActive = Boolean(toolKey) && panel.getAttribute("data-tool-key") === toolKey;
-    panel.classList.toggle("hidden", !isActive);
-  });
 }
 
 function replaceDashboardSection(nextDocument, id) {
@@ -325,12 +303,14 @@ function rebindDashboardUi() {
   bindWorkspaceViewToggle();
   bindDashboardFilters();
   bindStudentSort();
-  bindPanelToggle();
   bindCloseSelectedPanel();
-  bindSelectedStudentToolToggle();
   bindInlineStudentUpdateForm();
   bindInlineLogEntryForm();
+  bindStudentDrafts();
   bindDashboardToasts();
+  document.querySelectorAll("[data-clear-filters]").forEach(function (button) {
+    button.addEventListener("click", function () { clearDashboardFilter("all"); });
+  });
 }
 
 function applyDashboardHtml(htmlText, nextUrl, options) {
@@ -338,7 +318,6 @@ function applyDashboardHtml(htmlText, nextUrl, options) {
   var nextDocument = parser.parseFromString(htmlText, "text/html");
   var selectedId = options && options.selectedId ? options.selectedId : getSelectedStudentIdFromLocation();
   var panelWasVisible = options && options.panelWasVisible ? true : false;
-  var activeTool = (options && options.activeTool) || "";
   var focusSummary = options && options.focusSummary ? true : false;
 
   replaceDashboardSection(nextDocument, "dashboardFlashMessages");
@@ -358,7 +337,7 @@ function applyDashboardHtml(htmlText, nextUrl, options) {
   setPanelVisibility(panelWasVisible);
   applySelectedRowState(selectedId);
   applySelectedLaneState(selectedId);
-  setActiveSelectedStudentTool(activeTool);
+  applySelectedGanttState(selectedId);
   rebindDashboardUi();
   if (focusSummary) {
     focusSelectedStudentSummary();

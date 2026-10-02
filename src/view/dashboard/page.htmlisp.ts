@@ -1,17 +1,28 @@
 import { PAGE_WRAP } from "../../ui/app";
 import { renderEmptySelectedPanel, renderSelectedStudentPanel } from "../students";
-import {
-  renderAuthedPageDocument,
-} from "../shared.htmlisp";
+import { renderAuthedPageDocument } from "../shared.htmlisp";
 import type { DashboardPageData } from "../types";
 import { renderDashboardScriptTag } from "./interaction-script";
 import { renderDashboardGantt } from "./gantt.htmlisp";
-import { renderMetricCards } from "./metrics.htmlisp";
 import { renderPhaseLanes } from "./phase-lanes.htmlisp";
 import { renderStudentsTable } from "./students-table.htmlisp";
 
 export function renderDashboardPage(data: DashboardPageData): string {
-  const { viewer, students, selectedStudent, logs, phaseAudit, dashboardLanes, filters, notice, error, metrics, activeStudentCount, archivedStudentCount, timeZone, showStyleGuide } = data;
+  const {
+    viewer,
+    students,
+    selectedStudent,
+    logs,
+    phaseAudit,
+    dashboardLanes,
+    filters,
+    notice,
+    error,
+    activeStudentCount,
+    archivedStudentCount,
+    timeZone,
+    showStyleGuide,
+  } = data;
   const canEdit = viewer.role === "editor";
   const selectedPanel = selectedStudent
     ? renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, { canEdit, dashboardLanes, filters, timeZone })
@@ -40,7 +51,6 @@ export function renderDashboardPage(data: DashboardPageData): string {
         selectedStudent,
         filters,
         dashboardLanes,
-        renderMetricCards(metrics),
         renderDashboardGantt(students, selectedStudent, filters, dashboardLanes, { embedded: true }),
         renderPhaseLanes(students, selectedStudent, filters, dashboardLanes, { embedded: true }),
         selectedPanel,

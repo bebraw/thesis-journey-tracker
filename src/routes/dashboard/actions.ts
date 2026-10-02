@@ -7,6 +7,7 @@ import { logError } from "../../observability/error-logging";
 import { parseStudentFormSubmission } from "../../students";
 import {
   archiveStudent,
+  createMeetingLog,
   createMeetingLogWithNextMeeting,
   createStudent,
   getStudentById,
@@ -77,17 +78,29 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
   const formData = await readFormData(request);
   const timeZone = await resolveDashboardTimeZone(env);
 
-  const happenedAt = normalizeDateTime(formData.get("happenedAt"), true, timeZone) || new Date().toISOString();
+  const happenedAt = normalizeDateTime(formData.get("happenedAt"), true, timeZone);
   const discussed = normalizeString(formData.get("discussed"));
   const agreedPlan = normalizeString(formData.get("agreedPlan"));
   const nextStepDeadlineValue = formData.get("nextStepDeadline");
-  const nextStepDeadline =
-    nextStepDeadlineValue === null ? null : normalizeDate(nextStepDeadlineValue, true);
+  const nextStepDeadline = nextStepDeadlineValue === null ? null : normalizeDate(nextStepDeadlineValue, true);
+  const followUpAction = formData.get("followUpAction");
   const nextMeetingAtValue = formData.get("nextMeetingAt");
   const nextMeetingAtText = typeof nextMeetingAtValue === "string" ? nextMeetingAtValue.trim() : "";
   const nextMeetingAt = nextMeetingAtText ? normalizeDateTime(nextMeetingAtText, true, timeZone) : null;
 
-  if (!discussed || !agreedPlan || nextStepDeadline === undefined || nextMeetingAt === undefined) {
+  const validFollowUp =
+    followUpAction === null ||
+    followUpAction === "keep" ||
+    followUpAction === "clear" ||
+    (followUpAction === "set" && Boolean(nextMeetingAt));
+  if (
+    happenedAt === undefined ||
+    !discussed ||
+    !agreedPlan ||
+    nextStepDeadline === undefined ||
+    nextMeetingAt === undefined ||
+    !validFollowUp
+  ) {
     return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Invalid log input" }));
   }
 
@@ -98,13 +111,14 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
   try {
     const logInput = {
       studentId,
-      happenedAt,
+      happenedAt: happenedAt || new Date().toISOString(),
       discussed,
       agreedPlan,
       nextStepDeadline,
     };
 
-    await createMeetingLogWithNextMeeting(env.DB, logInput, nextMeetingAt);
+    if (followUpAction === "keep") await createMeetingLog(env.DB, logInput);
+    else await createMeetingLogWithNextMeeting(env.DB, logInput, followUpAction === "clear" ? null : nextMeetingAt);
   } catch (error) {
     logError("meeting_log.create_failed", error);
     return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Failed to save log" }));
