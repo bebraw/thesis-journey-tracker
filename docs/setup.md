@@ -4,7 +4,7 @@ This guide covers the full local setup flow for running Thesis Journey Tracker f
 
 ## Prerequisites
 
-- Node.js `24.18.0` LTS via [`.nvmrc`](../.nvmrc) (`nvm install && nvm use`)
+- Node.js `24.21.0` LTS via [`.nvmrc`](../.nvmrc) (`nvm install && nvm use`)
 - npm
 - A Cloudflare account with Wrangler access
 

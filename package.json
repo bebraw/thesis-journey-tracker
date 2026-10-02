@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "24.18.0",
+    "node": "24.21.0",
     "npm": ">=11.16.0 <12"
   },
   "allowScripts": {
@@ -15,17 +15,17 @@
     "protobufjs": false,
     "sharp": false,
     "ssh2": false,
-    "workerd@1.20260828.1": true
+    "workerd@1.20261001.1": true
   },
   "scripts": {
     "account:create": "node ./scripts/create-auth-user.mjs",
     "auth:create-user": "node ./scripts/create-auth-user.mjs",
     "audit:dependencies": "npm audit --audit-level=low",
     "build:css": "mkdir -p ./.generated && tailwindcss -i ./src/tailwind-input.css -o ./.generated/styles.css --minify",
-    "ci:local": "node ./scripts/run-agent-ci.mjs run --workflow .github/workflows/ci.yml --prewarm-through .github/workflows/ci.yml:quality-fast:install",
-    "ci:local:quiet": "node ./scripts/run-agent-ci.mjs run --quiet --workflow .github/workflows/ci.yml --prewarm-through .github/workflows/ci.yml:quality-fast:install",
-    "ci:local:all": "node ./scripts/run-agent-ci.mjs run --all --prewarm-through .github/workflows/ci.yml:quality-fast:install",
-    "ci:local:retry": "node ./scripts/run-agent-ci.mjs retry",
+    "ci:local": "node ./scripts/run-local-ci.mjs run --json --pause-on-failure --workflow .github/workflows/ci.yml --prewarm-through .github/workflows/ci.yml:quality-fast:install",
+    "ci:local:quiet": "node ./scripts/run-local-ci.mjs run --json --pause-on-failure --quiet --workflow .github/workflows/ci.yml --prewarm-through .github/workflows/ci.yml:quality-fast:install",
+    "ci:local:all": "node ./scripts/run-local-ci.mjs run --json --pause-on-failure --all --prewarm-through .github/workflows/ci.yml:quality-fast:install",
+    "ci:local:retry": "node ./scripts/run-local-ci.mjs retry",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "doctor:local": "node ./scripts/doctor-local.mjs",
@@ -47,23 +47,43 @@
     "quality:gate:fast": "npm run audit:dependencies && npm run types:check && npm run typecheck && npm test && npm run test:d1",
     "quality:gate": "npm run ci:local:quiet",
     "test:d1": "vitest run tests/d1-integration.test.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node ./node_modules/typescript-7/bin/tsc --noEmit",
     "pretest": "npm run build:css",
     "test": "vitest run"
   },
   "devDependencies": {
-    "@playwright/test": "1.58.2",
-    "@redwoodjs/agent-ci": "0.17.1",
-    "@tailwindcss/cli": "4.3.2",
-    "chrome-launcher": "1.2.1",
-    "lighthouse": "13.4.1",
-    "prettier": "3.8.1",
-    "tailwindcss": "4.3.2",
-    "typescript": "6.0.2",
-    "vitest": "4.1.10",
-    "wrangler": "4.127.1"
+    "@playwright/test": "1.62.1",
+    "@tailwindcss/cli": "4.3.3",
+    "chrome-launcher": "1.2.2",
+    "lighthouse": "13.5.0",
+    "prettier": "3.9.9",
+    "run-local-ci": "0.18.1",
+    "tailwindcss": "4.3.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-7": "npm:typescript@7.0.2",
+    "vitest": "4.1.11",
+    "wrangler": "4.146.0"
   },
   "dependencies": {
     "htmlisp": "0.90.0"
+  },
+  "packageManager": "npm@11.21.0",
+  "vibeTemplate": {
+    "source": "https://github.com/bebraw/vibe-template",
+    "baseline": "4428c4351b98769c4ba839d55bc32672ffe02c8b",
+    "updates": [
+      "2026-07-08-typescript-7-typecheck",
+      "2026-07-13-agent-ci-progress-events",
+      "2026-08-17-dependency-toolchain-refresh",
+      "2026-10-02-scope-agent-guidance"
+    ],
+    "partialUpdates": [
+      {
+        "id": "2026-10-02-dependency-refresh",
+        "remaining": [
+          "Playwright 1.63.0 and its matching CI image: Chromium 153 trace screenshots crash on Linux ARM64."
+        ]
+      }
+    ]
   }
 }

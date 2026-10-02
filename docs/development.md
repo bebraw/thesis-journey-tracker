@@ -6,21 +6,21 @@ This guide collects the commands and workflows you are likely to need while work
 
 - `npm run dev`: start the app locally with Wrangler
 - `npm run build:css`: rebuild the generated Tailwind stylesheet manually
-- `npm run ci:local`: run the checked-in GitHub Actions workflow locally through Agent CI
+- `npm run ci:local`: run the checked-in GitHub Actions workflow locally through Local CI
 - `npm run ci:local:quiet`: run the same workflow with quieter logs
-- `npm run ci:local:all`: run every workflow Agent CI detects in the repo
-- `npm run ci:local:retry -- --name <runner-name>`: resume a paused local Agent CI runner after fixing an issue
+- `npm run ci:local:all`: run every workflow Local CI detects in the repo
+- `npm run ci:local:retry -- --name <runner-name>`: resume a paused Local CI runner after fixing an issue
 - `npm run doctor:local`: diagnose local setup issues, including `.dev.vars`, the D1 binding, migrations, and login accounts
 - `npm run audit:dependencies`: fail on any npm advisory, including development-tool advisories
 - `npm run types:generate`: regenerate the checked-in Worker runtime and binding types
 - `npm run types:check`: verify that [`worker-configuration.d.ts`](../worker-configuration.d.ts) is up to date
-- `npm run typecheck`: run TypeScript without emitting files
+- `npm run typecheck`: run TypeScript 7 without emitting files
 - `npm run db:insights`: inspect the slowest remote D1 queries over the last day
 - `npm run db:seed:sample`: populate the local D1 database with reusable sample students, logs, and phase history
 - `npm test`: run the Vitest suite
 - `npm run test:d1`: run the D1-backed integration tests against Wrangler's local platform proxy
 - `npm run quality:gate:fast`: audit dependencies, verify Worker types, then run TypeScript, unit tests, and D1 integration tests
-- `npm run quality:gate`: run the full local verification workflow through Agent CI
+- `npm run quality:gate`: run the full local verification workflow through Local CI
 - `npm run lighthouse`: run the authenticated Lighthouse performance check
 - `npm run readme:screenshots`: refresh the checked-in README screenshots from the local app running on `127.0.0.1:8788`
 - `npm run deploy`: directly upload and promote the Worker as a fallback when the normal `main`-branch Cloudflare build is unavailable; complete the checks in the [production release procedure](./deployment.md#deploying-to-cloudflare) first
@@ -43,17 +43,26 @@ npm run test:d1
 
 This uses Wrangler's local platform proxy and applies the checked-in migrations into an isolated local D1 state for the test run.
 
-## Local CI With Agent CI
+## Type Checking
 
-Browser verification now runs through Agent CI rather than a separate local Playwright install flow.
+TypeScript 7 runs the type check; the canonical `typescript` package remains the TypeScript 6 compatibility build for tools that import its compiler API.
+
+## Local CI
+
+Browser verification now runs through Local CI rather than a separate local Playwright install flow.
 The checked-in local-CI scripts prewarm dependencies through the fast job's `install` step before parallel jobs start, avoiding concurrent cold installs into the shared local cache.
+Each parallel job receives an isolated dependency view. Run and quiet commands emit NDJSON progress and pause failed runners for `ci:local:retry`.
 
 - Start Docker before running `npm run ci:local` or `npm run ci:local:quiet`.
-- If your clone has no `origin` remote, add one or set `GITHUB_REPO=owner/repo` in the shell environment before running local CI. Agent CI does not load this non-prefixed value from `.env.agent-ci`.
-- If your Docker CLI uses a non-default socket, set `AGENT_CI_DOCKER_HOST=...` in `.env.agent-ci` so Agent CI and the wrapper reach the same engine.
-- The wrapper pulls the reviewed immutable GitHub Actions runner digest when necessary, verifies the local alias resolves to that image, and partitions Agent CI's runner cache by both package version and digest. Do not pull or retag `ghcr.io/actions/actions-runner:latest` manually.
+- If your clone has no `origin` remote, add one or set `GITHUB_REPO=owner/repo` in the shell environment before running local CI. Local CI does not load this non-prefixed value from `.env.local-ci`.
+- If your Docker CLI uses a non-default socket, set `LOCAL_CI_DOCKER_HOST=...` in `.env.local-ci` so Local CI and the wrapper reach the same engine.
+- The wrapper pulls the reviewed immutable GitHub Actions runner digest when necessary, verifies the local alias resolves to that image, and partitions Local CI's runner cache by both package version and digest. Do not pull or retag `ghcr.io/actions/actions-runner:latest` manually.
 
-The browser job still uses the repo's Playwright tests and config under the hood, but the supported way to run them as part of verification is the checked-in Agent CI workflow in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+Local CI replaces the former Agent CI package. Copy `.env.local-ci.example` to `.env.local-ci` for machine overrides; rename `AGENT_CI_*` keys to `LOCAL_CI_*`. Local CI still accepts the legacy `.env.agent-ci` file and variable names when no canonical value is present, and both files remain ignored.
+
+The existing public `ci:local`, `ci:local:quiet`, `ci:local:all`, and `ci:local:retry` commands continue through [`scripts/run-local-ci.mjs`](../scripts/run-local-ci.mjs), preserving the immutable runner seed and fail-closed package-layout checks.
+
+The browser job still uses the repo's Playwright tests and config under the hood, but the supported way to run them as part of verification is the checked-in Local CI workflow in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 ### Lighthouse Audits
 
@@ -62,7 +71,8 @@ npm run lighthouse
 ```
 
 Reports are written to `reports/lighthouse/`. The audit enforces a minimum performance score of `90` for both mobile and desktop runs.
-Lighthouse is intentionally pinned to `12.6.1`: the current `13.x` dependency tree still triggers OpenTelemetry security advisories. Do not bump it mechanically; verify both `npm audit` and the mobile/desktop performance runs when reevaluating the pin.
+Lighthouse is pinned to `13.5.0`. Verify both the full dependency audit and the mobile/desktop performance runs when updating it.
+Playwright remains at `1.62.1` with its matching CI image while the newer bundled Chromium's Linux ARM64 trace-screenshot crash is unresolved. See [template-updates.md](./template-updates.md#partial-dependency-refresh) for the isolated reproduction and remaining template sync gap.
 
 Dependency installation uses npm's strict lifecycle-script allowlist. Only the exact reviewed `esbuild` and `workerd` versions may run install scripts; optional accelerators, postinstall notices, and native build or binary-check fallbacks that the verified workflows do not require are explicitly denied. If an update introduces a new lifecycle script, `npm ci` fails before running it. Start a lockfile update with `npm install --ignore-scripts`, inspect the new package and script, then change `allowScripts` deliberately and rerun a clean install, the Docker build, and local CI. Do not bypass the policy to make an update pass.
 

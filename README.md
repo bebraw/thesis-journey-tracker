@@ -119,6 +119,7 @@ Then follow the container setup commands in [docs/setup.md](./docs/setup.md#dock
 
 - [docs/setup.md](./docs/setup.md): local setup, environment variables, Google Calendar configuration, and first run
 - [docs/development.md](./docs/development.md): scripts, testing, local CI, and day-to-day engineering workflows
+- [docs/template-updates.md](./docs/template-updates.md): applied `vibe-template` maintenance updates and sync scope
 - [docs/deployment.md](./docs/deployment.md): production deployment, security, and release notes
 - [docs/project-structure.md](./docs/project-structure.md): architecture, directory map, and codebase orientation
 - [docs/backups.md](./docs/backups.md): automated R2 backups and restore flow

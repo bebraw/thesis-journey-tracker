@@ -17,7 +17,7 @@ jobs:
   quality-fast:
     runs-on: ubuntu-24.04
     container:
-      image: node:24.18.0-bookworm@sha256:392e1e23f34da768d8d1f4e502b64f200d3be3465934d4b7930f57d7e2fc1989
+      image: node:24.21.0-bookworm@sha256:64af3819f9275802414d7cdc38c27e9d82bd564dec4d4da87d008255d36c63b4
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -26,7 +26,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 24.18.0
+          node-version: 24.21.0
           cache: npm
 
       - name: Validate repository shape
@@ -38,7 +38,7 @@ jobs:
           test -f package.json
           test -f package-lock.json
           test -f .dev.vars.example
-          test -f .env.agent-ci.example
+          test -f .env.local-ci.example
           test -f .nvmrc
 
       - name: Install dependencies
@@ -53,7 +53,7 @@ jobs:
   quality-browser:
     runs-on: ubuntu-24.04
     container:
-      image: mcr.microsoft.com/playwright:v1.58.2-noble@sha256:6446946a1d9fd62d9ae501312a2d76a43ee688542b21622056a372959b65d63d
+      image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
       options: --ipc=host
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -63,7 +63,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 24.18.0
+          node-version: 24.21.0
           cache: npm
 
       - name: Install dependencies

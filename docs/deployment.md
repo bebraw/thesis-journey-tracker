@@ -8,7 +8,7 @@ GitHub Actions runs the workflow in [`.github/workflows/ci.yml`](../.github/work
 
 GitHub Actions validates the repository but does not publish Worker versions. The connected Cloudflare Git build runs independently: its `main` production trigger uses `npx wrangler deploy`, while non-production branches use `npx wrangler versions upload`. A successful Cloudflare build from `main` therefore promotes the new version to production automatically. Because Cloudflare Builds is not gated on GitHub Actions, treat every push to `main` as a production release and complete the relevant checks before pushing.
 
-The workflow keeps Node.js `24.18.0` LTS aligned with [`.nvmrc`](../.nvmrc) so local `nvm use` and CI stay aligned.
+The workflow keeps Node.js `24.21.0` LTS aligned with [`.nvmrc`](../.nvmrc) so local `nvm use` and CI stay aligned.
 
 The workflow runs:
 
@@ -18,7 +18,7 @@ The workflow runs:
 
 The fast gate fails on npm advisories, then verifies [`worker-configuration.d.ts`](../worker-configuration.d.ts) before the rest of its checks, so CI also rejects checked-in Worker types that drift from the Wrangler configuration instead of silently rewriting them.
 
-The jobs target the explicit Ubuntu 24.04 runner line. The fast job runs inside a digest-pinned `node:24.18.0-bookworm` image, the browser job runs inside a digest-pinned `mcr.microsoft.com/playwright:v1.58.2-noble` image, and third-party Actions are pinned to reviewed commit SHAs. Checkout does not persist its GitHub credential because later steps do not need authenticated Git access. The local Agent CI wrapper also pins and verifies its otherwise mutable upstream runner seed, and cache paths include both the reviewed Agent CI version and image digest. These controls keep the local jobs off the host's Node runtime while matching the repo's pinned Node and Playwright versions and preventing mutable tags from changing executable CI dependencies unexpectedly.
+The jobs target the explicit Ubuntu 24.04 runner line. The fast job runs inside a digest-pinned `node:24.21.0-bookworm` image, the browser job runs inside a digest-pinned `mcr.microsoft.com/playwright:v1.62.1-noble` image, and third-party Actions are pinned to reviewed commit SHAs. Checkout does not persist its GitHub credential because later steps do not need authenticated Git access. The Local CI wrapper also pins and verifies its otherwise mutable upstream runner seed, and cache paths include both the reviewed Local CI version and image digest. These controls keep the local jobs off the host's Node runtime while matching the repo's pinned Node and Playwright versions and preventing mutable tags from changing executable CI dependencies unexpectedly.
 
 ## Deploying To Cloudflare
 
