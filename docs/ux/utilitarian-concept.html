@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Thesis tracker utilitarian UX concept</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #16202b;
+        --muted: #526072;
+        --line: #d9dfe7;
+        --blue: #2d5b87;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #fff;
+        color: var(--ink);
+        font:
+          14px/1.5 "Avenir Next",
+          "Segoe UI",
+          Arial,
+          sans-serif;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+        color: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        border: 1px solid #b5bfca;
+        border-radius: 4px;
+        background: #fff;
+      }
+      button {
+        min-height: 36px;
+        padding: 5px 12px;
+      }
+      button:hover {
+        background: #f1f3f5;
+      }
+      :focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 3px;
+      }
+      input,
+      select {
+        height: 36px;
+        padding: 5px 9px;
+      }
+      textarea {
+        display: block;
+        width: 100%;
+        min-height: 96px;
+        resize: vertical;
+        padding: 9px;
+      }
+      input {
+        min-width: 0;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 58px;
+        padding: 10px 28px;
+        border-bottom: 1px solid var(--line);
+      }
+      header strong {
+        font-size: 16px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .concept {
+        font-size: 12px;
+      }
+      main {
+        max-width: 1480px;
+        padding: 24px 28px;
+        margin: auto;
+      }
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(380px, 480px);
+        gap: 28px;
+        align-items: start;
+      }
+      .workspace.no-selection {
+        grid-template-columns: 1fr;
+      }
+      .title-row,
+      .panel-title,
+      .save-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      h1,
+      h2 {
+        margin: 0;
+        font-size: 20px;
+        line-height: 1.3;
+        font-weight: 600;
+      }
+      h3 {
+        font-size: 14px;
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 0;
+      }
+      .title-row {
+        margin-bottom: 16px;
+      }
+      .toolbar {
+        display: flex;
+        align-items: end;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .search {
+        flex: 1;
+      }
+      .search input {
+        width: 100%;
+      }
+      .toolbar label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .toolbar label span {
+        display: block;
+        margin-bottom: 4px;
+      }
+      .count {
+        margin-bottom: 8px;
+        font-size: 12px;
+      }
+      .list-wrap {
+        overflow-x: auto;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        text-align: left;
+      }
+      th {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--muted);
+        padding: 9px 10px;
+        border-block: 1px solid var(--line);
+        background: #f7f8f9;
+      }
+      td {
+        padding: 12px 10px;
+        border-bottom: 1px solid #e6e9ed;
+        vertical-align: middle;
+      }
+      td:first-child {
+        width: 35%;
+      }
+      tr.selected {
+        background: #ebf3fa;
+      }
+      .student-button {
+        border: 0;
+        padding: 0;
+        min-height: 24px;
+        background: transparent;
+        text-align: left;
+        font-weight: 600;
+      }
+      .student-button:hover {
+        color: var(--blue);
+        background: transparent;
+        text-decoration: underline;
+      }
+      .degree {
+        margin-left: 6px;
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--muted);
+      }
+      .date {
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+      .late {
+        color: #a52a3e;
+      }
+      .meeting-state {
+        display: block;
+        font-size: 11px;
+      }
+      .panel {
+        border-left: 1px solid var(--line);
+        padding-left: 24px;
+      }
+      .panel-title {
+        align-items: start;
+      }
+      .plain {
+        border: 0;
+        padding: 0 4px;
+        color: var(--muted);
+      }
+      .topic {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .student-meta {
+        margin: 8px 0 16px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .recent {
+        border-block: 1px solid var(--line);
+        padding: 14px 0;
+        margin-bottom: 16px;
+      }
+      .recent p + p {
+        margin-top: 8px;
+      }
+      .recent time {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 400;
+      }
+      form {
+        display: grid;
+        gap: 12px;
+      }
+      form h3 {
+        margin-bottom: 0;
+      }
+      form label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      form label > span {
+        display: block;
+        margin-bottom: 5px;
+      }
+      form input,
+      form select {
+        width: 100%;
+        font-weight: 400;
+      }
+      .form-line {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .primary {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: #fff;
+      }
+      .primary:hover {
+        background: #234a70;
+      }
+      .save-row {
+        margin-top: 2px;
+      }
+      .draft-status {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      details {
+        margin-top: 20px;
+        border-top: 1px solid var(--line);
+        padding-top: 12px;
+      }
+      summary {
+        cursor: pointer;
+        color: var(--muted);
+      }
+      details p {
+        margin-top: 10px;
+        font-size: 13px;
+      }
+      .empty {
+        padding: 24px 10px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 1000px) {
+        main {
+          padding: 18px 16px;
+        }
+        header {
+          padding: 10px 16px;
+        }
+        .workspace {
+          display: block;
+        }
+        .panel {
+          border: 0;
+          padding: 0;
+          max-width: 640px;
+          margin: 0 auto;
+        }
+        .workspace.has-selection .cohort {
+          display: none;
+        }
+        .title-row {
+          margin-bottom: 12px;
+        }
+        th,
+        td {
+          padding: 10px 6px;
+        }
+        .target-column {
+          display: none;
+        }
+      }
+      @media (max-width: 430px) {
+        header {
+          align-items: start;
+          gap: 12px;
+        }
+        .concept {
+          max-width: 95px;
+          text-align: right;
+        }
+        .toolbar {
+          gap: 8px;
+        }
+        .toolbar select {
+          max-width: 145px;
+        }
+        .degree {
+          display: block;
+          margin-left: 0;
+        }
+        .form-line {
+          grid-template-columns: 1fr;
+        }
+        button {
+          min-height: 40px;
+        }
+        input,
+        select {
+          min-height: 40px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header><strong>Thesis Journey Tracker</strong><span class="concept muted">UX concept · sample data</span></header>
+    <main>
+      <div id="workspace" class="workspace no-selection">
+        <section class="cohort" aria-labelledby="cohort-title">
+          <div class="title-row">
+            <h1 id="cohort-title">Students <span class="muted">8</span></h1>
+            <button id="reset" type="button">Reset demo</button>
+          </div>
+          <div class="toolbar">
+            <label class="search"><span>Search</span><input id="search" type="search" aria-describedby="count" /></label>
+            <label
+              ><span>Filter</span
+              ><select id="filter">
+                <option value="all">All students</option>
+                <option value="unbooked">Meeting not booked</option>
+                <option value="overdue">Meeting overdue</option>
+                <option value="target">Past MSc target</option>
+              </select></label
+            >
+          </div>
+          <p id="count" class="count muted" role="status" aria-live="polite"></p>
+          <div class="list-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Student</th>
+                  <th scope="col">Phase</th>
+                  <th scope="col">Next meeting</th>
+                  <th scope="col" class="target-column">Target</th>
+                </tr>
+              </thead>
+              <tbody id="students"></tbody>
+            </table>
+          </div>
+        </section>
+        <section id="panel" class="panel" aria-labelledby="student-title" hidden>
+          <div class="panel-title">
+            <h2 id="student-title" tabindex="-1"></h2>
+            <button id="close" class="plain" type="button">Back to students</button>
+          </div>
+          <p id="topic" class="topic"></p>
+          <p id="student-meta" class="student-meta"></p>
+          <div class="recent">
+            <h3>Last meeting <time id="last-date"></time></h3>
+            <p id="last-discussion"></p>
+            <p><strong>Next actions</strong><br /><span id="last-actions"></span></p>
+          </div>
+          <form id="note-form">
+            <h3>New meeting note</h3>
+            <label><span>Meeting time</span><input id="meeting-time" name="meeting-time" type="datetime-local" required /></label>
+            <label><span>Discussion</span><textarea id="discussion" name="discussion" required></textarea></label>
+            <label><span>Next actions</span><textarea id="actions" name="actions" required></textarea></label>
+            <div class="form-line">
+              <label
+                ><span>Follow-up</span
+                ><select id="follow-up" name="follow-up">
+                  <option value="keep">Keep current meeting</option>
+                  <option value="none">Not booked</option>
+                  <option value="new">Set new meeting</option>
+                </select></label
+              ><label id="new-meeting-label" hidden
+                ><span>Next meeting time</span><input id="new-meeting" name="new-meeting" type="datetime-local"
+              /></label>
+            </div>
+            <div class="save-row">
+              <span id="draft-status" class="draft-status" role="status" aria-live="polite"></span
+              ><button class="primary" type="submit">Save demo note</button>
+            </div>
+          </form>
+          <details>
+            <summary>Student details</summary>
+            <p id="student-details"></p>
+          </details>
+        </section>
+      </div>
+    </main>
+    <script>
+      const initialStudents = [
+        {
+          id: 3,
+          name: "Aino Lehtinen",
+          degree: "DSc",
+          phase: "Editing",
+          target: "",
+          next: "2026-03-24T14:30",
+          topic: "Automated quality checks for dissertation manuscripts",
+        },
+        {
+          id: 1,
+          name: "Mia Koskinen",
+          degree: "MSc",
+          phase: "Researching",
+          target: "2026-07-10",
+          next: "2026-03-29T13:00",
+          topic: "Machine learning support for thesis supervision planning",
+        },
+        {
+          id: 6,
+          name: "Sofia Laakso",
+          degree: "DSc",
+          phase: "Editing",
+          target: "",
+          next: "2026-09-30T16:30",
+          topic: "Traceable revision histories for dissertation advising",
+        },
+        {
+          id: 4,
+          name: "Emma Nieminen",
+          degree: "MSc",
+          phase: "Researching",
+          target: "2027-02-02",
+          next: "2026-10-05T12:00",
+          topic: "LLM-assisted feedback loops for thesis supervision",
+          last: "2026-09-26T13:00",
+          discussion: "Refined the supervision workflow and agreed on a feedback cadence for the next research sprint.",
+          actions: "Prepare the revised interview guide and send two example feedback prompts.",
+        },
+        {
+          id: 7,
+          name: "Otso Heikkinen",
+          degree: "MSc",
+          phase: "Editing",
+          target: "2026-07-02",
+          next: "2026-10-12T14:00",
+          topic: "Practical dashboard design for supervision triage",
+        },
+        {
+          id: 8,
+          name: "Aada Salonen",
+          degree: "MSc",
+          phase: "Submitted",
+          target: "2026-03-02",
+          next: "",
+          topic: "Archived thesis handoff patterns after final submission",
+        },
+        {
+          id: 2,
+          name: "Noah Virtanen",
+          degree: "MSc",
+          phase: "Editing",
+          target: "2026-06-01",
+          next: "",
+          topic: "Collaborative drafting workflows for academic writing",
+        },
+        {
+          id: 5,
+          name: "Leo Mikkola",
+          degree: "BSc",
+          phase: "Editing",
+          target: "",
+          next: "",
+          topic: "Evaluating lightweight note-taking workflows in supervision meetings",
+        },
+      ];
+      const $ = (id) => document.getElementById(id);
+      const today = "2026-10-02";
+      let students = structuredClone(initialStudents),
+        selectedId = null;
+      const drafts = new Map();
+      const formatDate = (value) =>
+        value
+          ? new Intl.DateTimeFormat("en-GB", {
+              day: "numeric",
+              month: "short",
+              ...(value.slice(0, 4) !== today.slice(0, 4) ? { year: "numeric" } : {}),
+              ...(value.length > 10 ? { hour: "2-digit", minute: "2-digit" } : {}),
+              timeZone: "UTC",
+            }).format(new Date(value.length > 10 ? value + "Z" : value))
+          : "—";
+      const fields = ["meeting-time", "discussion", "actions", "follow-up", "new-meeting"];
+      function rememberDraft() {
+        if (selectedId === null) return;
+        drafts.set(selectedId, Object.fromEntries(fields.map((id) => [id, $(id).value])));
+      }
+      function renderList() {
+        const query = $("search").value.trim().toLowerCase(),
+          filter = $("filter").value;
+        const visible = students.filter(
+          (s) =>
+            [s.name, s.topic, s.degree, s.phase].join(" ").toLowerCase().includes(query) &&
+            (filter === "all" ||
+              (filter === "unbooked" && !s.next && s.phase !== "Submitted") ||
+              (filter === "overdue" && s.next && s.next.slice(0, 10) < today && s.phase !== "Submitted") ||
+              (filter === "target" && s.degree === "MSc" && s.target && s.target < today && s.phase !== "Submitted")),
+        );
+        $("count").textContent = visible.length + " of " + students.length + " students";
+        $("students").replaceChildren();
+        for (const s of visible) {
+          const tr = document.createElement("tr");
+          tr.className = s.id === selectedId ? "selected" : "";
+          const name = document.createElement("td"),
+            button = document.createElement("button"),
+            degree = document.createElement("span");
+          button.type = "button";
+          button.className = "student-button";
+          button.textContent = s.name;
+          button.setAttribute("aria-pressed", String(s.id === selectedId));
+          button.addEventListener("click", () => selectStudent(s.id));
+          degree.className = "degree";
+          degree.textContent = s.degree;
+          name.append(button, degree);
+          tr.append(name);
+          for (const [i, value] of [s.phase, s.next ? formatDate(s.next) : "Not booked", formatDate(s.target)].entries()) {
+            const td = document.createElement("td");
+            td.textContent = value;
+            if (i > 0) td.className = "date";
+            if (i === 2) td.classList.add("target-column");
+            if (i === 1 && s.next && s.next.slice(0, 10) < today && s.phase !== "Submitted") {
+              td.classList.add("late");
+              const state = document.createElement("span");
+              state.className = "meeting-state";
+              state.textContent = "Overdue";
+              td.append(state);
+            }
+            tr.append(td);
+          }
+          $("students").append(tr);
+        }
+        if (!visible.length) {
+          const tr = document.createElement("tr"),
+            td = document.createElement("td");
+          td.colSpan = 4;
+          td.className = "empty muted";
+          td.textContent = "No matching students. Clear the search or change the filter.";
+          tr.append(td);
+          $("students").append(tr);
+        }
+      }
+      function selectStudent(id) {
+        rememberDraft();
+        selectedId = id;
+        const s = students.find((s) => s.id === id);
+        $("workspace").className = "workspace has-selection";
+        $("panel").hidden = false;
+        $("student-title").textContent = s.name;
+        $("topic").textContent = s.topic;
+        $("student-meta").textContent = s.degree + " · " + s.phase + " · Next: " + (s.next ? formatDate(s.next) : "Not booked");
+        $("last-date").textContent = s.last ? " · " + formatDate(s.last) : "";
+        $("last-discussion").textContent = s.discussion || "No meeting notes in this concept.";
+        $("last-actions").textContent = s.actions || "—";
+        const draft = drafts.get(id) || {
+          "meeting-time": "2026-10-02T14:00",
+          discussion: "",
+          actions: "",
+          "follow-up": "keep",
+          "new-meeting": "",
+        };
+        fields.forEach((id) => {
+          $(id).value = draft[id];
+        });
+        $("follow-up").options[0].textContent = s.next ? "Keep " + formatDate(s.next) : "Keep not booked";
+        $("student-details").textContent = "Degree: " + s.degree + ". Phase: " + s.phase + ". Target: " + formatDate(s.target) + ".";
+        updateFollowUp();
+        $("draft-status").textContent = draft.discussion || draft.actions ? "Unsaved draft" : "";
+        renderList();
+        $("student-title").focus({ preventScroll: true });
+        if (matchMedia("(max-width: 1000px)").matches) scrollTo(0, 0);
+      }
+      function updateFollowUp() {
+        $("new-meeting-label").hidden = $("follow-up").value !== "new";
+        $("new-meeting").required = $("follow-up").value === "new";
+      }
+      $("search").addEventListener("input", renderList);
+      $("filter").addEventListener("change", renderList);
+      $("note-form").addEventListener("input", () => {
+        rememberDraft();
+        $("draft-status").textContent = "Unsaved draft";
+      });
+      $("follow-up").addEventListener("change", () => {
+        updateFollowUp();
+        rememberDraft();
+        $("draft-status").textContent = "Unsaved draft";
+      });
+      $("note-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const s = students.find((s) => s.id === selectedId);
+        s.last = $("meeting-time").value;
+        s.discussion = $("discussion").value;
+        s.actions = $("actions").value;
+        if ($("follow-up").value === "none") s.next = "";
+        else if ($("follow-up").value === "new") s.next = $("new-meeting").value;
+        drafts.delete(selectedId);
+        const id = selectedId;
+        selectedId = null;
+        selectStudent(id);
+        $("draft-status").textContent = "Saved in this demo";
+      });
+      $("close").addEventListener("click", () => {
+        const previous = selectedId;
+        rememberDraft();
+        selectedId = null;
+        $("panel").hidden = true;
+        $("workspace").className = "workspace no-selection";
+        renderList();
+        const index = students.findIndex((s) => s.id === previous);
+        const buttons = [...document.querySelectorAll(".student-button")];
+        const studentName = students[index].name;
+        (buttons.find((b) => b.textContent === studentName) || $("search")).focus();
+      });
+      $("reset").addEventListener("click", () => {
+        if (drafts.size && !confirm("Discard the demo notes and reset?")) return;
+        students = structuredClone(initialStudents);
+        drafts.clear();
+        selectedId = null;
+        $("panel").hidden = true;
+        $("workspace").className = "workspace no-selection";
+        $("search").value = "";
+        $("filter").value = "all";
+        renderList();
+      });
+      window.addEventListener("beforeunload", (event) => {
+        if ([...drafts.values()].some((d) => d.discussion || d.actions)) {
+          event.preventDefault();
+          event.returnValue = "";
+        }
+      });
+      renderList();
+    </script>
+  </body>
+</html>

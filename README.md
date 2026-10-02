@@ -124,6 +124,7 @@ Then follow the container setup commands in [docs/setup.md](./docs/setup.md#dock
 - [docs/project-structure.md](./docs/project-structure.md): architecture, directory map, and codebase orientation
 - [docs/backups.md](./docs/backups.md): automated R2 backups and restore flow
 - [docs/performance-plan.md](./docs/performance-plan.md): Lighthouse baseline and performance follow-up
+- [docs/ux-review.md](./docs/ux-review.md): utilitarian UX review focused on recording meeting notes
 - [docs/passkey-auth-plan.md](./docs/passkey-auth-plan.md): deferred passkey assessment and rollout plan
 - [docs/roadmap.md](./docs/roadmap.md): future feature ideas and next steps
 - [AGENTS.md](./AGENTS.md): durable repo-specific rules for automated contributors

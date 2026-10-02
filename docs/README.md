@@ -12,4 +12,5 @@ This folder contains the more technical project documentation that has been move
 - [project-structure.md](./project-structure.md): architecture, stack, and repo layout
 - [passkey-auth-plan.md](./passkey-auth-plan.md): passkey auth fit assessment and deferred implementation plan
 - [performance-plan.md](./performance-plan.md): Lighthouse baseline and follow-up work
+- [ux-review.md](./ux-review.md): notes-first utilitarian UX review and interactive design concept
 - [roadmap.md](./roadmap.md): future feature ideas and potential next steps
