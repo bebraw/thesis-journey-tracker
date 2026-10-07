@@ -51,7 +51,9 @@ describe("renderSelectedStudentPanel", () => {
 
       expect(addLogFormHtml).toBeDefined();
       expect(addLogFormHtml).toMatch(new RegExp(`Meeting time[\\s\\S]*?<input[^>]*name="happenedAt"[^>]*value="${expected}"`));
+      expect(addLogFormHtml).toMatch(/<input[^>]*step="1800"[^>]*name="happenedAt"/);
       expect(nextMeetingInputHtml).toBeDefined();
+      expect(nextMeetingInputHtml).toContain('step="1800"');
       expect(nextMeetingInputHtml).not.toContain(' value="');
       expect(addLogFormHtml).toContain('<option value="keep">Keep current meeting</option>');
       expect(addLogFormHtml).toContain('<option value="clear">Not booked</option>');

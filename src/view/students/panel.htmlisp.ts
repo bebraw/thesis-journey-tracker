@@ -6,6 +6,7 @@ import type { MeetingLog, PhaseAuditEntry, Student } from "../../students/store"
 import { FIELD_CONTROL, FORM_STACK, renderButton, renderInputField, renderTextareaField } from "../../ui";
 import type { DashboardFilters } from "../types";
 import { renderView } from "../shared.htmlisp";
+import { DATETIME_LOCAL_HALF_HOUR_STEP } from "./date-time";
 import { renderStudentFormFields } from "./form-fields";
 
 interface StudentPanelOptions {
@@ -141,7 +142,7 @@ export function renderSelectedStudentPanel(
           required: true,
           value: toDateTimeLocalInput(student.nextMeetingAt ?? new Date().toISOString(), timeZone),
           className: FIELD_CONTROL,
-          attrs: { step: "60" },
+          attrs: DATETIME_LOCAL_HALF_HOUR_STEP,
         }),
       ),
       discussed: raw(
@@ -156,7 +157,7 @@ export function renderSelectedStudentPanel(
           name: "nextMeetingAt",
           type: "datetime-local",
           className: FIELD_CONTROL,
-          attrs: { step: "1800" },
+          attrs: DATETIME_LOCAL_HALF_HOUR_STEP,
         }),
       ),
       save: raw(renderButton({ label: "Save note", type: "submit", variant: "primary" })),
