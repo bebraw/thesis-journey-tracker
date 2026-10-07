@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderSelectedStudentPanel } from "./panel.htmlisp";
 import type { Student } from "../../students/store";
 
@@ -18,6 +18,10 @@ const BASE_STUDENT: Student = {
 };
 
 describe("renderSelectedStudentPanel", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("uses configured dashboard lane labels in the phase dropdown", () => {
     const html = renderSelectedStudentPanel(BASE_STUDENT, [], [], {
       dashboardLanes: [
@@ -32,21 +36,36 @@ describe("renderSelectedStudentPanel", () => {
     expect(html).not.toContain('<option value="submitted">Submitted</option>');
   });
 
-  it("defaults meeting notes to the recording time and keeps the current follow-up", () => {
+  it.each([
+    { recordedAt: "2026-04-09T12:00:00Z", timeZone: "Europe/Helsinki", expected: "2026-04-10T12:00" },
+    { recordedAt: "2026-10-02T12:00:00Z", timeZone: "Europe/Helsinki", expected: "2026-04-10T12:00" },
+    { recordedAt: "2026-10-02T12:00:00Z", timeZone: "UTC", expected: "2026-04-10T09:00" },
+  ])(
+    "defaults meeting notes to the saved meeting time in $timeZone when recording at $recordedAt",
+    ({ recordedAt, timeZone, expected }) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(recordedAt));
+      const html = renderSelectedStudentPanel(BASE_STUDENT, [], [], { timeZone });
+      const addLogFormHtml = html.match(/<form action="\/actions\/add-log\/1"[\s\S]*?<\/form>/)?.[0];
+      const nextMeetingInputHtml = addLogFormHtml?.match(/<input[^>]*name="nextMeetingAt"[^>]*><\/input>/)?.[0];
+
+      expect(addLogFormHtml).toBeDefined();
+      expect(addLogFormHtml).toMatch(new RegExp(`Meeting time[\\s\\S]*?<input[^>]*name="happenedAt"[^>]*value="${expected}"`));
+      expect(nextMeetingInputHtml).toBeDefined();
+      expect(nextMeetingInputHtml).not.toContain(' value="');
+      expect(addLogFormHtml).toContain('<option value="keep">Keep current meeting</option>');
+      expect(addLogFormHtml).toContain('<option value="clear">Not booked</option>');
+      expect(addLogFormHtml).toContain('<option value="set">Set new meeting</option>');
+    },
+  );
+
+  it("defaults meeting notes to the recording time when no meeting is booked", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-02T12:00:00Z"));
-    const html = renderSelectedStudentPanel(BASE_STUDENT, [], []);
-    vi.useRealTimers();
+    const html = renderSelectedStudentPanel({ ...BASE_STUDENT, nextMeetingAt: null }, [], []);
     const addLogFormHtml = html.match(/<form action="\/actions\/add-log\/1"[\s\S]*?<\/form>/)?.[0];
-    const nextMeetingInputHtml = addLogFormHtml?.match(/<input[^>]*name="nextMeetingAt"[^>]*><\/input>/)?.[0];
 
-    expect(addLogFormHtml).toBeDefined();
     expect(addLogFormHtml).toMatch(/Meeting time[\s\S]*?<input[^>]*name="happenedAt"[^>]*value="2026-10-02T15:00"/);
-    expect(nextMeetingInputHtml).toBeDefined();
-    expect(nextMeetingInputHtml).not.toContain(' value="');
-    expect(addLogFormHtml).toContain('<option value="keep">Keep current meeting</option>');
-    expect(addLogFormHtml).toContain('<option value="clear">Not booked</option>');
-    expect(addLogFormHtml).toContain('<option value="set">Set new meeting</option>');
   });
 
   it("formats stored timestamps using the explicit panel timezone", () => {

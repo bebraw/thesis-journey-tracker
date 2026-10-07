@@ -51,7 +51,7 @@ The project is intentionally small and server-rendered, with a focused workflow 
 - Configure the dashboard lane labels at the app level while keeping the original four-phase board structure as the default.
 - Switch between `List`, `Phases`, and `Gantt` views depending on whether you need detail, workflow stage, or workload shape.
 - Open a student directly into their last meeting and a new-note form. The list stays alongside on desktop; phones show a focused student view with a return action.
-- Save discussion notes and next actions together. Follow-up defaults to keeping the current meeting; choose `Not booked` to clear it or `Set new meeting` to book another time.
+- Save discussion notes and next actions together. Meeting time defaults to the student's booked meeting, or the current time when no meeting is booked. Follow-up defaults to keeping the current meeting; choose `Not booked` to clear it or `Set new meeting` to book another time.
 - Keep unsaved note and detail drafts when switching or closing students. Drafts stay in memory for the current page; leaving or reloading prompts before discarding them.
 - Follow upcoming meetings from the dashboard, and clear a cancelled meeting until a new time is booked.
 - Search students and filter by degree, phase, meeting status, or unfinished MSc theses past their target.

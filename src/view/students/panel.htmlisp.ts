@@ -139,7 +139,7 @@ export function renderSelectedStudentPanel(
           name: "happenedAt",
           type: "datetime-local",
           required: true,
-          value: toDateTimeLocalInput(new Date().toISOString(), timeZone),
+          value: toDateTimeLocalInput(student.nextMeetingAt ?? new Date().toISOString(), timeZone),
           className: FIELD_CONTROL,
           attrs: { step: "60" },
         }),
