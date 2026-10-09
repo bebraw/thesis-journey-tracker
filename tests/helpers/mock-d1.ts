@@ -10,6 +10,7 @@ interface StudentRowStore {
   start_date: string | null;
   current_phase: string;
   next_meeting_at: string | null;
+  meeting_schedule?: string | null;
   archived_at?: string | null;
 }
 
@@ -160,10 +161,9 @@ export class MockD1Database {
     }
 
     if (q.startsWith("INSERT INTO students")) {
-      const hasExplicitId = values.length === 10;
-      const [idValue, name, email, degreeType, thesisTopic, studentNotes, startDate, phase, nextMeetingAt, archivedAt] = hasExplicitId
-        ? values
-        : [this.nextStudentId++, ...values, null];
+      const hasExplicitId = q.startsWith("INSERT INTO students (id,");
+      const [idValue, name, email, degreeType, thesisTopic, studentNotes, startDate, phase, nextMeetingAt, archivedAt, meetingSchedule] =
+        hasExplicitId ? values : [this.nextStudentId++, ...values.slice(0, 8), null, values[8] ?? null];
       const id = Number(idValue);
       const row: StudentRowStore = {
         id,
@@ -175,6 +175,7 @@ export class MockD1Database {
         start_date: startDate === null ? null : String(startDate),
         current_phase: String(phase),
         next_meeting_at: nextMeetingAt === null ? null : String(nextMeetingAt),
+        meeting_schedule: meetingSchedule == null ? null : String(meetingSchedule),
         archived_at: archivedAt === null ? null : String(archivedAt),
       };
       this.students.push(row);
@@ -203,7 +204,10 @@ export class MockD1Database {
       return { success: true, meta: { changes: 1 }, results: [{ id: row.id }] };
     }
 
-    if (q === "UPDATE students SET next_meeting_at = ? WHERE id = ? RETURNING id") {
+    if (
+      q === "UPDATE students SET next_meeting_at = ? WHERE id = ? RETURNING id" ||
+      q === "UPDATE students SET next_meeting_at = ?, meeting_schedule = NULL WHERE id = ? RETURNING id"
+    ) {
       const nextMeetingAt = values[0] === null ? null : String(values[0]);
       const id = Number(values[1]);
       const row = this.students.find((student) => student.id === id);
@@ -211,11 +215,13 @@ export class MockD1Database {
         return { success: true, meta: { changes: 0 }, results: [] };
       }
       row.next_meeting_at = nextMeetingAt;
+      if (q.includes("meeting_schedule = NULL")) row.meeting_schedule = null;
       return { success: true, meta: { changes: 1 }, results: [{ id: row.id }] };
     }
 
     if (q.startsWith("UPDATE students")) {
-      const [name, email, degreeType, thesisTopic, studentNotes, startDate, phase, nextMeetingAt, studentId] = values;
+      const [name, email, degreeType, thesisTopic, studentNotes, startDate, phase, nextMeetingAt, hasSchedule, meetingSchedule, studentId] =
+        values;
       const id = Number(studentId);
       const row = this.students.find((student) => student.id === id);
       if (!row) {
@@ -229,6 +235,7 @@ export class MockD1Database {
       row.start_date = startDate === null ? null : String(startDate);
       row.current_phase = String(phase);
       row.next_meeting_at = nextMeetingAt === null ? null : String(nextMeetingAt);
+      if (hasSchedule) row.meeting_schedule = meetingSchedule == null ? null : String(meetingSchedule);
       return { success: true, meta: { changes: 1 }, results: [{ id: row.id }] };
     }
 
@@ -307,17 +314,25 @@ export class MockD1Database {
     }
 
     if (q.startsWith("INSERT INTO login_attempts")) {
-      const [attemptKey, firstFailedAt, lastFailedAt, failureWindowStart, , resetFirstFailedAt, updatedLastFailedAt, , maxFailures, lockedUntil] =
-        values;
+      const [
+        attemptKey,
+        firstFailedAt,
+        lastFailedAt,
+        failureWindowStart,
+        ,
+        resetFirstFailedAt,
+        updatedLastFailedAt,
+        ,
+        maxFailures,
+        lockedUntil,
+      ] = values;
       const normalizedKey = String(attemptKey);
       const existingAttempt = this.loginAttempts.find((attempt) => attempt.attempt_key === normalizedKey);
 
       if (existingAttempt) {
         const isWithinFailureWindow = existingAttempt.last_failed_at >= String(failureWindowStart);
         existingAttempt.failure_count = isWithinFailureWindow ? existingAttempt.failure_count + 1 : 1;
-        existingAttempt.first_failed_at = isWithinFailureWindow
-          ? existingAttempt.first_failed_at
-          : String(resetFirstFailedAt);
+        existingAttempt.first_failed_at = isWithinFailureWindow ? existingAttempt.first_failed_at : String(resetFirstFailedAt);
         existingAttempt.last_failed_at = String(updatedLastFailedAt);
         existingAttempt.locked_until =
           isWithinFailureWindow && existingAttempt.failure_count >= Number(maxFailures) ? String(lockedUntil) : null;
@@ -339,8 +354,7 @@ export class MockD1Database {
       const removableKeys = this.loginAttempts
         .filter(
           (attempt) =>
-            attempt.last_failed_at < String(lastFailureBefore) &&
-            (attempt.locked_until === null || attempt.locked_until < String(now)),
+            attempt.last_failed_at < String(lastFailureBefore) && (attempt.locked_until === null || attempt.locked_until < String(now)),
         )
         .sort((left, right) => left.last_failed_at.localeCompare(right.last_failed_at))
         .slice(0, Number(limit))
@@ -455,7 +469,9 @@ export class MockD1Database {
       };
     }
 
-    if (q === "SELECT attempt_key, failure_count, first_failed_at, last_failed_at, locked_until FROM login_attempts WHERE attempt_key = ?") {
+    if (
+      q === "SELECT attempt_key, failure_count, first_failed_at, last_failed_at, locked_until FROM login_attempts WHERE attempt_key = ?"
+    ) {
       const attemptKey = String(values[0] || "");
       return this.loginAttempts.find((attempt) => attempt.attempt_key === attemptKey) || null;
     }
@@ -479,13 +495,13 @@ export class MockD1Database {
           }),
         )
         .map((student) => {
-        const logs = this.meetingLogs.filter((log) => log.student_id === student.id);
-        const lastLog = logs.length ? logs[logs.length - 1] : null;
-        return {
-          ...student,
-          log_count: logs.length,
-          last_log_at: lastLog ? lastLog.happened_at : null,
-        };
+          const logs = this.meetingLogs.filter((log) => log.student_id === student.id);
+          const lastLog = logs.length ? logs[logs.length - 1] : null;
+          return {
+            ...student,
+            log_count: logs.length,
+            last_log_at: lastLog ? lastLog.happened_at : null,
+          };
         });
 
       return { results };
@@ -578,11 +594,7 @@ function normalizeQuery(query: string): string {
   return query.replace(/\s+/g, " ").trim();
 }
 
-function matchesArchivedFilter(
-  query: string,
-  archivedAt: string | null,
-  options: { qualifiedColumn: boolean },
-): boolean {
+function matchesArchivedFilter(query: string, archivedAt: string | null, options: { qualifiedColumn: boolean }): boolean {
   const nullCheck = options.qualifiedColumn ? "s.archived_at IS NULL" : "archived_at IS NULL";
   const notNullCheck = options.qualifiedColumn ? "s.archived_at IS NOT NULL" : "archived_at IS NOT NULL";
   const nullFilter = new RegExp(`(?:WHERE|AND) ${escapeRegExp(nullCheck)}`);

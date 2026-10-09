@@ -1,5 +1,6 @@
 import type { D1Database, D1PreparedStatement } from "../db-core";
 import { parseDbNumber, requireD1MutationSuccess, requireD1ReturnedId } from "../db-core";
+import type { MeetingSchedule } from "./recurrence";
 
 export type PhaseId = "research_plan" | "researching" | "editing" | "submitted";
 
@@ -15,6 +16,7 @@ export interface Student {
   startDate: string | null;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
+  meetingSchedule?: MeetingSchedule | null;
   archivedAt: string | null;
   logCount: number;
   lastLogAt: string | null;
@@ -44,6 +46,7 @@ export interface StudentMutationInput {
   startDate: string | null;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
+  meetingSchedule?: MeetingSchedule | null;
 }
 
 export type CreateStudentInput = StudentMutationInput;
@@ -79,6 +82,7 @@ interface StudentRow {
   start_date: string | null;
   current_phase: PhaseId;
   next_meeting_at: string | null;
+  meeting_schedule?: string | null;
   archived_at: string | null;
   log_count: number | string | null;
   last_log_at: string | null;
@@ -243,10 +247,19 @@ export async function createMeetingLog(db: D1Database, input: CreateLogInput): P
   requireD1ReturnedId(result, "Creating meeting log");
 }
 
-export async function createMeetingLogWithNextMeeting(db: D1Database, input: CreateLogInput, nextMeetingAt: string | null): Promise<void> {
+export async function createMeetingLogWithNextMeeting(
+  db: D1Database,
+  input: CreateLogInput,
+  nextMeetingAt: string | null,
+  clearSchedule = false,
+): Promise<void> {
   const results = await db.batch<{ id: number | string }>([
     buildCreateMeetingLogStatement(db, input),
-    buildUpdateStudentNextMeetingStatement(db, input.studentId, nextMeetingAt),
+    clearSchedule
+      ? db
+          .prepare("UPDATE students SET next_meeting_at = ?, meeting_schedule = NULL WHERE id = ? RETURNING id")
+          .bind(nextMeetingAt, input.studentId)
+      : buildUpdateStudentNextMeetingStatement(db, input.studentId, nextMeetingAt),
   ]);
   requireD1BatchIds(results, "Creating meeting log with next meeting", 2);
 }
@@ -267,6 +280,7 @@ function mapStudentRow(row: StudentRow): Student {
     startDate: row.start_date,
     currentPhase: row.current_phase,
     nextMeetingAt: row.next_meeting_at,
+    meetingSchedule: row.meeting_schedule ? (JSON.parse(row.meeting_schedule) as MeetingSchedule) : null,
     archivedAt: row.archived_at || null,
     logCount: parseDbNumber(row.log_count),
     lastLogAt: row.last_log_at || null,
@@ -274,8 +288,8 @@ function mapStudentRow(row: StudentRow): Student {
 }
 
 function buildInsertStudentQuery(): string {
-  return `INSERT INTO students (name, email, degree_type, thesis_topic, student_notes, start_date, current_phase, next_meeting_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  return `INSERT INTO students (name, email, degree_type, thesis_topic, student_notes, start_date, current_phase, next_meeting_at, meeting_schedule)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        RETURNING id`;
 }
 
@@ -283,11 +297,16 @@ function buildUpdateStudentStatement(db: D1Database, studentId: number, input: U
   return db
     .prepare(
       `UPDATE students
-       SET name = ?, email = ?, degree_type = ?, thesis_topic = ?, student_notes = ?, start_date = ?, current_phase = ?, next_meeting_at = ?
+       SET name = ?, email = ?, degree_type = ?, thesis_topic = ?, student_notes = ?, start_date = ?, current_phase = ?, next_meeting_at = ?, meeting_schedule = CASE WHEN ? THEN ? ELSE meeting_schedule END
        WHERE id = ?
        RETURNING id`,
     )
-    .bind(...studentMutationValues(input), studentId);
+    .bind(
+      ...studentMutationValues(input).slice(0, 8),
+      input.meetingSchedule !== undefined ? 1 : 0,
+      input.meetingSchedule ? JSON.stringify(input.meetingSchedule) : null,
+      studentId,
+    );
 }
 
 function buildCreatePhaseAuditStatement(db: D1Database, input: CreatePhaseAuditInput): D1PreparedStatement {
@@ -310,11 +329,7 @@ function buildCreateMeetingLogStatement(db: D1Database, input: CreateLogInput): 
     .bind(input.studentId, input.happenedAt, input.discussed, input.agreedPlan, input.nextStepDeadline);
 }
 
-function buildUpdateStudentNextMeetingStatement(
-  db: D1Database,
-  studentId: number,
-  nextMeetingAt: string | null,
-): D1PreparedStatement {
+function buildUpdateStudentNextMeetingStatement(db: D1Database, studentId: number, nextMeetingAt: string | null): D1PreparedStatement {
   return db.prepare("UPDATE students SET next_meeting_at = ? WHERE id = ? RETURNING id").bind(nextMeetingAt, studentId);
 }
 
@@ -339,6 +354,7 @@ function studentMutationValues(input: StudentMutationInput): Array<string | numb
     input.startDate,
     input.currentPhase,
     input.nextMeetingAt,
+    input.meetingSchedule ? JSON.stringify(input.meetingSchedule) : null,
   ];
 }
 

@@ -1,14 +1,9 @@
 import styles from "../.generated/styles.css";
 import favicon from "./favicon.ico";
-import {
-  getSessionIdentity,
-  isReadonlyUser,
-  resolveAuthState,
-  resolveSessionUser,
-  revokeAuthUserSessions,
-  SESSION_COOKIE,
-} from "./auth";
+import { getSessionIdentity, isReadonlyUser, resolveAuthState, resolveSessionUser, revokeAuthUserSessions, SESSION_COOKIE } from "./auth";
 import { runAutomatedBackup } from "./backup";
+import { handleMcp } from "./agent/mcp";
+import { handleAgentAccess } from "./routes/agent-access";
 import type { Env, ScheduledControllerLike } from "./app-env";
 import type { D1Database } from "./db-core";
 import { rejectInvalidMutationOrigin } from "./http/origin";
@@ -59,7 +54,7 @@ export default {
 
     let response: Response;
     try {
-      const originRejection = rejectInvalidMutationOrigin(request);
+      const originRejection = new URL(request.url).pathname === "/mcp" ? null : rejectInvalidMutationOrigin(request);
       if (originRejection) {
         response = originRejection;
       } else {
@@ -76,9 +71,7 @@ export default {
       } else {
         const incidentId = getIncidentId(request);
         logError("request.unhandled", error, requestErrorContext(request, incidentId));
-        response = isLocalDevelopmentRequest(request)
-          ? localInternalErrorResponse(error)
-          : productionInternalErrorResponse(incidentId);
+        response = isLocalDevelopmentRequest(request) ? localInternalErrorResponse(error) : productionInternalErrorResponse(incidentId);
       }
     }
     return applyBrowserSecurityHeaders(retireLegacyD1Bookmark(response, request), request.url);
@@ -194,6 +187,8 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return new Response("Not found", { status: 404 });
   }
 
+  if (pathname === "/mcp") return await handleMcp(request, env);
+
   const authState = await resolveAuthState(env);
   if (authState.error) {
     return new Response(authState.error, { status: 500 });
@@ -215,6 +210,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   if (!sessionUser) {
     return redirect("/login");
+  }
+
+  if (pathname === "/agent-access" && (request.method === "GET" || request.method === "POST")) {
+    return await handleAgentAccess(request, env, sessionUser);
   }
 
   const ensureEditor = (pathname: string): Response | null => {
@@ -406,12 +405,7 @@ function isLocalDevelopmentHostname(hostname: string): boolean {
 function localInternalErrorResponse(error: unknown): Response {
   const message = error instanceof Error ? error.message : String(error);
   const stack = error instanceof Error ? error.stack : null;
-  const body = [
-    "Internal server error in local development.",
-    "",
-    message,
-    ...(stack && stack !== message ? ["", stack] : []),
-  ].join("\n");
+  const body = ["Internal server error in local development.", "", message, ...(stack && stack !== message ? ["", stack] : [])].join("\n");
 
   return new Response(body, {
     status: 500,

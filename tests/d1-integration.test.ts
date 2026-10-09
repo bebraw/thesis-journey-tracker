@@ -1,8 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { getPlatformProxy, type PlatformProxy } from "wrangler";
+import { createAgentToken, authenticateAgent, revokeAgentToken, listAgentTokens } from "../src/agent/tokens";
+import { handleMcp } from "../src/agent/mcp";
+import { handleAgentAccess } from "../src/routes/agent-access";
 import { getLoginAttempt, recordLoginFailure, revokeAuthUserSessions } from "../src/auth/store";
 import { deleteAppSecret, getAppSecret, upsertAppSecret } from "../src/calendar/store";
 import {
@@ -32,7 +36,9 @@ describe("D1-backed db helpers", () => {
       persist: { path: persistPath },
       remoteBindings: false,
     });
-    await runStatement(platform.env.DB, `
+    await runStatement(
+      platform.env.DB,
+      `
       CREATE TABLE IF NOT EXISTS students (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -47,8 +53,11 @@ describe("D1-backed db helpers", () => {
         student_notes TEXT,
         archived_at TEXT
       );
-    `);
-    await runStatement(platform.env.DB, `
+    `,
+    );
+    await runStatement(
+      platform.env.DB,
+      `
       CREATE TABLE IF NOT EXISTS meeting_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         student_id INTEGER NOT NULL,
@@ -59,8 +68,11 @@ describe("D1-backed db helpers", () => {
         created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
         FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
       );
-    `);
-    await runStatement(platform.env.DB, `
+    `,
+    );
+    await runStatement(
+      platform.env.DB,
+      `
       CREATE TABLE IF NOT EXISTS student_phase_audit (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         student_id INTEGER NOT NULL,
@@ -69,8 +81,11 @@ describe("D1-backed db helpers", () => {
         to_phase TEXT NOT NULL CHECK (to_phase IN ('research_plan', 'researching', 'editing', 'submitted')),
         FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
       );
-    `);
-    await runStatement(platform.env.DB, `
+    `,
+    );
+    await runStatement(
+      platform.env.DB,
+      `
       CREATE TABLE IF NOT EXISTS login_attempts (
         attempt_key TEXT PRIMARY KEY,
         failure_count INTEGER NOT NULL DEFAULT 0,
@@ -78,7 +93,8 @@ describe("D1-backed db helpers", () => {
         last_failed_at TEXT NOT NULL,
         locked_until TEXT
       );
-    `);
+    `,
+    );
     await runStatement(
       platform.env.DB,
       `
@@ -115,6 +131,10 @@ describe("D1-backed db helpers", () => {
       );
     `,
     );
+    for (const sql of readFileSync(join(process.cwd(), "migrations/0005_recurring_meetings_and_agent_tokens.sql"), "utf8")
+      .split(";")
+      .filter((part) => part.trim()))
+      await runStatement(platform.env.DB, sql);
   }, 60_000);
 
   afterAll(async () => {
@@ -125,6 +145,7 @@ describe("D1-backed db helpers", () => {
   }, 60_000);
 
   beforeEach(async () => {
+    await runStatement(platform.env.DB, "DELETE FROM agent_tokens");
     await runStatement(platform.env.DB, "DELETE FROM student_phase_audit");
     await runStatement(platform.env.DB, "DELETE FROM meeting_logs");
     await runStatement(platform.env.DB, "DELETE FROM students");
@@ -352,10 +373,91 @@ describe("D1-backed db helpers", () => {
     await expect(getAppSecret(platform.env.DB, "calendar_refresh_token")).resolves.toBeNull();
   });
 
-  it("rejects session revocation for a missing user", async () => {
-    await expect(revokeAuthUserSessions(platform.env.DB, 999_999)).rejects.toThrow(
-      "did not affect the expected database row",
+  it("issues hashed, expiring tokens and limits revocation to the owning account", async () => {
+    await runStatement(
+      platform.env.DB,
+      "INSERT INTO app_users (id, name, password_hash, role) VALUES (1, 'Advisor', 'unused', 'editor'), (2, 'Professor', 'unused', 'readonly')",
     );
+    const user = { id: 2, name: "Professor", role: "readonly" as const, sessionVersion: 1 };
+    const secret = await createAgentToken(platform.env.DB, user, "Codex", 30);
+    const request = new Request("https://tracker.example/mcp", { headers: { Authorization: `Bearer ${secret}` } });
+    expect(await authenticateAgent(request, platform.env.DB)).toMatchObject({ id: 2, role: "readonly" });
+    const stored = await platform.env.DB.prepare("SELECT token_hash FROM agent_tokens WHERE user_id = 2").first<{ token_hash: string }>();
+    expect(stored?.token_hash).not.toContain(secret);
+    expect(stored?.token_hash).toMatch(/^[a-f0-9]{64}$/);
+    const token = (await listAgentTokens(platform.env.DB, 2))[0]!;
+    await revokeAgentToken(platform.env.DB, 1, token.id);
+    expect(await authenticateAgent(request, platform.env.DB)).not.toBeNull();
+    await platform.env.DB.prepare("UPDATE agent_tokens SET expires_at = '2000-01-01T00:00:00.000Z' WHERE id = ?").bind(token.id).run();
+    expect(await authenticateAgent(request, platform.env.DB)).toBeNull();
+    await platform.env.DB.prepare("UPDATE agent_tokens SET expires_at = '2099-01-01T00:00:00.000Z' WHERE id = ?").bind(token.id).run();
+    await revokeAgentToken(platform.env.DB, 2, token.id);
+    expect(await authenticateAgent(request, platform.env.DB)).toBeNull();
+  });
+
+  it("serves professor setup and enforces readonly MCP access, including after role changes", async () => {
+    await runStatement(platform.env.DB, "INSERT INTO app_users (id, name, password_hash, role) VALUES (1, 'Advisor', 'unused', 'editor')");
+    const user = { id: 1, name: "Advisor", role: "editor" as const, sessionVersion: 1 };
+    const env = { DB: platform.env.DB };
+    const secret = await createAgentToken(platform.env.DB, user, "Codex", 30);
+    const rpc = (method: string, params: unknown = {}, extraHeaders = {}) =>
+      handleMcp(
+        new Request("https://tracker.example/mcp", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            accept: "application/json, text/event-stream",
+            authorization: `Bearer ${secret}`,
+            ...extraHeaders,
+          },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        }),
+        env,
+      );
+    const created = (await (await rpc("tools/call", { name: "create_student", arguments: { name: "Nghi Tran" } })).json()) as {
+      result: { content: Array<{ text: string }> };
+    };
+    const studentId = JSON.parse(created.result.content[0]!.text).id;
+    await rpc("tools/call", {
+      name: "set_meeting_schedule",
+      arguments: { studentId, schedule: { startLocal: "2026-10-16T14:00", timeZone: "Europe/Helsinki", intervalWeeks: 1 } },
+    });
+    expect(await getStudentById(platform.env.DB, studentId)).toMatchObject({ nextMeetingAt: "2026-10-16T11:00:00.000Z" });
+    const invalid = (await (
+      await rpc("tools/call", { name: "update_student", arguments: { studentId, currentPhase: "wrong", name: "Overwrite" } })
+    ).json()) as { result: { isError: boolean } };
+    expect(invalid.result.isError).toBe(true);
+    expect((await getStudentById(platform.env.DB, studentId))?.name).toBe("Nghi Tran");
+    await runStatement(platform.env.DB, "UPDATE app_users SET role = 'readonly' WHERE id = 1");
+    const listing = (await (await rpc("tools/list")).json()) as { result: { tools: Array<{ name: string }> } };
+    expect(listing.result.tools.map((tool) => tool.name)).toEqual(["list_students", "get_student"]);
+    const denied = (await (await rpc("tools/call", { name: "update_student", arguments: { studentId, name: "Forbidden" } })).json()) as {
+      result: { isError: boolean };
+    };
+    expect(denied.result.isError).toBe(true);
+    expect((await getStudentById(platform.env.DB, studentId))?.name).toBe("Nghi Tran");
+    expect((await rpc("tools/list", {}, { origin: "https://attacker.example" })).status).toBe(403);
+    expect((await handleMcp(new Request("https://tracker.example/mcp"), env)).status).toBe(401);
+    const setup = await handleAgentAccess(new Request("https://tracker.example/agent-access"), env, { ...user, role: "readonly" });
+    expect(await setup.text()).toContain("Create token and show setup");
+    const issued = await handleAgentAccess(
+      new Request("https://tracker.example/agent-access", {
+        method: "POST",
+        body: new URLSearchParams({ name: "Professor Codex", days: "90" }),
+      }),
+      env,
+      { ...user, role: "readonly" },
+    );
+    const html = await issued.text();
+    expect(html).toContain("mcp_servers.thesis_tracker");
+    expect(html).toContain("tjt_");
+    expect(html).toContain("Read-only:");
+    const revisited = await handleAgentAccess(new Request("https://tracker.example/agent-access"), env, { ...user, role: "readonly" });
+    expect(await revisited.text()).not.toContain("tjt_");
+  });
+
+  it("rejects session revocation for a missing user", async () => {
+    await expect(revokeAuthUserSessions(platform.env.DB, 999_999)).rejects.toThrow("did not affect the expected database row");
   });
 });
 

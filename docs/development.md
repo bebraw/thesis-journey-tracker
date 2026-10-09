@@ -47,6 +47,8 @@ This uses Wrangler's local platform proxy and applies the checked-in migrations 
 
 TypeScript 7 runs the type check; the canonical `typescript` package remains the TypeScript 6 compatibility build for tools that import its compiler API.
 
+Wrangler is pinned to `4.149.0` to include the patched Sharp dependency. The Tailwind CLI's Parcel watcher is overridden to `2.6.0`, which replaces its vulnerable Micromatch/Braces dependency. Keep that override until Tailwind updates its own pinned watcher; recheck the full dependency audit and browser workflow when changing either toolchain.
+
 ## Local CI
 
 Browser verification now runs through Local CI rather than a separate local Playwright install flow.

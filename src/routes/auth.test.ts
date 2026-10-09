@@ -1190,7 +1190,7 @@ describe("multi-user access control", () => {
     expect(remoteDashboardResponse.status).toBe(200);
     expect(remoteDashboardBody).not.toContain("Style guide");
     expect(remoteDashboardBody).toContain("Data tools");
-    expect(remoteDashboardBody).not.toContain(">More<");
+    expect(remoteDashboardBody).toContain("Agent access");
 
     const remoteStyleGuideResponse = await fetchHandler(
       new Request("https://tracker.example.com/style-guide", {

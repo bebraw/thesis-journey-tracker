@@ -5,6 +5,7 @@ This folder contains the more technical project documentation that has been move
 ## Start Here
 
 - [setup.md](./setup.md): local setup and environment configuration
+- [agent-access.md](./agent-access.md): UI-based Codex MCP setup and internal repeating meetings
 - [development.md](./development.md): development workflow, tests, and editor tooling
 - [template-updates.md](./template-updates.md): template source, applied maintenance packs, and future syncs
 - [deployment.md](./deployment.md): CI, deployment, and production-facing notes

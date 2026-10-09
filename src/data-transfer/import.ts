@@ -1,11 +1,7 @@
 import { normalizeDate, normalizeDateTime, normalizeDegree, normalizePhase, normalizeString } from "../forms/normalize";
 import { DEGREE_TYPES, PHASES } from "../students";
-import {
-  DATA_EXPORT_SCHEMA_VERSION,
-  type ExportedMeetingLog,
-  type ExportedPhaseAuditEntry,
-  type ImportedStudentBundle,
-} from "./types";
+import { parseMeetingSchedule } from "../students/recurrence";
+import { DATA_EXPORT_SCHEMA_VERSION, type ExportedMeetingLog, type ExportedPhaseAuditEntry, type ImportedStudentBundle } from "./types";
 
 interface ImportParseResult {
   data: ImportedStudentBundle[] | null;
@@ -93,6 +89,8 @@ function parseImportedStudent(value: unknown): ImportedStudentBundle | null {
   const currentPhase = normalizePhase(value.currentPhase as string | null | undefined, PHASES);
   const nextMeetingAt = normalizeDateTime(value.nextMeetingAt as string | null | undefined, true);
   const archivedAt = normalizeDateTime(value.archivedAt as string | null | undefined, true);
+  const meetingSchedule = value.meetingSchedule == null ? null : parseMeetingSchedule(value.meetingSchedule);
+  if (value.meetingSchedule != null && !meetingSchedule) return null;
 
   if (startDate === undefined || !name || !degreeType || !currentPhase || nextMeetingAt === undefined || archivedAt === undefined) {
     return null;
@@ -136,6 +134,7 @@ function parseImportedStudent(value: unknown): ImportedStudentBundle | null {
       startDate,
       currentPhase,
       nextMeetingAt,
+      meetingSchedule,
     },
     archivedAt,
     logs,

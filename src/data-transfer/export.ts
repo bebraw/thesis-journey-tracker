@@ -17,6 +17,7 @@ export function createDataExport(
       startDate: student.startDate,
       currentPhase: student.currentPhase,
       nextMeetingAt: student.nextMeetingAt,
+      meetingSchedule: student.meetingSchedule || null,
       archivedAt: student.archivedAt,
       logs: logs.map((log) => ({
         happenedAt: log.happenedAt,

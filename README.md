@@ -54,6 +54,8 @@ The project is intentionally small and server-rendered, with a focused workflow 
 - Save discussion notes and next actions together. Meeting time defaults to the student's booked meeting, or the current time when no meeting is booked. Meeting-time fields use half-hour increments. Follow-up defaults to keeping the current meeting; choose `Not booked` to clear it or `Set new meeting` to book another time.
 - Keep unsaved note and detail drafts when switching or closing students. Drafts stay in memory for the current page; leaving or reloading prompts before discarding them.
 - Follow upcoming meetings from the dashboard, and clear a cancelled meeting until a new time is booked.
+- Set internal weekly or multiweek meeting schedules that keep the agreed local time across clock changes and advance when a meeting note is saved.
+- Connect Codex through **Agent access** to read or update students, notes, and schedules using MCP. Professor accounts have readonly tools; each account creates and revokes its own tokens in the UI. See [the agent setup guide](./docs/agent-access.md).
 - Search students and filter by degree, phase, meeting status, or unfinished MSc theses past their target.
 - Use the Gantt view to estimate advisor workload visually from student start dates and degree-based thesis duration assumptions.
 - Archive completed or inactive students without deleting their supervision history, review them from the dashboard's `Archived` scope, and restore them when supervision resumes.
@@ -120,6 +122,7 @@ Then follow the container setup commands in [docs/setup.md](./docs/setup.md#dock
 ## Documentation
 
 - [docs/setup.md](./docs/setup.md): local setup, environment variables, Google Calendar configuration, and first run
+- [docs/agent-access.md](./docs/agent-access.md): Codex MCP setup, readonly access, and internal repeating meetings
 - [docs/development.md](./docs/development.md): scripts, testing, local CI, and day-to-day engineering workflows
 - [docs/template-updates.md](./docs/template-updates.md): applied `vibe-template` maintenance updates and sync scope
 - [docs/deployment.md](./docs/deployment.md): production deployment, security, and release notes

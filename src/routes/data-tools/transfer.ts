@@ -143,8 +143,8 @@ async function buildImportStatements(
     statements.push(
       db
         .prepare(
-          `INSERT INTO students (id, name, email, degree_type, thesis_topic, student_notes, start_date, current_phase, next_meeting_at, archived_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO students (id, name, email, degree_type, thesis_topic, student_notes, start_date, current_phase, next_meeting_at, archived_at, meeting_schedule)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           studentId,
@@ -157,6 +157,7 @@ async function buildImportStatements(
           bundle.student.currentPhase,
           bundle.student.nextMeetingAt,
           bundle.archivedAt,
+          bundle.student.meetingSchedule ? JSON.stringify(bundle.student.meetingSchedule) : null,
         ),
     );
 

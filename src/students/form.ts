@@ -1,6 +1,7 @@
 import { normalizeDate, normalizeDateTime, normalizeString } from "../forms/normalize";
 import { toDateTimeLocalInput } from "../formatting";
 import type { DegreeId, PhaseId, Student, StudentMutationInput } from "./store";
+import { nextScheduledMeeting, parseMeetingSchedule } from "./recurrence";
 
 const DEGREE_IDS: DegreeId[] = ["bsc", "msc", "dsc"];
 const PHASE_IDS: PhaseId[] = ["research_plan", "researching", "editing", "submitted"];
@@ -28,6 +29,9 @@ export interface StudentFormValues {
   startDate: string;
   currentPhase: PhaseId;
   nextMeetingAt: string;
+  repeatWeeks?: string;
+  meetingTimeZone?: string;
+  repeatUntil?: string;
 }
 
 interface ParseStudentFormOptions {
@@ -58,7 +62,10 @@ export function getStudentFormValues(student: Student, timeZone?: string): Stude
     studentNotes: student.studentNotes || "",
     startDate: student.startDate || "",
     currentPhase: student.currentPhase,
-    nextMeetingAt: toDateTimeLocalInput(student.nextMeetingAt, timeZone),
+    nextMeetingAt: toDateTimeLocalInput(student.nextMeetingAt, student.meetingSchedule?.timeZone || timeZone),
+    repeatWeeks: String(student.meetingSchedule?.intervalWeeks ?? 0),
+    meetingTimeZone: student.meetingSchedule?.timeZone || timeZone || "Europe/Helsinki",
+    repeatUntil: student.meetingSchedule?.untilDate || "",
   };
 }
 
@@ -85,12 +92,49 @@ export function parseStudentFormSubmission(formData: FormData, options: ParseStu
     ),
   );
   const clearNextMeetingAt = normalizeString(formData.get(STUDENT_FORM_FIELDS.clearNextMeetingAt)) === "yes";
+  const meetingTimeZone = Number(formData.get("repeatWeeks")) > 0 ? normalizeString(formData.get("meetingTimeZone")) || timeZone : timeZone;
+  try {
+    if (meetingTimeZone) new Intl.DateTimeFormat("en", { timeZone: meetingTimeZone });
+  } catch {
+    return null;
+  }
   const nextMeetingAt = clearNextMeetingAt
     ? null
-    : normalizeDateTime(readOptionalField(formData, STUDENT_FORM_FIELDS.nextMeetingAt, existingStudent?.nextMeetingAt ?? null), true, timeZone);
+    : normalizeDateTime(
+        readOptionalField(formData, STUDENT_FORM_FIELDS.nextMeetingAt, existingStudent?.nextMeetingAt ?? null),
+        true,
+        meetingTimeZone,
+      );
 
   if (!name || startDate === undefined || !degreeType || !currentPhase || nextMeetingAt === undefined) {
     return null;
+  }
+
+  let meetingSchedule = existingStudent?.meetingSchedule;
+  if (clearNextMeetingAt) meetingSchedule = null;
+  else if (formData.has("repeatWeeks")) {
+    const intervalWeeks = Number(formData.get("repeatWeeks"));
+    if (intervalWeeks === 0) meetingSchedule = null;
+    else {
+      const scheduleTimeZone = normalizeString(formData.get("meetingTimeZone")) || timeZone || "Europe/Helsinki";
+      const previous = existingStudent?.meetingSchedule;
+      const startLocal =
+        previous &&
+        existingStudent?.nextMeetingAt === nextMeetingAt &&
+        previous.intervalWeeks === intervalWeeks &&
+        previous.timeZone === scheduleTimeZone
+          ? previous.startLocal
+          : nextMeetingAt
+            ? toDateTimeLocalInput(nextMeetingAt, scheduleTimeZone)
+            : previous?.startLocal;
+      meetingSchedule = parseMeetingSchedule({
+        startLocal,
+        timeZone: scheduleTimeZone,
+        intervalWeeks,
+        untilDate: normalizeString(formData.get("repeatUntil")),
+      });
+      if (!meetingSchedule) return null;
+    }
   }
 
   return {
@@ -101,7 +145,8 @@ export function parseStudentFormSubmission(formData: FormData, options: ParseStu
     studentNotes,
     startDate,
     currentPhase,
-    nextMeetingAt,
+    nextMeetingAt: meetingSchedule && !existingStudent ? nextScheduledMeeting(meetingSchedule) : nextMeetingAt,
+    meetingSchedule,
   };
 }
 
@@ -132,11 +177,7 @@ function readRequiredField(
   return fallbackValue;
 }
 
-function readOptionalField(
-  formData: FormData,
-  name: string,
-  fallbackValue: string | null,
-): FormDataEntryValue | string | null {
+function readOptionalField(formData: FormData, name: string, fallbackValue: string | null): FormDataEntryValue | string | null {
   if (formData.has(name)) {
     return formData.get(name);
   }

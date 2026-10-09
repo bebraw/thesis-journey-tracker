@@ -49,6 +49,21 @@ export const APP_INTERACTION_SCRIPT = `"use strict";
       var message = form.getAttribute("data-confirm-message");
       if (message && !window.confirm(message)) event.preventDefault();
     });
+
+    document.addEventListener("click", async function copySetup(event) {
+      var button = event.target.closest && event.target.closest("[data-copy-field]");
+      if (!button) return;
+      var field = document.querySelector('[name="' + button.getAttribute("data-copy-field") + '"]');
+      if (!field) return;
+      try {
+        await navigator.clipboard.writeText(field.value);
+        button.textContent = "Copied";
+      } catch (_error) {
+        field.focus();
+        field.select();
+        button.textContent = "Selected — copy with your keyboard";
+      }
+    });
   }
 
   if (document.readyState === "loading") {

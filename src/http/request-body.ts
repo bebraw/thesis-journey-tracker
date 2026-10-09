@@ -17,6 +17,11 @@ export class RequestBodyTooLargeError extends Error {
   }
 }
 
+export async function readJsonBody(request: Request, maxBytes = DEFAULT_FORM_BODY_LIMIT_BYTES): Promise<unknown> {
+  rejectOversizedContentLength(request.headers.get("content-length"), maxBytes);
+  return JSON.parse(new TextDecoder().decode(await readBoundedBody(request.body, maxBytes)));
+}
+
 export async function readFormData(request: Request, options: { maxBytes?: number } = {}): Promise<FormData> {
   const maxBytes = options.maxBytes || DEFAULT_FORM_BODY_LIMIT_BYTES;
   const cached = cachedFormDataReads.get(request);

@@ -3,11 +3,7 @@ import { BUTTON_CLASS_MAP, renderButton } from "../ui/foundation";
 import { type HtmlispComponents, raw, renderEscapedHTMLisp } from "../htmlisp";
 import type { ViewerContext } from "./types";
 
-export function renderView(
-  htmlInput: string,
-  props: Record<string, unknown> = {},
-  components: HtmlispComponents = {},
-): string {
+export function renderView(htmlInput: string, props: Record<string, unknown> = {}, components: HtmlispComponents = {}): string {
   return renderEscapedHTMLisp(htmlInput, props, components);
 }
 
@@ -132,8 +128,9 @@ export function renderDashboardToastMessages(notice: string | null, error: strin
   return renderView(
     `<ToastStack &toastHtml="toastHtml"></ToastStack>`,
     {
-      toastHtml: raw(renderView(
-        `<fragment>
+      toastHtml: raw(
+        renderView(
+          `<fragment>
           <NoticeToast
             &visible="noticeVisible"
             &message="noticeMessage"
@@ -147,23 +144,24 @@ export function renderDashboardToastMessages(notice: string | null, error: strin
             &dismissButtonClass="dismissButtonClass"
           ></ErrorToast>
         </fragment>`,
-        {
-          noticeVisible: Boolean(notice),
-          noticeClass: ALERT_TOAST_SUCCESS,
-          noticeMessage: notice || "",
-          errorVisible: Boolean(error),
-          errorClass: ALERT_TOAST_ERROR,
-          errorMessage: error || "",
-          dismissButtonClass: `shrink-0 ${BUTTON_CLASS_MAP.inline}`,
-        },
-        components,
-      )),
+          {
+            noticeVisible: Boolean(notice),
+            noticeClass: ALERT_TOAST_SUCCESS,
+            noticeMessage: notice || "",
+            errorVisible: Boolean(error),
+            errorClass: ALERT_TOAST_ERROR,
+            errorMessage: error || "",
+            dismissButtonClass: `shrink-0 ${BUTTON_CLASS_MAP.inline}`,
+          },
+          components,
+        ),
+      ),
     },
     components,
   );
 }
 
-export type HeaderPageId = "dashboard" | "schedule" | "data-tools" | "add-student" | "style-guide";
+export type HeaderPageId = "dashboard" | "schedule" | "data-tools" | "add-student" | "style-guide" | "agent-access";
 
 interface RenderAuthedPageDocumentOptions {
   documentTitle: string;
@@ -206,6 +204,7 @@ export function renderPageHeaderNavigation(currentPage: HeaderPageId, viewer: Vi
   }
 
   const moreLinks: HeaderLink[] = [];
+  moreLinks.push({ label: "Agent access", href: "/agent-access", current: currentPage === "agent-access" });
   if (viewer.role === "editor") {
     moreLinks.push({ label: "Data tools", href: "/data-tools", current: currentPage === "data-tools" });
   }
@@ -246,12 +245,11 @@ export function renderPageHeaderNavigation(currentPage: HeaderPageId, viewer: Vi
       </div>
     </details>`,
     {
-      summaryClass:
-        `${BUTTON_CLASS_MAP.neutral} cursor-pointer list-none px-badge-pill-x py-badge-pill-y text-xs [&::-webkit-details-marker]:hidden sm:text-sm ${
-          moreMenuIsCurrent
-            ? "border-app-brand bg-app-brand-soft text-app-brand-strong dark:border-app-brand-ring dark:bg-app-brand-soft-dark/30 dark:text-app-brand-ring"
-            : ""
-        }`,
+      summaryClass: `${BUTTON_CLASS_MAP.neutral} cursor-pointer list-none px-badge-pill-x py-badge-pill-y text-xs [&::-webkit-details-marker]:hidden sm:text-sm ${
+        moreMenuIsCurrent
+          ? "border-app-brand bg-app-brand-soft text-app-brand-strong dark:border-app-brand-ring dark:bg-app-brand-soft-dark/30 dark:text-app-brand-ring"
+          : ""
+      }`,
       linkClass:
         "block rounded-control px-control-x py-control-y text-sm text-app-text transition hover:bg-app-surface-soft dark:text-app-text-dark dark:hover:bg-app-surface-soft-dark/55",
       moreLinks: moreLinks.map((link) => ({
@@ -332,11 +330,13 @@ export function renderAuthedPageHeader(title: string, description: string, navig
         "flex flex-wrap items-center gap-badge-y overflow-visible pb-0.5 sm:flex-nowrap sm:justify-end sm:pb-0 [&>*]:shrink-0",
       navigationHtml: raw(navigationHtml),
       themeToggleClass: THEME_TOGGLE_BUTTON,
-      logoutButtonHtml: raw(renderButton({
-        label: "Log out",
-        type: "submit",
-        variant: "neutral",
-      })),
+      logoutButtonHtml: raw(
+        renderButton({
+          label: "Log out",
+          type: "submit",
+          variant: "neutral",
+        }),
+      ),
     },
     components,
   );
@@ -359,11 +359,7 @@ export function renderAuthedPageDocument(options: RenderAuthedPageDocumentOption
   } = options;
 
   const flashHtml =
-    flashKind === "toast"
-      ? renderDashboardToastMessages(notice, error)
-      : flashKind === "inline"
-        ? renderFlashMessages(notice, error)
-        : "";
+    flashKind === "toast" ? renderDashboardToastMessages(notice, error) : flashKind === "inline" ? renderFlashMessages(notice, error) : "";
   const bodyContent = renderView(
     `<div &class="pageWrap">
       <fragment &children="headerHtml"></fragment>
@@ -377,12 +373,9 @@ export function renderAuthedPageDocument(options: RenderAuthedPageDocumentOption
     </fragment>`,
     {
       pageWrap: pageWrapClass,
-      headerHtml: raw(renderAuthedPageHeader(
-        headerTitle,
-        headerDescription,
-        renderPageHeaderNavigation(currentPage, viewer, showStyleGuide),
-        viewer,
-      )),
+      headerHtml: raw(
+        renderAuthedPageHeader(headerTitle, headerDescription, renderPageHeaderNavigation(currentPage, viewer, showStyleGuide), viewer),
+      ),
       flashHtml: raw(flashHtml),
       sections: sections.map((section) => raw(section)),
       scripts: scripts.map((script) => raw(script)),

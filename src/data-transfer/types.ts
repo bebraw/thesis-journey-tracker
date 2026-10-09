@@ -1,4 +1,5 @@
 import type { CreateStudentInput, DegreeId, MeetingLog, PhaseId, Student } from "../students/store";
+import type { MeetingSchedule } from "../students/recurrence";
 
 export const DATA_EXPORT_SCHEMA_VERSION = 1;
 
@@ -24,6 +25,7 @@ export interface ExportedStudent {
   startDate: string | null;
   currentPhase: PhaseId;
   nextMeetingAt: string | null;
+  meetingSchedule?: MeetingSchedule | null;
   archivedAt?: string | null;
   logs: ExportedMeetingLog[];
   phaseAudit: ExportedPhaseAuditEntry[];

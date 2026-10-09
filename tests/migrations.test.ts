@@ -4,7 +4,9 @@ import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 const MIGRATIONS_DIR = join(process.cwd(), "migrations");
-const MIGRATION_FILES = readdirSync(MIGRATIONS_DIR).filter((name) => name.endsWith(".sql")).sort();
+const MIGRATION_FILES = readdirSync(MIGRATIONS_DIR)
+  .filter((name) => name.endsWith(".sql"))
+  .sort();
 
 function applyAllMigrations(db: DatabaseSync) {
   for (const name of MIGRATION_FILES) {
@@ -124,6 +126,7 @@ describe("schema migrations", () => {
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name ASC")
       .all() as Array<{ name: string }>;
     expect(tableNames.map(({ name }) => name)).toEqual([
+      "agent_tokens",
       "app_secrets",
       "app_users",
       "login_attempts",
@@ -155,9 +158,7 @@ describe("schema migrations", () => {
       WHERE id = 1;
     `);
 
-    const studentRow = db
-      .prepare("SELECT current_phase, student_notes, thesis_topic, updated_at FROM students WHERE id = 1")
-      .get() as {
+    const studentRow = db.prepare("SELECT current_phase, student_notes, thesis_topic, updated_at FROM students WHERE id = 1").get() as {
       current_phase: string;
       student_notes: string | null;
       thesis_topic: string | null;
@@ -168,9 +169,11 @@ describe("schema migrations", () => {
     expect(studentRow.thesis_topic).toBe("Updated topic");
     expect(studentRow.updated_at).not.toBe("2026-01-01T09:00:00.000Z");
 
-    const appUserRow = db
-      .prepare("SELECT role, session_version, updated_at FROM app_users WHERE id = 1")
-      .get() as { role: string; session_version: number; updated_at: string };
+    const appUserRow = db.prepare("SELECT role, session_version, updated_at FROM app_users WHERE id = 1").get() as {
+      role: string;
+      session_version: number;
+      updated_at: string;
+    };
     expect(appUserRow.role).toBe("readonly");
     expect(appUserRow.session_version).toBe(1);
     expect(appUserRow.updated_at).not.toBe("2026-01-01T09:00:00.000Z");

@@ -5,10 +5,9 @@ import { readFormData } from "../../http/request-body";
 import { redirect } from "../../http/response";
 import { logError } from "../../observability/error-logging";
 import { parseStudentFormSubmission } from "../../students";
+import { saveMeetingNote } from "../../students/meeting-notes";
 import {
   archiveStudent,
-  createMeetingLog,
-  createMeetingLogWithNextMeeting,
   createStudent,
   getStudentById,
   restoreStudent,
@@ -104,7 +103,8 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
     return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Invalid log input" }));
   }
 
-  if (!(await studentExists(env.DB, studentId))) {
+  const student = await getStudentById(env.DB, studentId);
+  if (!student) {
     return redirect(appendDashboardMessage(returnPath, { error: "Student not found" }));
   }
 
@@ -117,8 +117,13 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
       nextStepDeadline,
     };
 
-    if (followUpAction === "keep") await createMeetingLog(env.DB, logInput);
-    else await createMeetingLogWithNextMeeting(env.DB, logInput, followUpAction === "clear" ? null : nextMeetingAt);
+    await saveMeetingNote(
+      env.DB,
+      student,
+      logInput,
+      followUpAction === "keep" ? "keep" : followUpAction === "clear" ? "clear" : "set",
+      nextMeetingAt,
+    );
   } catch (error) {
     logError("meeting_log.create_failed", error);
     return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Failed to save log" }));

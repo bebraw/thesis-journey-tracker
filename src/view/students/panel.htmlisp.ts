@@ -3,6 +3,7 @@ import { raw } from "../../htmlisp";
 import type { DashboardLaneDefinition } from "../../dashboard-lanes";
 import { DEGREE_TYPES, getDegreeLabel, getPhaseLabel, getStudentFormValues, getTargetSubmissionDate, PHASES } from "../../students";
 import type { MeetingLog, PhaseAuditEntry, Student } from "../../students/store";
+import { describeMeetingSchedule } from "../../students/recurrence";
 import { FIELD_CONTROL, FORM_STACK, renderButton, renderInputField, renderTextareaField } from "../../ui";
 import type { DashboardFilters } from "../types";
 import { renderView } from "../shared.htmlisp";
@@ -120,7 +121,7 @@ export function renderSelectedStudentPanel(
         <fragment &children="agreedPlan"></fragment>
         <label class="block text-sm">Follow-up
           <select name="followUpAction" &class="selectClass">
-            <option value="keep">Keep current meeting</option>
+            <option value="keep" &children="keepLabel"></option>
             <option value="clear">Not booked</option>
             <option value="set">Set new meeting</option>
           </select>
@@ -134,6 +135,7 @@ export function renderSelectedStudentPanel(
       action: `/actions/add-log/${student.id}`,
       hiddenReturn: raw(hiddenReturn),
       selectClass: `mt-1 ${FIELD_CONTROL}`,
+      keepLabel: student.meetingSchedule ? "Continue repeating schedule" : "Keep current meeting",
       happenedAt: raw(
         renderInputField({
           label: "Meeting time",
@@ -237,7 +239,7 @@ export function renderSelectedStudentPanel(
       hasTopic: Boolean(student.thesisTopic),
       topic: student.thesisTopic || "",
       summary: `${getDegreeLabel(student.degreeType, DEGREE_TYPES)} · ${phaseLabel(student.currentPhase, dashboardLanes)} · Target ${getTargetSubmissionDate(student) || "not set"}`,
-      meeting: `Next meeting: ${student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked"}`,
+      meeting: `Next meeting: ${student.nextMeetingAt ? formatDateTime(student.nextMeetingAt, timeZone) : "Not booked"}${student.meetingSchedule ? ` · ${describeMeetingSchedule(student.meetingSchedule)}` : ""}`,
       archived: Boolean(student.archivedAt),
       archiveDate: student.archivedAt ? `Archived ${formatDateTime(student.archivedAt, timeZone)}` : "",
       readonly: !canEdit,

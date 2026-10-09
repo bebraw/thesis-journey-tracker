@@ -10,12 +10,12 @@
   "allowScripts": {
     "@parcel/watcher": false,
     "cpu-features": false,
-    "esbuild@0.28.1": true,
+    "esbuild@0.28.2": true,
     "fsevents": false,
     "protobufjs": false,
     "sharp": false,
     "ssh2": false,
-    "workerd@1.20261001.1": true
+    "workerd@1.20261006.1": true
   },
   "scripts": {
     "account:create": "node ./scripts/create-auth-user.mjs",
@@ -62,10 +62,15 @@
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-7": "npm:typescript@7.0.2",
     "vitest": "4.1.11",
-    "wrangler": "4.146.0"
+    "wrangler": "4.149.0"
   },
   "dependencies": {
     "htmlisp": "0.90.0"
+  },
+  "overrides": {
+    "@tailwindcss/cli": {
+      "@parcel/watcher": "2.6.0"
+    }
   },
   "packageManager": "npm@11.21.0",
   "vibeTemplate": {

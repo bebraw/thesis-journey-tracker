@@ -15,6 +15,7 @@ This document gives a technical overview of how the project is put together.
 
 - [`src/worker.ts`](../src/worker.ts): thin Worker entrypoint for request/session setup, auth flow, and route dispatch
 - [`src/routes/`](../src/routes): page and form-action handlers grouped by feature area
+- [`src/agent/`](../src/agent): bearer-token authentication, stateless MCP transport, and role-checked student tools; [`src/routes/agent-access.ts`](../src/routes/agent-access.ts) handles UI token setup
 - [`src/auth/`](../src/auth): reusable authentication primitives for password hashing, session cookies/tokens, auth bootstrap, and login policy
 - [`src/calendar/`](../src/calendar): shared calendar feature code for Google API access, encrypted settings, iCal parsing, and schedule-building helpers
 - [`src/data-transfer/`](../src/data-transfer): shared export/import/report generation used by data tools and automated backups

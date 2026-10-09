@@ -77,6 +77,33 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
         },
       )
     : "";
+  const repeatFields =
+    renderSelectField({
+      label: "Repeat meeting",
+      name: "repeatWeeks",
+      value: values.repeatWeeks || "0",
+      options: [
+        { label: "Does not repeat", value: "0" },
+        ...[1, 2, 3, 4].map((weeks) => ({ label: weeks === 1 ? "Every week" : `Every ${weeks} weeks`, value: String(weeks) })),
+        ...(!["0", "1", "2", "3", "4"].includes(values.repeatWeeks || "0")
+          ? [{ label: `Every ${values.repeatWeeks} weeks`, value: values.repeatWeeks! }]
+          : []),
+      ],
+      className: controlClass,
+    }) +
+    renderInputField({
+      label: "Meeting timezone",
+      name: "meetingTimeZone",
+      value: values.meetingTimeZone || "Europe/Helsinki",
+      className: controlClass,
+    }) +
+    renderInputField({
+      label: "Repeat until (optional)",
+      name: "repeatUntil",
+      type: "date",
+      value: values.repeatUntil || "",
+      className: controlClass,
+    });
 
   return {
     nameField: renderInputField({
@@ -139,13 +166,15 @@ export function renderStudentFormFields(options: RenderStudentFormFieldsOptions)
       className: controlClass,
     }),
     nextMeetingField: renderView(
-      `<div class="block min-w-0 text-sm">
+      `<div class="block min-w-0 space-y-3 text-sm">
         <fragment &children="inputHtml"></fragment>
         <fragment &children="hintHtml"></fragment>
+        <fragment &children="repeatHtml"></fragment>
       </div>`,
       {
         inputHtml: raw(nextMeetingInput),
         hintHtml: raw(clearNextMeetingHint),
+        repeatHtml: raw(repeatFields),
       },
     ),
   };
