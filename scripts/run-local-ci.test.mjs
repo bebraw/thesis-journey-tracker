@@ -1,4 +1,7 @@
 import { readFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
@@ -176,6 +179,44 @@ describe("Local CI wrapper", () => {
     const launcherModule = await import(pathToFileURL(install.launcherPath).href);
     expect(typeof configModule.applyLocalCiEnv).toBe("function");
     expect(typeof launcherModule.runNativeOrTypeScript).toBe("function");
+  });
+
+  it("applies workflow branch and path filters with the installed glob matcher", async () => {
+    const { packageRoot } = resolveLocalCiInstall();
+    const { isWorkflowRelevant } = await import(pathToFileURL(join(packageRoot, "dist/workflow/workflow-parser.js")).href);
+    const workflow = { events: { push: { branches: ["main", "release/**"], paths: ["src/**/*.ts", "package*.json"] } } };
+
+    expect(isWorkflowRelevant(workflow, "release/v1", ["src/routes/dashboard/actions.ts"])).toBe(true);
+    expect(isWorkflowRelevant(workflow, "main", ["package-lock.json"])).toBe(true);
+    expect(isWorkflowRelevant(workflow, "feature/example", ["src/routes/dashboard/actions.ts"])).toBe(false);
+    expect(isWorkflowRelevant(workflow, "main", ["docs/setup.md"])).toBe(false);
+    expect(isWorkflowRelevant({ events: { push: { "paths-ignore": ["docs/**"] } } }, "main", ["docs/setup.md"])).toBe(false);
+  });
+
+  it("loads and validates the Local CI server configuration using its installed schema", () => {
+    const { packageRoot } = resolveLocalCiInstall();
+    const localCiRequire = createRequire(join(packageRoot, "package.json"));
+    const serverEntry = localCiRequire.resolve("dtu-github-actions");
+    const configUrl = pathToFileURL(join(dirname(dirname(serverEntry)), "config.js")).href;
+    const code = "const { config } = await import(process.argv[1]); console.log(JSON.stringify(config));";
+    const env = {
+      ...process.env,
+      GITHUB_WEBHOOK_SECRET: "local-test",
+      DTU_URL: "http://localhost:8910",
+      DTU_PORT: "8911",
+      DTU_CACHE_DIR: "/tmp/local-ci-test",
+    };
+
+    const parsed = JSON.parse(execFileSync(process.execPath, ["--input-type=module", "-e", code, configUrl], { env, encoding: "utf8" }));
+    expect(parsed).toEqual({
+      GITHUB_WEBHOOK_SECRET: "local-test",
+      DTU_URL: "http://localhost:8910",
+      DTU_PORT: 8911,
+      DTU_CACHE_DIR: "/tmp/local-ci-test",
+    });
+    expect(
+      spawnSync(process.execPath, ["--input-type=module", "-e", code, configUrl], { env: { ...env, DTU_URL: "not-a-url" } }).status,
+    ).not.toBe(0);
   });
 
   it("rejects an unreviewed Local CI package layout", () => {

@@ -47,7 +47,7 @@ This uses Wrangler's local platform proxy and applies the checked-in migrations 
 
 TypeScript 7 runs the type check; the canonical `typescript` package remains the TypeScript 6 compatibility build for tools that import its compiler API.
 
-Wrangler is pinned to `4.149.0` to include the patched Sharp dependency. The Tailwind CLI's Parcel watcher is overridden to `2.6.0`, which replaces its vulnerable Micromatch/Braces dependency. Keep that override until Tailwind updates its own pinned watcher; recheck the full dependency audit and browser workflow when changing either toolchain.
+Wrangler is pinned to `4.158.0`. The Tailwind CLI's Parcel watcher is overridden to `2.6.0`, which replaces its vulnerable Micromatch/Braces dependency. Keep that override until Tailwind updates its own pinned watcher; recheck the full dependency audit and browser workflow when changing either toolchain.
 
 ## Local CI
 
@@ -64,6 +64,8 @@ Local CI replaces the former Agent CI package. Copy `.env.local-ci.example` to `
 
 The existing public `ci:local`, `ci:local:quiet`, `ci:local:all`, and `ci:local:retry` commands continue through [`scripts/run-local-ci.mjs`](../scripts/run-local-ci.mjs), preserving the immutable runner seed and fail-closed package-layout checks.
 
+Local CI's glob matcher and its server's Zod dependency are overridden to patched major versions. The wrapper tests exercise workflow filters and server configuration against those versions; recheck those tests and the full workflow before removing or changing the overrides.
+
 The browser job still uses the repo's Playwright tests and config under the hood, but the supported way to run them as part of verification is the checked-in Local CI workflow in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 ### Lighthouse Audits
@@ -73,7 +75,7 @@ npm run lighthouse
 ```
 
 Reports are written to `reports/lighthouse/`. The audit enforces a minimum performance score of `90` for both mobile and desktop runs.
-Lighthouse is pinned to `13.5.0`. Verify both the full dependency audit and the mobile/desktop performance runs when updating it.
+Lighthouse is pinned to `13.6.0`. Verify both the full dependency audit and the mobile/desktop performance runs when updating it.
 Playwright remains at `1.62.1` with its matching CI image while the newer bundled Chromium's Linux ARM64 trace-screenshot crash is unresolved. See [template-updates.md](./template-updates.md#partial-dependency-refresh) for the isolated reproduction and remaining template sync gap.
 
 Dependency installation uses npm's strict lifecycle-script allowlist. Only the exact reviewed `esbuild` and `workerd` versions may run install scripts; optional accelerators, postinstall notices, and native build or binary-check fallbacks that the verified workflows do not require are explicitly denied. If an update introduces a new lifecycle script, `npm ci` fails before running it. Start a lockfile update with `npm install --ignore-scripts`, inspect the new package and script, then change `allowScripts` deliberately and rerun a clean install, the Docker build, and local CI. Do not bypass the policy to make an update pass.

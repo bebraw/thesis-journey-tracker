@@ -15,7 +15,7 @@
     "protobufjs": false,
     "sharp": false,
     "ssh2": false,
-    "workerd@1.20261006.1": true
+    "workerd@1.20261104.1": true
   },
   "scripts": {
     "account:create": "node ./scripts/create-auth-user.mjs",
@@ -55,14 +55,14 @@
     "@playwright/test": "1.62.1",
     "@tailwindcss/cli": "4.3.3",
     "chrome-launcher": "1.2.2",
-    "lighthouse": "13.5.0",
+    "lighthouse": "13.6.0",
     "prettier": "3.9.9",
     "run-local-ci": "0.18.1",
     "tailwindcss": "4.3.3",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-7": "npm:typescript@7.0.2",
-    "vitest": "4.1.11",
-    "wrangler": "4.149.0"
+    "vitest": "4.1.12",
+    "wrangler": "4.158.0"
   },
   "dependencies": {
     "htmlisp": "0.90.0"
@@ -70,6 +70,12 @@
   "overrides": {
     "@tailwindcss/cli": {
       "@parcel/watcher": "2.6.0"
+    },
+    "run-local-ci": {
+      "minimatch": "11.0.5",
+      "dtu-github-actions": {
+        "zod": "4.6.7"
+      }
     }
   },
   "packageManager": "npm@11.21.0",
