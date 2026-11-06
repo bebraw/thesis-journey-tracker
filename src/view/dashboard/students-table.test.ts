@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderStudentsTable } from "./students-table.htmlisp";
 import { getDefaultDashboardLanes } from "../../dashboard-lanes";
 import type { Student } from "../../students/store";
@@ -34,6 +34,29 @@ const DEFAULT_FILTERS: DashboardFilters = {
 };
 
 describe("students table", () => {
+  it("distinguishes near meetings from later scheduled meetings", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-06T12:00:00.000Z"));
+    try {
+      const html = renderStudentsTable(
+        [
+          buildStudent({ id: 1, name: "Soon", nextMeetingAt: "2026-11-08T12:00:00.000Z" }),
+          buildStudent({ id: 2, name: "Later", nextMeetingAt: "2026-11-16T12:00:00.000Z" }),
+        ],
+        null,
+        DEFAULT_FILTERS,
+        getDefaultDashboardLanes(),
+        "", "", "", "",
+      );
+
+      expect(html).toMatch(/data-student-id="1"[^>]*data-status-id="within_3_days"[^>]*>[\s\S]*?Meeting soon/);
+      expect(html).toMatch(/data-student-id="2"[^>]*data-status-id="scheduled"[^>]*>[\s\S]*?Scheduled/);
+      expect(html).toContain('value="within_3_days">Meeting within 3 days</option>');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("renders the selected row with the same highlight classes used by client-side selection", () => {
     const html = renderStudentsTable(
       [buildStudent({ id: 13, name: "Selected Student" }), buildStudent({ id: 14, name: "Other Student", currentPhase: "editing" })],

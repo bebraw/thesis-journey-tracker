@@ -175,7 +175,7 @@ function prepareStudentRows(
           ? "Overdue"
           : statusId === "not_booked"
             ? "Not booked"
-            : statusId === "within_2_weeks"
+            : statusId === "within_3_days"
               ? "Meeting soon"
               : "Scheduled",
     };
@@ -220,7 +220,7 @@ export function renderStudentsTable(
       { value: "", label: "All statuses" },
       { value: "not_booked", label: "Not booked" },
       { value: "overdue", label: "Overdue" },
-      { value: "within_2_weeks", label: "Meeting soon" },
+      { value: "within_3_days", label: "Meeting within 3 days" },
       { value: "scheduled", label: "Scheduled" },
       { value: "past_target", label: "Past MSc target" },
     ],

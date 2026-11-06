@@ -56,7 +56,7 @@ The project is intentionally small and server-rendered, with a focused workflow 
 - Follow upcoming meetings from the dashboard, and clear a cancelled meeting until a new time is booked.
 - Set internal weekly or multiweek meeting schedules that keep the agreed local time across clock changes and advance when a meeting note is saved.
 - Connect Codex through **Agent access** to read or update students, notes, and schedules using MCP. Professor accounts have readonly tools; each account creates and revokes its own tokens in the UI. See [the agent setup guide](./docs/agent-access.md).
-- Search students and filter by degree, phase, meeting status, or unfinished MSc theses past their target.
+- Search students and filter by degree, phase, meeting status, or unfinished MSc theses past their target. Meetings within the next 72 hours are marked as soon; later meetings are scheduled.
 - Use the Gantt view to estimate advisor workload visually from student start dates and degree-based thesis duration assumptions.
 - Archive completed or inactive students without deleting their supervision history, review them from the dashboard's `Archived` scope, and restore them when supervision resumes.
 - Export or restore the dataset as JSON backups, and download an email-ready Markdown status report.

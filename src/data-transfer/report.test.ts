@@ -21,6 +21,22 @@ function buildStudent(overrides: Partial<Student> = {}): Student {
 }
 
 describe("professor status report", () => {
+  it("keeps the two-week meeting count independent of the dashboard's soon status", () => {
+    const now = new Date("2026-11-06T12:00:00.000Z");
+    const report = createProfessorStatusReport(
+      [
+        { student: buildStudent({ name: "Soon", nextMeetingAt: "2026-11-08T12:00:00.000Z" }), latestLog: null },
+        { student: buildStudent({ name: "Later", nextMeetingAt: "2026-11-16T12:00:00.000Z" }), latestLog: null },
+        { student: buildStudent({ name: "Beyond", nextMeetingAt: "2026-11-21T12:00:00.000Z" }), latestLog: null },
+      ],
+      now,
+    );
+
+    expect(report).toContain("- Meetings coming up within 2 weeks: 2");
+    expect(report).toContain("Soon (MSc); phase Researching; target 2026-07-01; meeting meeting soon");
+    expect(report).toContain("Later (MSc); phase Researching; target 2026-07-01; meeting scheduled");
+  });
+
   it("reports non-MSc students as having no derived target date", () => {
     const report = createProfessorStatusReport(
       [

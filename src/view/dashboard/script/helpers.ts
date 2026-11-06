@@ -13,7 +13,7 @@ function toTimestamp(value) {
 function statusPriority(statusId) {
   if (statusId === "overdue") return 0;
   if (statusId === "not_booked") return 1;
-  if (statusId === "within_2_weeks") return 2;
+  if (statusId === "within_3_days") return 2;
   if (statusId === "scheduled") return 3;
   return 4;
 }
@@ -85,7 +85,10 @@ function applyFiltersFromLocation() {
   if (searchInput) searchInput.value = url.searchParams.get("search") || "";
   if (degreeFilter) degreeFilter.value = url.searchParams.get("degree") || "";
   if (phaseFilter) phaseFilter.value = url.searchParams.get("phase") || "";
-  if (statusFilter) statusFilter.value = url.searchParams.get("status") || "";
+  if (statusFilter) {
+    var status = url.searchParams.get("status") || "";
+    statusFilter.value = status === "within_2_weeks" ? "within_3_days" : status;
+  }
 }
 
 function getWorkspaceViewFromLocation() {

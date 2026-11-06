@@ -1,7 +1,7 @@
 import type { DegreeId, Student } from "./store";
 import type { DegreeDefinition, PhaseDefinition } from "./reference-data";
 
-const TWO_WEEKS_IN_MS = 14 * 24 * 60 * 60 * 1000;
+const THREE_DAYS_IN_MS = 3 * 24 * 60 * 60 * 1000;
 const ASSUMED_PROJECT_DURATION_MONTHS: Record<DegreeId, number> = {
   bsc: 4,
   msc: 6,
@@ -70,8 +70,8 @@ export function meetingStatusId(student: Pick<Student, "startDate" | "nextMeetin
   if (nextMeeting < now) {
     return startsInFuture(student, now) ? "not_booked" : "overdue";
   }
-  if (nextMeeting.getTime() - now.getTime() <= TWO_WEEKS_IN_MS) {
-    return "within_2_weeks";
+  if (nextMeeting.getTime() - now.getTime() <= THREE_DAYS_IN_MS) {
+    return "within_3_days";
   }
   return "scheduled";
 }
@@ -82,7 +82,7 @@ export function meetingStatusText(student: Pick<Student, "startDate" | "nextMeet
     ? "Overdue"
     : statusId === "not_booked"
       ? "Not booked"
-      : statusId === "within_2_weeks"
+      : statusId === "within_3_days"
         ? "Meeting soon"
         : "Scheduled";
 }

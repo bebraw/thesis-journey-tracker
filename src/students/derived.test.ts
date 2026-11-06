@@ -61,10 +61,21 @@ describe("student meeting status rules", () => {
     const now = new Date("2026-03-31T10:00:00.000Z");
     const student = buildStudent({
       startDate: "2026-04-10",
-      nextMeetingAt: "2026-04-05T09:00:00.000Z",
+      nextMeetingAt: "2026-04-03T09:00:00.000Z",
     });
 
-    expect(meetingStatusId(student, now)).toBe("within_2_weeks");
+    expect(meetingStatusId(student, now)).toBe("within_3_days");
     expect(meetingStatusText(student, now)).toBe("Meeting soon");
+  });
+
+  it("marks meetings as soon for the next 72 hours, and scheduled beyond that", () => {
+    const now = new Date("2026-11-06T12:00:00.000Z");
+    const atBoundary = buildStudent({ nextMeetingAt: "2026-11-09T12:00:00.000Z" });
+    const afterBoundary = buildStudent({ nextMeetingAt: "2026-11-09T12:00:00.001Z" });
+
+    expect(meetingStatusId(atBoundary, now)).toBe("within_3_days");
+    expect(meetingStatusText(atBoundary, now)).toBe("Meeting soon");
+    expect(meetingStatusId(afterBoundary, now)).toBe("scheduled");
+    expect(meetingStatusText(afterBoundary, now)).toBe("Scheduled");
   });
 });

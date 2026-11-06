@@ -87,7 +87,7 @@ export const MEETING_STATUS_BADGE_CLASS_MAP = {
   not_booked: "bg-app-line px-badge-pill-x py-badge-pill-y text-app-text-soft dark:bg-app-line-dark dark:text-app-text-soft-dark",
   overdue:
     "bg-app-danger-soft px-badge-pill-x py-badge-pill-y text-app-danger-text dark:bg-app-danger-soft-dark/40 dark:text-app-danger-text-dark",
-  within_2_weeks:
+  within_3_days:
     "bg-app-warning px-badge-pill-x py-badge-pill-y text-app-warning-text dark:bg-app-warning-soft-dark/40 dark:text-app-warning-text-dark",
   scheduled:
     "bg-app-success-soft px-badge-pill-x py-badge-pill-y text-app-success-text dark:bg-app-success-soft-dark/40 dark:text-app-success-text-dark",

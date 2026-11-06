@@ -17,7 +17,7 @@ export function getDashboardFilters(searchParams: URLSearchParams): DashboardFil
     search: (searchParams.get("search") || "").trim(),
     degree: searchParams.get("degree") || "",
     phase: searchParams.get("phase") || "",
-    status: searchParams.get("status") || "",
+    status: searchParams.get("status") === "within_2_weeks" ? "within_3_days" : searchParams.get("status") || "",
     viewMode:
       scope === "archived"
         ? "list"

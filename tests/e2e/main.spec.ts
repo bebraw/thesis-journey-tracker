@@ -108,6 +108,16 @@ test.describe("dashboard e2e", () => {
     await expect(page.locator("[data-student-row]").first()).toContainText("Noah Virtanen");
   });
 
+  test("keeps old meeting-soon filter links working", async ({ page }) => {
+    await login(page);
+    await page.goto("/?status=within_2_weeks");
+    await ensureFiltersOpen(page);
+    await expect(page.locator("#statusFilter")).toHaveValue("within_3_days");
+    await expect(page.locator("#activeDashboardFilters")).toContainText("Meeting within 3 days");
+    await page.getByRole("button", { name: "Phases" }).click();
+    await expect(page.locator("#statusFilter")).toHaveValue("within_3_days");
+  });
+
   test("persists the selected color theme across reloads", async ({ page }) => {
     await login(page);
     const root = page.locator("html");

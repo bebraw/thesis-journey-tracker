@@ -10,7 +10,11 @@ export function buildProfessorReportFilename(timestamp = new Date()): string {
 export function createProfessorStatusReport(studentBundles: StatusReportStudentBundle[], generatedAt = new Date()): string {
   const today = generatedAt.toISOString().slice(0, 10);
   const overdueMeetings = studentBundles.filter(({ student }) => meetingStatusText(student, generatedAt) === "Overdue");
-  const upcomingSoon = studentBundles.filter(({ student }) => meetingStatusText(student, generatedAt) === "Meeting soon");
+  const upcomingWithinTwoWeeks = studentBundles.filter(({ student }) => {
+    if (!student.nextMeetingAt) return false;
+    const delta = new Date(student.nextMeetingAt).getTime() - generatedAt.getTime();
+    return delta >= 0 && delta <= 14 * 24 * 60 * 60 * 1000;
+  });
   const noMeetingBooked = studentBundles.filter(({ student }) => meetingStatusText(student, generatedAt) === "Not booked");
   const pastTarget = studentBundles.filter(({ student }) => {
     const targetSubmissionDate = getTargetSubmissionDate(student);
@@ -79,7 +83,7 @@ export function createProfessorStatusReport(studentBundles: StatusReportStudentB
     `- Submitted: ${studentBundles.filter(({ student }) => student.currentPhase === "submitted").length}`,
     `- Editing: ${studentBundles.filter(({ student }) => student.currentPhase === "editing").length}`,
     `- Overdue meetings: ${overdueMeetings.length}`,
-    `- Meetings coming up within 2 weeks: ${upcomingSoon.length}`,
+    `- Meetings coming up within 2 weeks: ${upcomingWithinTwoWeeks.length}`,
     `- No meeting booked: ${noMeetingBooked.length}`,
     `- Past target date and not yet submitted: ${pastTarget.length}`,
     "",
