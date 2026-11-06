@@ -292,14 +292,32 @@ test.describe("dashboard e2e", () => {
     await expect(panel.getByLabel("Discussion", { exact: true })).toHaveValue("Mia draft discussion");
     await expect(panel.getByLabel("Student notes (optional)")).toHaveValue("Unsaved student details");
     await page.unroute("**/actions/add-log/*");
-    const nextMeeting = await page.locator('[data-student-row][data-student-id="' + miaId + '"]').getAttribute("data-next-meeting-date");
+    await expect(panel.getByLabel("Follow-up")).toHaveValue("next-week");
+    const meetingTime = await panel.getByLabel("Meeting time", { exact: true }).inputValue();
+    const nextMeetingDate = new Date(`${meetingTime.slice(0, 10)}T12:00:00Z`);
+    nextMeetingDate.setUTCDate(nextMeetingDate.getUTCDate() + 7);
     await panel.getByRole("button", { name: "Save note" }).click();
     await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Log saved");
     await expect(panel.getByLabel("Discussion", { exact: true })).toHaveValue("");
-    await expect(page.locator('[data-student-row][data-student-id="' + miaId + '"]')).toHaveAttribute(
-      "data-next-meeting-date",
-      nextMeeting!,
-    );
+    await expect
+      .poll(async () => {
+        const nextMeeting = await page
+          .locator('[data-student-row][data-student-id="' + miaId + '"]')
+          .getAttribute("data-next-meeting-date");
+        if (!nextMeeting) return null;
+        return new Intl.DateTimeFormat("sv-SE", {
+          timeZone: "Europe/Helsinki",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hourCycle: "h23",
+        })
+          .format(new Date(nextMeeting))
+          .replace(" ", "T");
+      })
+      .toBe(`${nextMeetingDate.toISOString().slice(0, 10)}${meetingTime.slice(10)}`);
     await openSelectedStudentTool(page, "Edit");
     await expect(panel.getByLabel("Student notes (optional)")).toHaveValue("Unsaved student details");
     await selectStudentFromTable(page, "Noah Virtanen");
@@ -308,7 +326,8 @@ test.describe("dashboard e2e", () => {
       expect(dialog.message()).toContain("discard unsaved changes");
       await dialog.dismiss();
     });
-    await page.getByRole("link", { name: "Schedule", exact: true }).click();
+    await openMoreMenu(page);
+    await page.getByRole("link", { name: "Agent access", exact: true }).click();
     await expect(page).toHaveURL(/selected=/);
   });
 
@@ -394,17 +413,6 @@ test.describe("dashboard e2e", () => {
     await expect.poll(() => new URL(page.url()).searchParams.get("status")).toBeNull();
     await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBeNull();
     await expect(page.locator("#activeDashboardFilters")).toBeHidden();
-  });
-
-  test("auto-updates the schedule when choosing a student", async ({ page }) => {
-    await login(page);
-
-    await page.getByRole("link", { name: "Schedule", exact: true }).click();
-    await expect(page).toHaveURL(/\/schedule$/);
-
-    await page.getByLabel("Student").selectOption({ index: 1 });
-
-    await expect.poll(() => new URL(page.url()).searchParams.get("student")).not.toBeNull();
   });
 
   test("persists table sorting in the URL across reloads and selection", async ({ page }) => {

@@ -36,7 +36,7 @@ The stored schedule anchors the weekday and local time, so Friday 14:00 in `Euro
 
 If an occurrence falls in a skipped hour when daylight saving starts, that occurrence is skipped instead of moving the agreed local time. A first meeting in such a skipped hour is rejected.
 
-`set_next_meeting` can override one occurrence while retaining the repeating anchor. A null next meeting stops the schedule. `set_meeting_schedule` replaces the anchor and sets the first occurrence as the next meeting. Repeating schedules survive student export, restore, and automated backups. They do not create Google Calendar entries.
+`set_next_meeting` can override one occurrence while retaining the repeating anchor. A null next meeting stops the schedule. `set_meeting_schedule` replaces the anchor and sets the first occurrence as the next meeting. Repeating schedules survive student export, restore, and automated backups. Calendar availability and invitations are handled outside this app. An agent with separate calendar access can record the agreed time here using `set_next_meeting`.
 
 Example request to Codex:
 

@@ -15,6 +15,33 @@ function applyAllMigrations(db: DatabaseSync) {
 }
 
 describe("schema migrations", () => {
+  it("removes retired Google Calendar settings while preserving dashboard settings and meetings", () => {
+    const db = new DatabaseSync(":memory:");
+    const cleanupMigration = "0006_remove_google_calendar_settings.sql";
+    for (const name of MIGRATION_FILES.filter((name) => name < cleanupMigration)) {
+      db.exec(readFileSync(join(MIGRATIONS_DIR, name), "utf8"));
+    }
+    db.exec(`
+      INSERT INTO app_secrets (secret_key, encrypted_value, updated_at) VALUES
+        ('google_calendar_config', 'old-calendar-credentials', '2026-10-09T09:00:00.000Z'),
+        ('dashboard_lane_config', 'custom-lanes', '2026-10-09T09:00:00.000Z');
+      INSERT INTO students (name, current_phase, next_meeting_at, meeting_schedule) VALUES
+        ('Keep this student', 'researching', '2026-10-16T11:00:00.000Z', '{"startLocal":"2026-10-16T14:00","timeZone":"Europe/Helsinki","intervalWeeks":1}');
+    `);
+
+    db.exec(readFileSync(join(MIGRATIONS_DIR, cleanupMigration), "utf8"));
+
+    expect(db.prepare("SELECT secret_key, encrypted_value FROM app_secrets").all()).toEqual([
+      { secret_key: "dashboard_lane_config", encrypted_value: "custom-lanes" },
+    ]);
+    expect(db.prepare("SELECT name, next_meeting_at, meeting_schedule FROM students").get()).toEqual({
+      name: "Keep this student",
+      next_meeting_at: "2026-10-16T11:00:00.000Z",
+      meeting_schedule: '{"startLocal":"2026-10-16T14:00","timeZone":"Europe/Helsinki","intervalWeeks":1}',
+    });
+    db.close();
+  });
+
   it("creates the current application schema from scratch", () => {
     const db = new DatabaseSync(":memory:");
 
@@ -116,7 +143,7 @@ describe("schema migrations", () => {
         encrypted_value,
         updated_at
       ) VALUES (
-        'calendar',
+        'dashboard_lane_config',
         'ciphertext',
         '2026-03-20T09:00:00.000Z'
       );

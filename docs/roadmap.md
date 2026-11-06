@@ -4,8 +4,7 @@ This note tracks the next product bets for Thesis Journey Tracker. Keep it focus
 
 ## Current Priority Items
 
-- Validate the implemented meeting-note workflow in regular use and measure task times; the remaining UX follow-up is direct navigation to calendar setup, lane settings, and backup tools. See [the UX review](./ux-review.md).
-- Add explicit deadlines and bounded response reads to the Google OAuth token exchange and Calendar REST requests in [`src/calendar/google.ts`](../src/calendar/google.ts). The iCal downloader already enforces both limits.
+- Validate the implemented meeting-note workflow in regular use and measure task times; the remaining UX follow-up is direct navigation to lane settings and backup tools. See [the UX review](./ux-review.md).
 - Build student risk flags so the dashboard can surface students who need advisor attention instead of only showing the current cohort state.
 - Validate [`src/ui/foundation/`](../src/ui/foundation) against a second real consumer before moving it into a separate repository or package. The in-repo foundation/app split is now in place, so the remaining gap is proving the API outside this app.
 

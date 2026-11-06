@@ -1,6 +1,6 @@
-import { DEFAULT_SCHEDULE_TIMEZONE } from "./calendar/scheduling";
+import { DEFAULT_TIME_ZONE } from "./date-time";
 
-export function formatDateTime(isoValue: string, timeZone = DEFAULT_SCHEDULE_TIMEZONE): string {
+export function formatDateTime(isoValue: string, timeZone = DEFAULT_TIME_ZONE): string {
   const date = new Date(isoValue);
   if (Number.isNaN(date.getTime())) {
     return isoValue;
@@ -16,7 +16,7 @@ export function formatDateTime(isoValue: string, timeZone = DEFAULT_SCHEDULE_TIM
   }).format(date);
 }
 
-export function formatCompactDateTime(isoValue: string, timeZone = DEFAULT_SCHEDULE_TIMEZONE): string {
+export function formatCompactDateTime(isoValue: string, timeZone = DEFAULT_TIME_ZONE): string {
   const date = new Date(isoValue);
   if (Number.isNaN(date.getTime())) return isoValue;
   const year = new Intl.DateTimeFormat("en-GB", { year: "numeric", timeZone });
@@ -30,7 +30,7 @@ export function formatCompactDateTime(isoValue: string, timeZone = DEFAULT_SCHED
   }).format(date);
 }
 
-export function toDateTimeLocalInput(isoValue: string | null, timeZone = DEFAULT_SCHEDULE_TIMEZONE): string {
+export function toDateTimeLocalInput(isoValue: string | null, timeZone = DEFAULT_TIME_ZONE): string {
   if (!isoValue) {
     return "";
   }

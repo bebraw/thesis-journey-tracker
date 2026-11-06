@@ -1,6 +1,6 @@
 import type { SessionUser } from "../../auth";
 import type { Env } from "../../app-env";
-import { resolveGoogleCalendarSourceForApp, resolveScheduleTimeZone } from "../../calendar";
+import { DEFAULT_TIME_ZONE } from "../../date-time";
 import { resolveDashboardLanesForApp } from "../../dashboard-lanes";
 import { htmlFragmentResponse, htmlResponse } from "../../http/response";
 import { isPastTargetSubmissionDate, meetingStatusId } from "../../students";
@@ -10,14 +10,13 @@ import { getDashboardFilters } from "./filters";
 
 export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser, showStyleGuide: boolean): Promise<Response> {
   const filters = getDashboardFilters(url.searchParams);
-  const [activeStudents, archivedStudents, calendarSource, dashboardLanes] = await Promise.all([
+  const [activeStudents, archivedStudents, dashboardLanes] = await Promise.all([
     listStudents(env.DB),
     listStudents(env.DB, { onlyArchived: true }),
-    resolveGoogleCalendarSourceForApp(env),
     resolveDashboardLanesForApp(env),
   ]);
   const students = filters.scope === "archived" ? archivedStudents : activeStudents;
-  const timeZone = resolveScheduleTimeZone(calendarSource?.timeZone);
+  const timeZone = DEFAULT_TIME_ZONE;
 
   const selectedIdParam = url.searchParams.get("selected");
   const parsedSelectedId = selectedIdParam ? Number.parseInt(selectedIdParam, 10) : 0;
@@ -81,9 +80,8 @@ export async function renderAddStudent(env: Env, url: URL, sessionUser: SessionU
 
 export async function renderStudentPanelPartial(env: Env, url: URL, studentId: number, sessionUser: SessionUser): Promise<Response> {
   const filters = getDashboardFilters(url.searchParams);
-  const [selectedStudent, calendarSource, dashboardLanes] = await Promise.all([
+  const [selectedStudent, dashboardLanes] = await Promise.all([
     getStudentById(env.DB, studentId, filters.scope === "archived" ? { onlyArchived: true } : {}),
-    resolveGoogleCalendarSourceForApp(env),
     resolveDashboardLanesForApp(env),
   ]);
 
@@ -98,7 +96,7 @@ export async function renderStudentPanelPartial(env: Env, url: URL, studentId: n
       canEdit: sessionUser.role !== "readonly",
       dashboardLanes,
       filters,
-      timeZone: resolveScheduleTimeZone(calendarSource?.timeZone),
+      timeZone: DEFAULT_TIME_ZONE,
     }),
   );
 }

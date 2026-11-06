@@ -121,7 +121,7 @@ export function renderSelectedStudentPanel(
         <fragment &children="agreedPlan"></fragment>
         <label class="block text-sm">Follow-up
           <select name="followUpAction" &class="selectClass">
-            <option value="keep" &children="keepLabel"></option>
+            <option &value="followUpValue" &children="followUpLabel"></option>
             <option value="clear">Not booked</option>
             <option value="set">Set new meeting</option>
           </select>
@@ -135,7 +135,8 @@ export function renderSelectedStudentPanel(
       action: `/actions/add-log/${student.id}`,
       hiddenReturn: raw(hiddenReturn),
       selectClass: `mt-1 ${FIELD_CONTROL}`,
-      keepLabel: student.meetingSchedule ? "Continue repeating schedule" : "Keep current meeting",
+      followUpValue: student.meetingSchedule ? "keep" : "next-week",
+      followUpLabel: student.meetingSchedule ? "Continue repeating schedule" : "Same time next week",
       happenedAt: raw(
         renderInputField({
           label: "Meeting time",

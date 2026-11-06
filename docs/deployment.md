@@ -35,11 +35,11 @@ npx wrangler secret put SESSION_SECRET
 npx wrangler secret put APP_ENCRYPTION_SECRET
 ```
 
-Generate two independent values with `openssl rand -base64 32`; never reuse one value for both bindings. Both secrets are required even when Google Calendar integration is not configured.
+Generate two independent values with `openssl rand -base64 32`; never reuse one value for both bindings. Both secrets are required; the application key encrypts custom dashboard lane settings.
 
 [`wrangler.toml`](../wrangler.toml) declares both bindings as required. Wrangler refuses to deploy when either production secret is missing, while the Worker still validates their strength and independence at runtime.
 
-If an existing deployment previously omitted `APP_ENCRYPTION_SECRET`, its stored calendar and custom-lane settings were encrypted with the old session-key fallback. Record the configuration before upgrading, deploy with a new independent application key, clear the unreadable stored settings, and re-enter them. Rotate the Google refresh token and secret iCal URL during this process.
+If an existing deployment previously omitted `APP_ENCRYPTION_SECRET`, its stored custom-lane settings were encrypted with the old session-key fallback. Record the configuration before upgrading, deploy with a new independent application key, clear the unreadable stored settings, and re-enter them.
 
 Other plain Worker vars can still go in `wrangler.toml`:
 
@@ -56,6 +56,8 @@ Leave `REPLACE_IMPORT_ENABLED` unset for the safer default where append imports 
 ```bash
 npm run db:migrate:remote
 ```
+
+Migration `0006_remove_google_calendar_settings.sql` removes the retired Google Calendar credentials and iCal URL from D1. It preserves custom lane settings, student records, and internal meeting schedules.
 
 4. Create at least one remote login account in D1:
 
@@ -136,8 +138,8 @@ For more detailed backup notes, see [backups.md](./backups.md).
 - Successful connected Git builds from `main` automatically promote their version to production. GitHub Actions runs independently and does not gate that promotion.
 - If you are upgrading an existing instance, make sure the latest migrations have been applied before or during deployment.
 - Automated backups are stored under the `BACKUP_PREFIX` path in the configured R2 bucket.
-- Automatic Worker traces are disabled because an outbound iCal request contains a bearer-style secret in its URL. Do not enable automatic fetch tracing without a design that redacts that URL before telemetry is stored.
-- Application failures are logged as structured `application_error` objects with stable event names and normalized error fields. Request bodies, cookies, query strings, calendar URLs, and credentials must not be added as log context.
+- Automatic Worker traces are disabled; application failures use structured logs.
+- Application failures are logged as structured `application_error` objects with stable event names and normalized error fields. Request bodies, cookies, query strings, and credentials must not be added as log context.
 - Unhandled production errors return a generic message plus an `X-Incident-ID` response header. Ask users to include the displayed reference when reporting a failure, then filter Workers Logs by `incident_id`.
 - Public versioned and aliased Preview URLs are disabled. The stable `workers.dev` endpoint remains a separate production entry point until a custom route is configured and `workers_dev = false` is committed.
 - `npm run db:insights` is useful after deployment for checking whether the dashboard queries stay within expected D1 read and latency budgets.
@@ -154,9 +156,6 @@ For more detailed backup notes, see [backups.md](./backups.md).
 - Every HTTP response receives a restrictive Content Security Policy and browser hardening headers at the Worker boundary. Inline scripts and HTML event handlers are disallowed; inline style attributes remain allowed because the Gantt layout calculates positions and widths at runtime.
 - Non-local HTTP requests receive a same-URL `308` redirect before origin validation, D1 access, or authentication work. Local development hosts may remain on HTTP. HTTPS responses enable HTTP Strict Transport Security for one year; redirects and local HTTP responses deliberately omit HSTS.
 - Every state-changing HTTP request must carry an `Origin` header that exactly matches the request URL's origin. Browsers add this automatically for the app's forms and fetch requests; maintenance scripts must supply it explicitly.
-- Google Calendar invitation defaults include only attendee-facing student and thesis-topic text. Internal student notes are excluded unless an editor deliberately writes equivalent text into the invitation description.
-- Existing calendar entries are exposed to app users only as `Busy` plus their time. Google API availability reads request only event IDs and start/end values; iCal event summaries, descriptions, attendees, and links never enter the schedule view data. Prefer a dedicated shared or secondary calendar, and use a dedicated Google account when the OAuth credential must not have access to unrelated calendars.
 - Downloaded and automated Markdown reports escape student-supplied text and collapse embedded line breaks so imported content cannot inject headings, links, remote images, or raw HTML.
 - The current model is suitable for private personal or small-team use.
 - Distributed or rotating-source login traffic can still consume D1 and password-verification work even though the in-app throttles limit ordinary brute force and prevent forced account lockout. This availability and cost exposure is an accepted residual for the current private deployment, not a known authentication bypass. Reassess Cloudflare Access, Turnstile, or edge WAF/rate limiting if exposure or traffic grows.
-- Google OAuth token and Calendar REST responses still need explicit request deadlines and bounded response reads. The iCal download path already has both protections; the remaining implementation work is tracked in the roadmap.

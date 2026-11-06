@@ -1,5 +1,6 @@
 import type { Env } from "../../app-env";
-import { resolveGoogleCalendarSourceForApp, resolveScheduleTimeZone } from "../../calendar";
+import { addDaysToDateString, DEFAULT_TIME_ZONE, localDateTimeToUtcIso } from "../../date-time";
+import { toDateTimeLocalInput } from "../../formatting";
 import { normalizeDate, normalizeDateTime, normalizeString } from "../../forms/normalize";
 import { readFormData } from "../../http/request-body";
 import { redirect } from "../../http/response";
@@ -19,7 +20,7 @@ import { appendDashboardMessage, getDashboardReturnPath } from "./filters";
 
 export async function handleAddStudent(request: Request, env: Env): Promise<Response> {
   const formData = await readFormData(request);
-  const timeZone = await resolveDashboardTimeZone(env);
+  const timeZone = DEFAULT_TIME_ZONE;
   const studentInput = parseStudentFormSubmission(formData, { mode: "create", timeZone });
   if (!studentInput) {
     return redirect("/students/new?error=Invalid+student+input");
@@ -42,7 +43,7 @@ export async function handleUpdateStudent(request: Request, env: Env, studentId:
   }
 
   const formData = await readFormData(request);
-  const timeZone = await resolveDashboardTimeZone(env);
+  const timeZone = DEFAULT_TIME_ZONE;
   const studentInput = parseStudentFormSubmission(formData, {
     mode: "update",
     existingStudent,
@@ -75,7 +76,7 @@ export async function handleUpdateStudent(request: Request, env: Env, studentId:
 export async function handleAddLog(request: Request, env: Env, studentId: number): Promise<Response> {
   const returnPath = await getDashboardReturnPath(request, { selectedId: studentId });
   const formData = await readFormData(request);
-  const timeZone = await resolveDashboardTimeZone(env);
+  const timeZone = DEFAULT_TIME_ZONE;
 
   const happenedAt = normalizeDateTime(formData.get("happenedAt"), true, timeZone);
   const discussed = normalizeString(formData.get("discussed"));
@@ -90,6 +91,7 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
   const validFollowUp =
     followUpAction === null ||
     followUpAction === "keep" ||
+    (followUpAction === "next-week" && Boolean(happenedAt)) ||
     followUpAction === "clear" ||
     (followUpAction === "set" && Boolean(nextMeetingAt));
   if (
@@ -108,6 +110,16 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
     return redirect(appendDashboardMessage(returnPath, { error: "Student not found" }));
   }
 
+  let followUpMeeting = nextMeetingAt;
+  if (followUpAction === "next-week" && happenedAt) {
+    const local = toDateTimeLocalInput(happenedAt, timeZone);
+    const nextLocal = `${addDaysToDateString(local.slice(0, 10), 7)}${local.slice(10)}`;
+    followUpMeeting = localDateTimeToUtcIso(nextLocal, timeZone);
+    if (toDateTimeLocalInput(followUpMeeting, timeZone) !== nextLocal) {
+      return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Next week's local time does not exist; choose another meeting time" }));
+    }
+  }
+
   try {
     const logInput = {
       studentId,
@@ -122,7 +134,7 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
       student,
       logInput,
       followUpAction === "keep" ? "keep" : followUpAction === "clear" ? "clear" : "set",
-      nextMeetingAt,
+      followUpMeeting,
     );
   } catch (error) {
     logError("meeting_log.create_failed", error);
@@ -162,9 +174,4 @@ export async function handleRestoreStudent(request: Request, env: Env, studentId
   }
 
   return redirect("/?notice=Student+restored");
-}
-
-async function resolveDashboardTimeZone(env: Env): Promise<string> {
-  const calendarSource = await resolveGoogleCalendarSourceForApp(env);
-  return resolveScheduleTimeZone(calendarSource?.timeZone);
 }

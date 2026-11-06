@@ -1,4 +1,4 @@
-import { addDaysToDateString, localDateTimeToUtcIso } from "../calendar/scheduling";
+import { addDaysToDateString, localDateTimeToUtcIso } from "../date-time";
 import { toDateTimeLocalInput } from "../formatting";
 
 export interface MeetingSchedule {

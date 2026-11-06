@@ -17,30 +17,29 @@ This document gives a technical overview of how the project is put together.
 - [`src/routes/`](../src/routes): page and form-action handlers grouped by feature area
 - [`src/agent/`](../src/agent): bearer-token authentication, stateless MCP transport, and role-checked student tools; [`src/routes/agent-access.ts`](../src/routes/agent-access.ts) handles UI token setup
 - [`src/auth/`](../src/auth): reusable authentication primitives for password hashing, session cookies/tokens, auth bootstrap, and login policy
-- [`src/calendar/`](../src/calendar): shared calendar feature code for Google API access, encrypted settings, iCal parsing, and schedule-building helpers
+- [`src/app-settings/store.ts`](../src/app-settings/store.ts): shared D1 persistence for encrypted application settings
+- [`src/date-time.ts`](../src/date-time.ts): shared app timezone and date arithmetic used by meeting forms and repeating schedules
 - [`src/data-transfer/`](../src/data-transfer): shared export/import/report generation used by data tools and automated backups
 - [`src/students/`](../src/students): shared student-domain code for forms, degree/phase reference data, and derived progress/status helpers
-- [`src/auth/store.ts`](../src/auth/store.ts), [`src/calendar/store.ts`](../src/calendar/store.ts), and [`src/students/store.ts`](../src/students/store.ts): feature-owned D1 persistence modules
+- [`src/auth/store.ts`](../src/auth/store.ts), [`src/app-settings/store.ts`](../src/app-settings/store.ts), and [`src/students/store.ts`](../src/students/store.ts): feature-owned D1 persistence modules
 - [`src/db-core.ts`](../src/db-core.ts): shared D1 interfaces and tiny persistence helpers used by the feature-owned stores
 - [`src/http/`](../src/http): same-origin enforcement, bounded request parsing, and shared response, redirect, and browser-security-header helpers
 - [`src/forms/normalize.ts`](../src/forms/normalize.ts): shared form and payload normalization helpers
 - [`src/formatting.ts`](../src/formatting.ts): shared escaping and date-formatting helpers for views and HTMLisp rendering
 - [`src/routes/dashboard/`](../src/routes/dashboard): the dashboard slice, split into render handlers, actions, and filter/path helpers
-- [`src/routes/schedule/`](../src/routes/schedule): the scheduling slice, split into render handlers, actions, and schedule path helpers
 - [`src/routes/data-tools/`](../src/routes/data-tools): the data-tools slice, including route handlers and co-located tests
 - [`src/backup/`](../src/backup): scheduled R2 backup generation, storage helpers, and co-located tests
 - [`src/htmlisp/`](../src/htmlisp): shared HTMLisp rendering, types, and attribute helper utilities
 - [`src/view/`](../src/view): page and partial rendering helpers
 - [`src/view/dashboard/`](../src/view/dashboard): dashboard-specific sections and interactions
-- [`src/view/schedule/`](../src/view/schedule): scheduling page composition for controls, availability grid, and invitation state
 - [`src/view/students/`](../src/view/students): shared student add/edit/panel view helpers
-- [`src/view/data-tools/`](../src/view/data-tools): data-tools page composition for backup import/export and calendar settings
+- [`src/view/data-tools/`](../src/view/data-tools): data-tools page composition for backup import/export and dashboard lane settings
 - [`src/ui/`](../src/ui): compatibility barrel plus shared UI tokens and helper utilities
 - [`src/ui/foundation/`](../src/ui/foundation): reusable button, card, disclosure, metadata, toggle, and field primitive implementations intended to be extractable across projects
 - [`src/ui/app/`](../src/ui/app): app-shaped UI implementations and exports such as page shells, badges, status treatments, and other Thesis Journey Tracker-specific conventions
 - [`migrations/`](../migrations): schema changes for D1
 - [`tests/`](../tests): end-to-end tests plus shared test helpers and broader integration/security coverage
-- [`src/routes/*.test.ts`](../src/routes): co-located Vitest coverage for route modules such as auth, scheduling, and data tools
+- [`src/routes/*.test.ts`](../src/routes): co-located Vitest coverage for route modules such as auth and data tools
 
 ## Architecture Diagram
 
@@ -50,7 +49,7 @@ graph TD
     Worker[src/worker.ts<br/>Entry, auth, route dispatch]
     Routes[src/routes/<br/>Page and action handlers]
     Auth[src/auth/<br/>Passwords, sessions, bootstrap, login policy]
-    Calendar[src/calendar/<br/>Google API, settings, iCal, schedule helpers]
+    AppSettings[src/app-settings/<br/>Encrypted settings persistence]
     DataTransfer[src/data-transfer/<br/>Import, export, reports]
     Students[src/students/<br/>Forms, reference data, status helpers]
     Stores[src/*/store.ts<br/>Feature-owned D1 access]
@@ -77,13 +76,13 @@ graph TD
     Routes --> Dashboard
     Routes --> UI
     Routes --> Auth
-    Routes --> Calendar
+    Routes --> AppSettings
     Routes --> DataTransfer
     Routes --> Students
     Routes --> Http
     Routes --> Forms
     Auth --> Stores
-    Calendar --> Stores
+    AppSettings --> DBCore
     Students --> Stores
     Stores --> DBCore
     Views --> HTMLisp
@@ -101,7 +100,7 @@ graph TD
     Tests --> D1
 ```
 
-The Worker is now intentionally thin: it handles request/session setup, authentication, route dispatch, and final response hardening. Feature-specific page rendering and form-action behavior live under [`src/routes/`](../src/routes), where handlers talk to D1 through feature-owned store modules, render server-side HTML through the shared view/UI layers, and rely on shared feature modules such as [`src/auth/`](../src/auth) for reusable authentication concerns, [`src/calendar/`](../src/calendar) for Google Calendar access and schedule-building logic, [`src/students/`](../src/students) for shared student forms and status rules, and [`src/data-transfer/`](../src/data-transfer) for import/export/report generation shared with automated backups. Shared D1 interfaces now live in [`src/db-core.ts`](../src/db-core.ts), while focused support code is split between [`src/http/`](../src/http), [`src/forms/normalize.ts`](../src/forms/normalize.ts), and [`src/formatting.ts`](../src/formatting.ts).
+The Worker is now intentionally thin: it handles request/session setup, authentication, route dispatch, and final response hardening. Feature-specific page rendering and form-action behavior live under [`src/routes/`](../src/routes), where handlers talk to D1 through feature-owned store modules, render server-side HTML through the shared view/UI layers, and rely on shared feature modules such as [`src/auth/`](../src/auth) for reusable authentication concerns, [`src/students/`](../src/students) for shared student forms and status rules, and [`src/data-transfer/`](../src/data-transfer) for import/export/report generation shared with automated backups. Shared D1 interfaces now live in [`src/db-core.ts`](../src/db-core.ts), while focused support code is split between [`src/http/`](../src/http), [`src/forms/normalize.ts`](../src/forms/normalize.ts), [`src/date-time.ts`](../src/date-time.ts), and [`src/formatting.ts`](../src/formatting.ts).
 
 The UI layer now has an explicit boundary for reuse work. [`src/ui/foundation/`](../src/ui/foundation) is the intended extraction target and contains the generic public surface for controls, cards, disclosures, metadata presentation, and form wrappers. [`src/ui/app/`](../src/ui/app) keeps the product-specific shell and status conventions local to this repository. [`src/ui/index.ts`](../src/ui/index.ts) still re-exports both surfaces so existing imports can migrate incrementally.
 

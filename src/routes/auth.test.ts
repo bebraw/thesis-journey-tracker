@@ -51,7 +51,7 @@ describe("multi-user access control", () => {
     expect(appScriptResponse.headers.get("content-type")).toBe("application/javascript; charset=utf-8");
     expect(appScriptResponse.headers.get("cache-control")).toBe("no-cache");
     expect(appScriptResponse.headers.get("content-security-policy")).toContain("default-src 'none'");
-    expect(appScript).toContain("data-auto-submit");
+    expect(appScript).toContain("data-copy-field");
     expect(appScript).toContain("data-confirm-message");
 
     const secureResponse = await fetchHandler(new Request("https://tracker.example.edu/login"), env);
@@ -298,16 +298,6 @@ describe("multi-user access control", () => {
     expect(dataToolsResponse.status).toBe(302);
     expect(dataToolsResponse.headers.get("location")).toBe("/?error=Read-only+access");
 
-    const scheduleResponse = await fetchHandler(
-      new Request("http://localhost/schedule", {
-        headers: { cookie },
-      }),
-      env,
-    );
-
-    expect(scheduleResponse.status).toBe(302);
-    expect(scheduleResponse.headers.get("location")).toBe("/?error=Read-only+access");
-
     const updateResponse = await fetchHandler(
       sameOriginRequest("http://localhost/actions/update-student/1", {
         method: "POST",
@@ -331,70 +321,6 @@ describe("multi-user access control", () => {
     expect(updateResponse.status).toBe(302);
     expect(updateResponse.headers.get("location")).toBe("/?selected=1&error=Read-only+access");
 
-    const scheduleMeetingResponse = await fetchHandler(
-      sameOriginRequest("http://localhost/actions/schedule-meeting", {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          cookie,
-        },
-        body: new URLSearchParams({
-          returnTo: "/schedule?week=2026-03-23&student=1&slot=2026-03-24T09:00",
-          studentId: "1",
-          week: "2026-03-23",
-          slotStart: "2026-03-24T09:00",
-          slotEnd: "2026-03-24T10:00",
-          title: "Readonly Attempt",
-          meetingEmail: "readonly@example.edu",
-        }),
-      }),
-      env,
-    );
-
-    expect(scheduleMeetingResponse.status).toBe(302);
-    expect(scheduleMeetingResponse.headers.get("location")).toBe(
-      "/schedule?week=2026-03-23&student=1&slot=2026-03-24T09:00&error=Read-only+access",
-    );
-
-    const saveCalendarSettingsResponse = await fetchHandler(
-      sameOriginRequest("http://localhost/actions/save-google-calendar-settings", {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          cookie,
-        },
-        body: new URLSearchParams({
-          clientId: "readonly-client-id",
-          clientSecret: "readonly-client-secret",
-          refreshToken: "readonly-refresh-token",
-          calendarId: "primary",
-          timeZone: "Europe/Helsinki",
-        }),
-      }),
-      env,
-    );
-
-    expect(saveCalendarSettingsResponse.status).toBe(302);
-    expect(saveCalendarSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
-
-    const saveCalendarIcalSettingsResponse = await fetchHandler(
-      sameOriginRequest("http://localhost/actions/save-google-calendar-ical-settings", {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          cookie,
-        },
-        body: new URLSearchParams({
-          iCalUrl: "https://calendar.google.com/calendar/ical/example/basic.ics",
-          timeZone: "Europe/Helsinki",
-        }),
-      }),
-      env,
-    );
-
-    expect(saveCalendarIcalSettingsResponse.status).toBe(302);
-    expect(saveCalendarIcalSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
-
     const saveDashboardLaneSettingsResponse = await fetchHandler(
       sameOriginRequest("http://localhost/actions/save-dashboard-lane-settings", {
         method: "POST",
@@ -411,45 +337,6 @@ describe("multi-user access control", () => {
 
     expect(saveDashboardLaneSettingsResponse.status).toBe(302);
     expect(saveDashboardLaneSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
-
-    const clearCalendarSettingsResponse = await fetchHandler(
-      sameOriginRequest("http://localhost/actions/clear-google-calendar-settings", {
-        method: "POST",
-        headers: {
-          cookie,
-        },
-      }),
-      env,
-    );
-
-    expect(clearCalendarSettingsResponse.status).toBe(302);
-    expect(clearCalendarSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
-
-    const clearCalendarOAuthResponse = await fetchHandler(
-      sameOriginRequest("http://localhost/actions/clear-google-calendar-oauth-settings", {
-        method: "POST",
-        headers: {
-          cookie,
-        },
-      }),
-      env,
-    );
-
-    expect(clearCalendarOAuthResponse.status).toBe(302);
-    expect(clearCalendarOAuthResponse.headers.get("location")).toBe("/?error=Read-only+access");
-
-    const clearCalendarIcalResponse = await fetchHandler(
-      sameOriginRequest("http://localhost/actions/clear-google-calendar-ical-settings", {
-        method: "POST",
-        headers: {
-          cookie,
-        },
-      }),
-      env,
-    );
-
-    expect(clearCalendarIcalResponse.status).toBe(302);
-    expect(clearCalendarIcalResponse.headers.get("location")).toBe("/?error=Read-only+access");
 
     const resetDashboardLaneSettingsResponse = await fetchHandler(
       sameOriginRequest("http://localhost/actions/reset-dashboard-lane-settings", {
@@ -656,6 +543,42 @@ describe("multi-user access control", () => {
     expect(response.headers.get("location")).toContain("notice=Log+saved");
     expect(env.DB.meetingLogs).toHaveLength(1);
     expect(env.DB.students[0].next_meeting_at).toBe(expectedMeeting);
+  });
+
+  it.each([
+    { happenedAt: "2026-04-01T10:00", expected: "2026-04-08T07:00:00.000Z" },
+    { happenedAt: "2026-10-23T14:00", expected: "2026-10-30T12:00:00.000Z" },
+    { happenedAt: "2027-03-26T14:00", expected: "2027-04-02T11:00:00.000Z" },
+  ])("books the note's local time one week later for $happenedAt", async ({ happenedAt, expected }) => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    env.DB.students[0].next_meeting_at = null;
+    const response = await fetchHandler(
+      sameOriginRequest("http://localhost/actions/add-log/1", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded", cookie },
+        body: new URLSearchParams({ happenedAt, discussed: "Reviewed draft", agreedPlan: "Revise introduction", followUpAction: "next-week" }),
+      }),
+      env,
+    );
+    expect(response.headers.get("location")).toContain("notice=Log+saved");
+    expect(env.DB.meetingLogs).toHaveLength(1);
+    expect(env.DB.students[0].next_meeting_at).toBe(expected);
+  });
+
+  it("does not save a next-week follow-up at a nonexistent local clock-change time", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
+    const response = await fetchHandler(
+      sameOriginRequest("http://localhost/actions/add-log/1", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded", cookie },
+        body: new URLSearchParams({
+          happenedAt: "2027-03-21T03:30", discussed: "Reviewed draft", agreedPlan: "Revise", followUpAction: "next-week",
+        }),
+      }),
+      env,
+    );
+    expect(response.headers.get("location")).toContain("error=");
+    expect(env.DB.meetingLogs).toHaveLength(0);
   });
 
   it.each([

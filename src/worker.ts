@@ -24,19 +24,13 @@ import {
   renderStudentPanelPartial,
 } from "./routes/dashboard";
 import {
-  handleClearGoogleCalendarIcalSettings,
-  handleClearGoogleCalendarOAuthSettings,
-  handleClearGoogleCalendarSettings,
   handleExportJson,
   handleImportJson,
   handleProfessorReportExport,
   handleResetDashboardLaneSettings,
   handleSaveDashboardLaneSettings,
-  handleSaveGoogleCalendarIcalSettings,
-  handleSaveGoogleCalendarSettings,
   renderDataTools,
 } from "./routes/data-tools";
-import { getScheduleReturnPath, handleScheduleMeeting, renderSchedule } from "./routes/schedule";
 import { validateRuntimeSecrets } from "./security/secrets";
 import { APP_INTERACTION_SCRIPT } from "./view/app-script";
 import { DASHBOARD_INTERACTION_SCRIPT } from "./view/dashboard/interaction-script";
@@ -247,12 +241,6 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return await renderDataTools(url, env, sessionUser);
   }
 
-  if (pathname === "/schedule" && request.method === "GET") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
-    return await renderSchedule(url, env, sessionUser, showStyleGuide);
-  }
-
   const partialStudentMatch = pathname.match(/^\/partials\/student\/(\d+)$/);
   if (partialStudentMatch && request.method === "GET") {
     return await renderStudentPanelPartial(env, url, Number(partialStudentMatch[1]), sessionUser);
@@ -282,52 +270,16 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return await handleImportJson(request, env);
   }
 
-  if (pathname === "/actions/save-google-calendar-settings" && request.method === "POST") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
-    return await handleSaveGoogleCalendarSettings(request, env);
-  }
-
   if (pathname === "/actions/save-dashboard-lane-settings" && request.method === "POST") {
     const readonlyResponse = ensureEditor("/");
     if (readonlyResponse) return readonlyResponse;
     return await handleSaveDashboardLaneSettings(request, env);
   }
 
-  if (pathname === "/actions/save-google-calendar-ical-settings" && request.method === "POST") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
-    return await handleSaveGoogleCalendarIcalSettings(request, env);
-  }
-
-  if (pathname === "/actions/clear-google-calendar-oauth-settings" && request.method === "POST") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
-    return await handleClearGoogleCalendarOAuthSettings(env);
-  }
-
-  if (pathname === "/actions/clear-google-calendar-ical-settings" && request.method === "POST") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
-    return await handleClearGoogleCalendarIcalSettings(env);
-  }
-
-  if (pathname === "/actions/clear-google-calendar-settings" && request.method === "POST") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
-    return await handleClearGoogleCalendarSettings(env);
-  }
-
   if (pathname === "/actions/reset-dashboard-lane-settings" && request.method === "POST") {
     const readonlyResponse = ensureEditor("/");
     if (readonlyResponse) return readonlyResponse;
     return await handleResetDashboardLaneSettings(env);
-  }
-
-  if (pathname === "/actions/schedule-meeting" && request.method === "POST") {
-    const readonlyResponse = ensureEditor(await getScheduleReturnPath(request));
-    if (readonlyResponse) return readonlyResponse;
-    return await handleScheduleMeeting(request, env);
   }
 
   const updateMatch = pathname.match(/^\/actions\/update-student\/(\d+)$/);

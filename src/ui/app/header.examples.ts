@@ -20,8 +20,10 @@ export function getHeaderExamplesSection(): UIExampleSection {
     id: "app-header-shell",
     scope: "app",
     title: "App Header Shell",
-    description: "The app shell keeps page context, navigation, viewer identity, theme switching, and sign-out in one compact sticky header.",
-    whenToUse: "Use this shell at the top of authenticated app pages where navigation, account context, and workspace actions need to stay reachable.",
+    description:
+      "The app shell keeps page context, navigation, viewer identity, theme switching, and sign-out in one compact sticky header.",
+    whenToUse:
+      "Use this shell at the top of authenticated app pages where navigation, account context, and workspace actions need to stay reachable.",
     avoidFor: "Avoid reusing the full shell inside nested cards or feature panels. It is page-level chrome, not a local section header.",
     contentHtml: renderEscapedHTMLisp(
       `<div class="mt-panel-sm">
@@ -39,7 +41,7 @@ export function getHeaderExamplesSection(): UIExampleSection {
             </div>
             <div class="flex min-w-0 flex-1 items-center gap-badge-y overflow-visible pb-0.5 pr-badge-y sm:flex-nowrap sm:justify-end sm:pb-0 sm:pr-0 [&>*]:shrink-0">
               <fragment &children="dashboardLink"></fragment>
-              <fragment &children="scheduleLink"></fragment>
+              <fragment &children="agentAccessLink"></fragment>
               <fragment &children="dataToolsLink"></fragment>
             </div>
             <div class="flex shrink-0 items-center gap-badge-y sm:gap-badge-pill-y">
@@ -57,14 +59,16 @@ export function getHeaderExamplesSection(): UIExampleSection {
       {
         headerClass: HEADER_CARD,
         dashboardLink: raw(renderHeaderNavButton("Dashboard", "#", true)),
-        scheduleLink: raw(renderHeaderNavButton("Schedule", "#")),
+        agentAccessLink: raw(renderHeaderNavButton("Agent access", "#")),
         dataToolsLink: raw(renderHeaderNavButton("Data tools", "#")),
         themeToggleClass: THEME_TOGGLE_BUTTON,
-        logoutButton: raw(renderButton({
-          label: "Log out",
-          type: "button",
-          variant: "neutral",
-        })),
+        logoutButton: raw(
+          renderButton({
+            label: "Log out",
+            type: "button",
+            variant: "neutral",
+          }),
+        ),
       },
     ),
   };

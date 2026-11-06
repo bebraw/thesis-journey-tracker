@@ -1,6 +1,6 @@
 import type { DegreeId, PhaseId } from "../students/store";
 import type { DegreeDefinition, PhaseDefinition } from "../students/reference-data";
-import { DEFAULT_SCHEDULE_TIMEZONE, localDateTimeToUtcIso } from "../calendar/scheduling";
+import { DEFAULT_TIME_ZONE, localDateTimeToUtcIso } from "../date-time";
 
 export function normalizeString(value: FormDataEntryValue | string | null | undefined): string | null {
   if (value === null || value === undefined) {
@@ -24,7 +24,7 @@ export function normalizeDate(value: FormDataEntryValue | string | null | undefi
 export function normalizeDateTime(
   value: FormDataEntryValue | string | null | undefined,
   allowNull = false,
-  timeZone = DEFAULT_SCHEDULE_TIMEZONE,
+  timeZone = DEFAULT_TIME_ZONE,
 ): string | null | undefined {
   if (value === null || value === undefined || value === "") {
     return allowNull ? null : null;

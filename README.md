@@ -51,7 +51,7 @@ The project is intentionally small and server-rendered, with a focused workflow 
 - Configure the dashboard lane labels at the app level while keeping the original four-phase board structure as the default.
 - Switch between `List`, `Phases`, and `Gantt` views depending on whether you need detail, workflow stage, or workload shape.
 - Open a student directly into their last meeting and a new-note form. The list stays alongside on desktop; phones show a focused student view with a return action.
-- Save discussion notes and next actions together. Meeting time defaults to the student's booked meeting, or the current time when no meeting is booked. Meeting-time fields use half-hour increments. Follow-up defaults to keeping the current meeting; choose `Not booked` to clear it or `Set new meeting` to book another time.
+- Save discussion notes and next actions together. Meeting time defaults to the student's booked meeting, or the current time when no meeting is booked. Meeting-time fields use half-hour increments. Follow-up defaults to the same local time one week after the note's meeting time, or continues the student's repeating schedule; choose `Not booked` to clear it or `Set new meeting` to book another time.
 - Keep unsaved note and detail drafts when switching or closing students. Drafts stay in memory for the current page; leaving or reloading prompts before discarding them.
 - Follow upcoming meetings from the dashboard, and clear a cancelled meeting until a new time is booked.
 - Set internal weekly or multiweek meeting schedules that keep the agreed local time across clock changes and advance when a meeting note is saved.
@@ -59,7 +59,6 @@ The project is intentionally small and server-rendered, with a focused workflow 
 - Search students and filter by degree, phase, meeting status, or unfinished MSc theses past their target.
 - Use the Gantt view to estimate advisor workload visually from student start dates and degree-based thesis duration assumptions.
 - Archive completed or inactive students without deleting their supervision history, review them from the dashboard's `Archived` scope, and restore them when supervision resumes.
-- Open a weekly Google Calendar scheduling view where existing entries appear only as busy times, choose a student to update the week immediately, and send meeting invites without copying internal student notes into invitation defaults. If you want a lower-friction setup, the app also supports a read-only Google Calendar iCal fallback for availability.
 - Export or restore the dataset as JSON backups, and download an email-ready Markdown status report.
 - Store automated Cloudflare backups in R2 when deployed with the scheduled backup setup.
 
@@ -106,7 +105,7 @@ Wrangler will print the local URL, typically `http://127.0.0.1:8787`.
 Local development uses the same password verification as deployed environments.
 If a local page returns `500`, run `npm run doctor:local` and check the `npm run dev` terminal output. Localhost responses include the thrown error message to make setup problems easier to diagnose.
 
-For the full setup flow, Google Calendar configuration, remote account management, and troubleshooting, see [docs/setup.md](./docs/setup.md).
+For the full setup flow, remote account management, and troubleshooting, see [docs/setup.md](./docs/setup.md).
 
 ## Docker Backup Path
 
@@ -121,7 +120,7 @@ Then follow the container setup commands in [docs/setup.md](./docs/setup.md#dock
 
 ## Documentation
 
-- [docs/setup.md](./docs/setup.md): local setup, environment variables, Google Calendar configuration, and first run
+- [docs/setup.md](./docs/setup.md): local setup, environment variables, and first run
 - [docs/agent-access.md](./docs/agent-access.md): Codex MCP setup, readonly access, and internal repeating meetings
 - [docs/development.md](./docs/development.md): scripts, testing, local CI, and day-to-day engineering workflows
 - [docs/template-updates.md](./docs/template-updates.md): applied `vibe-template` maintenance updates and sync scope

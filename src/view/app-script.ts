@@ -36,13 +36,6 @@ export const APP_INTERACTION_SCRIPT = `"use strict";
       });
     }
 
-    document.addEventListener("change", function submitAutomaticForm(event) {
-      var control = event.target;
-      if (!(control instanceof Element) || !control.hasAttribute("data-auto-submit")) return;
-      var form = control.closest("form");
-      if (form instanceof HTMLFormElement) form.requestSubmit();
-    });
-
     document.addEventListener("submit", function confirmSensitiveAction(event) {
       var form = event.target;
       if (!(form instanceof HTMLFormElement)) return;

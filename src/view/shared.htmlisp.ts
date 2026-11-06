@@ -161,7 +161,7 @@ export function renderDashboardToastMessages(notice: string | null, error: strin
   );
 }
 
-export type HeaderPageId = "dashboard" | "schedule" | "data-tools" | "add-student" | "style-guide" | "agent-access";
+export type HeaderPageId = "dashboard" | "data-tools" | "add-student" | "style-guide" | "agent-access";
 
 interface RenderAuthedPageDocumentOptions {
   documentTitle: string;
@@ -198,10 +198,6 @@ function renderHeaderNavLink(link: HeaderLink): string {
 
 export function renderPageHeaderNavigation(currentPage: HeaderPageId, viewer: ViewerContext, showStyleGuide = false): string {
   const primaryLinks: HeaderLink[] = [{ label: "Dashboard", href: "/", current: currentPage === "dashboard" }];
-
-  if (viewer.role === "editor") {
-    primaryLinks.push({ label: "Schedule", href: "/schedule", current: currentPage === "schedule" });
-  }
 
   const moreLinks: HeaderLink[] = [];
   moreLinks.push({ label: "Agent access", href: "/agent-access", current: currentPage === "agent-access" });

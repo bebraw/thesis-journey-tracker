@@ -40,6 +40,41 @@ describe("data import and export", () => {
     });
   });
 
+  it("removes calendar setup and scheduling while keeping data tools available", async () => {
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+
+    for (const path of ["/", "/data-tools"]) {
+      const response = await fetchHandler(new Request(`http://localhost${path}`, { headers: { cookie } }), env);
+      const body = await response.text();
+      expect(response.status).toBe(200);
+      expect(body).not.toContain('href="/schedule');
+      expect(body).not.toContain("Google Calendar");
+      expect(body).toContain('href="/agent-access"');
+      if (path === "/data-tools") {
+        expect(body).toContain("Dashboard Lane Layout");
+        expect(body).toContain("/actions/export-json");
+        expect(body).toContain("/actions/import-json");
+      }
+    }
+
+    for (const path of [
+      "/schedule",
+      "/actions/schedule-meeting",
+      "/actions/save-google-calendar-settings",
+      "/actions/save-google-calendar-ical-settings",
+      "/actions/clear-google-calendar-settings",
+      "/actions/clear-google-calendar-oauth-settings",
+      "/actions/clear-google-calendar-ical-settings",
+    ]) {
+      const response = await fetchHandler(
+        sameOriginRequest(`http://localhost${path}`, { method: path === "/schedule" ? "GET" : "POST", headers: { cookie } }),
+        env,
+      );
+      expect(response.status, path).toBe(404);
+    }
+    expect(env.DB.appSecrets).toHaveLength(0);
+  });
+
   it("exports the current dataset as a JSON attachment", async () => {
     env.DB.students[0]!.archived_at = "2026-03-24T10:00:00.000Z";
 
@@ -308,7 +343,7 @@ describe("data import and export", () => {
 
     const body = await response.text();
     expect(response.status).toBe(200);
-    expect(body).toContain("data-workspace-view-button=\"gantt\"");
+    expect(body).toContain('data-workspace-view-button="gantt"');
     expect(body).toContain("Advisor workload across assumed thesis timelines.");
     expect(body).toContain("data-gantt-student-row");
     expect(body).toContain("MSc · Researching");
@@ -689,10 +724,7 @@ describe("data import and export", () => {
   it("rejects JSON import files larger than 4 MiB", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     const formData = new FormData();
-    formData.set(
-      "importFile",
-      new File(["x".repeat(4 * 1024 * 1024 + 1)], "oversized.json", { type: "application/json" }),
-    );
+    formData.set("importFile", new File(["x".repeat(4 * 1024 * 1024 + 1)], "oversized.json", { type: "application/json" }));
 
     const response = await fetchHandler(
       sameOriginRequest("http://localhost/actions/import-json", {

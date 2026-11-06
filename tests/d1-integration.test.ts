@@ -8,7 +8,7 @@ import { createAgentToken, authenticateAgent, revokeAgentToken, listAgentTokens 
 import { handleMcp } from "../src/agent/mcp";
 import { handleAgentAccess } from "../src/routes/agent-access";
 import { getLoginAttempt, recordLoginFailure, revokeAuthUserSessions } from "../src/auth/store";
-import { deleteAppSecret, getAppSecret, upsertAppSecret } from "../src/calendar/store";
+import { deleteAppSecret, getAppSecret, upsertAppSecret } from "../src/app-settings/store";
 import {
   archiveStudent,
   createMeetingLog,
@@ -356,21 +356,21 @@ describe("D1-backed db helpers", () => {
 
   it("validates application secret upserts while keeping deletion idempotent", async () => {
     await expect(
-      upsertAppSecret(platform.env.DB, "calendar_refresh_token", "encrypted-v1", "2026-04-01T10:00:00.000Z"),
+      upsertAppSecret(platform.env.DB, "dashboard_lane_config", "encrypted-v1", "2026-04-01T10:00:00.000Z"),
     ).resolves.toBeUndefined();
     await expect(
-      upsertAppSecret(platform.env.DB, "calendar_refresh_token", "encrypted-v2", "2026-04-02T10:00:00.000Z"),
+      upsertAppSecret(platform.env.DB, "dashboard_lane_config", "encrypted-v2", "2026-04-02T10:00:00.000Z"),
     ).resolves.toBeUndefined();
 
-    await expect(getAppSecret(platform.env.DB, "calendar_refresh_token")).resolves.toEqual({
-      secretKey: "calendar_refresh_token",
+    await expect(getAppSecret(platform.env.DB, "dashboard_lane_config")).resolves.toEqual({
+      secretKey: "dashboard_lane_config",
       encryptedValue: "encrypted-v2",
       updatedAt: "2026-04-02T10:00:00.000Z",
     });
 
-    await expect(deleteAppSecret(platform.env.DB, "calendar_refresh_token")).resolves.toBeUndefined();
-    await expect(deleteAppSecret(platform.env.DB, "calendar_refresh_token")).resolves.toBeUndefined();
-    await expect(getAppSecret(platform.env.DB, "calendar_refresh_token")).resolves.toBeNull();
+    await expect(deleteAppSecret(platform.env.DB, "dashboard_lane_config")).resolves.toBeUndefined();
+    await expect(deleteAppSecret(platform.env.DB, "dashboard_lane_config")).resolves.toBeUndefined();
+    await expect(getAppSecret(platform.env.DB, "dashboard_lane_config")).resolves.toBeNull();
   });
 
   it("issues hashed, expiring tokens and limits revocation to the owning account", async () => {

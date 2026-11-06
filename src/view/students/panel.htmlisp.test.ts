@@ -55,7 +55,7 @@ describe("renderSelectedStudentPanel", () => {
       expect(nextMeetingInputHtml).toBeDefined();
       expect(nextMeetingInputHtml).toContain('step="1800"');
       expect(nextMeetingInputHtml).not.toContain(' value="');
-      expect(addLogFormHtml).toContain('<option value="keep">Keep current meeting</option>');
+      expect(addLogFormHtml).toContain('<option value="next-week">Same time next week</option>');
       expect(addLogFormHtml).toContain('<option value="clear">Not booked</option>');
       expect(addLogFormHtml).toContain('<option value="set">Set new meeting</option>');
     },
@@ -68,6 +68,15 @@ describe("renderSelectedStudentPanel", () => {
     const addLogFormHtml = html.match(/<form action="\/actions\/add-log\/1"[\s\S]*?<\/form>/)?.[0];
 
     expect(addLogFormHtml).toMatch(/Meeting time[\s\S]*?<input[^>]*name="happenedAt"[^>]*value="2026-10-02T15:00"/);
+  });
+
+  it("offers to continue an existing repeating schedule", () => {
+    const html = renderSelectedStudentPanel({
+      ...BASE_STUDENT,
+      meetingSchedule: { startLocal: "2026-04-10T12:00", timeZone: "Europe/Helsinki", intervalWeeks: 2, untilDate: null },
+    }, [], []);
+    expect(html).toContain('<option value="keep">Continue repeating schedule</option>');
+    expect(html).not.toContain("Same time next week");
   });
 
   it("formats stored timestamps using the explicit panel timezone", () => {

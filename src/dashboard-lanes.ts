@@ -1,6 +1,6 @@
 import type { Env } from "./app-env";
 import { requireAppEncryptionSecret } from "./security/secrets";
-import { deleteAppSecret, getAppSecret, upsertAppSecret } from "./calendar/store";
+import { deleteAppSecret, getAppSecret, upsertAppSecret } from "./app-settings/store";
 import { decryptText, encryptText } from "./encryption";
 import { normalizeString } from "./forms/normalize";
 import { logError } from "./observability/error-logging";
