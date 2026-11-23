@@ -108,7 +108,7 @@ Style-guide examples now live next to the UI code they document through sibling 
 
 Component API types follow the same colocation pattern through sibling `*.types.ts` files under [`src/ui/foundation/`](../src/ui/foundation) and [`src/ui/app/`](../src/ui/app), with the foundation/app barrels re-exporting the public types that callers should import.
 
-Authentication remains intentionally lightweight: accounts are stored in the `app_users` D1 table with hashed passwords and a revocable session version. The signed `HttpOnly` cookie carries only the immutable account ID, session version, and expiry; the Worker resolves the current display name and role (`editor` or `readonly`) from D1 on every request.
+Authentication remains intentionally lightweight: accounts are stored in the `app_users` D1 table with hashed passwords and a revocable session version. The signed `HttpOnly` cookie carries only the immutable account ID, session version, and expiry; the Worker resolves the active account and its rights from D1 on every request. The `thesis_assignments` table links each supervised or advised thesis to that account.
 
 ## Repository Map
 

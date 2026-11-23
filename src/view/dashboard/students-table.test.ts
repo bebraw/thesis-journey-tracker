@@ -46,7 +46,10 @@ describe("students table", () => {
         null,
         DEFAULT_FILTERS,
         getDefaultDashboardLanes(),
-        "", "", "", "",
+        "",
+        "",
+        "",
+        "",
       );
 
       expect(html).toMatch(/data-student-id="1"[^>]*data-status-id="within_3_days"[^>]*>[\s\S]*?Meeting soon/);
@@ -67,7 +70,7 @@ describe("students table", () => {
       "<div>Phases</div>",
       "<div>Panel</div>",
       "<div>Empty</div>",
-      { canEdit: true },
+      { canCreate: true },
     );
 
     const selectedRowMatch = html.match(
@@ -147,7 +150,7 @@ describe("students table", () => {
       "<div>Phases</div>",
       "<div>Panel</div>",
       "<div>Empty</div>",
-      { canEdit: true, timeZone: "UTC", activeStudentCount: 3, archivedStudentCount: 1 },
+      { canCreate: true, timeZone: "UTC", activeStudentCount: 3, archivedStudentCount: 1 },
     );
 
     expect(html).toContain("Archived students");

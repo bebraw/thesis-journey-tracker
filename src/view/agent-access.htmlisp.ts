@@ -21,8 +21,8 @@ export function renderAgentAccessPage(
 ): string {
   const access =
     user.role === "readonly"
-      ? "Read-only: search students and read their details, meeting notes, and phase history."
-      : "Editor: read and update students, record notes, and manage internal meeting schedules.";
+      ? "Read-only: search assigned students and read their details, meeting notes, and phase history."
+      : "Editor: read and update assigned students, record notes, and manage internal meeting schedules.";
   const setup = secret
     ? renderView(
         `<section &class="card"><h2 class="text-lg font-semibold">Connect Codex</h2>
@@ -58,7 +58,7 @@ export function renderAgentAccessPage(
   const create = renderView(
     `<section &class="card"><h2 class="text-lg font-semibold">Create an access token</h2>
     <p class="mt-2 text-sm" &children="access"></p>
-    <p class="mt-2 text-sm">Each person signs in with their own account and creates their own token. Professor accounts retain readonly access through MCP.</p>
+    <p class="mt-2 text-sm">Each person signs in with their own account and creates their own token.</p>
     <form action="/agent-access" method="post" class="mt-4 space-y-3"><fragment &children="name"></fragment><fragment &children="expiry"></fragment><fragment &children="submit"></fragment></form></section>`,
     {
       card: SURFACE_CARD,

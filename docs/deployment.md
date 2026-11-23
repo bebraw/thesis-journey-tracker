@@ -65,11 +65,7 @@ Migration `0006_remove_google_calendar_settings.sql` removes the retired Google 
 npm run account:create -- --name "Advisor" --role editor --remote
 ```
 
-Optional readonly account:
-
-```bash
-npm run account:create -- --name "Professor" --role readonly --remote
-```
+For a new installation, follow [first-administrator setup](./setup.md#5-create-the-first-administrator) with `--remote` targeting your intended production database. For a running tracker, follow the upgrade procedure below before promoting the Worker.
 
 The command reads a password of at least 15 characters from a hidden interactive prompt. For automation, use `--password-stdin` with a secret-manager source. Plaintext password arguments, custom iteration counts, and SQL printing are intentionally unsupported. Re-run the command for any account whose stored hash uses a work factor other than the current Cloudflare-compatible `100000` format; updating an account revokes its existing sessions.
 
@@ -88,6 +84,16 @@ If the connected build is unavailable, `npm run deploy` is the direct fallback a
 6. For a custom domain, enable Cloudflare's [Always Use HTTPS](https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/) option. The Worker also redirects non-local HTTP as defense in depth, but an application redirect cannot protect request bytes that a client already sent over its first plaintext connection.
 
 This repository leaves the stable [`workers.dev` route](https://developers.cloudflare.com/workers/configuration/routing/workers-dev/) enabled because it cannot know your production hostname. Once a custom domain or route is configured and verified, add `workers_dev = false` to `wrangler.toml`. If `workers.dev` must remain available, protect that hostname with Cloudflare Access too; an Access policy on only the custom hostname does not cover the separate `workers.dev` endpoint.
+
+## Upgrading an existing cohort
+
+The `0007_thesis_assignments.sql` migration adds access flags and a separate assignment table. Existing accounts receive no administrative or supervision grants. Existing theses, including archived ones, need an explicit lead assignment. A thesis without assignments is visible in the administrator’s management roster and stays off personal dashboards.
+
+1. Rehearse on a private database. Export the full D1 schema and data, store it securely, and restore it into the rehearsal database. Compare the original and restored records by ID and content, including notes, recurring meetings, phase history, archived students, settings, and user and token records. The app JSON backup is a separate recovery format. [D1 database export](https://developers.cloudflare.com/d1/best-practices/import-export-data/)
+2. Apply the migration on the rehearsal copy. Grant the intended account its initial administrator and supervisor rights by verified ID. Map each thesis to its lead and explicitly review which advisors and read-only accounts should see it. Multiple advisors may share a thesis. Historical notes inherit the thesis assignment.
+3. Before merging to `main`, arrange a short maintenance window covering browser and MCP writes, take a fresh full database recovery point and record its D1 Time Travel bookmark. Apply the remote migration, bootstrap the verified administrator, and deploy the reviewed Worker. Cloudflare promotes pushes to `main` independently of GitHub CI. Restrict access to the operator during reconciliation. [D1 recovery bookmarks](https://developers.cloudflare.com/d1/reference/time-travel/)
+4. In **Manage access**, assign the existing theses, including archived ones. Compare the student, meeting and phase-history records against the recovery copy and verify that every intended thesis has its expected lead. Check dashboard counts, direct student links, the cohort report and MCP as a supervisor and as an advisor. Open access to advisors after these checks pass.
+5. If a thesis is missing from a dashboard, inspect and correct its assignment. A pre-upgrade Worker gives all signed-in users cohort-wide visibility. Keep traffic restricted if a rollback is required. After writes resume, preserve subsequent notes and reconcile them before any database rewind.
 
 ## Automated Backups
 
@@ -148,8 +154,8 @@ For more detailed backup notes, see [backups.md](./backups.md).
 
 - App access is protected by signed session cookies and lightweight account roles.
 - Invalid logins update two HMAC-opaque throttling buckets: one for the attempted account name and one for the trusted Cloudflare client address. The fifth account failure or twentieth client failure rate-limits further invalid attempts for 15 minutes, while correct credentials are still verified and accepted so an attacker cannot lock out the account. A successful login clears its account bucket but preserves an active client throttle. Direct/local traffic shares one client bucket, and forwarded headers are ignored outside the Cloudflare request boundary.
-- `editor` accounts can add, edit, import, export, and archive student data.
-- `readonly` accounts can view the dashboard, student details, meeting logs, and phase history.
+- Editors can update assigned active theses. Supervisors can create theses, assign advisors, and archive or restore theses they lead.
+- Read-only accounts can review the history of assigned theses. Administrators manage accounts, lead transfers, app-wide settings and full-data backups. Administrative status alone gives no personal-dashboard assignments.
 - Sessions are stored in an `HttpOnly`, `Secure`, signed cookie.
 - Signed sessions expire after four hours and carry only an immutable account ID plus a database session version. Logout, password changes, role changes through the account command, and account removal invalidate previously issued access; logout revokes every active session for that account.
 - Request-scoped D1 sessions begin on the primary database. Authentication and session-revocation reads never trust a client-supplied D1 bookmark, so future read-replication settings cannot temporarily restore revoked access.

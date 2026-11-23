@@ -6,6 +6,7 @@ import { saveMeetingNote } from "../students/meeting-notes";
 import { nextScheduledMeeting, parseMeetingSchedule } from "../students/recurrence";
 import {
   archiveStudent,
+  canManageStudent,
   createStudent,
   getStudentById,
   listLogsForStudent,
@@ -56,7 +57,7 @@ function tool(name: string, description: string, inputSchema: Schema, readOnly: 
 const tools = [
   tool(
     "list_students",
-    "Search students by name, email, or topic. Returns student IDs for subsequent calls. Archived students are excluded unless requested.",
+    "Search your assigned students by name, email, or topic. Returns student IDs for subsequent calls. Archived students are excluded unless requested.",
     object({ search: text, includeArchived: { type: "boolean" } }),
     true,
   ),
@@ -68,7 +69,7 @@ const tools = [
   ),
   tool(
     "create_student",
-    "Create a student. Defaults to MSc and research plan. Does not send messages or invitations.",
+    "Create a student with your account as lead supervisor. Defaults to MSc and research plan. Does not send messages or invitations.",
     object(studentFields, ["name"]),
     false,
   ),
@@ -133,8 +134,14 @@ const tools = [
   tool("restore_student", "Restore an archived student to the active dashboard.", object({ studentId }, ["studentId"]), false),
 ];
 
+const supervisorTools = new Set(["create_student", "archive_student", "restore_student"]);
+
+function canUseTool(user: SessionUser, item: (typeof tools)[number]): boolean {
+  return item.annotations.readOnlyHint || (user.role === "editor" && (!supervisorTools.has(item.name) || user.canSupervise === true));
+}
+
 export function listAgentTools(user: SessionUser) {
-  return tools.filter((item) => user.role === "editor" || item.annotations.readOnlyHint);
+  return tools.filter((item) => canUseTool(user, item));
 }
 
 export class AgentInputError extends Error {}
@@ -142,54 +149,73 @@ export class AgentInputError extends Error {}
 export async function callAgentTool(db: D1Database, user: SessionUser, name: string, args: unknown): Promise<unknown> {
   const definition = tools.find((item) => item.name === name);
   if (!definition) throw new AgentInputError("Unknown tool.");
-  if (user.role !== "editor" && !definition.annotations.readOnlyHint) throw new AgentInputError("This account has readonly access.");
+  if (!canUseTool(user, definition)) throw new AgentInputError("This account does not have permission for this tool.");
   validate(args, definition.inputSchema, "arguments");
   const input = args as Record<string, unknown>;
   if (name === "list_students") {
     const search = String(input.search || "").toLocaleLowerCase();
-    return (await listStudents(db, { includeArchived: input.includeArchived === true })).filter((student) =>
+    return (await listStudents(db, { userId: user.id, includeArchived: input.includeArchived === true })).filter((student) =>
       [student.name, student.email, student.thesisTopic].some((field) => field?.toLocaleLowerCase().includes(search)),
     );
   }
   if (name === "create_student") {
     const student = studentInput(input);
-    const id = await createStudent(db, student);
-    return await getStudentById(db, id);
+    const id = await createStudent(db, student, user.id);
+    return await getStudentById(db, id, { userId: user.id });
   }
   const id = Number(input.studentId);
-  const student = await getStudentById(db, id, { includeArchived: true });
+  const visibility = { userId: user.id, includeArchived: true };
+  const student = await getStudentById(db, id, visibility);
   if (!student) throw new AgentInputError("Student not found. Search students first and use an exact student ID.");
   if (name === "get_student")
-    return { student, logs: await listLogsForStudent(db, id), phaseHistory: await listPhaseAuditEntriesForStudent(db, id) };
+    return {
+      student,
+      logs: await listLogsForStudent(db, id, user.id),
+      phaseHistory: await listPhaseAuditEntriesForStudent(db, id, user.id),
+    };
+  if (supervisorTools.has(name) && !(await canManageStudent(db, id, user.id))) {
+    throw new AgentInputError("Only the supervising editor can manage this thesis.");
+  }
   if (name === "restore_student") {
-    if (student.archivedAt) await restoreStudent(db, id);
+    if (student.archivedAt) await restoreStudent(db, id, user.id);
   } else {
     if (student.archivedAt) throw new AgentInputError("Restore the archived student before making changes.");
-    if (name === "archive_student") await archiveStudent(db, id, new Date().toISOString());
+    if (name === "archive_student") await archiveStudent(db, id, new Date().toISOString(), user.id);
     else if (name === "update_student") {
       const updated = studentInput(input, student);
       if (updated.currentPhase !== student.currentPhase)
-        await updateStudentWithPhaseAudit(db, id, updated, {
-          studentId: id,
-          changedAt: new Date().toISOString(),
-          fromPhase: student.currentPhase,
-          toPhase: updated.currentPhase,
-        });
-      else await updateStudent(db, id, updated);
+        await updateStudentWithPhaseAudit(
+          db,
+          id,
+          updated,
+          {
+            studentId: id,
+            changedAt: new Date().toISOString(),
+            fromPhase: student.currentPhase,
+            toPhase: updated.currentPhase,
+          },
+          user.id,
+        );
+      else await updateStudent(db, id, updated, user.id);
     } else if (name === "set_meeting_schedule") {
       const schedule = input.schedule === null ? null : parseMeetingSchedule(input.schedule);
       if (input.schedule !== null && !schedule)
         throw new AgentInputError(
           "Invalid schedule. Use a real local datetime, IANA timezone, interval of 1–52 weeks and an optional end date on or after the first meeting.",
         );
-      await updateStudent(db, id, {
-        ...student,
-        meetingSchedule: schedule,
-        nextMeetingAt: schedule ? nextScheduledMeeting(schedule) : null,
-      });
+      await updateStudent(
+        db,
+        id,
+        {
+          ...student,
+          meetingSchedule: schedule,
+          nextMeetingAt: schedule ? nextScheduledMeeting(schedule) : null,
+        },
+        user.id,
+      );
     } else if (name === "set_next_meeting") {
       const nextMeetingAt = input.nextMeetingAt === null ? null : instant(input.nextMeetingAt);
-      await updateStudent(db, id, { ...student, nextMeetingAt, meetingSchedule: nextMeetingAt ? student.meetingSchedule : null });
+      await updateStudent(db, id, { ...student, nextMeetingAt, meetingSchedule: nextMeetingAt ? student.meetingSchedule : null }, user.id);
     } else if (name === "add_meeting_note") {
       const action = (input.followUpAction ?? "keep") as "keep" | "set" | "clear";
       if (action === "set" && !input.nextMeetingAt) throw new AgentInputError("nextMeetingAt is required when followUpAction is set.");
@@ -208,10 +234,11 @@ export async function callAgentTool(db: D1Database, user: SessionUser, name: str
         },
         action,
         input.nextMeetingAt ? instant(input.nextMeetingAt) : null,
+        user.id,
       );
     }
   }
-  return await getStudentById(db, id, { includeArchived: true });
+  return await getStudentById(db, id, visibility);
 }
 
 function studentInput(input: Record<string, unknown>, existingStudent?: NonNullable<Awaited<ReturnType<typeof getStudentById>>>) {

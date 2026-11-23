@@ -5,14 +5,24 @@ import { sameOriginRequest } from "./request";
 
 export async function seedTestUsers(
   db: MockD1Database,
-  users: Array<{ name: string; password: string; role: AccessRole }>,
+  users: Array<{
+    name: string;
+    password: string;
+    role: AccessRole;
+    isAdmin?: boolean;
+    canSupervise?: boolean;
+    assignment?: "supervisor" | "advisor";
+  }>,
 ): Promise<void> {
   for (const user of users) {
-    db.seedAuthUser({
+    const id = db.seedRow("app_users", {
       name: user.name,
       password_hash: await hashPassword(user.password),
       role: user.role,
+      is_admin: user.isAdmin ? 1 : 0,
+      can_supervise: user.canSupervise ? 1 : 0,
     });
+    if (user.assignment) db.seedRow("thesis_assignments", { student_id: 1, user_id: id, assignment_role: user.assignment });
   }
 }
 

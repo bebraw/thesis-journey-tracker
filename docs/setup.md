@@ -77,19 +77,27 @@ npm run db:migrate
 
 This applies the SQL files in [`migrations/`](../migrations) to Wrangler's local D1 state for the configured `thesis_tracker_db` binding.
 
-## 5. Create At Least One Login Account
+## 5. Create the first administrator
 
-Create an editor account in D1:
+Create your own named editor account in local D1. On an existing installation, use your current account and password.
 
 ```bash
 npm run account:create -- --name "Advisor" --role editor
 ```
 
-Optional readonly account:
+Look up the account's immutable ID and confirm the name.
 
 ```bash
-npm run account:create -- --name "Professor" --role readonly
+npx wrangler d1 execute thesis_tracker_db --local --command "SELECT id, name, role FROM app_users ORDER BY id"
 ```
+
+Replace `VERIFIED_ID` with that numeric ID in the command below. It grants administration and supervision to the selected active editor only when there is no active administrator. Verify the returned ID and name.
+
+```bash
+npx wrangler d1 execute thesis_tracker_db --local --command "UPDATE app_users SET is_admin = 1, can_supervise = 1, session_version = session_version + 1 WHERE id = VERIFIED_ID AND role = 'editor' AND disabled_at IS NULL AND NOT EXISTS (SELECT 1 FROM app_users WHERE is_admin = 1 AND disabled_at IS NULL) RETURNING id, name"
+```
+
+Sign in and open **More → Manage access** to create accounts, grant rights, or assign a lead supervisor to an existing thesis. An editor can update assigned theses. A supervisor can also create a thesis and manage its advisors. Read-only accounts can review the full record for each assigned thesis, including internal notes.
 
 The command prompts twice without echoing the password. Passwords must contain at least 15 characters. For non-interactive automation, pass `--password-stdin` and supply exactly one line from a secret manager; never place the password in command arguments.
 
@@ -103,7 +111,7 @@ If you want a ready-made local dataset for trying the dashboard, import/export, 
 npm run db:seed:sample
 ```
 
-This command only targets Wrangler's local D1 state and is safe to re-run because the sample inserts are idempotent.
+This command only targets Wrangler's local D1 state and is safe to re-run because the sample inserts are idempotent. Assign the sample theses to your supervisor account in **Manage access** to see them on your dashboard.
 
 ## 7. Start The App
 
@@ -197,7 +205,7 @@ docker run --rm -it `
   thesis-journey-tracker npm run account:create -- --name "Advisor" --role editor
 ```
 
-Run the setup doctor:
+Use the first-administrator commands in step 5 inside the same container and volume. Run the setup doctor:
 
 ```bash
 docker run --rm \

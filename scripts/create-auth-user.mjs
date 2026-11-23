@@ -109,6 +109,7 @@ VALUES ('${escapeSql(user.name)}', '${escapeSql(user.passwordHash)}', '${escapeS
 ON CONFLICT(name) DO UPDATE SET
   password_hash = excluded.password_hash,
   role = excluded.role,
+  can_supervise = CASE WHEN excluded.role = 'readonly' THEN 0 ELSE app_users.can_supervise END,
   session_version = app_users.session_version + 1;`;
 }
 

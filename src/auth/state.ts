@@ -20,8 +20,7 @@ const LOGIN_ATTEMPT_RETENTION_MS = 24 * 60 * 60 * 1000;
 const LOGIN_ATTEMPT_PRUNE_LIMIT = 25;
 const MAX_LOGIN_NAME_CHARACTERS = 100;
 const MAX_LOGIN_PASSWORD_BYTES = 1_024;
-const DUMMY_PASSWORD_HASH =
-  "pbkdf2_sha256$100000$AAAAAAAAAAAAAAAAAAAAAA==$hdWn2Z2YPji1MoW1r05A3cRvbd46WyUHU6YxFtRxMXU=";
+const DUMMY_PASSWORD_HASH = "pbkdf2_sha256$100000$AAAAAAAAAAAAAAAAAAAAAA==$hdWn2Z2YPji1MoW1r05A3cRvbd46WyUHU6YxFtRxMXU=";
 
 export interface AuthState {
   users: Awaited<ReturnType<typeof listAuthUsers>>;
@@ -44,6 +43,8 @@ export function resolveSessionUser(authState: AuthState, identity: SessionIdenti
     id: storedUser.id,
     name: storedUser.name,
     role: storedUser.role,
+    isAdmin: storedUser.isAdmin,
+    canSupervise: storedUser.canSupervise,
     sessionVersion: storedUser.sessionVersion,
   };
 }
@@ -147,6 +148,8 @@ export async function verifyLoginCredentials(
       id: candidateUser!.id,
       name: candidateUser!.name,
       role: candidateUser!.role,
+      isAdmin: candidateUser!.isAdmin,
+      canSupervise: candidateUser!.canSupervise,
       sessionVersion: candidateUser!.sessionVersion,
     },
   };

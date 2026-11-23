@@ -21,9 +21,11 @@ describe("data import and export", () => {
       SESSION_SECRET: "test-session-secret-with-at-least-32-bytes",
       APP_ENCRYPTION_SECRET: "test-app-encryption-secret-with-32-bytes",
     };
-    await seedTestUsers(env.DB, [{ name: "Advisor", password: "test-password", role: "editor" }]);
+    await seedTestUsers(env.DB, [
+      { name: "Advisor", password: "test-password", role: "editor", isAdmin: true, canSupervise: true, assignment: "supervisor" },
+    ]);
 
-    env.DB.meetingLogs.push({
+    env.DB.seedRow("meeting_logs", {
       id: 1,
       student_id: 1,
       happened_at: "2026-03-22T09:00:00.000Z",
@@ -31,7 +33,7 @@ describe("data import and export", () => {
       agreed_plan: "Write chapter 1",
       next_step_deadline: "2026-03-29",
     });
-    env.DB.phaseAuditEntries.push({
+    env.DB.seedRow("student_phase_audit", {
       id: 1,
       student_id: 1,
       changed_at: "2026-03-21T12:00:00.000Z",
@@ -76,7 +78,7 @@ describe("data import and export", () => {
   });
 
   it("exports the current dataset as a JSON attachment", async () => {
-    env.DB.students[0]!.archived_at = "2026-03-24T10:00:00.000Z";
+    await env.DB.prepare("UPDATE students SET archived_at = ? WHERE id = 1").bind("2026-03-24T10:00:00.000Z").run();
 
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
@@ -105,7 +107,7 @@ describe("data import and export", () => {
     };
 
     expect(body.app).toBe("thesis-journey-tracker");
-    expect(body.schemaVersion).toBe(1);
+    expect(body.schemaVersion).toBe(2);
     expect(body.students).toHaveLength(1);
     expect(body.students[0]?.name).toBe("Base Student");
     expect(body.students[0]?.archivedAt).toBe("2026-03-24T10:00:00.000Z");
@@ -115,7 +117,65 @@ describe("data import and export", () => {
     expect(body.students[0]?.phaseAudit[0]?.toPhase).toBe("researching");
   });
 
-  it("exports a professor-friendly markdown status report", async () => {
+  it("requires an exact account identity and restores team memberships without changing account permissions", async () => {
+    const { handleExportJson, handleImportJson } = await import("./transfer");
+    const advisorId = env.DB.seedRow("app_users", { name: "Reader", role: "readonly", password_hash: "source" });
+    env.DB.seedRow("thesis_assignments", { student_id: 1, user_id: advisorId, assignment_role: "advisor" });
+    const exported = await (await handleExportJson(env)).text();
+    const target = { ...env, DB: new MockD1Database(), REPLACE_IMPORT_ENABLED: "1" };
+    target.DB.seedRow("app_users", { id: 1, name: "Advisor", role: "editor", password_hash: "target", can_supervise: 1 });
+    const restore = async () => {
+      const form = new FormData();
+      form.set("importFile", new File([exported], "v2.json"));
+      form.set("mode", "replace");
+      form.set("confirmReplace", "yes");
+      return handleImportJson(new Request("http://localhost/actions/import-json", { method: "POST", body: form }), target);
+    };
+    const denied = await restore();
+    expect(denied.headers.get("location")).toContain("unavailable%20advisor");
+    expect(target.DB.students[0]?.name).toBe("Base Student");
+    expect(target.DB.meetingLogs).toEqual([]);
+
+    target.DB.seedRow("app_users", { id: 72, name: "Reader", role: "readonly", password_hash: "other" });
+    expect((await restore()).headers.get("location")).toContain("unavailable%20advisor");
+    target.DB.sqlite.exec("DELETE FROM app_users WHERE id = 72");
+    target.DB.seedRow("app_users", { id: advisorId, name: "Different", role: "readonly", password_hash: "other" });
+    expect((await restore()).headers.get("location")).toContain("unavailable%20advisor");
+    target.DB.sqlite.exec("UPDATE app_users SET name = 'Reader' WHERE name = 'Different'");
+    expect((await restore()).headers.get("location")).toContain("/data-tools?notice=");
+    expect(target.DB.sqlite.prepare("SELECT student_id,user_id,assignment_role FROM thesis_assignments ORDER BY user_id").all()).toEqual([
+      { student_id: 1, user_id: 1, assignment_role: "supervisor" },
+      { student_id: 1, user_id: advisorId, assignment_role: "advisor" },
+    ]);
+    expect(
+      target.DB.appUsers.map(({ role, is_admin, can_supervise, password_hash }) => [role, is_admin, can_supervise, password_hash]),
+    ).toEqual([
+      ["editor", 0, 1, "target"],
+      ["readonly", 0, 0, "other"],
+    ]);
+    expect(target.DB.meetingLogs).toHaveLength(1);
+    expect(target.DB.phaseAuditEntries).toHaveLength(1);
+  });
+
+  it("requires an eligible supervisor for a nonempty legacy backup", async () => {
+    const { handleImportJson } = await import("./transfer");
+    const backup = {
+      app: "thesis-journey-tracker",
+      schemaVersion: 1,
+      students: [{ name: "Legacy", degreeType: "msc", currentPhase: "researching" }],
+    };
+    for (const name of ["", "Missing"]) {
+      const form = new FormData();
+      form.set("importFile", new File([JSON.stringify(backup)], "v1.json"));
+      form.set("legacySupervisor", name);
+      const response = await handleImportJson(new Request("http://localhost/actions/import-json", { method: "POST", body: form }), env);
+      expect(response.headers.get("location")).toContain("/data-tools?error=");
+      expect(env.DB.students).toHaveLength(1);
+    }
+  });
+
+  it("exports a professor-friendly markdown status report for the supervisor's visible theses", async () => {
+    env.DB.seedRow("students", { name: "Another cohort", current_phase: "researching" });
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
@@ -135,6 +195,7 @@ describe("data import and export", () => {
     expect(body).toContain("## Summary");
     expect(body).toContain("## Student Updates");
     expect(body).toContain("Base Student (MSc)");
+    expect(body).not.toContain("Another cohort");
     expect(body).toContain('agreed next step "Write chapter 1"');
   });
 
@@ -170,7 +231,7 @@ describe("data import and export", () => {
   });
 
   it("can save an app-level dashboard lane layout and render it on the dashboard", async () => {
-    env.DB.students.push({
+    env.DB.seedRow("students", {
       id: 2,
       name: "Editing Student",
       email: "editing@example.edu",
@@ -182,7 +243,8 @@ describe("data import and export", () => {
       next_meeting_at: null,
       archived_at: null,
     });
-    env.DB.students.push({
+    env.DB.seedRow("thesis_assignments", { student_id: 2, user_id: 1, assignment_role: "supervisor" });
+    env.DB.seedRow("students", {
       id: 3,
       name: "No Start Student",
       email: "nostart@example.edu",
@@ -194,6 +256,7 @@ describe("data import and export", () => {
       next_meeting_at: null,
       archived_at: null,
     });
+    env.DB.seedRow("thesis_assignments", { student_id: 3, user_id: 1, assignment_role: "supervisor" });
 
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
@@ -306,7 +369,7 @@ describe("data import and export", () => {
   });
 
   it("renders the gantt dashboard view with assumed project timelines", async () => {
-    env.DB.students.push({
+    env.DB.seedRow("students", {
       id: 2,
       name: "Editing Student",
       email: "editing@example.edu",
@@ -318,7 +381,8 @@ describe("data import and export", () => {
       next_meeting_at: null,
       archived_at: null,
     });
-    env.DB.students.push({
+    env.DB.seedRow("thesis_assignments", { student_id: 2, user_id: 1, assignment_role: "supervisor" });
+    env.DB.seedRow("students", {
       id: 3,
       name: "No Start Student",
       email: "nostart@example.edu",
@@ -330,6 +394,7 @@ describe("data import and export", () => {
       next_meeting_at: null,
       archived_at: null,
     });
+    env.DB.seedRow("thesis_assignments", { student_id: 3, user_id: 1, assignment_role: "supervisor" });
 
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
@@ -389,6 +454,7 @@ describe("data import and export", () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
     const formData = new FormData();
+    formData.set("legacySupervisor", "1");
     formData.set(
       "importFile",
       new File(
@@ -545,6 +611,7 @@ describe("data import and export", () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
     const formData = new FormData();
+    formData.set("legacySupervisor", "1");
     formData.set(
       "importFile",
       new File(
@@ -643,6 +710,7 @@ describe("data import and export", () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
     const formData = new FormData();
+    formData.set("legacySupervisor", "1");
     formData.set(
       "importFile",
       new File(

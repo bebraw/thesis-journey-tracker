@@ -17,12 +17,13 @@ No local server, repository checkout, or OpenAI API key is required. The app ser
 
 Each token belongs to the account that created it. Tokens carry that account's current role, checked on every request:
 
-| Account role         | Tools                                                                                                                                                     |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| readonly (Professor) | `list_students`, `get_student`                                                                                                                            |
-| editor (Advisor)     | Read tools, plus `create_student`, `update_student`, `set_meeting_schedule`, `set_next_meeting`, `add_meeting_note`, `archive_student`, `restore_student` |
+| Account                     | Access through MCP                                                           |
+| --------------------------- | ---------------------------------------------------------------------------- |
+| Read-only                   | Search and open assigned theses, including internal notes and phase history. |
+| Editor                      | Read and edit assigned active theses, record notes, and update schedules.    |
+| Supervisor with edit rights | Also create theses and archive or restore a thesis they lead.                |
 
-The server rejects write calls from readonly accounts even if a client constructs them manually. Access covers the same shared student dataset as the dashboard, including internal notes; Professor access is readonly, not a reduced set of fields. Account role changes apply immediately and account deletion invalidates associated tokens.
+The dashboard and MCP check the same assignments. Removing an advisor takes effect on their next request, including requests with an existing token. Account administration and advisor assignment are available in the web interface.
 
 Tokens expire after 30, 90, or 365 days. **Your tokens → Revoke** disconnects a client immediately. Logging out of the browser leaves agent tokens active. The database stores only SHA-256 hashes of randomly generated 256-bit token secrets. Account credentials and tokens are excluded from student JSON exports and backups.
 

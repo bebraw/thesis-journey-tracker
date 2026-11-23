@@ -1,14 +1,12 @@
-import type { MeetingLog, PhaseAuditEntry, Student } from "../students/store";
-import { DATA_EXPORT_SCHEMA_VERSION, type DataExportFile } from "./types";
+import { DATA_EXPORT_SCHEMA_VERSION, type DataExportFile, type StudentExportBundle } from "./types";
 
-export function createDataExport(
-  studentBundles: Array<{ student: Student; logs: MeetingLog[]; phaseAudit: PhaseAuditEntry[] }>,
-): DataExportFile {
+export function createDataExport(studentBundles: StudentExportBundle[]): DataExportFile {
   return {
     app: "thesis-journey-tracker",
     schemaVersion: DATA_EXPORT_SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
-    students: studentBundles.map(({ student, logs, phaseAudit }) => ({
+    students: studentBundles.map(({ student, logs, phaseAudit, assignments }) => ({
+      assignments,
       name: student.name,
       email: student.email,
       degreeType: student.degreeType,

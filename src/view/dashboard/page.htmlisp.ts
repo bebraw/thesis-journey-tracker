@@ -25,7 +25,13 @@ export function renderDashboardPage(data: DashboardPageData): string {
   } = data;
   const canEdit = viewer.role === "editor";
   const selectedPanel = selectedStudent
-    ? renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, { canEdit, dashboardLanes, filters, timeZone })
+    ? renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, {
+        canEdit,
+        canManage: data.canManageSelected,
+        dashboardLanes,
+        filters,
+        timeZone,
+      })
     : renderEmptySelectedPanel(
         canEdit
           ? "Select a student from the table to edit details and view/add supervision logs."
@@ -59,7 +65,7 @@ export function renderDashboardPage(data: DashboardPageData): string {
             ? "Select a student from the table to edit details and view/add supervision logs."
             : "Select a student from the table to view details, supervision logs, and phase history.",
         ),
-        { canEdit, timeZone, activeStudentCount, archivedStudentCount },
+        { canCreate: canEdit && viewer.canSupervise, timeZone, activeStudentCount, archivedStudentCount },
       ),
     ],
     scripts: [renderDashboardScriptTag()],

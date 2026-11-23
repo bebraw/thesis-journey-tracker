@@ -1,4 +1,5 @@
 import type { Env } from "../../app-env";
+import type { SessionUser } from "../../auth";
 import { addDaysToDateString, DEFAULT_TIME_ZONE, localDateTimeToUtcIso } from "../../date-time";
 import { toDateTimeLocalInput } from "../../formatting";
 import { normalizeDate, normalizeDateTime, normalizeString } from "../../forms/normalize";
@@ -9,16 +10,16 @@ import { parseStudentFormSubmission } from "../../students";
 import { saveMeetingNote } from "../../students/meeting-notes";
 import {
   archiveStudent,
+  canManageStudent,
   createStudent,
   getStudentById,
   restoreStudent,
-  studentExists,
   updateStudent,
   updateStudentWithPhaseAudit,
 } from "../../students/store";
 import { appendDashboardMessage, getDashboardReturnPath } from "./filters";
 
-export async function handleAddStudent(request: Request, env: Env): Promise<Response> {
+export async function handleAddStudent(request: Request, env: Env, user: SessionUser): Promise<Response> {
   const formData = await readFormData(request);
   const timeZone = DEFAULT_TIME_ZONE;
   const studentInput = parseStudentFormSubmission(formData, { mode: "create", timeZone });
@@ -27,7 +28,7 @@ export async function handleAddStudent(request: Request, env: Env): Promise<Resp
   }
 
   try {
-    const selected = await createStudent(env.DB, studentInput);
+    const selected = await createStudent(env.DB, studentInput, user.id);
     return redirect(`/?selected=${selected}&notice=Student+added`);
   } catch (error) {
     logError("student.create_failed", error);
@@ -35,9 +36,9 @@ export async function handleAddStudent(request: Request, env: Env): Promise<Resp
   }
 }
 
-export async function handleUpdateStudent(request: Request, env: Env, studentId: number): Promise<Response> {
+export async function handleUpdateStudent(request: Request, env: Env, studentId: number, user: SessionUser): Promise<Response> {
   const returnPath = await getDashboardReturnPath(request, { selectedId: studentId });
-  const existingStudent = await getStudentById(env.DB, studentId);
+  const existingStudent = await getStudentById(env.DB, studentId, { userId: user.id });
   if (!existingStudent) {
     return redirect(appendDashboardMessage(returnPath, { error: "Student not found" }));
   }
@@ -56,14 +57,20 @@ export async function handleUpdateStudent(request: Request, env: Env, studentId:
 
   try {
     if (existingStudent.currentPhase !== studentInput.currentPhase) {
-      await updateStudentWithPhaseAudit(env.DB, studentId, studentInput, {
+      await updateStudentWithPhaseAudit(
+        env.DB,
         studentId,
-        changedAt: new Date().toISOString(),
-        fromPhase: existingStudent.currentPhase,
-        toPhase: studentInput.currentPhase,
-      });
+        studentInput,
+        {
+          studentId,
+          changedAt: new Date().toISOString(),
+          fromPhase: existingStudent.currentPhase,
+          toPhase: studentInput.currentPhase,
+        },
+        user.id,
+      );
     } else {
-      await updateStudent(env.DB, studentId, studentInput);
+      await updateStudent(env.DB, studentId, studentInput, user.id);
     }
   } catch (error) {
     logError("student.update_failed", error);
@@ -73,7 +80,7 @@ export async function handleUpdateStudent(request: Request, env: Env, studentId:
   return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, notice: "Student updated" }));
 }
 
-export async function handleAddLog(request: Request, env: Env, studentId: number): Promise<Response> {
+export async function handleAddLog(request: Request, env: Env, studentId: number, user: SessionUser): Promise<Response> {
   const returnPath = await getDashboardReturnPath(request, { selectedId: studentId });
   const formData = await readFormData(request);
   const timeZone = DEFAULT_TIME_ZONE;
@@ -105,7 +112,7 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
     return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Invalid log input" }));
   }
 
-  const student = await getStudentById(env.DB, studentId);
+  const student = await getStudentById(env.DB, studentId, { userId: user.id });
   if (!student) {
     return redirect(appendDashboardMessage(returnPath, { error: "Student not found" }));
   }
@@ -116,7 +123,12 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
     const nextLocal = `${addDaysToDateString(local.slice(0, 10), 7)}${local.slice(10)}`;
     followUpMeeting = localDateTimeToUtcIso(nextLocal, timeZone);
     if (toDateTimeLocalInput(followUpMeeting, timeZone) !== nextLocal) {
-      return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Next week's local time does not exist; choose another meeting time" }));
+      return redirect(
+        appendDashboardMessage(returnPath, {
+          selectedId: studentId,
+          error: "Next week's local time does not exist; choose another meeting time",
+        }),
+      );
     }
   }
 
@@ -135,6 +147,7 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
       logInput,
       followUpAction === "keep" ? "keep" : followUpAction === "clear" ? "clear" : "set",
       followUpMeeting,
+      user.id,
     );
   } catch (error) {
     logError("meeting_log.create_failed", error);
@@ -144,14 +157,14 @@ export async function handleAddLog(request: Request, env: Env, studentId: number
   return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, notice: "Log saved" }));
 }
 
-export async function handleArchiveStudent(request: Request, env: Env, studentId: number): Promise<Response> {
+export async function handleArchiveStudent(request: Request, env: Env, studentId: number, user: SessionUser): Promise<Response> {
   const returnPath = await getDashboardReturnPath(request);
-  if (!(await studentExists(env.DB, studentId))) {
+  if (!(await canManageStudent(env.DB, studentId, user.id))) {
     return redirect(appendDashboardMessage(returnPath, { error: "Student not found" }));
   }
 
   try {
-    await archiveStudent(env.DB, studentId, new Date().toISOString());
+    await archiveStudent(env.DB, studentId, new Date().toISOString(), user.id);
   } catch (error) {
     logError("student.archive_failed", error);
     return redirect(appendDashboardMessage(returnPath, { error: "Failed to archive student" }));
@@ -160,14 +173,14 @@ export async function handleArchiveStudent(request: Request, env: Env, studentId
   return redirect("/?scope=archived&notice=Student+archived");
 }
 
-export async function handleRestoreStudent(request: Request, env: Env, studentId: number): Promise<Response> {
+export async function handleRestoreStudent(request: Request, env: Env, studentId: number, user: SessionUser): Promise<Response> {
   const returnPath = await getDashboardReturnPath(request);
-  if (!(await studentExists(env.DB, studentId, { onlyArchived: true }))) {
+  if (!(await canManageStudent(env.DB, studentId, user.id))) {
     return redirect(appendDashboardMessage(returnPath, { error: "Archived student not found" }));
   }
 
   try {
-    await restoreStudent(env.DB, studentId);
+    await restoreStudent(env.DB, studentId, user.id);
   } catch (error) {
     logError("student.restore_failed", error);
     return redirect(appendDashboardMessage(returnPath, { error: "Failed to restore student" }));

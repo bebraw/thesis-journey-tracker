@@ -8,6 +8,8 @@ export interface StoredAuthUser {
   passwordHash: string;
   role: AccessRole;
   sessionVersion: number;
+  isAdmin: boolean;
+  canSupervise: boolean;
 }
 
 export interface LoginAttempt {
@@ -30,6 +32,8 @@ interface AuthUserRow {
   password_hash: string;
   role: AccessRole;
   session_version: number | string;
+  is_admin: number;
+  can_supervise: number;
 }
 
 interface ReturnedIdRow {
@@ -51,8 +55,9 @@ interface LoginAttemptRow {
 export async function listAuthUsers(db: D1Database): Promise<StoredAuthUser[]> {
   const rows = await db
     .prepare(
-      `SELECT id, name, password_hash, role, session_version
+      `SELECT id, name, password_hash, role, session_version, is_admin, can_supervise
        FROM app_users
+       WHERE disabled_at IS NULL
        ORDER BY name ASC`,
     )
     .all<AuthUserRow>();
@@ -63,6 +68,8 @@ export async function listAuthUsers(db: D1Database): Promise<StoredAuthUser[]> {
     passwordHash: row.password_hash,
     role: row.role,
     sessionVersion: parseDbNumber(row.session_version),
+    isAdmin: row.is_admin === 1,
+    canSupervise: row.can_supervise === 1,
   }));
 }
 
@@ -74,6 +81,7 @@ export async function upsertAuthUser(db: D1Database, input: UpsertAuthUserInput)
        ON CONFLICT(name) DO UPDATE SET
          password_hash = excluded.password_hash,
          role = excluded.role,
+         can_supervise = CASE WHEN excluded.role = 'readonly' THEN 0 ELSE app_users.can_supervise END,
          session_version = app_users.session_version + 1
        RETURNING id`,
     )

@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { getPlatformProxy, type PlatformProxy } from "wrangler";
+import { getPlatformProxy, unstable_splitSqlQuery, type PlatformProxy } from "wrangler";
 import { createAgentToken, authenticateAgent, revokeAgentToken, listAgentTokens } from "../src/agent/tokens";
+import { collectStudentBackupBundles } from "../src/backup/data";
 import { handleMcp } from "../src/agent/mcp";
 import { handleAgentAccess } from "../src/routes/agent-access";
 import { getLoginAttempt, recordLoginFailure, revokeAuthUserSessions } from "../src/auth/store";
@@ -36,105 +36,15 @@ describe("D1-backed db helpers", () => {
       persist: { path: persistPath },
       remoteBindings: false,
     });
-    await runStatement(
-      platform.env.DB,
-      `
-      CREATE TABLE IF NOT EXISTS students (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT,
-        start_date TEXT,
-        current_phase TEXT NOT NULL CHECK (current_phase IN ('research_plan', 'researching', 'editing', 'submitted')),
-        next_meeting_at TEXT,
-        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-        degree_type TEXT NOT NULL DEFAULT 'msc' CHECK (degree_type IN ('bsc', 'msc', 'dsc')),
-        thesis_topic TEXT,
-        student_notes TEXT,
-        archived_at TEXT
-      );
-    `,
-    );
-    await runStatement(
-      platform.env.DB,
-      `
-      CREATE TABLE IF NOT EXISTS meeting_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        student_id INTEGER NOT NULL,
-        happened_at TEXT NOT NULL,
-        discussed TEXT NOT NULL,
-        agreed_plan TEXT NOT NULL,
-        next_step_deadline TEXT,
-        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
-      );
-    `,
-    );
-    await runStatement(
-      platform.env.DB,
-      `
-      CREATE TABLE IF NOT EXISTS student_phase_audit (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        student_id INTEGER NOT NULL,
-        changed_at TEXT NOT NULL,
-        from_phase TEXT NOT NULL CHECK (from_phase IN ('research_plan', 'researching', 'editing', 'submitted')),
-        to_phase TEXT NOT NULL CHECK (to_phase IN ('research_plan', 'researching', 'editing', 'submitted')),
-        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
-      );
-    `,
-    );
-    await runStatement(
-      platform.env.DB,
-      `
-      CREATE TABLE IF NOT EXISTS login_attempts (
-        attempt_key TEXT PRIMARY KEY,
-        failure_count INTEGER NOT NULL DEFAULT 0,
-        first_failed_at TEXT NOT NULL,
-        last_failed_at TEXT NOT NULL,
-        locked_until TEXT
-      );
-    `,
-    );
-    await runStatement(
-      platform.env.DB,
-      `
-      CREATE TABLE IF NOT EXISTS app_users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL COLLATE NOCASE UNIQUE,
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL CHECK (role IN ('editor', 'readonly')),
-        session_version INTEGER NOT NULL DEFAULT 1 CHECK (session_version >= 1),
-        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
-      );
-    `,
-    );
-    await runStatement(
-      platform.env.DB,
-      `
-      CREATE TRIGGER IF NOT EXISTS trg_app_users_updated_at
-      AFTER UPDATE ON app_users
-      FOR EACH ROW
-      BEGIN
-        UPDATE app_users
-        SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-        WHERE id = OLD.id;
-      END;
-    `,
-    );
-    await runStatement(
-      platform.env.DB,
-      `
-      CREATE TABLE IF NOT EXISTS app_secrets (
-        secret_key TEXT PRIMARY KEY,
-        encrypted_value TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-    `,
-    );
-    for (const sql of readFileSync(join(process.cwd(), "migrations/0005_recurring_meetings_and_agent_tokens.sql"), "utf8")
-      .split(";")
-      .filter((part) => part.trim()))
-      await runStatement(platform.env.DB, sql);
+    const directory = join(process.cwd(), "migrations");
+    const migrations = readdirSync(directory)
+      .filter((file) => file.endsWith(".sql"))
+      .sort();
+    for (const file of migrations) {
+      for (const statement of unstable_splitSqlQuery(readFileSync(join(directory, file), "utf8"))) {
+        await runStatement(platform.env.DB, statement);
+      }
+    }
   }, 60_000);
 
   afterAll(async () => {
@@ -192,6 +102,15 @@ describe("D1-backed db helpers", () => {
     expect(student?.lastLogAt).toBe("2026-03-22T09:00:00.000Z");
     expect(logs[0]?.discussed).toBe("Integration test log");
     expect(phaseAudit[0]?.toPhase).toBe("researching");
+
+    await runStatement(
+      platform.env.DB,
+      "INSERT INTO app_users (id,name,role,can_supervise,password_hash) VALUES (42,'Lead','editor',1,'sample')",
+    );
+    await platform.env.DB.prepare("INSERT INTO thesis_assignments VALUES (?,42,'supervisor')").bind(studentId).run();
+    expect(await collectStudentBackupBundles(platform.env.DB)).toEqual([
+      { student, logs, phaseAudit, assignments: [{ userId: 42, name: "Lead", role: "supervisor" }] },
+    ]);
   });
 
   it("clears a saved next meeting when a meeting log has no follow-up time", async () => {
@@ -396,7 +315,10 @@ describe("D1-backed db helpers", () => {
   });
 
   it("serves professor setup and enforces readonly MCP access, including after role changes", async () => {
-    await runStatement(platform.env.DB, "INSERT INTO app_users (id, name, password_hash, role) VALUES (1, 'Advisor', 'unused', 'editor')");
+    await runStatement(
+      platform.env.DB,
+      "INSERT INTO app_users (id, name, password_hash, role, can_supervise) VALUES (1, 'Advisor', 'unused', 'editor', 1)",
+    );
     const user = { id: 1, name: "Advisor", role: "editor" as const, sessionVersion: 1 };
     const env = { DB: platform.env.DB };
     const secret = await createAgentToken(platform.env.DB, user, "Codex", 30);
@@ -428,6 +350,15 @@ describe("D1-backed db helpers", () => {
     ).json()) as { result: { isError: boolean } };
     expect(invalid.result.isError).toBe(true);
     expect((await getStudentById(platform.env.DB, studentId))?.name).toBe("Nghi Tran");
+    const before = await rpc("tools/call", { name: "get_student", arguments: { studentId } });
+    expect(await before.text()).toContain("Nghi Tran");
+    await platform.env.DB.prepare("DELETE FROM thesis_assignments WHERE student_id = ?").bind(studentId).run();
+    const after = await rpc("tools/call", { name: "get_student", arguments: { studentId } });
+    expect(await after.text()).toContain("Student not found");
+    const hiddenList = await rpc("tools/call", { name: "list_students", arguments: { search: "Nghi", includeArchived: true } });
+    expect(await hiddenList.text()).not.toContain("Nghi Tran");
+    const revokedEdit = await rpc("tools/call", { name: "update_student", arguments: { studentId, name: "Forbidden" } });
+    expect(await revokedEdit.text()).toContain("Student not found");
     await runStatement(platform.env.DB, "UPDATE app_users SET role = 'readonly' WHERE id = 1");
     const listing = (await (await rpc("tools/list")).json()) as { result: { tools: Array<{ name: string }> } };
     expect(listing.result.tools.map((tool) => tool.name)).toEqual(["list_students", "get_student"]);
@@ -454,6 +385,79 @@ describe("D1-backed db helpers", () => {
     expect(html).toContain("Read-only:");
     const revisited = await handleAgentAccess(new Request("https://tracker.example/agent-access"), env, { ...user, role: "readonly" });
     expect(await revisited.text()).not.toContain("tjt_");
+    await runStatement(platform.env.DB, "UPDATE app_users SET disabled_at = CURRENT_TIMESTAMP WHERE id = 1");
+    expect((await rpc("tools/list")).status).toBe(401);
+  });
+
+  it("enforces active thesis assignments on individual and compound writes in D1", async () => {
+    const db = platform.env.DB;
+    await runStatement(
+      db,
+      `INSERT INTO app_users (id, name, password_hash, role, is_admin, can_supervise) VALUES
+      (1, 'First lead', '', 'editor', 0, 1), (2, 'Second lead', '', 'editor', 0, 1),
+      (3, 'Advisor', '', 'editor', 0, 0), (4, 'Admin', '', 'editor', 1, 0)`,
+    );
+    const student = {
+      name: "Assigned",
+      degreeType: "msc" as const,
+      currentPhase: "research_plan" as const,
+      thesisTopic: null,
+      email: null,
+      studentNotes: null,
+      nextMeetingAt: null,
+      startDate: null,
+    };
+    const [assigned, other] = await Promise.all([createStudent(db, student, 1), createStudent(db, { ...student, name: "Other" }, 2)]);
+    await db.prepare("INSERT INTO thesis_assignments (student_id, user_id, assignment_role) VALUES (?, 3, 'advisor')").bind(assigned).run();
+    for (const userId of [1, 3]) {
+      expect((await listStudents(db, { userId })).map((row) => row.id)).toEqual([assigned]);
+      expect(await getStudentById(db, other, { userId, includeArchived: true })).toBeNull();
+    }
+    expect((await listStudents(db, { userId: 2 })).map((row) => row.id)).toEqual([other]);
+    expect(await listStudents(db, { userId: 4 })).toEqual([]);
+    await expect(createStudent(db, student, 3)).rejects.toThrow();
+    expect(await listStudents(db)).toHaveLength(2);
+    const note = {
+      studentId: assigned,
+      happenedAt: "2026-04-01T12:00:00.000Z",
+      discussed: "Draft",
+      agreedPlan: "Revise",
+      nextStepDeadline: null,
+    };
+    const followUp = "2026-05-01T12:00:00.000Z";
+    const update = { ...student, currentPhase: "editing" as const };
+    const audit = { studentId: assigned, changedAt: note.happenedAt, fromPhase: student.currentPhase, toPhase: update.currentPhase };
+    await updateStudentWithPhaseAudit(db, assigned, update, audit, 3);
+    await createMeetingLogWithNextMeeting(db, note, followUp, false, 3);
+    expect(await getStudentById(db, assigned, { userId: 1 })).toMatchObject({
+      logCount: 1,
+      nextMeetingAt: followUp,
+      currentPhase: "editing",
+    });
+    expect(await listPhaseAuditEntriesForStudent(db, assigned, 1)).toHaveLength(1);
+    expect(await listPhaseAuditEntriesForStudent(db, assigned, 2)).toEqual([]);
+    expect(await listLogsForStudent(db, assigned, 2)).toEqual([]);
+    await expect(archiveStudent(db, assigned, note.happenedAt, 3)).rejects.toThrow();
+    await archiveStudent(db, assigned, note.happenedAt, 1);
+    expect(await listStudents(db, { userId: 3 })).toEqual([]);
+    expect((await listStudents(db, { userId: 3, onlyArchived: true })).map((row) => row.id)).toEqual([assigned]);
+    await expect(createMeetingLogWithNextMeeting(db, note, null, true, 3)).rejects.toThrow();
+    await expect(restoreStudent(db, assigned, 3)).rejects.toThrow();
+    await restoreStudent(db, assigned, 1);
+    await db.prepare("UPDATE app_users SET role = 'readonly' WHERE id = 3").run();
+    expect(await getStudentById(db, assigned, { userId: 3 })).not.toBeNull();
+    await expect(updateStudentWithPhaseAudit(db, assigned, student, audit, 3)).rejects.toThrow();
+    await db.prepare("DELETE FROM thesis_assignments WHERE user_id = 3").run();
+    await db.prepare("UPDATE app_users SET role = 'editor' WHERE id = 3").run();
+    expect(await getStudentById(db, assigned, { userId: 3 })).toBeNull();
+    await expect(createMeetingLogWithNextMeeting(db, note, null, true, 3)).rejects.toThrow();
+    await expect(updateStudent(db, assigned, student, 3)).rejects.toThrow();
+    expect(await getStudentById(db, assigned, { userId: 1 })).toMatchObject({
+      logCount: 1,
+      nextMeetingAt: followUp,
+      currentPhase: "editing",
+    });
+    expect(await listPhaseAuditEntriesForStudent(db, assigned, 1)).toHaveLength(1);
   });
 
   it("rejects session revocation for a missing user", async () => {

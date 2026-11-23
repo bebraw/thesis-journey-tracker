@@ -1,5 +1,3 @@
-import type { MeetingLog, PhaseAuditEntry, Student } from "../students/store";
-
 export interface R2HttpMetadata {
   contentDisposition?: string;
   contentType?: string;
@@ -60,10 +58,4 @@ export interface AutomatedBackupResult {
   manifest: AutomatedBackupManifest | null;
   manifestKey: string | null;
   matchedManifestKey: string | null;
-}
-
-export interface StudentBackupBundle {
-  student: Student;
-  logs: MeetingLog[];
-  phaseAudit: PhaseAuditEntry[];
 }

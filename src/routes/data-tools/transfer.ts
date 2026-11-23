@@ -1,3 +1,5 @@
+import { collectStudentBackupBundles } from "../../backup/data";
+import type { ExportedAssignment } from "../../data-transfer/types";
 import type { Env } from "../../app-env";
 import {
   buildExportFilename,
@@ -13,20 +15,12 @@ import type { D1Database, D1PreparedStatement } from "../../db-core";
 import { IMPORT_FILE_LIMIT_BYTES, IMPORT_FORM_BODY_LIMIT_BYTES, readFormData } from "../../http/request-body";
 import { redirect } from "../../http/response";
 import { logError } from "../../observability/error-logging";
-import { listLogsForStudent, listPhaseAuditEntriesForStudent, listStudents } from "../../students/store";
+import { listLogsForStudent, listStudents } from "../../students/store";
 
 const MAX_IMPORT_BATCH_STATEMENTS = 750;
 
 export async function handleExportJson(env: Env): Promise<Response> {
-  const students = await listStudents(env.DB, { includeArchived: true });
-  const studentBundles = await Promise.all(
-    students.map(async (student) => ({
-      student,
-      logs: await listLogsForStudent(env.DB, student.id),
-      phaseAudit: await listPhaseAuditEntriesForStudent(env.DB, student.id),
-    })),
-  );
-
+  const studentBundles = await collectStudentBackupBundles(env.DB);
   const body = JSON.stringify(createDataExport(studentBundles), null, 2);
 
   return new Response(body, {
@@ -38,11 +32,11 @@ export async function handleExportJson(env: Env): Promise<Response> {
   });
 }
 
-export async function handleProfessorReportExport(env: Env): Promise<Response> {
-  const students = await listStudents(env.DB);
+export async function handleProfessorReportExport(env: Env, userId: number): Promise<Response> {
+  const students = await listStudents(env.DB, { userId });
   const studentBundles = await Promise.all(
     students.map(async (student) => {
-      const logs = await listLogsForStudent(env.DB, student.id);
+      const logs = await listLogsForStudent(env.DB, student.id, userId);
       return {
         student,
         latestLog: logs[0] || null,
@@ -96,7 +90,11 @@ export async function handleImportJson(request: Request, env: Env): Promise<Resp
   }
 
   try {
-    const statements = await buildImportStatements(env.DB, data, mode);
+    const resolved = await resolveImportAssignments(env.DB, data, formData.get("legacySupervisor"));
+    if (typeof resolved === "string") {
+      return redirect(`/data-tools?error=${encodeURIComponent(resolved)}`);
+    }
+    const statements = await buildImportStatements(env.DB, resolved, mode);
     if (statements.length > 0) {
       await env.DB.batch(statements);
     }
@@ -120,11 +118,48 @@ export function isReplaceImportEnabled(env: Env): boolean {
   return rawValue === "1" || rawValue === "true" || rawValue === "yes";
 }
 
-async function buildImportStatements(
+interface ImportAccount {
+  id: number;
+  name: string;
+  can_supervise: number;
+  role: string;
+}
+
+type ResolvedBundle = Omit<ImportedStudentBundle, "assignments"> & {
+  assignments: ExportedAssignment[];
+};
+
+async function resolveImportAssignments(
   db: D1Database,
   data: ImportedStudentBundle[],
-  mode: "append" | "replace",
-): Promise<D1PreparedStatement[]> {
+  legacySupervisor: FormDataEntryValue | null,
+): Promise<ResolvedBundle[] | string> {
+  const rows = await db.prepare("SELECT id, name, role, can_supervise FROM app_users WHERE disabled_at IS NULL").all<ImportAccount>();
+  const accounts = new Map(rows.results.map((account) => [account.id, account]));
+  const legacyOwner = typeof legacySupervisor === "string" ? accounts.get(Number(legacySupervisor)) : undefined;
+  const bundles: ResolvedBundle[] = [];
+  for (const bundle of data) {
+    let team = bundle.assignments;
+    if (team === null) {
+      if (!legacyOwner) return "Select an active supervisor for theses in a version 1 backup.";
+      team = [{ userId: legacyOwner.id, name: legacyOwner.name, role: "supervisor" }];
+    }
+    for (const assignment of team) {
+      const account = accounts.get(assignment.userId);
+      if (
+        !account ||
+        account.name !== assignment.name ||
+        (assignment.role === "supervisor" && (!account.can_supervise || account.role !== "editor"))
+      ) {
+        return `Thesis ${bundles.length + 1} references an unavailable ${assignment.role} account. Check the account ID, exact name, and permissions before importing.`;
+      }
+    }
+    bundles.push({ ...bundle, assignments: team });
+  }
+  return bundles;
+}
+
+async function buildImportStatements(db: D1Database, data: ResolvedBundle[], mode: "append" | "replace"): Promise<D1PreparedStatement[]> {
   const baseIds = mode === "replace" ? { student: 0, log: 0, phaseAudit: 0 } : await readCurrentImportIds(db);
   let nextStudentId = baseIds.student + 1;
   let nextLogId = baseIds.log + 1;
@@ -160,6 +195,19 @@ async function buildImportStatements(
           bundle.student.meetingSchedule ? JSON.stringify(bundle.student.meetingSchedule) : null,
         ),
     );
+
+    for (const assignment of bundle.assignments) {
+      // A missing or changed account yields NULL and fails the whole restore batch.
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO thesis_assignments (student_id, user_id, assignment_role)
+           VALUES (?, (SELECT id FROM app_users WHERE id = ? AND name = ? COLLATE BINARY
+             AND disabled_at IS NULL AND (? = 'advisor' OR (role = 'editor' AND can_supervise = 1))), ?)`,
+          )
+          .bind(studentId, assignment.userId, assignment.name, assignment.role, assignment.role),
+      );
+    }
 
     for (const log of bundle.logs) {
       statements.push(
@@ -217,7 +265,8 @@ function parseMaxIdValue(value: number | string | null | undefined): number {
 function validateImportBatchSize(data: ImportedStudentBundle[], mode: "append" | "replace"): string | null {
   const logCount = countImportedLogs(data);
   const phaseAuditCount = countImportedPhaseAuditEntries(data);
-  const totalStatements = data.length + logCount + phaseAuditCount + (mode === "replace" ? 1 : 0);
+  const assignmentCount = data.reduce((total, bundle) => total + (bundle.assignments?.length ?? 1), 0);
+  const totalStatements = data.length + assignmentCount + logCount + phaseAuditCount + (mode === "replace" ? 1 : 0);
 
   if (totalStatements > MAX_IMPORT_BATCH_STATEMENTS) {
     return `Import is too large for a single D1 batch. This file would execute ${totalStatements} statements, but the safe limit is ${MAX_IMPORT_BATCH_STATEMENTS}. Split the import into smaller files or reduce meeting logs and phase history.`;

@@ -20,8 +20,8 @@ export function renderDataToolsPage(data: DataToolsPageData): string {
     sections: [
       `<div class="grid grid-cols-1 gap-stack">
         ${renderDashboardLaneConfigCard(data)}
-        ${renderExportCard(studentCount, logCount)}
-        ${renderImportCard(replaceImportEnabled)}
+        ${renderExportCard(studentCount, logCount, viewer.canSupervise === true && viewer.role === "editor")}
+        ${renderImportCard(replaceImportEnabled, data.supervisors)}
       </div>`,
     ],
   });

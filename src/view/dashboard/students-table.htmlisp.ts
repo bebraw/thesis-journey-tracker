@@ -191,9 +191,9 @@ export function renderStudentsTable(
   phaseLanesHtml: string,
   selectedPanel: string,
   emptySelectedPanel: string,
-  options: { canEdit?: boolean; timeZone?: string; activeStudentCount?: number; archivedStudentCount?: number } = {},
+  options: { canCreate?: boolean; timeZone?: string; activeStudentCount?: number; archivedStudentCount?: number } = {},
 ): string {
-  const { canEdit = false, timeZone, activeStudentCount = students.length, archivedStudentCount = 0 } = options;
+  const { canCreate = false, timeZone, activeStudentCount = students.length, archivedStudentCount = 0 } = options;
   const isArchivedScope = filters.scope === "archived";
   const degreeFilterOptions = prepareFilterOptions(
     [
@@ -494,7 +494,7 @@ export function renderStudentsTable(
       sortHeaders,
       hasStudentRows: studentRows.length > 0,
       addStudentButtonHtml: raw(
-        canEdit
+        canCreate
           ? renderButton({
               label: "Add student",
               href: "/students/new",

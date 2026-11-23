@@ -161,7 +161,7 @@ export function renderDashboardToastMessages(notice: string | null, error: strin
   );
 }
 
-export type HeaderPageId = "dashboard" | "data-tools" | "add-student" | "style-guide" | "agent-access";
+export type HeaderPageId = "dashboard" | "data-tools" | "add-student" | "style-guide" | "agent-access" | "access";
 
 interface RenderAuthedPageDocumentOptions {
   documentTitle: string;
@@ -201,10 +201,16 @@ export function renderPageHeaderNavigation(currentPage: HeaderPageId, viewer: Vi
 
   const moreLinks: HeaderLink[] = [];
   moreLinks.push({ label: "Agent access", href: "/agent-access", current: currentPage === "agent-access" });
-  if (viewer.role === "editor") {
+  if (viewer.isAdmin || viewer.canSupervise) {
+    moreLinks.push({ label: "Manage access", href: "/access", current: currentPage === "access" });
+  }
+  if (viewer.canSupervise && viewer.role === "editor") {
+    moreLinks.push({ label: "Cohort report", href: "/actions/export-professor-report", current: false });
+  }
+  if (viewer.isAdmin) {
     moreLinks.push({ label: "Data tools", href: "/data-tools", current: currentPage === "data-tools" });
   }
-  if (showStyleGuide) {
+  if (showStyleGuide && viewer.role === "editor") {
     moreLinks.push({ label: "Style guide", href: "/style-guide", current: currentPage === "style-guide" });
   }
 

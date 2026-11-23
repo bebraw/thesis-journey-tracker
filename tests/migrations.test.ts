@@ -42,6 +42,59 @@ describe("schema migrations", () => {
     db.close();
   });
 
+  it("adds thesis assignments to an existing database without changing historical records or granting access", () => {
+    const db = new DatabaseSync(":memory:");
+    const migration = "0007_thesis_assignments.sql";
+    for (const file of MIGRATION_FILES.filter((name) => name < migration)) {
+      db.exec(readFileSync(join(MIGRATIONS_DIR, file), "utf8"));
+    }
+    db.exec(`
+      INSERT INTO students (id, name, current_phase, archived_at, meeting_schedule) VALUES
+        (10, 'Active', 'researching', NULL, '{"intervalWeeks":2}'),
+        (40, 'Archived', 'submitted', '2026-01-05', NULL);
+      INSERT INTO meeting_logs (student_id,happened_at,discussed,agreed_plan) VALUES (40,'2026-01-02','Discuss','Deliver');
+      INSERT INTO student_phase_audit (student_id,changed_at,from_phase,to_phase) VALUES (40,'2026-01-03','editing','submitted');
+      INSERT INTO app_users (id,name,password_hash,role,session_version) VALUES
+        (7,'Lead','original','editor',4),(19,'Reader','another','readonly',2);
+      INSERT INTO agent_tokens (id,user_id,name,token_hash,expires_at) VALUES ('t',19,'Tool','example','2029-01-01');
+      INSERT INTO app_secrets (secret_key,encrypted_value,updated_at) VALUES ('dashboard_lane_config','settings','2026-01-01');
+    `);
+    const historyTables = ["students", "meeting_logs", "student_phase_audit", "agent_tokens", "app_secrets"];
+    const history = () => historyTables.map((table) => db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all());
+    const users = () =>
+      db.prepare("SELECT id,name,password_hash,role,session_version,created_at,updated_at FROM app_users ORDER BY id").all();
+    const originalHistory = history();
+    const originalUsers = users();
+    db.exec(readFileSync(join(MIGRATIONS_DIR, migration), "utf8"));
+    expect(history()).toEqual(originalHistory);
+    expect(users()).toEqual(originalUsers);
+    expect(db.prepare("SELECT 1 FROM thesis_assignments").all()).toEqual([]);
+    expect(db.prepare("SELECT 1 FROM app_users WHERE is_admin != 0 OR can_supervise != 0 OR disabled_at IS NOT NULL").all()).toEqual([]);
+
+    db.exec(`
+      UPDATE app_users SET is_admin=1,can_supervise=1 WHERE id=7;
+      INSERT INTO thesis_assignments SELECT id,7,'supervisor' FROM students;
+      INSERT INTO thesis_assignments VALUES (40,19,'advisor');
+    `);
+    expect(history()).toEqual(originalHistory);
+    expect(db.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    expect(() => db.exec("INSERT INTO thesis_assignments VALUES (10,19,'supervisor')")).toThrow();
+    expect(() => db.exec("DELETE FROM app_users WHERE id=7")).toThrow();
+    for (const change of ["role='readonly'", "can_supervise=0", "disabled_at='2026-02-01'"]) {
+      expect(() => db.exec(`UPDATE app_users SET ${change} WHERE id=7`)).toThrow("Transfer supervised theses");
+    }
+    db.exec("UPDATE app_users SET disabled_at='2026-02-02' WHERE id=19");
+    expect(db.prepare("SELECT 1 FROM thesis_assignments WHERE user_id=19").get()).toBeUndefined();
+    expect(db.prepare("SELECT revoked_at FROM agent_tokens WHERE id='t'").get()?.revoked_at).toBeTruthy();
+    db.exec(`
+      UPDATE app_users SET disabled_at=NULL WHERE id=19;
+      INSERT INTO agent_tokens (id,user_id,name,token_hash,expires_at) VALUES ('t2',19,'Tool','next','2029-01-01');
+      UPDATE app_users SET password_hash='reset' WHERE id=19;
+    `);
+    expect(db.prepare("SELECT 1 FROM agent_tokens WHERE revoked_at IS NULL").get()).toBeUndefined();
+    db.close();
+  });
+
   it("creates the current application schema from scratch", () => {
     const db = new DatabaseSync(":memory:");
 
@@ -160,6 +213,7 @@ describe("schema migrations", () => {
       "meeting_logs",
       "student_phase_audit",
       "students",
+      "thesis_assignments",
     ]);
 
     const indexes = db
@@ -173,6 +227,8 @@ describe("schema migrations", () => {
       "idx_student_phase_audit_student_id",
       "idx_students_archived_at",
       "idx_students_next_meeting",
+      "idx_thesis_assignments_supervisor",
+      "idx_thesis_assignments_user",
     ]);
 
     db.exec(`

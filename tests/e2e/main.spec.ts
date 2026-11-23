@@ -144,7 +144,7 @@ test.describe("dashboard e2e", () => {
     expect(download.suggestedFilename()).toMatch(/^thesis-journey-tracker-export-\d{4}-\d{2}-\d{2}\.json$/);
 
     const reportDownloadPromise = page.waitForEvent("download");
-    await page.getByRole("link", { name: "Download email-ready report" }).click();
+    await page.getByRole("link", { name: "Download report for my theses" }).click();
     const reportDownload = await reportDownloadPromise;
     expect(reportDownload.suggestedFilename()).toMatch(/^thesis-journey-status-report-\d{4}-\d{2}-\d{2}\.md$/);
 
@@ -180,6 +180,7 @@ test.describe("dashboard e2e", () => {
       mimeType: "application/json",
       buffer: Buffer.from(importJson, "utf8"),
     });
+    await page.locator('select[name="legacySupervisor"]').selectOption({ label: "Advisor" });
     await page.getByLabel("Import mode").selectOption("append");
     await page.getByRole("button", { name: "Import JSON file" }).click();
 

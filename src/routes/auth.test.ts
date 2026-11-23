@@ -22,8 +22,8 @@ describe("multi-user access control", () => {
       APP_ENCRYPTION_SECRET: "test-app-encryption-secret-with-32-bytes",
     };
     await seedTestUsers(env.DB, [
-      { name: "Advisor", password: "editor-password", role: "editor" },
-      { name: "Professor", password: "readonly-password", role: "readonly" },
+      { name: "Advisor", password: "editor-password", role: "editor", isAdmin: true, canSupervise: true, assignment: "supervisor" },
+      { name: "Professor", password: "readonly-password", role: "readonly", assignment: "advisor" },
     ]);
   });
 
@@ -184,11 +184,42 @@ describe("multi-user access control", () => {
     expect(body).toContain("Select a student from the table to view details, supervision logs, and phase history.");
   });
 
+  it("gives an unassigned administrator a management roster and an empty personal dashboard", async () => {
+    await seedTestUsers(env.DB, [{ name: "Manager", password: "manager-password", role: "readonly", isAdmin: true }]);
+    const cookie = await loginWithPassword(fetchHandler, env, "Manager", "manager-password");
+    const visit = (path: string) => fetchHandler(new Request(`http://localhost${path}`, { headers: { cookie } }), env);
+    const dashboard = await (await visit("/")).text();
+    expect(dashboard).toContain("Manage access");
+    expect(dashboard).not.toContain("Base Student");
+    expect(dashboard).not.toContain("Add student");
+    expect((await visit("/partials/student/1")).status).toBe(404);
+    expect(await (await visit("/access")).text()).toContain("Base Student");
+    expect((await visit("/data-tools")).status).toBe(200);
+  });
+
+  it("limits a supervisor's report and team roster to their own assignments", async () => {
+    await seedTestUsers(env.DB, [{ name: "Second supervisor", password: "second-password", role: "editor", canSupervise: true }]);
+    const id = env.DB.seedRow("students", { name: "Second cohort thesis", current_phase: "editing" });
+    const supervisorId = env.DB.appUsers.find((user) => user.name === "Second supervisor")!.id;
+    env.DB.seedRow("thesis_assignments", { student_id: id, user_id: supervisorId, assignment_role: "supervisor" });
+    const cookie = await loginWithPassword(fetchHandler, env, "Second supervisor", "second-password");
+    const visit = (path: string) => fetchHandler(new Request(`http://localhost${path}`, { headers: { cookie } }), env);
+    for (const path of ["/", "/access", "/actions/export-professor-report"]) {
+      const response = await visit(path);
+      expect(response.status).toBe(200);
+      const content = await response.text();
+      expect(content).toContain("Second cohort thesis");
+      expect(content).not.toContain("Base Student");
+    }
+    expect((await visit("/access?studentId=1")).status).toBe(404);
+    expect((await visit("/actions/export-json")).status).toBe(403);
+  });
+
   it("shows separate active and archived student counts", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
-    env.DB.students.push({
+    env.DB.seedRow("students", {
       id: 2,
       name: "Archived Student",
       email: "archived@example.edu",
@@ -200,6 +231,7 @@ describe("multi-user access control", () => {
       next_meeting_at: null,
       archived_at: "2026-05-01T00:00:00.000Z",
     });
+    env.DB.seedRow("thesis_assignments", { student_id: 2, user_id: 1, assignment_role: "supervisor" });
 
     const response = await fetchHandler(
       new Request("http://localhost/", {
@@ -245,7 +277,7 @@ describe("multi-user access control", () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Professor", "readonly-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
-    env.DB.meetingLogs.push({
+    env.DB.seedRow("meeting_logs", {
       id: 1,
       student_id: 1,
       happened_at: "2026-03-22T09:00:00.000Z",
@@ -253,7 +285,7 @@ describe("multi-user access control", () => {
       agreed_plan: "Write chapter 1",
       next_step_deadline: "2026-03-29",
     });
-    env.DB.phaseAuditEntries.push({
+    env.DB.seedRow("student_phase_audit", {
       id: 1,
       student_id: 1,
       changed_at: "2026-03-21T12:00:00.000Z",
@@ -295,8 +327,7 @@ describe("multi-user access control", () => {
       env,
     );
 
-    expect(dataToolsResponse.status).toBe(302);
-    expect(dataToolsResponse.headers.get("location")).toBe("/?error=Read-only+access");
+    expect(dataToolsResponse.status).toBe(403);
 
     const updateResponse = await fetchHandler(
       sameOriginRequest("http://localhost/actions/update-student/1", {
@@ -335,8 +366,7 @@ describe("multi-user access control", () => {
       env,
     );
 
-    expect(saveDashboardLaneSettingsResponse.status).toBe(302);
-    expect(saveDashboardLaneSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
+    expect(saveDashboardLaneSettingsResponse.status).toBe(403);
 
     const resetDashboardLaneSettingsResponse = await fetchHandler(
       sameOriginRequest("http://localhost/actions/reset-dashboard-lane-settings", {
@@ -348,8 +378,7 @@ describe("multi-user access control", () => {
       env,
     );
 
-    expect(resetDashboardLaneSettingsResponse.status).toBe(302);
-    expect(resetDashboardLaneSettingsResponse.headers.get("location")).toBe("/?error=Read-only+access");
+    expect(resetDashboardLaneSettingsResponse.status).toBe(403);
     expect(env.DB.students[0]?.name).toBe("Base Student");
     expect(env.DB.phaseAuditEntries).toHaveLength(0);
   });
@@ -421,7 +450,7 @@ describe("multi-user access control", () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
-    env.DB.students[0].next_meeting_at = "2026-04-10T09:00:00.000Z";
+    await env.DB.prepare("UPDATE students SET next_meeting_at = ? WHERE id = 1").bind("2026-04-10T09:00:00.000Z").run();
 
     const response = await fetchHandler(
       sameOriginRequest("http://localhost/actions/update-student/1", {
@@ -486,7 +515,7 @@ describe("multi-user access control", () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
-    env.DB.students[0].next_meeting_at = "2026-04-10T09:00:00.000Z";
+    await env.DB.prepare("UPDATE students SET next_meeting_at = ? WHERE id = 1").bind("2026-04-10T09:00:00.000Z").run();
 
     const body = new URLSearchParams({
       returnTo: "/?selected=1",
@@ -523,9 +552,9 @@ describe("multi-user access control", () => {
     ["set", "2026-04-08T09:00:00.000Z"],
   ] as const)("applies the explicit %s follow-up choice when saving a note", async (followUpAction, expectedMeeting) => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
-    env.DB.students[0].next_meeting_at = "2026-04-10T09:00:00.000Z";
+    await env.DB.prepare("UPDATE students SET next_meeting_at = ? WHERE id = 1").bind("2026-04-10T09:00:00.000Z").run();
     // Keep must not write back a stale meeting value after another request schedules a meeting.
-    if (followUpAction === "keep") env.DB.failQueries = ["UPDATE students SET next_meeting_at = ? WHERE id = ? RETURNING id"];
+    if (followUpAction === "keep") env.DB.failQueries = [/^UPDATE students SET next_meeting_at = /];
     const response = await fetchHandler(
       sameOriginRequest("http://localhost/actions/add-log/1", {
         method: "POST",
@@ -551,12 +580,17 @@ describe("multi-user access control", () => {
     { happenedAt: "2027-03-26T14:00", expected: "2027-04-02T11:00:00.000Z" },
   ])("books the note's local time one week later for $happenedAt", async ({ happenedAt, expected }) => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
-    env.DB.students[0].next_meeting_at = null;
+    await env.DB.prepare("UPDATE students SET next_meeting_at = ? WHERE id = 1").bind(null).run();
     const response = await fetchHandler(
       sameOriginRequest("http://localhost/actions/add-log/1", {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded", cookie },
-        body: new URLSearchParams({ happenedAt, discussed: "Reviewed draft", agreedPlan: "Revise introduction", followUpAction: "next-week" }),
+        body: new URLSearchParams({
+          happenedAt,
+          discussed: "Reviewed draft",
+          agreedPlan: "Revise introduction",
+          followUpAction: "next-week",
+        }),
       }),
       env,
     );
@@ -572,7 +606,10 @@ describe("multi-user access control", () => {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded", cookie },
         body: new URLSearchParams({
-          happenedAt: "2027-03-21T03:30", discussed: "Reviewed draft", agreedPlan: "Revise", followUpAction: "next-week",
+          happenedAt: "2027-03-21T03:30",
+          discussed: "Reviewed draft",
+          agreedPlan: "Revise",
+          followUpAction: "next-week",
         }),
       }),
       env,
@@ -656,7 +693,7 @@ describe("multi-user access control", () => {
     expect(env.DB.meetingLogs).toHaveLength(0);
     expect(env.DB.students[0]?.next_meeting_at).toBeNull();
 
-    env.DB.failQueries = ["UPDATE students SET next_meeting_at = ? WHERE id = ? RETURNING id"];
+    env.DB.failQueries = [/^UPDATE students SET next_meeting_at = /];
     const addLogWithMeetingUpdateResponse = await fetchHandler(
       sameOriginRequest("http://localhost/actions/add-log/1", {
         method: "POST",
@@ -680,7 +717,7 @@ describe("multi-user access control", () => {
     expect(env.DB.meetingLogs).toHaveLength(0);
     expect(env.DB.students[0]?.next_meeting_at).toBeNull();
 
-    env.DB.failQueries = ["UPDATE students SET archived_at = ? WHERE id = ? AND archived_at IS NULL RETURNING id"];
+    env.DB.failQueries = [/^UPDATE students SET archived_at = /];
     const archiveResponse = await fetchHandler(
       sameOriginRequest("http://localhost/actions/archive-student/1", {
         method: "POST",
@@ -1075,13 +1112,13 @@ describe("multi-user access control", () => {
   it("resolves the current role and account existence from D1 for every request", async () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "editor-password");
     const advisor = env.DB.appUsers.find((user) => user.name === "Advisor")!;
-    advisor.role = "readonly";
+    await env.DB.prepare("DELETE FROM thesis_assignments WHERE user_id = ?").bind(advisor.id).run();
+    await env.DB.prepare("UPDATE app_users SET is_admin = 0, can_supervise = 0, role = 'readonly' WHERE id = ?").bind(advisor.id).run();
 
     const roleChangedResponse = await fetchHandler(new Request("http://localhost/data-tools", { headers: { cookie } }), env);
-    expect(roleChangedResponse.status).toBe(302);
-    expect(roleChangedResponse.headers.get("location")).toBe("/?error=Read-only+access");
+    expect(roleChangedResponse.status).toBe(403);
 
-    env.DB.appUsers = env.DB.appUsers.filter((user) => user.id !== advisor.id);
+    await env.DB.prepare("DELETE FROM app_users WHERE id = ?").bind(advisor.id).run();
     const deletedAccountResponse = await fetchHandler(new Request("http://localhost/", { headers: { cookie } }), env);
     expect(deletedAccountResponse.status).toBe(302);
     expect(deletedAccountResponse.headers.get("location")).toBe("/login");
@@ -1138,7 +1175,7 @@ describe("multi-user access control", () => {
       SESSION_SECRET: "test-session-secret-with-at-least-32-bytes",
       APP_ENCRYPTION_SECRET: "test-app-encryption-secret-with-32-bytes",
     };
-    env.DB.seedAuthUser({
+    env.DB.seedRow("app_users", {
       name: "Advisor",
       password_hash: passwordHash,
       role: "editor",

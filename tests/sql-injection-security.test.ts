@@ -21,7 +21,9 @@ describe("SQL injection safety", () => {
       SESSION_SECRET: "test-session-secret-with-at-least-32-bytes",
       APP_ENCRYPTION_SECRET: "test-app-encryption-secret-with-32-bytes",
     };
-    await seedTestUsers(env.DB, [{ name: "Advisor", password: "test-password", role: "editor" }]);
+    await seedTestUsers(env.DB, [
+      { name: "Advisor", password: "test-password", role: "editor", isAdmin: true, canSupervise: true, assignment: "supervisor" },
+    ]);
   });
 
   it.each(["Robert'); DROP TABLE students;--", "'; DELETE FROM meeting_logs; --", "\"; UPDATE students SET name='pwned' WHERE id=1; --"])(
@@ -126,7 +128,7 @@ describe("SQL injection safety", () => {
     const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
     expect(cookie.startsWith("thesis_session=")).toBe(true);
 
-    env.DB.meetingLogs.push({
+    env.DB.seedRow("meeting_logs", {
       id: 1,
       student_id: 1,
       happened_at: "2026-03-22T09:00:00.000Z",

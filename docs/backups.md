@@ -6,7 +6,7 @@ This project can create automated backups when it is deployed on Cloudflare with
 
 Each scheduled run compares the latest stored backup against a stable hash of the current JSON export content. When the exported student data has changed, or the latest valid snapshot is at least 30 days old, the Worker writes three files into the configured R2 bucket:
 
-- a full JSON app export that can be restored from the Data Tools page
+- a version 2 JSON export of active and archived students with named supervisor and advisor assignments
 - a professor-friendly Markdown status report
 - a small manifest file with counts, the cron expression, and the generated object keys
 
@@ -73,7 +73,9 @@ If the `BACKUP_BUCKET` binding is configured, the run will write the backup arti
 
 ## Restoring From Backup
 
-For app-level restore, download the JSON export from R2 and import it from the Data Tools page in the deployed app. Use append mode for merging data or replacement mode for a full restore. The Data Tools importer accepts JSON files up to 4 MiB; split larger append imports into smaller files before uploading them.
+Account records, password hashes, agent tokens, and global settings are outside the student JSON format. Use a protected full D1 export and a tested database restore point for schema upgrades. [Cohort upgrade procedure](./deployment.md#upgrading-an-existing-cohort)
+
+For app-level restore, sign in as an administrator, then download the JSON export from R2 and import it from the Data Tools page in the deployed app. Append creates new student records. Replacement rebuilds the entire student dataset and generates new student IDs. Version 2 checks both the account ID and the name for every team member against eligible accounts on the target. If a person was renamed or has a different ID on a new installation, verify their identity and update the mapping in a copy of the JSON file before importing. Version 1 files require the administrator to select the supervisor for the imported theses. The Data Tools importer accepts JSON files up to 4 MiB; split larger append imports into smaller files before uploading them.
 
 ## Retention
 
