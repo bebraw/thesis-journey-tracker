@@ -95,6 +95,46 @@ describe("schema migrations", () => {
     db.close();
   });
 
+  it.each([
+    ["a sole legacy editor and a reader", "", true],
+    ["a fresh database", "DELETE FROM app_users", false],
+    ["only readers", "DELETE FROM app_users WHERE id = 7", false],
+    ["two editors", "UPDATE app_users SET role = 'editor' WHERE id = 3", false],
+    ["an existing administrator", "UPDATE app_users SET is_admin = 1 WHERE id = 3", false],
+    ["existing supervision rights", "UPDATE app_users SET can_supervise = 1 WHERE id = 7", false],
+    ["a disabled reader", "UPDATE app_users SET disabled_at = '2026-01-01' WHERE id = 3", false],
+    ["an existing assignment", "INSERT INTO thesis_assignments VALUES (10,3,'advisor')", false],
+  ] as const)("bootstraps first-admin rights exactly once when eligible (%s)", (_scenario, setup, eligible) => {
+    const db = new DatabaseSync(":memory:");
+    const migration = "0008_bootstrap_legacy_editor.sql";
+    for (const name of MIGRATION_FILES.filter((name) => name < migration)) {
+      db.exec(readFileSync(join(MIGRATIONS_DIR, name), "utf8"));
+    }
+    db.exec(`
+      INSERT INTO app_users (id,name,password_hash,role,session_version,updated_at) VALUES
+        (3,'Reader','reader-hash','readonly',2,'2025-01-01'),(7,'Lead','lead-hash','editor',4,'2025-01-01');
+      INSERT INTO students (id,name,current_phase) VALUES (10,'Existing thesis','editing');
+    `);
+    if (setup) db.exec(setup);
+    const accounts = () => db.prepare("SELECT * FROM app_users ORDER BY id").all();
+    const assignments = () => db.prepare("SELECT * FROM thesis_assignments ORDER BY student_id,user_id").all();
+    const before = accounts();
+    const originalAssignments = assignments();
+    const sql = readFileSync(join(MIGRATIONS_DIR, migration), "utf8");
+    db.exec(sql);
+    const migrated = accounts();
+    expect(migrated).toEqual(
+      before.map((user) =>
+        eligible && user.id === 7 ? { ...user, is_admin: 1, can_supervise: 1, session_version: 5, updated_at: expect.any(String) } : user,
+      ),
+    );
+    expect(assignments()).toEqual(originalAssignments);
+    db.exec(sql);
+    expect(accounts()).toEqual(migrated);
+    expect(assignments()).toEqual(originalAssignments);
+    db.close();
+  });
+
   it("creates the current application schema from scratch", () => {
     const db = new DatabaseSync(":memory:");
 

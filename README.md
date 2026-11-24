@@ -86,7 +86,7 @@ npm run db:migrate
 npm run account:create -- --name "Advisor" --role editor
 ```
 
-Grant the verified account its initial administrator and supervisor rights using [the first-administrator setup](./docs/setup.md#5-create-the-first-administrator). Then run `npm run doctor:local`. Existing installations should follow the [access migration procedure](./docs/deployment.md#upgrading-an-existing-cohort).
+On a new installation, grant your account administrator and supervisor rights using the [first-administrator setup](./docs/setup.md#5-create-the-first-administrator). Then run `npm run doctor:local`. Upgrading an existing cohort with one legacy editor promotes that editor during the [access migration](./docs/deployment.md#upgrading-an-existing-cohort).
 
 The account command prompts for a password without echoing it or placing it in shell history. Use a unique password of at least 15 characters.
 

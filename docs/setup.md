@@ -79,7 +79,7 @@ This applies the SQL files in [`migrations/`](../migrations) to Wrangler's local
 
 ## 5. Create the first administrator
 
-Create your own named editor account in local D1. On an existing installation, use your current account and password.
+On a new installation, create your own named editor account in local D1. On an upgrade, keep using your existing login. Migration `0008` promotes the sole legacy editor to administrator and supervisor when scoped access has not yet been configured. Verify the result with the lookup below.
 
 ```bash
 npm run account:create -- --name "Advisor" --role editor
@@ -88,10 +88,10 @@ npm run account:create -- --name "Advisor" --role editor
 Look up the account's immutable ID and confirm the name.
 
 ```bash
-npx wrangler d1 execute thesis_tracker_db --local --command "SELECT id, name, role FROM app_users ORDER BY id"
+npx wrangler d1 execute thesis_tracker_db --local --command "SELECT id, name, role, is_admin, can_supervise FROM app_users ORDER BY id"
 ```
 
-Replace `VERIFIED_ID` with that numeric ID in the command below. It grants administration and supervision to the selected active editor only when there is no active administrator. Verify the returned ID and name.
+If both flags are already `1` on your account, sign in with your existing password. If the database still needs its first administrator, replace `VERIFIED_ID` with the selected active editor’s numeric ID in the command below. Verify the returned ID and name.
 
 ```bash
 npx wrangler d1 execute thesis_tracker_db --local --command "UPDATE app_users SET is_admin = 1, can_supervise = 1, session_version = session_version + 1 WHERE id = VERIFIED_ID AND role = 'editor' AND disabled_at IS NULL AND NOT EXISTS (SELECT 1 FROM app_users WHERE is_admin = 1 AND disabled_at IS NULL) RETURNING id, name"
