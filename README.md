@@ -90,7 +90,7 @@ npm run account:create -- --name "Advisor" --role editor
 
 On a new installation, grant your account administrator and supervisor rights using the [first-administrator setup](./docs/setup.md#5-create-the-first-administrator). Then run `npm run doctor:local`. When upgrading a legacy team of one editor and one read-only account, both keep access to every existing thesis. The editor becomes the administrator and lead supervisor. [Access migration](./docs/deployment.md#upgrading-an-existing-cohort)
 
-The account command prompts for a password without echoing it or placing it in shell history. Use a unique password of at least 15 characters.
+The create command requires an available username and prompts privately for a password of at least 15 characters. To reset a password, verify the account ID and run `npm run account:reset-password -- --id VERIFIED_ID`. [Account setup and recovery](./docs/setup.md#5-create-the-first-administrator)
 
 Optional: load sample data for a ready-made local dashboard:
 

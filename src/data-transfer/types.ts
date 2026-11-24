@@ -1,7 +1,7 @@
 import type { CreateStudentInput, DegreeId, MeetingLog, PhaseAuditEntry, PhaseId, Student } from "../students/store";
 import type { MeetingSchedule } from "../students/recurrence";
 
-export const DATA_EXPORT_SCHEMA_VERSION = 2;
+export const DATA_EXPORT_SCHEMA_VERSION = 3;
 
 export interface ExportedMeetingLog {
   happenedAt: string;
@@ -48,6 +48,7 @@ export interface ExportedStudent {
 export interface DataExportFile {
   app: "thesis-journey-tracker";
   schemaVersion: number;
+  installationId: string;
   exportedAt: string;
   students: ExportedStudent[];
 }

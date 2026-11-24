@@ -1,5 +1,4 @@
-import { type DataExportFile } from "../data-transfer";
-import { createDataExportContentHash } from "./data";
+import { createDataExportContentHash, type BackupHashContent } from "./data";
 import type { R2BucketLike } from "./types";
 
 const DEFAULT_BACKUP_PREFIX = "automated-backups";
@@ -149,7 +148,7 @@ function readStoredJsonExportKey(value: Record<string, unknown>): string | null 
   return artifacts.jsonExportKey;
 }
 
-function isDataExportFileLike(value: unknown): value is DataExportFile {
+function isDataExportFileLike(value: unknown): value is BackupHashContent {
   if (!isRecord(value)) {
     return false;
   }
@@ -158,6 +157,7 @@ function isDataExportFileLike(value: unknown): value is DataExportFile {
     value.app === "thesis-journey-tracker" &&
     typeof value.schemaVersion === "number" &&
     typeof value.exportedAt === "string" &&
+    (value.installationId === undefined || typeof value.installationId === "string") &&
     Array.isArray(value.students)
   );
 }

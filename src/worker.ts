@@ -275,7 +275,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   if (pathname === "/actions/import-json" && request.method === "POST") {
     const denied = adminOnly();
     if (denied) return denied;
-    return await handleImportJson(request, env);
+    return await handleImportJson(request, env, sessionUser);
   }
 
   if (pathname === "/actions/save-dashboard-lane-settings" && request.method === "POST") {

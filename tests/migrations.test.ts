@@ -320,6 +320,7 @@ describe("schema migrations", () => {
       "agent_tokens",
       "app_secrets",
       "app_users",
+      "backup_installation",
       "login_attempts",
       "meeting_logs",
       "student_phase_audit",

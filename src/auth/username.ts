@@ -19,12 +19,19 @@ export function normalizeLoginName(value: string): string {
 export const usernameDirectorySql = `(SELECT json_group_array(json_array(id, name))
   FROM (SELECT id, name FROM app_users ORDER BY id))`;
 
+export function isUsernameAvailable(directory: string, name: string, ownId?: number): boolean {
+  const names: [number, string][] = JSON.parse(directory);
+  // Existing accounts may differ only in Unicode case. A rights-only change
+  // can retain the account's exact name without introducing another collision.
+  if (names.some(([id, current]) => id === ownId && current === name)) return true;
+  const normalized = normalizeLoginName(name);
+  return names.every(([id, other]) => id === ownId || normalizeLoginName(other) !== normalized);
+}
+
 export async function availableUsernameDirectory(db: D1Database, name: string, ownId?: number): Promise<string | null> {
   const row = await db.prepare(`SELECT ${usernameDirectorySql} AS directory`).first<{ directory: string }>();
   if (!row) return null;
-  const names: [number, string][] = JSON.parse(row.directory);
-  const normalized = normalizeLoginName(name);
-  return names.some(([id, other]) => id !== ownId && normalizeLoginName(other) === normalized) ? null : row.directory;
+  return isUsernameAvailable(row.directory, name, ownId) ? row.directory : null;
 }
 
 export async function renameOwnAccount(db: D1Database, user: SessionUser, originalName: string, name: string): Promise<number | null> {

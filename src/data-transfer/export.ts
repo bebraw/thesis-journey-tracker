@@ -1,9 +1,10 @@
 import { DATA_EXPORT_SCHEMA_VERSION, type DataExportFile, type StudentExportBundle } from "./types";
 
-export function createDataExport(studentBundles: StudentExportBundle[]): DataExportFile {
+export function createDataExport(studentBundles: StudentExportBundle[], installationId: string): DataExportFile {
   return {
     app: "thesis-journey-tracker",
     schemaVersion: DATA_EXPORT_SCHEMA_VERSION,
+    installationId,
     exportedAt: new Date().toISOString(),
     students: studentBundles.map(({ student, logs, phaseAudit, assignments }) => ({
       assignments,

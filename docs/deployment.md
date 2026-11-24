@@ -67,7 +67,7 @@ npm run account:create -- --name "Advisor" --role editor --remote
 
 For a new installation, follow [first-administrator setup](./setup.md#5-create-the-first-administrator) with `--remote` targeting your intended production database. For a running tracker, follow the upgrade procedure below before promoting the Worker.
 
-The command reads a password of at least 15 characters from a hidden interactive prompt. For automation, use `--password-stdin` with a secret-manager source. Plaintext password arguments, custom iteration counts, and SQL printing are intentionally unsupported. Re-run the command for any account whose stored hash uses a work factor other than the current Cloudflare-compatible `100000` format; updating an account revokes its existing sessions.
+The command reads a password of at least 15 characters from a hidden interactive prompt. For automation, use `--password-stdin` with a secret-manager source. To reset a password or upgrade an older hash, verify the intended account's immutable ID in the remote database, then run `npm run account:reset-password -- --id VERIFIED_ID --remote`. Resetting the password revokes browser sessions and agent tokens. [Account setup and recovery](./setup.md#5-create-the-first-administrator)
 
 The `100000` PBKDF2 work factor is the current Workers runtime compatibility ceiling used by this project. Together with the app's session controls and login throttling, it is accepted for private personal or small-team use. Application throttling is not an edge denial-of-service boundary: sufficiently distributed traffic can still consume D1 reads and PBKDF2 work. If the app is exposed more broadly or shows abuse or unexpected cost, add Cloudflare Access, Turnstile, or an appropriate WAF or rate-limit rule.
 
@@ -91,9 +91,17 @@ Migration `0007` adds account flags and a thesis assignment table. Migration `00
 
 With a different mix of accounts, an administrator assigns existing theses in **Manage access**. With zero or multiple editors, choose the first administrator using the [verified-ID setup](./setup.md#5-create-the-first-administrator). Migration `0008` skips installations with any administrator, supervisor, disabled account, or thesis assignment. If a rehearsal database already ran an earlier draft of `0008`, use a fresh copy of the pre-upgrade backup to test the final migration.
 
-Migration `0009` preserves the name used in thesis backups when a user changes their sign-in name. Apply it before deploying the Worker with self-service username changes. [Restoring from backup](./backups.md#restoring-from-backup)
+Migration `0009` preserves the name used in thesis backups when a user changes their sign-in name. Migration `0010` gives the installation an ID for matching accounts on restore. Migration `0011` verifies the importing administrator within the restore transaction. Apply these migrations before deploying the Worker. [Restoring from backup](./backups.md#restoring-from-backup)
 
-1. Rehearse on a private database. Export the full D1 schema and data, store it securely, and restore it into the rehearsal database. Compare the original and restored records by ID and content, including notes, recurring meetings, phase history, archived students, settings, and user and token records. The app JSON backup is a separate recovery format. [D1 database export](https://developers.cloudflare.com/d1/best-practices/import-export-data/)
+1. Rehearse on a private database. Take one full D1 SQL export and keep the original in a private directory. D1 can export meeting notes before the student table they reference. Prepare a schema-first copy from that same export, then restore the copy into a fresh local Wrangler state directory. The preparation command requires a new output path and creates an owner-only file. [D1 database export](https://developers.cloudflare.com/d1/best-practices/import-export-data/)
+
+   ```bash
+   node scripts/prepare-d1-restore.mjs /private/backup/original.sql /private/backup/restore.sql
+   npx wrangler d1 execute thesis_tracker_db --local --persist-to /private/backup/rehearsal --file /private/backup/restore.sql
+   ```
+
+   Compare the original and restored records by ID and content, including notes, recurring meetings, phase history, archived students, settings, and user and token records. Use the same `--local --persist-to` directory for the rehearsal migrations.
+
 2. Apply the migrations on the rehearsal copy. Check both account IDs and roles and the intended administrator’s `is_admin` and `can_supervise` flags. For the two-person legacy team, verify that each account has one assignment per pre-upgrade student ID, archived IDs included. Use the verified-ID setup if the installation still needs its first administrator.
 3. Before merging to `main`, arrange a short maintenance window covering browser and MCP writes, take a fresh full database recovery point and record its D1 Time Travel bookmark. Apply the remote migrations, verify the administrator as rehearsed, and deploy the reviewed Worker. Cloudflare promotes pushes to `main` independently of GitHub CI. Restrict access to the operator during reconciliation. [D1 recovery bookmarks](https://developers.cloudflare.com/d1/reference/time-travel/)
 4. In **Manage access**, confirm the migrated thesis teams and assign any unmapped theses. Compare the student, meeting and phase-history records against the recovery copy. Check dashboard counts, direct student links and MCP for both accounts, and the cohort report for the supervisor. Open access to advisors after these checks pass.
@@ -161,7 +169,7 @@ For more detailed backup notes, see [backups.md](./backups.md).
 - Editors can update assigned active theses. Supervisors can create theses, assign advisors, and archive or restore theses they lead.
 - Read-only accounts can review the history of assigned theses. Administrators manage accounts, lead transfers, app-wide settings and full-data backups. Administrative status alone gives no personal-dashboard assignments.
 - Sessions are stored in an `HttpOnly`, `Secure`, signed cookie.
-- Signed sessions expire after four hours and carry only an immutable account ID plus a database session version. Logout, password changes, role changes through the account command, and account removal invalidate previously issued access; logout revokes every active session for that account.
+- Signed sessions expire after four hours and carry only an immutable account ID plus a database session version. Logout, password resets, rights changes in **Manage access**, and account removal invalidate previous browser sessions.
 - Request-scoped D1 sessions begin on the primary database. Authentication and session-revocation reads never trust a client-supplied D1 bookmark, so future read-replication settings cannot temporarily restore revoked access.
 - Every HTTP response receives a restrictive Content Security Policy and browser hardening headers at the Worker boundary. Inline scripts and HTML event handlers are disallowed; inline style attributes remain allowed because the Gantt layout calculates positions and widths at runtime.
 - Non-local HTTP requests receive a same-URL `308` redirect before origin validation, D1 access, or authentication work. Local development hosts may remain on HTTP. HTTPS responses enable HTTP Strict Transport Security for one year; redirects and local HTTP responses deliberately omit HSTS.

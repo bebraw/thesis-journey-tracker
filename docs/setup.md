@@ -107,7 +107,13 @@ A replacement login with the same name gets a new account ID and starts with no 
 
 The command prompts twice without echoing the password. Passwords must contain at least 15 characters. For non-interactive automation, pass `--password-stdin` and supply exactly one line from a secret manager; never place the password in command arguments.
 
-If an existing account uses any work factor other than the current Cloudflare-compatible `100000` iteration format, re-run `npm run account:create` with its current sign-in name. This command creates a new account if the supplied username is available. Updating an account also revokes its existing sessions.
+`account:create` requires an available username. To recover an existing account or upgrade an older password hash, look up and verify its immutable ID using the query above. Replace `VERIFIED_ID` with that number. Use the same database for the lookup and reset.
+
+```bash
+npm run account:reset-password -- --id VERIFIED_ID
+```
+
+The reset signs the account out of every browser and revokes its agent tokens.
 
 ## 6. Optionally Load Sample Data
 

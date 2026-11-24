@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { getPlatformProxy, unstable_splitSqlQuery, type PlatformProxy } from "wrangler";
 import { createAgentToken, authenticateAgent, revokeAgentToken, listAgentTokens } from "../src/agent/tokens";
-import { collectStudentBackupBundles } from "../src/backup/data";
+import { collectStudentBackup } from "../src/backup/data";
 import { handleMcp } from "../src/agent/mcp";
 import { handleAgentAccess } from "../src/routes/agent-access";
 import { getLoginAttempt, recordLoginFailure, revokeAuthUserSessions } from "../src/auth/store";
@@ -110,7 +110,9 @@ describe("D1-backed db helpers", () => {
       "INSERT INTO app_users (id,name,role,can_supervise,password_hash) VALUES (42,'Lead','editor',1,'sample')",
     );
     await platform.env.DB.prepare("INSERT INTO thesis_assignments VALUES (?,42,'supervisor')").bind(studentId).run();
-    expect(await collectStudentBackupBundles(platform.env.DB)).toEqual([
+    const backup = await collectStudentBackup(platform.env.DB);
+    expect(backup.installationId).toMatch(/^[a-f0-9]{32}$/);
+    expect(backup.bundles).toEqual([
       { student, logs, phaseAudit, assignments: [{ userId: 42, name: "Lead", role: "supervisor" }] },
     ]);
   });

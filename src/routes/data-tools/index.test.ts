@@ -6,6 +6,8 @@ import { sameOriginRequest } from "../../../tests/helpers/request";
 vi.mock("../../../.generated/styles.css", () => ({ default: "" }));
 vi.mock("../../favicon.ico", () => ({ default: new ArrayBuffer(0) }));
 
+const admin = { id: 1, name: "Advisor", role: "editor" as const, isAdmin: true, canSupervise: true, sessionVersion: 1 };
+
 type WorkerFetch = (typeof import("../../worker"))["default"]["fetch"];
 
 describe("data import and export", () => {
@@ -97,6 +99,7 @@ describe("data import and export", () => {
     const body = JSON.parse(await response.text()) as {
       app: string;
       schemaVersion: number;
+      installationId: string;
       students: Array<{
         name: string;
         archivedAt?: string | null;
@@ -107,7 +110,8 @@ describe("data import and export", () => {
     };
 
     expect(body.app).toBe("thesis-journey-tracker");
-    expect(body.schemaVersion).toBe(2);
+    expect(body.schemaVersion).toBe(3);
+    expect(body.installationId).toMatch(/^[a-f0-9]{32}$/);
     expect(body.students).toHaveLength(1);
     expect(body.students[0]?.name).toBe("Base Student");
     expect(body.students[0]?.archivedAt).toBe("2026-03-24T10:00:00.000Z");
@@ -123,13 +127,15 @@ describe("data import and export", () => {
     env.DB.seedRow("thesis_assignments", { student_id: 1, user_id: advisorId, assignment_role: "advisor" });
     const exported = await (await handleExportJson(env)).text();
     const target = { ...env, DB: new MockD1Database(), REPLACE_IMPORT_ENABLED: "1" };
-    target.DB.seedRow("app_users", { id: 1, name: "Advisor", role: "editor", password_hash: "target", can_supervise: 1 });
+    // A full D1 recovery preserves the original installation identity.
+    target.DB.sqlite.prepare("UPDATE backup_installation SET installation_id = ?").run(JSON.parse(exported).installationId);
+    target.DB.seedRow("app_users", { id: 1, name: "Advisor", role: "editor", password_hash: "target", is_admin: 1, can_supervise: 1 });
     const restore = async () => {
       const form = new FormData();
-      form.set("importFile", new File([exported], "v2.json"));
+      form.set("importFile", new File([exported], "v3.json"));
       form.set("mode", "replace");
       form.set("confirmReplace", "yes");
-      return handleImportJson(new Request("http://localhost/actions/import-json", { method: "POST", body: form }), target);
+      return handleImportJson(new Request("http://localhost/actions/import-json", { method: "POST", body: form }), target, admin);
     };
     const denied = await restore();
     expect(denied.headers.get("location")).toContain("unavailable%20advisor");
@@ -153,13 +159,13 @@ describe("data import and export", () => {
     target.DB.seedRow("app_users", { id: 72, name: "Reader", role: "readonly", password_hash: "later" });
     expect((await restore()).headers.get("location")).toContain("/data-tools?notice=");
     expect(target.DB.sqlite.prepare("SELECT student_id,user_id,assignment_role FROM thesis_assignments ORDER BY user_id").all()).toEqual([
-      { student_id: 1, user_id: 1, assignment_role: "supervisor" },
-      { student_id: 1, user_id: advisorId, assignment_role: "advisor" },
+      { student_id: 2, user_id: 1, assignment_role: "supervisor" },
+      { student_id: 2, user_id: advisorId, assignment_role: "advisor" },
     ]);
     expect(
       target.DB.appUsers.map(({ role, is_admin, can_supervise, password_hash }) => [role, is_admin, can_supervise, password_hash]),
     ).toEqual([
-      ["editor", 0, 1, "target"],
+      ["editor", 1, 1, "target"],
       ["readonly", 0, 0, "original"],
       ["readonly", 0, 0, "later"],
     ]);
@@ -167,6 +173,58 @@ describe("data import and export", () => {
     expect(target.DB.phaseAuditEntries).toHaveLength(1);
     const nextExport = (await (await handleExportJson(target)).json()) as { students: unknown[] };
     expect(nextExport.students).toEqual(JSON.parse(exported).students);
+  });
+
+  it.each([2, 3])("requires explicit local account choices for a version %i backup without shared provenance", async (version) => {
+    const source = { ...env, DB: new MockD1Database() };
+    source.DB.seedRow("app_users", { id: 1, name: "Advisor", role: "editor", can_supervise: 1, password_hash: "other" });
+    source.DB.seedRow("app_users", { id: 2, name: "Reader", role: "readonly", password_hash: "source" });
+    source.DB.seedRow("thesis_assignments", { student_id: 1, user_id: 1, assignment_role: "supervisor" });
+    source.DB.seedRow("thesis_assignments", { student_id: 1, user_id: 2, assignment_role: "advisor" });
+    const { handleExportJson } = await import("./transfer");
+    const json = (await (await handleExportJson(source)).json()) as Record<string, unknown>;
+    json.schemaVersion = version;
+    if (version === 2) delete json.installationId;
+    const input = JSON.stringify(json);
+    env.DB.seedRow("app_users", { id: 3, name: "Local lead", role: "editor", can_supervise: 1, password_hash: "local" });
+    env.DB.seedRow("app_users", { id: 4, name: "Local reader", role: "readonly", password_hash: "local" });
+    const cookie = await loginWithPassword(fetchHandler, env, "Advisor", "test-password");
+    const upload = async (content: string, choices: Record<string, string> = {}) => {
+      const form = new FormData();
+      form.set("importFile", new File([content], "cohort.json"));
+      for (const [key, value] of Object.entries(choices)) form.set(key, value);
+      return fetchHandler(
+        sameOriginRequest("http://localhost/actions/import-json", { method: "POST", headers: { cookie }, body: form }),
+        env,
+      );
+    };
+    const review = await upload(input);
+    expect(review.status).toBe(200);
+    const conflicting = JSON.parse(input);
+    const second = structuredClone(conflicting.students[0]);
+    second.assignments[0].name = "Different person";
+    conflicting.students.push(second);
+    expect((await upload(JSON.stringify(conflicting))).headers.get("location")).toContain("different%20names%20for%20the%20same%20account");
+    const html = await review.text();
+    expect(html).toContain("Match backup accounts");
+    expect(html).toContain("Advisor (backup ID 1, supervisor)");
+    expect(html).toContain("Reader (backup ID 2, advisor)");
+    expect(html).not.toContain("Baseline student note");
+    const mappingDigest = html.match(/name="mappingDigest" value="([a-f0-9]{64})"/)?.[1];
+    expect(mappingDigest).toBeTruthy();
+    const mapping = { mappingDigest: mappingDigest!, "map-1": "3", "map-2": "4" };
+    const changed = await upload(input + "\n", mapping);
+    expect(changed.headers.get("location")).toContain("selected%20file%20changed");
+    expect(await (await upload(input, { ...mapping, "map-1": "4" })).text()).toContain("Choose an eligible local account");
+    expect(env.DB.students).toHaveLength(1);
+    const imported = await upload(input, mapping);
+    expect(imported.headers.get("location")).toContain("/data-tools?notice=");
+    expect(
+      env.DB.sqlite.prepare("SELECT user_id, assignment_role FROM thesis_assignments WHERE student_id = 2 ORDER BY user_id").all(),
+    ).toEqual([
+      { user_id: 3, assignment_role: "supervisor" },
+      { user_id: 4, assignment_role: "advisor" },
+    ]);
   });
 
   it("rolls replacement back if the account identity changes after import validation", async () => {
@@ -182,11 +240,15 @@ describe("data import and export", () => {
       END;
     `);
     const form = new FormData();
-    form.set("importFile", new File([backup], "v2.json"));
+    form.set("importFile", new File([backup], "v3.json"));
     form.set("mode", "replace");
     form.set("confirmReplace", "yes");
     env.DB.calls.length = 0;
-    const response = await handleImportJson(new Request("http://localhost/actions/import-json", { method: "POST", body: form }), env);
+    const response = await handleImportJson(
+      new Request("http://localhost/actions/import-json", { method: "POST", body: form }),
+      env,
+      admin,
+    );
     expect(response.headers.get("location")).toContain("Replacement%20import%20failed");
     expect(env.DB.calls.some(({ method, query }) => method === "run" && query.includes("INSERT INTO thesis_assignments"))).toBe(true);
     expect(env.DB.appUsers[0]?.is_admin).toBe(1);
@@ -206,14 +268,22 @@ describe("data import and export", () => {
       const form = new FormData();
       form.set("importFile", new File([JSON.stringify(backup)], "v1.json"));
       form.set("legacySupervisor", name);
-      const response = await handleImportJson(new Request("http://localhost/actions/import-json", { method: "POST", body: form }), env);
+      const response = await handleImportJson(
+        new Request("http://localhost/actions/import-json", { method: "POST", body: form }),
+        env,
+        admin,
+      );
       expect(response.headers.get("location")).toContain("/data-tools?error=");
       expect(env.DB.students).toHaveLength(1);
     }
     const form = new FormData();
     form.set("importFile", new File([JSON.stringify(backup)], "v1.json"));
     form.set("legacySupervisor", "1");
-    const response = await handleImportJson(new Request("http://localhost/actions/import-json", { method: "POST", body: form }), env);
+    const response = await handleImportJson(
+      new Request("http://localhost/actions/import-json", { method: "POST", body: form }),
+      env,
+      admin,
+    );
     expect(response.headers.get("location")).toContain("/data-tools?notice=");
     expect(
       env.DB.sqlite.prepare("SELECT user_id FROM thesis_assignments WHERE student_id=2 AND assignment_role='supervisor'").get(),
@@ -562,6 +632,43 @@ describe("data import and export", () => {
     expect(env.DB.meetingLogs[1]?.discussed).toBe("Imported log");
     expect(env.DB.phaseAuditEntries).toHaveLength(2);
     expect(env.DB.phaseAuditEntries[1]?.to_phase).toBe("editing");
+  });
+
+  it.each([
+    ["administrator rights are removed", "is_admin = 0", "append"],
+    ["the account is disabled", "disabled_at = '2026-03-23T08:00:00Z'", "replace"],
+    ["the session is revoked", "session_version = session_version + 1", "replace"],
+  ])("preserves the cohort when %s before the import commits", async (_reason, change, mode) => {
+    await seedTestUsers(env.DB, [{ name: "Backup operator", password: "operator-password", role: "readonly", isAdmin: true }]);
+    const cookie = await loginWithPassword(fetchHandler, env, "Backup operator", "operator-password");
+    env.REPLACE_IMPORT_ENABLED = "1";
+    const form = new FormData();
+    form.set("legacySupervisor", "1");
+    form.set("mode", mode);
+    form.set("confirmReplace", "yes");
+    const backup = {
+      app: "thesis-journey-tracker",
+      schemaVersion: 1,
+      students: [{ name: "Imported", degreeType: "msc", currentPhase: "editing" }],
+    };
+    form.set("importFile", new File([JSON.stringify(backup)], "backup.json"));
+
+    const batch = env.DB.batch.bind(env.DB);
+    vi.spyOn(env.DB, "batch").mockImplementationOnce((statements) => {
+      env.DB.sqlite.prepare(`UPDATE app_users SET ${change} WHERE name = ?`).run("Backup operator");
+      return batch(statements);
+    });
+    const response = await fetchHandler(
+      sameOriginRequest("http://localhost/actions/import-json", { method: "POST", headers: { cookie }, body: form }),
+      env,
+    );
+    expect(response.headers.get("location")).toContain("/data-tools?error=");
+    expect(env.DB.students.map((student) => student.name)).toEqual(["Base Student"]);
+    expect(env.DB.meetingLogs).toHaveLength(1);
+    expect(env.DB.phaseAuditEntries).toHaveLength(1);
+    expect(env.DB.sqlite.prepare("SELECT user_id, assignment_role FROM thesis_assignments").all()).toEqual([
+      { user_id: 1, assignment_role: "supervisor" },
+    ]);
   });
 
   it("rejects imports that exceed the single-batch D1 safety limit", async () => {

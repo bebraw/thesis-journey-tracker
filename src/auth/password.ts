@@ -12,7 +12,7 @@ export interface HashPasswordOptions {
 export class PasswordHashUpgradeRequiredError extends Error {
   constructor(readonly storedIterations: number) {
     super(
-      `Stored password hash uses ${storedIterations} PBKDF2 iterations; reset the account with the current account:create command.`,
+      `Stored password hash uses ${storedIterations} PBKDF2 iterations. Reset the account by ID with account:reset-password.`,
     );
     this.name = "PasswordHashUpgradeRequiredError";
   }

@@ -42,7 +42,8 @@ describe("internal repeating meetings", () => {
     expect((await getStudentById(db, 1))?.nextMeetingAt).toBe("2026-10-23T11:00:00.000Z");
     const student = (await getStudentById(db, 1))!;
     expect(
-      parseDataImport(JSON.stringify(createDataExport([{ student, logs: [], phaseAudit: [], assignments: [] }]))).data?.[0]?.student.meetingSchedule,
+      parseDataImport(JSON.stringify(createDataExport([{ student, logs: [], phaseAudit: [], assignments: [] }], "0".repeat(32)))).data?.[0]
+        ?.student.meetingSchedule,
     ).toEqual(schedule);
     await saveMeetingNote(db, student, note, "clear");
     expect(await getStudentById(db, 1)).toMatchObject({ nextMeetingAt: null, meetingSchedule: null });

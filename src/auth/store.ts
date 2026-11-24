@@ -20,12 +20,6 @@ export interface LoginAttempt {
   lockedUntil: string | null;
 }
 
-export interface UpsertAuthUserInput {
-  name: string;
-  passwordHash: string;
-  role: AccessRole;
-}
-
 interface AuthUserRow {
   id: number | string;
   name: string;
@@ -71,24 +65,6 @@ export async function listAuthUsers(db: D1Database): Promise<StoredAuthUser[]> {
     isAdmin: row.is_admin === 1,
     canSupervise: row.can_supervise === 1,
   }));
-}
-
-export async function upsertAuthUser(db: D1Database, input: UpsertAuthUserInput): Promise<number> {
-  const result = await db
-    .prepare(
-      `INSERT INTO app_users (name, password_hash, role)
-       VALUES (?, ?, ?)
-       ON CONFLICT(name) DO UPDATE SET
-         password_hash = excluded.password_hash,
-         role = excluded.role,
-         can_supervise = CASE WHEN excluded.role = 'readonly' THEN 0 ELSE app_users.can_supervise END,
-         session_version = app_users.session_version + 1
-       RETURNING id`,
-    )
-    .bind(input.name, input.passwordHash, input.role)
-    .run<ReturnedIdRow>();
-
-  return requireD1ReturnedId(result, "Saving auth user");
 }
 
 export async function revokeAuthUserSessions(db: D1Database, userId: number): Promise<void> {

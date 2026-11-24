@@ -6,7 +6,7 @@ This project can create automated backups when it is deployed on Cloudflare with
 
 Each scheduled run compares the latest stored backup against a stable hash of the current JSON export content. When the exported student data has changed, or the latest valid snapshot is at least 30 days old, the Worker writes three files into the configured R2 bucket:
 
-- a version 2 JSON export of active and archived students with named supervisor and advisor assignments
+- a version 3 JSON export of active and archived students, supervisor and advisor assignments, and the source installation ID
 - a professor-friendly Markdown status report
 - a small manifest file with counts, the cron expression, and the generated object keys
 
@@ -75,9 +75,11 @@ If the `BACKUP_BUCKET` binding is configured, the run will write the backup arti
 
 Account records, password hashes, agent tokens, and global settings are outside the student JSON format. Use a protected full D1 export and a tested database restore point for schema upgrades. [Cohort upgrade procedure](./deployment.md#upgrading-an-existing-cohort)
 
-For app-level restore, sign in as an administrator, download the JSON export from R2, and import it from the Data Tools page. Append creates new student records. Replacement rebuilds the entire student dataset and generates new student IDs. The importer accepts JSON files up to 4 MiB. Split larger append imports into smaller files before uploading them.
+For app-level restore, sign in as an administrator, download the JSON export from R2, and import it from the Data Tools page. Append creates new student records. Replacement rebuilds the entire student dataset with fresh student IDs. After a replacement, reopen theses from the dashboard or Manage access. Old direct links and already-open team forms refer to the previous records. The importer accepts files up to 4 MiB and restores each file in one database transaction. Split oversized append imports into smaller files.
 
-Version 2 checks each team member’s immutable account ID and the exact name saved for backups. Changing a username preserves this pair, so exports from before and after a rename restore to the same account. Reusing a former username on a new account gives it a different ID. If restoring to a new installation with different IDs, verify the intended people and update the mapping in a copy of the JSON file. Version 1 files require the administrator to select the supervisor for the imported theses.
+Version 3 identifies the source installation. When restoring to the original database or a full D1 recovery copy, the importer checks each team member’s immutable account ID and original backup name. Renaming an existing account preserves this pair. A replacement login gets its own ID.
+
+When importing a version 3 file from another installation, **Match backup accounts** asks you to select a local person for each member of the source team. Verify each person even when the account names or numbers match. Select the same file again and confirm the import. Version 2 backups also use this step because they lack an installation ID. Version 1 backups have no assignments, so select a supervisor on the initial import form.
 
 ## Retention
 

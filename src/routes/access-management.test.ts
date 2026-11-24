@@ -104,6 +104,21 @@ describe("managing access", () => {
     expect(updated.password_hash).not.toBe(account.password_hash);
   });
 
+  it("changes rights on legacy case-equivalent accounts that retain their exact sign-in name", async () => {
+    db.sqlite.exec(`INSERT INTO app_users (id, name, role, password_hash) VALUES
+      (5, 'ÄITI', 'readonly', 'first'), (6, 'äiti', 'readonly', 'second')`);
+    const update = (accountId: string, name: string, version = "1") =>
+      post(admin, "update-account", { accountId, version, name, role: "editor" });
+    expect(saved(await update("5", "ÄITI"))).toBe(true);
+    expect(saved(await update("6", "äiti"))).toBe(true);
+    expect(saved(await update("5", "äITI", "2"))).toBe(false);
+    expect(saved(await update("3", "Äiti"))).toBe(false);
+    expect(db.sqlite.prepare("SELECT name, role FROM app_users WHERE id IN (5, 6) ORDER BY id").all()).toEqual([
+      { name: "ÄITI", role: "editor" },
+      { name: "äiti", role: "editor" },
+    ]);
+  });
+
   it("deletes a disabled account with its credentials and advisor grants while preserving student records and other users", async () => {
     const oldToken = await createAgentToken(db, advisor, "Reader token", 30);
     const leadToken = await createAgentToken(db, lead, "Lead token", 30);
