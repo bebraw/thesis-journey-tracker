@@ -95,8 +95,74 @@ describe("schema migrations", () => {
     db.close();
   });
 
+  const bootstrapMigration = "0008_bootstrap_legacy_editor.sql";
+
+  function legacyCohort() {
+    const db = new DatabaseSync(":memory:");
+    for (const name of MIGRATION_FILES.filter((name) => name < bootstrapMigration)) {
+      db.exec(readFileSync(join(MIGRATIONS_DIR, name), "utf8"));
+    }
+    db.exec(`
+      INSERT INTO app_users (id,name,password_hash,role,session_version,updated_at) VALUES
+        (3,'Reader','reader-hash','readonly',2,'2025-01-01'),(7,'Lead','lead-hash','editor',4,'2025-01-01');
+      INSERT INTO students (id,name,current_phase,thesis_topic,student_notes,archived_at) VALUES
+        (10,'Current','editing','First topic','Existing note',NULL),
+        (20,'Archived','submitted','Second topic','Archived note','2025-12-01');
+    `);
+    return db;
+  }
+
+  it("preserves the sole editor and reader's access to existing active and archived theses exactly once", () => {
+    const db = legacyCohort();
+    db.exec(`
+      INSERT INTO meeting_logs (student_id,happened_at,discussed,agreed_plan) VALUES (20,'2025-11-01','Review','Deliver');
+      INSERT INTO student_phase_audit (student_id,changed_at,from_phase,to_phase) VALUES (10,'2025-10-01','researching','editing');
+      INSERT INTO agent_tokens (id,user_id,name,token_hash,expires_at) VALUES ('token',3,'Tool','test-hash','2029-01-01');
+    `);
+    const assignments = () =>
+      db.prepare("SELECT student_id,user_id,assignment_role FROM thesis_assignments ORDER BY student_id,user_id").all();
+    const history = () =>
+      ["students", "meeting_logs", "student_phase_audit", "agent_tokens"].map((table) =>
+        db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all(),
+      );
+    const accounts = () => db.prepare("SELECT * FROM app_users ORDER BY id").all();
+    const [reader, lead] = accounts();
+    const originalHistory = history();
+    const sql = readFileSync(join(MIGRATIONS_DIR, bootstrapMigration), "utf8");
+    db.exec(sql);
+
+    expect(history()).toEqual(originalHistory);
+    const migratedAccounts = accounts();
+    expect(migratedAccounts).toEqual([
+      reader,
+      { ...lead, is_admin: 1, can_supervise: 1, session_version: 5, updated_at: expect.any(String) },
+    ]);
+    expect(assignments()).toEqual(
+      [10, 20].flatMap((student_id) => [
+        { student_id, user_id: 3, assignment_role: "advisor" },
+        { student_id, user_id: 7, assignment_role: "supervisor" },
+      ]),
+    );
+
+    db.exec(`
+      DELETE FROM thesis_assignments;
+      INSERT INTO students (id,name,current_phase) VALUES (30,'Later thesis','researching');
+    `);
+    db.exec(sql);
+    expect(accounts()).toEqual(migratedAccounts);
+    expect(assignments()).toEqual([]);
+    db.exec("INSERT INTO app_users (name,password_hash,role) VALUES ('Later reader','later-hash','readonly')");
+    expect(assignments()).toEqual([]);
+    expect(db.prepare("SELECT is_admin,can_supervise FROM app_users WHERE name='Later reader'").get()).toEqual({
+      is_admin: 0,
+      can_supervise: 0,
+    });
+    db.close();
+  });
+
   it.each([
-    ["a sole legacy editor and a reader", "", true],
+    ["an editor without readers", "DELETE FROM app_users WHERE id = 3", true],
+    ["an editor with multiple readers", "INSERT INTO app_users (name,password_hash,role) VALUES ('Reader 2','hash','readonly')", true],
     ["a fresh database", "DELETE FROM app_users", false],
     ["only readers", "DELETE FROM app_users WHERE id = 7", false],
     ["two editors", "UPDATE app_users SET role = 'editor' WHERE id = 3", false],
@@ -104,23 +170,14 @@ describe("schema migrations", () => {
     ["existing supervision rights", "UPDATE app_users SET can_supervise = 1 WHERE id = 7", false],
     ["a disabled reader", "UPDATE app_users SET disabled_at = '2026-01-01' WHERE id = 3", false],
     ["an existing assignment", "INSERT INTO thesis_assignments VALUES (10,3,'advisor')", false],
-  ] as const)("bootstraps first-admin rights exactly once when eligible (%s)", (_scenario, setup, eligible) => {
-    const db = new DatabaseSync(":memory:");
-    const migration = "0008_bootstrap_legacy_editor.sql";
-    for (const name of MIGRATION_FILES.filter((name) => name < migration)) {
-      db.exec(readFileSync(join(MIGRATIONS_DIR, name), "utf8"));
-    }
-    db.exec(`
-      INSERT INTO app_users (id,name,password_hash,role,session_version,updated_at) VALUES
-        (3,'Reader','reader-hash','readonly',2,'2025-01-01'),(7,'Lead','lead-hash','editor',4,'2025-01-01');
-      INSERT INTO students (id,name,current_phase) VALUES (10,'Existing thesis','editing');
-    `);
-    if (setup) db.exec(setup);
+  ] as const)("leaves thesis teams unchanged and bootstraps only an eligible editor (%s)", (_scenario, setup, eligible) => {
+    const db = legacyCohort();
+    db.exec(setup);
     const accounts = () => db.prepare("SELECT * FROM app_users ORDER BY id").all();
     const assignments = () => db.prepare("SELECT * FROM thesis_assignments ORDER BY student_id,user_id").all();
     const before = accounts();
     const originalAssignments = assignments();
-    const sql = readFileSync(join(MIGRATIONS_DIR, migration), "utf8");
+    const sql = readFileSync(join(MIGRATIONS_DIR, bootstrapMigration), "utf8");
     db.exec(sql);
     const migrated = accounts();
     expect(migrated).toEqual(

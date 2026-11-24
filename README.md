@@ -47,6 +47,7 @@ The project is intentionally small and server-rendered, with a focused workflow 
 ## What You Can Do With It
 
 - As a supervisor, add students with degree type, thesis topic, and timeline information. Assign or remove existing advisors from each thesis in **Manage access**.
+- As an administrator, create accounts, change rights, reset passwords, and disable or permanently remove accounts in **Manage access**. Transfer a departing supervisor’s theses first.
 - Track each student through thesis phases from planning to submission.
 - Configure the dashboard lane labels at the app level while keeping the original four-phase board structure as the default.
 - Switch between `List`, `Phases`, and `Gantt` views depending on whether you need detail, workflow stage, or workload shape.
@@ -86,7 +87,7 @@ npm run db:migrate
 npm run account:create -- --name "Advisor" --role editor
 ```
 
-On a new installation, grant your account administrator and supervisor rights using the [first-administrator setup](./docs/setup.md#5-create-the-first-administrator). Then run `npm run doctor:local`. Upgrading an existing cohort with one legacy editor promotes that editor during the [access migration](./docs/deployment.md#upgrading-an-existing-cohort).
+On a new installation, grant your account administrator and supervisor rights using the [first-administrator setup](./docs/setup.md#5-create-the-first-administrator). Then run `npm run doctor:local`. When upgrading a legacy team of one editor and one read-only account, both keep access to every existing thesis. The editor becomes the administrator and lead supervisor. [Access migration](./docs/deployment.md#upgrading-an-existing-cohort)
 
 The account command prompts for a password without echoing it or placing it in shell history. Use a unique password of at least 15 characters.
 

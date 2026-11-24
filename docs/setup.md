@@ -97,7 +97,11 @@ If both flags are already `1` on your account, sign in with your existing passwo
 npx wrangler d1 execute thesis_tracker_db --local --command "UPDATE app_users SET is_admin = 1, can_supervise = 1, session_version = session_version + 1 WHERE id = VERIFIED_ID AND role = 'editor' AND disabled_at IS NULL AND NOT EXISTS (SELECT 1 FROM app_users WHERE is_admin = 1 AND disabled_at IS NULL) RETURNING id, name"
 ```
 
-Sign in and open **More → Manage access** to create accounts, grant rights, or assign a lead supervisor to an existing thesis. An editor can update assigned theses. A supervisor can also create a thesis and manage its advisors. Read-only accounts can review the full record for each assigned thesis, including internal notes.
+Sign in and open **More → Manage access** to create accounts, grant rights, reset passwords, and assign or transfer lead supervision. An editor can update assigned theses. A supervisor can also create a thesis and manage its advisors. Read-only accounts can review the full record for each assigned thesis, including internal notes.
+
+To remove an account, transfer any active or archived theses it supervises, then disable it. Disabling revokes its sessions and agent tokens and removes its advisor assignments. From the disabled account, choose **Delete account → Permanently delete account** to remove the login and its tokens. Student records, meeting notes and phase history are preserved. Keep at least one active administrator.
+
+A replacement login with the same name gets a new account ID and starts with no assignments. An older JSON backup that references the deleted ID will require reconciliation before import. A full D1 recovery copy includes the original accounts and assignments.
 
 The command prompts twice without echoing the password. Passwords must contain at least 15 characters. For non-interactive automation, pass `--password-stdin` and supply exactly one line from a secret manager; never place the password in command arguments.
 

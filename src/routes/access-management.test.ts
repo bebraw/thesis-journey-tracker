@@ -103,4 +103,61 @@ describe("managing access", () => {
     expect(updated).toMatchObject({ name: "Renamed", role: "editor", can_supervise: 1, is_admin: 0, session_version: 3 });
     expect(updated.password_hash).not.toBe(account.password_hash);
   });
+
+  it("deletes a disabled account with its credentials and advisor grants while preserving student records and other users", async () => {
+    const oldToken = await createAgentToken(db, advisor, "Reader token", 30);
+    const leadToken = await createAgentToken(db, lead, "Lead token", 30);
+    const bearer = (token: string) => new Request("https://test/mcp", { headers: { Authorization: `Bearer ${token}` } });
+    db.sqlite.exec(`
+      INSERT INTO meeting_logs (student_id, happened_at, discussed, agreed_plan) VALUES (4, '2026-11-14', 'Draft', 'Revise chapter');
+      INSERT INTO student_phase_audit (student_id, changed_at, from_phase, to_phase) VALUES (4, '2026-11-17', 'editing', 'submitted');
+      INSERT INTO thesis_assignments VALUES (4,4,'supervisor'),(4,3,'advisor');
+    `);
+    const studentData = () => [db.students, db.meetingLogs, db.phaseAuditEntries];
+    const originalData = studentData();
+    const otherUsers = db.appUsers.filter((user) => user.id !== advisor.id);
+    expect(await (await get(admin)).text()).not.toContain("Permanently delete account");
+    expect(saved(await post(admin, "delete-account", { accountId: "3", version: "1" }))).toBe(false);
+    expect(saved(await post(admin, "delete-account", { accountId: "1", version: "1" }))).toBe(false);
+    expect(saved(await post(admin, "disable-account", { accountId: "3", version: "1" }))).toBe(true);
+    expect(await (await get(admin)).text()).toContain("Permanently delete account");
+    // Simulate a pre-existing advisor row left on a disabled account.
+    db.sqlite.exec("INSERT INTO thesis_assignments VALUES (4,3,'advisor')");
+    const target = { accountId: "3", version: "2" };
+    expect((await post(lead, "delete-account", target)).status).toBe(403);
+    expect(saved(await post({ ...lead, isAdmin: true }, "delete-account", target))).toBe(false);
+    expect(saved(await post(admin, "delete-account", { ...target, version: "1" }))).toBe(false);
+    expect(db.sqlite.prepare("SELECT COUNT(*) AS count FROM thesis_assignments WHERE user_id=3").get()?.count).toBe(1);
+    expect(saved(await post(admin, "delete-account", target))).toBe(true);
+    expect(saved(await post(admin, "delete-account", target))).toBe(false);
+    expect(db.appUsers).toEqual(otherUsers);
+    expect(studentData()).toEqual(originalData);
+    expect(db.sqlite.prepare("SELECT * FROM thesis_assignments ORDER BY student_id").all()).toEqual([
+      { student_id: 1, user_id: 2, assignment_role: "supervisor" },
+      { student_id: 4, user_id: 4, assignment_role: "supervisor" },
+    ]);
+    expect(db.sqlite.prepare("SELECT user_id FROM agent_tokens").all()).toEqual([{ user_id: lead.id }]);
+    expect(await authenticateAgent(bearer(leadToken), db)).toMatchObject({ id: lead.id });
+    expect(
+      saved(await post(admin, "create-account", { name: advisor.name, role: "readonly", password: "replacement-user-password" })),
+    ).toBe(true);
+    expect(db.appUsers.find((user) => user.name === advisor.name)?.id).not.toBe(advisor.id);
+    expect(resolveSessionUser(await resolveAuthState({ DB: db }), { userId: advisor.id, sessionVersion: 1 })).toBeNull();
+    expect(await authenticateAgent(bearer(oldToken), db)).toBeNull();
+  });
+
+  it("keeps both assignments when a disabled account still supervises an archived thesis or deletion fails halfway", async () => {
+    db.sqlite.exec(`
+      UPDATE app_users SET disabled_at='2026-11-24' WHERE id=4;
+      INSERT INTO thesis_assignments VALUES (4,4,'supervisor'), (1,4,'advisor');
+    `);
+    const target = { accountId: "4", version: "1" };
+    expect(saved(await post(admin, "delete-account", target))).toBe(false);
+    expect(db.sqlite.prepare("SELECT COUNT(*) AS count FROM thesis_assignments WHERE user_id=4").get()?.count).toBe(2);
+    expect(saved(await post(admin, "transfer", { studentId: "4", previousLead: "4", accountId: "2" }))).toBe(true);
+    db.failQueries.push(/^DELETE FROM app_users /);
+    await expect(post(admin, "delete-account", target)).rejects.toThrow("Simulated database failure");
+    expect(db.sqlite.prepare("SELECT assignment_role FROM thesis_assignments WHERE user_id=4").get()?.assignment_role).toBe("advisor");
+    expect(db.appUsers.some((user) => user.id === 4)).toBe(true);
+  });
 });

@@ -5,6 +5,7 @@ import {
   changeAccountStatus,
   changeAdvisor,
   createManagedAccount,
+  deleteManagedAccount,
   getAdvisorChoices,
   listManagedAccounts,
   listManagedTheses,
@@ -122,6 +123,13 @@ async function handleAccessChange(request: Request, env: Env, user: SessionUser)
       ok,
       enable ? "Account enabled." : "Account disabled. Advisor assignments and agent access have been removed.",
       "Change unavailable. Keep an active administrator and transfer all supervised theses before disabling their account. Refresh for the latest account.",
+    );
+  }
+  if (action === "delete-account" && accountId && version) {
+    return feedback(
+      await deleteManagedAccount(env.DB, user, accountId, version),
+      "Account permanently deleted.",
+      "Deletion unavailable. Transfer all supervised theses, disable the account, and refresh its details.",
     );
   }
   return feedback(false, "", "Choose an available access action.");

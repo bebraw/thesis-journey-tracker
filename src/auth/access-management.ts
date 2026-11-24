@@ -149,6 +149,21 @@ export async function resetManagedPassword(
   return Boolean(result.results?.length);
 }
 
+export async function deleteManagedAccount(db: D1Database, actor: SessionUser, accountId: number, version: number): Promise<boolean> {
+  const eligible = `id = ?3 AND session_version = ?4 AND disabled_at IS NOT NULL AND ${admin} AND ${hasNoTheses}`;
+  const args = [actor.id, actor.sessionVersion, accountId, version] as const;
+  const results = await db.batch([
+    db
+      .prepare(
+        `DELETE FROM thesis_assignments WHERE user_id = ?3 AND assignment_role = 'advisor'
+      AND EXISTS (SELECT 1 FROM app_users WHERE ${eligible})`,
+      )
+      .bind(...args),
+    db.prepare(`DELETE FROM app_users WHERE ${eligible} RETURNING id`).bind(...args),
+  ]);
+  return Boolean(results[1]?.results?.length);
+}
+
 export async function changeAdvisor(
   db: D1Database,
   actor: SessionUser,

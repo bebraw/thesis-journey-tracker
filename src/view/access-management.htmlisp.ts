@@ -16,7 +16,13 @@ function hidden(name: string, value: string | number): string {
   return renderView('<input type="hidden" &name="name" &value="value" />', { name, value: String(value) });
 }
 
-function post(action: string, fields: string, label: string, identifiers: Record<string, number> = {}, formLabel = label): string {
+function post(
+  action: string,
+  fields: string,
+  label: string,
+  identifiers: Record<string, number> = {},
+  variant: "neutral" | "dangerBlock" = "neutral",
+): string {
   const ids = Object.entries(identifiers)
     .map(([name, value]) => hidden(name, value))
     .join("");
@@ -25,9 +31,9 @@ function post(action: string, fields: string, label: string, identifiers: Record
       <fragment &children="fields"></fragment><div &children="button"></div>
     </form>`,
     {
-      label: formLabel,
+      label,
       fields: raw(hidden("action", action) + ids + fields),
-      button: raw(renderButton({ label, type: "submit", variant: "neutral" })),
+      button: raw(renderButton({ label, type: "submit", variant })),
     },
   );
 }
@@ -125,6 +131,20 @@ function accountSection(accounts: ManagedAccount[]): string {
             ),
           }),
     ];
+    if (account.disabled_at) {
+      forms.push(
+        renderDisclosure({
+          summary: "Delete account",
+          content: post(
+            "delete-account",
+            text(`Permanently delete the login and agent tokens for ${account.name}? Theses and their history will be kept.`),
+            "Permanently delete account",
+            identifiers,
+            "dangerBlock",
+          ),
+        }),
+      );
+    }
     return renderDisclosure({ summary: `${account.name} · ${status}`, content: forms.join(""), contentClassName: "space-y-4" });
   });
   return renderCard(renderSectionHeader({ title: "Accounts" }) + create + entries.join(""), "space-y-3");
