@@ -1,9 +1,10 @@
 import styles from "../.generated/styles.css";
 import favicon from "./favicon.ico";
-import { getSessionIdentity, isReadonlyUser, resolveAuthState, resolveSessionUser, revokeAuthUserSessions, SESSION_COOKIE } from "./auth";
+import { getVerifiedSession, isReadonlyUser, resolveAuthState, resolveSessionUser, revokeAuthUserSessions, SESSION_COOKIE } from "./auth";
 import { runAutomatedBackup } from "./backup";
 import { handleMcp } from "./agent/mcp";
 import { handleAccessManagement } from "./routes/access-management";
+import { handleAccount } from "./routes/account";
 import { handleAgentAccess } from "./routes/agent-access";
 import type { Env, ScheduledControllerLike } from "./app-env";
 import type { D1Database } from "./db-core";
@@ -189,7 +190,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return new Response(authState.error, { status: 500 });
   }
 
-  const sessionIdentity = await getSessionIdentity(request, env.SESSION_SECRET as string, SESSION_COOKIE);
+  const sessionIdentity = await getVerifiedSession(request, env.SESSION_SECRET as string, SESSION_COOKIE);
   const sessionUser = resolveSessionUser(authState, sessionIdentity);
 
   if (pathname === "/login" && (request.method === "GET" || request.method === "POST")) {
@@ -203,8 +204,12 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return handleLogout(request.url);
   }
 
-  if (!sessionUser) {
+  if (!sessionUser || !sessionIdentity) {
     return redirect("/login");
+  }
+
+  if (pathname === "/account" && (request.method === "GET" || request.method === "POST")) {
+    return await handleAccount(request, env, sessionUser, sessionIdentity.expiresAt);
   }
 
   if (pathname === "/agent-access" && (request.method === "GET" || request.method === "POST")) {

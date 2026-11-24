@@ -21,9 +21,9 @@ export async function collectStudentBackupBundles(db: D1Database): Promise<Stude
     prepareListStudents(db, { includeArchived: true }),
     db.prepare("SELECT * FROM meeting_logs ORDER BY student_id, happened_at DESC, id DESC"),
     db.prepare("SELECT * FROM student_phase_audit ORDER BY student_id, changed_at DESC, id DESC"),
-    db.prepare(`SELECT a.student_id, a.user_id AS userId, u.name, a.assignment_role AS role
+    db.prepare(`SELECT a.student_id, a.user_id AS userId, COALESCE(u.backup_name, u.name) AS name, a.assignment_role AS role
       FROM thesis_assignments a JOIN app_users u ON u.id = a.user_id
-      ORDER BY a.student_id, a.assignment_role, u.name`),
+      ORDER BY a.student_id, a.assignment_role, COALESCE(u.backup_name, u.name) COLLATE NOCASE, a.user_id`),
   ]);
   const bundles = new Map<number, StudentExportBundle>();
   for (const row of snapshotRows<StudentRow>(students)) {

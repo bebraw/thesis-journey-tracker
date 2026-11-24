@@ -142,6 +142,15 @@ describe("data import and export", () => {
     target.DB.seedRow("app_users", { id: advisorId, name: "Different", role: "readonly", password_hash: "other" });
     expect((await restore()).headers.get("location")).toContain("unavailable%20advisor");
     target.DB.sqlite.exec("UPDATE app_users SET name = 'Reader' WHERE name = 'Different'");
+    expect((await restore()).headers.get("location")).toContain("unavailable%20advisor");
+
+    target.DB.sqlite.exec("DELETE FROM app_users WHERE name = 'Reader'");
+    target.DB.seedRow("app_users", { id: advisorId, name: "Reader", role: "readonly", password_hash: "original" });
+    // The first, case-only rename must preserve the exact historical backup name.
+    const rename = target.DB.sqlite.prepare("UPDATE app_users SET name = ? WHERE id = ?");
+    rename.run("reader", advisorId);
+    rename.run("Senior reader", advisorId);
+    target.DB.seedRow("app_users", { id: 72, name: "Reader", role: "readonly", password_hash: "later" });
     expect((await restore()).headers.get("location")).toContain("/data-tools?notice=");
     expect(target.DB.sqlite.prepare("SELECT student_id,user_id,assignment_role FROM thesis_assignments ORDER BY user_id").all()).toEqual([
       { student_id: 1, user_id: 1, assignment_role: "supervisor" },
@@ -151,10 +160,38 @@ describe("data import and export", () => {
       target.DB.appUsers.map(({ role, is_admin, can_supervise, password_hash }) => [role, is_admin, can_supervise, password_hash]),
     ).toEqual([
       ["editor", 0, 1, "target"],
-      ["readonly", 0, 0, "other"],
+      ["readonly", 0, 0, "original"],
+      ["readonly", 0, 0, "later"],
     ]);
     expect(target.DB.meetingLogs).toHaveLength(1);
     expect(target.DB.phaseAuditEntries).toHaveLength(1);
+    const nextExport = (await (await handleExportJson(target)).json()) as { students: unknown[] };
+    expect(nextExport.students).toEqual(JSON.parse(exported).students);
+  });
+
+  it("rolls replacement back if the account identity changes after import validation", async () => {
+    const { handleExportJson, handleImportJson } = await import("./transfer");
+    const backup = await (await handleExportJson(env)).text();
+    env.REPLACE_IMPORT_ENABLED = "1";
+    // Simulate a mismatched account in the write transaction, after the preflight read.
+    env.DB.sqlite.exec(`
+      CREATE TEMP TRIGGER simulate_account_replacement AFTER DELETE ON students BEGIN
+        DELETE FROM app_users WHERE id = 1;
+        INSERT INTO app_users (id,name,role,can_supervise,password_hash) VALUES (1,'Another person','editor',1,'other');
+        UPDATE app_users SET name = 'Advisor' WHERE id = 1;
+      END;
+    `);
+    const form = new FormData();
+    form.set("importFile", new File([backup], "v2.json"));
+    form.set("mode", "replace");
+    form.set("confirmReplace", "yes");
+    env.DB.calls.length = 0;
+    const response = await handleImportJson(new Request("http://localhost/actions/import-json", { method: "POST", body: form }), env);
+    expect(response.headers.get("location")).toContain("Replacement%20import%20failed");
+    expect(env.DB.calls.some(({ method, query }) => method === "run" && query.includes("INSERT INTO thesis_assignments"))).toBe(true);
+    expect(env.DB.appUsers[0]?.is_admin).toBe(1);
+    expect(env.DB.meetingLogs).toHaveLength(1);
+    expect(env.DB.sqlite.prepare("SELECT user_id FROM thesis_assignments").all()).toEqual([{ user_id: 1 }]);
   });
 
   it("requires an eligible supervisor for a nonempty legacy backup", async () => {
@@ -164,6 +201,7 @@ describe("data import and export", () => {
       schemaVersion: 1,
       students: [{ name: "Legacy", degreeType: "msc", currentPhase: "researching" }],
     };
+    env.DB.sqlite.exec("UPDATE app_users SET name = 'New lead login' WHERE id = 1");
     for (const name of ["", "Missing"]) {
       const form = new FormData();
       form.set("importFile", new File([JSON.stringify(backup)], "v1.json"));
@@ -172,6 +210,14 @@ describe("data import and export", () => {
       expect(response.headers.get("location")).toContain("/data-tools?error=");
       expect(env.DB.students).toHaveLength(1);
     }
+    const form = new FormData();
+    form.set("importFile", new File([JSON.stringify(backup)], "v1.json"));
+    form.set("legacySupervisor", "1");
+    const response = await handleImportJson(new Request("http://localhost/actions/import-json", { method: "POST", body: form }), env);
+    expect(response.headers.get("location")).toContain("/data-tools?notice=");
+    expect(
+      env.DB.sqlite.prepare("SELECT user_id FROM thesis_assignments WHERE student_id=2 AND assignment_role='supervisor'").get(),
+    ).toEqual({ user_id: 1 });
   });
 
   it("exports a professor-friendly markdown status report for the supervisor's visible theses", async () => {

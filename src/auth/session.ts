@@ -20,7 +20,10 @@ export function clearSessionCookie(requestUrl: string, session: SessionConfig): 
 }
 
 export async function createSessionToken(secret: string, ttlSeconds: number, identity: SessionIdentity): Promise<string> {
-  const expiresAt = Date.now() + ttlSeconds * 1000;
+  return signSessionUntil(secret, Date.now() + ttlSeconds * 1000, identity);
+}
+
+export async function signSessionUntil(secret: string, expiresAt: number, identity: SessionIdentity): Promise<string> {
   const payload = buildSessionPayload(expiresAt, identity);
   const signature = await hmacSign(payload, secret);
   return `${payload}.${signature}`;
@@ -31,6 +34,13 @@ export async function isAuthenticated(request: Request, secret: string, cookieNa
 }
 
 export async function getSessionIdentity(request: Request, secret: string, cookieName: string): Promise<SessionIdentity | null> {
+  const verified = await getVerifiedSession(request, secret, cookieName);
+  return verified ? { userId: verified.userId, sessionVersion: verified.sessionVersion } : null;
+}
+
+type VerifiedSession = SessionIdentity & { expiresAt: number };
+
+export async function getVerifiedSession(request: Request, secret: string, cookieName: string): Promise<VerifiedSession | null> {
   const cookieHeader = request.headers.get("cookie") || "";
   const token = readCookie(cookieHeader, cookieName);
   if (!token) {
@@ -79,7 +89,7 @@ function buildSessionPayload(expiresAt: number, identity: SessionIdentity): stri
   return `v2:${expiresAt}:${identity.userId}:${identity.sessionVersion}`;
 }
 
-function parseSessionPayload(payload: string): SessionIdentity | null {
+function parseSessionPayload(payload: string): VerifiedSession | null {
   const [version, expiresAtText, userIdText, sessionVersionText] = payload.split(":");
   const expiresAt = Number(expiresAtText);
   const userId = Number(userIdText);
@@ -100,6 +110,7 @@ function parseSessionPayload(payload: string): SessionIdentity | null {
   return {
     userId,
     sessionVersion,
+    expiresAt,
   };
 }
 

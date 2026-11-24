@@ -192,6 +192,20 @@ describe("schema migrations", () => {
     db.close();
   });
 
+  it("introduces backup account names without rewriting existing accounts", () => {
+    const db = new DatabaseSync(":memory:");
+    const migration = "0009_preserve_backup_account_names.sql";
+    for (const name of MIGRATION_FILES.filter((name) => name < migration)) {
+      db.exec(readFileSync(join(MIGRATIONS_DIR, name), "utf8"));
+    }
+    db.exec(`INSERT INTO app_users (id,name,password_hash,role,session_version,is_admin,can_supervise,updated_at)
+      VALUES (5,'Initial login','existing-hash','editor',9,1,1,'2025-01-01')`);
+    const original = db.prepare("SELECT * FROM app_users").get();
+    db.exec(readFileSync(join(MIGRATIONS_DIR, migration), "utf8"));
+    expect(db.prepare("SELECT * FROM app_users").get()).toEqual({ ...original, backup_name: null });
+    db.close();
+  });
+
   it("creates the current application schema from scratch", () => {
     const db = new DatabaseSync(":memory:");
 

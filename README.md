@@ -48,6 +48,7 @@ The project is intentionally small and server-rendered, with a focused workflow 
 
 - As a supervisor, add students with degree type, thesis topic, and timeline information. Assign or remove existing advisors from each thesis in **Manage access**.
 - As an administrator, create accounts, change rights, reset passwords, and disable or permanently remove accounts in **Manage access**. Transfer a departing supervisor’s theses first.
+- Change your own sign-in name under **More → My account**. Your password, thesis assignments, and agent tokens follow your account.
 - Track each student through thesis phases from planning to submission.
 - Configure the dashboard lane labels at the app level while keeping the original four-phase board structure as the default.
 - Switch between `List`, `Phases`, and `Gantt` views depending on whether you need detail, workflow stage, or workload shape.

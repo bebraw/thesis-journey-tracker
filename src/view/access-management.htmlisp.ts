@@ -79,7 +79,7 @@ function accountFields(account?: ManagedAccount): string {
     label: "Account name",
     required: true,
     value: account?.name || "",
-    attrs: { maxlength: "100", autocomplete: "off" },
+    attrs: { pattern: ".{1,100}", title: "Use 1 to 100 characters.", autocomplete: "off" },
   });
   const access = renderSelectField({
     name: "role",

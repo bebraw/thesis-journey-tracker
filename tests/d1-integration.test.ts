@@ -8,6 +8,8 @@ import { collectStudentBackupBundles } from "../src/backup/data";
 import { handleMcp } from "../src/agent/mcp";
 import { handleAgentAccess } from "../src/routes/agent-access";
 import { getLoginAttempt, recordLoginFailure, revokeAuthUserSessions } from "../src/auth/store";
+import { renameOwnAccount } from "../src/auth/username";
+import { createManagedAccount, updateManagedAccount } from "../src/auth/access-management";
 import { deleteAppSecret, getAppSecret, upsertAppSecret } from "../src/app-settings/store";
 import {
   archiveStudent,
@@ -458,6 +460,35 @@ describe("D1-backed db helpers", () => {
       currentPhase: "editing",
     });
     expect(await listPhaseAuditEntriesForStudent(db, assigned, 1)).toHaveLength(1);
+  });
+
+  it("keeps self-service and administrator name changes unique under concurrent Unicode-equivalent writes", async () => {
+    const db = platform.env.DB;
+    await runStatement(
+      db,
+      `INSERT INTO app_users (id, name, role, password_hash, is_admin, disabled_at) VALUES
+      (1, 'Admin', 'editor', 'admin-hash', 1, NULL), (2, 'Advisor', 'readonly', 'advisor-hash', 0, NULL),
+      (3, 'Päivi', 'readonly', 'disabled-hash', 0, '2026-11-01')`,
+    );
+    const admin = { id: 1, name: "Admin", sessionVersion: 1, role: "editor" as const, isAdmin: true };
+    const advisor = { id: 2, name: "Advisor", sessionVersion: 1, role: "readonly" as const };
+    const token = await createAgentToken(db, advisor, "Before rename", 30);
+    const bearer = new Request("https://tracker.test/mcp", { headers: { authorization: `Bearer ${token}` } });
+    expect(await renameOwnAccount(db, advisor, "Advisor", "PÄIVI")).toBeNull();
+    expect(await renameOwnAccount(db, advisor, "Advisor", "ADVISOR")).toBe(2);
+    expect(await authenticateAgent(bearer, db)).toMatchObject({ id: 2, name: "ADVISOR", role: "readonly", sessionVersion: 2 });
+    const rights = { name: "ÄITI MÄKI", isAdmin: false, canSupervise: false, role: "readonly" as const };
+    expect(await updateManagedAccount(db, admin, advisor.id, 1, rights)).toBe(false);
+    const renamed = { ...advisor, name: "ADVISOR", sessionVersion: 2 };
+    const results = await Promise.all([
+      renameOwnAccount(db, renamed, "ADVISOR", "äiti mäki"),
+      createManagedAccount(db, admin, rights, "new-hash"),
+    ]);
+    expect(results.filter(Boolean)).toHaveLength(1);
+    const { results: rows } = await db.prepare("SELECT id, name FROM app_users").all<{ id: number; name: string }>();
+    const holder = rows.filter((row) => row.name.toLocaleLowerCase() === "äiti mäki");
+    expect(holder).toHaveLength(1);
+    expect(await updateManagedAccount(db, admin, admin.id, 1, { ...rights, isAdmin: true })).toBe(false);
   });
 
   it("rejects session revocation for a missing user", async () => {

@@ -14,6 +14,8 @@ export {
   clearSessionCookie,
   createSessionToken,
   getSessionIdentity,
+  getVerifiedSession,
+  signSessionUntil,
   isAuthenticated,
   SESSION_COOKIE,
   SESSION_TTL_SECONDS,

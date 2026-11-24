@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { seedTestUsers, loginWithPassword } from "../../tests/helpers/auth";
 import { MockD1Database } from "../../tests/helpers/mock-d1";
 import { sameOriginRequest } from "../../tests/helpers/request";
+import { getVerifiedSession, SESSION_COOKIE, SESSION_TTL_SECONDS } from "../auth";
 
 vi.mock("../../.generated/styles.css", () => ({ default: "" }));
 vi.mock("../favicon.ico", () => ({ default: new ArrayBuffer(0) }));
@@ -29,6 +30,62 @@ describe("multi-user access control", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("renames only the signed-in account and refreshes its browser session", async () => {
+    const oldCookie = await loginWithPassword(fetchHandler, env, "Professor", "readonly-password");
+    const verify = (cookie: string) =>
+      getVerifiedSession(new Request("http://localhost/", { headers: { cookie } }), env.SESSION_SECRET, SESSION_COOKIE);
+    const originalSession = await verify(oldCookie);
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 60_000);
+    const submit = (cookie: string, name: string, originalName = "Professor") =>
+      fetchHandler(
+        sameOriginRequest("http://localhost/account", {
+          method: "POST",
+          headers: { cookie },
+          body: new URLSearchParams({ name, originalName, accountId: "1", isAdmin: "yes", role: "editor" }),
+        }),
+        env,
+      );
+    expect((await submit("", "New")).headers.get("location")).toBe("/login");
+    expect(
+      (await fetchHandler(new Request("http://localhost/account", { method: "POST", headers: { cookie: oldCookie } }), env)).status,
+    ).toBe(403);
+    const unchanged = await submit(oldCookie, " Professor ");
+    expect(unchanged.headers.get("location")).toContain("Username+unchanged.");
+    expect(unchanged.headers.get("set-cookie")).toBeNull();
+    for (const invalid of ["   ", "A\nB", "x".repeat(101), "aDvIsOr"]) {
+      expect((await submit(oldCookie, invalid)).headers.get("location")).toContain("error=");
+    }
+    const before = env.DB.appUsers.find((user) => user.name === "Professor")!;
+    const changed = await submit(oldCookie, "  Väinö Mäki ");
+    expect(changed.headers.get("location")).toContain("notice=");
+    const freshCookie = changed.headers.get("set-cookie")!.split(";")[0]!;
+    expect((await verify(freshCookie))?.expiresAt).toBe(originalSession!.expiresAt);
+    expect(Number(changed.headers.get("set-cookie")!.match(/Max-Age=(\d+)/)?.[1])).toBeLessThan(SESSION_TTL_SECONDS);
+    expect(env.DB.appUsers.find((user) => user.id === before.id)).toMatchObject({
+      name: "Väinö Mäki",
+      session_version: before.session_version + 1,
+      password_hash: before.password_hash,
+      role: "readonly",
+      is_admin: 0,
+    });
+    expect(env.DB.appUsers[0]?.name).toBe("Advisor");
+    const dashboard = (cookie: string) => fetchHandler(new Request("http://localhost/", { headers: { cookie } }), env);
+    expect((await dashboard(oldCookie)).headers.get("location")).toBe("/login");
+    expect(await (await dashboard(freshCookie)).text()).toContain("Base Student");
+    expect((await submit(freshCookie, "Stale tab", "Professor")).headers.get("location")).toContain("error=");
+    expect(await loginWithPassword(fetchHandler, env, "Professor", "readonly-password")).toBe("");
+    expect(await loginWithPassword(fetchHandler, env, "VÄINÖ MÄKI", "readonly-password")).toContain("thesis_session=");
+  });
+
+  it("lets legacy Unicode-equivalent usernames sign in with their exact spelling", async () => {
+    await seedTestUsers(env.DB, [
+      { name: "ÄITI", role: "readonly", password: "first-legacy-password" },
+      { name: "äiti", role: "readonly", password: "second-legacy-password" },
+    ]);
+    expect(await loginWithPassword(fetchHandler, env, "ÄITI", "first-legacy-password")).toContain("thesis_session=");
+    expect(await loginWithPassword(fetchHandler, env, "äiti", "second-legacy-password")).toContain("thesis_session=");
   });
 
   it("serves a CSP-compatible application shell with security headers", async () => {

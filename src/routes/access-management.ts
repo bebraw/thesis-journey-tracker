@@ -15,6 +15,7 @@ import {
   type AccountRights,
 } from "../auth/access-management";
 import { readFormData } from "../http/request-body";
+import { parseUsername } from "../auth/username";
 import { htmlResponse, redirect } from "../http/response";
 import { renderAccessManagement } from "../view/access-management.htmlisp";
 
@@ -35,12 +36,12 @@ function forbidden(): Response {
 }
 
 function readRights(form: FormData): AccountRights | null {
-  const rawName = form.get("name");
+  const name = parseUsername(form.get("name"));
   const selection = form.get("role");
   const canSupervise = selection === "supervisor";
   const role = canSupervise ? "editor" : selection;
-  if (typeof rawName !== "string" || !rawName.trim() || [...rawName.trim()].length > 100 || !isAccessRole(role)) return null;
-  return { name: rawName.trim(), role, isAdmin: form.get("isAdmin") === "yes", canSupervise };
+  if (!name || !isAccessRole(role)) return null;
+  return { name, role, isAdmin: form.get("isAdmin") === "yes", canSupervise };
 }
 
 async function newPasswordHash(form: FormData): Promise<string | null> {

@@ -1,5 +1,6 @@
 import type { D1Database } from "../db-core";
 import type { AccessRole, SessionUser } from "./types";
+import { availableUsernameDirectory, usernameDirectorySql } from "./username";
 
 export interface AccountChoice {
   id: number;
@@ -81,12 +82,14 @@ export interface AccountRights {
 }
 
 export async function createManagedAccount(db: D1Database, actor: SessionUser, rights: AccountRights, hash: string): Promise<boolean> {
+  const directory = await availableUsernameDirectory(db, rights.name);
+  if (directory === null) return false;
   const result = await db
     .prepare(
       `INSERT INTO app_users (name, role, is_admin, can_supervise, password_hash)
-    SELECT ?3, ?4, ?5, ?6, ?7 WHERE ${admin} ON CONFLICT(name) DO NOTHING RETURNING id`,
+    SELECT ?3, ?4, ?5, ?6, ?7 WHERE ${admin} AND ${usernameDirectorySql} = ?8 ON CONFLICT(name) DO NOTHING RETURNING id`,
     )
-    .bind(actor.id, actor.sessionVersion, rights.name, rights.role, Number(rights.isAdmin), Number(rights.canSupervise), hash)
+    .bind(actor.id, actor.sessionVersion, rights.name, rights.role, Number(rights.isAdmin), Number(rights.canSupervise), hash, directory)
     .run();
   return Boolean(result.results?.length);
 }
@@ -102,14 +105,26 @@ export async function updateManagedAccount(
   version: number,
   rights: AccountRights,
 ): Promise<boolean> {
+  const directory = await availableUsernameDirectory(db, rights.name, accountId);
+  if (directory === null) return false;
   const result = await db
     .prepare(
       `UPDATE app_users SET name = ?5, role = ?6, is_admin = ?7, can_supervise = ?8,
     session_version = session_version + 1 WHERE id = ?3 AND session_version = ?4 AND ${admin}
     AND (?7 = 1 OR ${lastAdminGuard}) AND ((?8 = 1 AND ?6 = 'editor') OR ${hasNoTheses})
-    AND NOT EXISTS (SELECT 1 FROM app_users other WHERE other.name = ?5 AND other.id <> ?3) RETURNING id`,
+    AND ${usernameDirectorySql} = ?9 RETURNING id`,
     )
-    .bind(actor.id, actor.sessionVersion, accountId, version, rights.name, rights.role, Number(rights.isAdmin), Number(rights.canSupervise))
+    .bind(
+      actor.id,
+      actor.sessionVersion,
+      accountId,
+      version,
+      rights.name,
+      rights.role,
+      Number(rights.isAdmin),
+      Number(rights.canSupervise),
+      directory,
+    )
     .run();
   return Boolean(result.results?.length);
 }

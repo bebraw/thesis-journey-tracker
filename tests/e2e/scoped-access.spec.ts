@@ -9,13 +9,13 @@ async function signIn(page: Page, name: string, password: string) {
   await expect(page).toHaveURL(/\/$/);
 }
 
-async function createAdvisor(page: Page, advisorName: string, password: string) {
+async function createAdvisor(page: Page, advisorName: string, password: string, role: "editor" | "readonly" = "editor") {
   await page.goto("/access");
   await page.getByText("Create an account", { exact: true }).click();
   const createAccount = page.getByRole("form", { name: "Create account" });
   await createAccount.getByLabel("Account name").fill(advisorName);
   await createAccount.getByLabel("Password", { exact: true }).fill(password);
-  await createAccount.getByLabel("Thesis access").selectOption("editor");
+  await createAccount.getByLabel("Thesis access").selectOption(role);
   await createAccount.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByText("Account created.", { exact: true })).toBeVisible();
 }
@@ -34,6 +34,44 @@ async function addAdvisor(page: Page, studentId: string, advisorName: string) {
   await page.getByRole("button", { name: "Add advisor", exact: true }).click();
   await expect(page.getByRole("button", { name: `Remove ${advisorName}`, exact: true })).toBeVisible();
 }
+
+test("a read-only advisor changes their username and signs back in with the same thesis access", async ({ page, browser, baseURL }) => {
+  const suffix = randomUUID().slice(0, 8);
+  const oldName = `Reader ${suffix}`;
+  const newName = `Renamed reader ${suffix}`;
+  const student = `Assigned thesis ${suffix}`;
+  const password = `reader-login-test-${suffix}`;
+  await signIn(page, "Advisor", "e2e-password-long");
+  await createAdvisor(page, oldName, password, "readonly");
+  const studentId = await createThesis(page, student);
+  await addAdvisor(page, studentId, oldName);
+
+  const reader = await browser.newPage({ baseURL });
+  try {
+    await signIn(reader, oldName, password);
+    await reader.locator("summary", { hasText: "More" }).click();
+    await reader.getByRole("link", { name: "My account" }).click();
+    await expect(reader.getByLabel("Username")).toHaveValue(oldName);
+    await reader.getByLabel("Username").fill(newName);
+    await reader.getByRole("button", { name: "Save username" }).click();
+    await expect(reader.getByRole("status")).toHaveText("Username updated.");
+    await expect(reader.getByLabel("Username")).toHaveValue(newName);
+    await page.reload();
+    await expect(page.getByRole("button", { name: `Remove ${newName}`, exact: true })).toBeVisible();
+
+    await reader.getByRole("button", { name: "Log out" }).click();
+    await reader.getByLabel("Name", { exact: true }).fill(oldName);
+    await reader.getByLabel("Password", { exact: true }).fill(password);
+    await reader.getByRole("button", { name: "Sign in" }).click();
+    await expect(reader.getByRole("alert")).toHaveText("Invalid name or password. Please try again.");
+    await signIn(reader, newName, password);
+    await expect(reader.locator("[data-student-row]")).toHaveCount(1);
+    await reader.locator("[data-student-row]", { hasText: student }).click();
+    await expect(reader.locator("#selectedStudentPanel")).toContainText("Read-only");
+  } finally {
+    await reader.close();
+  }
+});
 
 test("a supervisor grants and withdraws thesis access from a signed-in advisor", async ({ page, browser, baseURL }) => {
   const suffix = randomUUID().slice(0, 8);

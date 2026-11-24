@@ -75,7 +75,9 @@ If the `BACKUP_BUCKET` binding is configured, the run will write the backup arti
 
 Account records, password hashes, agent tokens, and global settings are outside the student JSON format. Use a protected full D1 export and a tested database restore point for schema upgrades. [Cohort upgrade procedure](./deployment.md#upgrading-an-existing-cohort)
 
-For app-level restore, sign in as an administrator, then download the JSON export from R2 and import it from the Data Tools page in the deployed app. Append creates new student records. Replacement rebuilds the entire student dataset and generates new student IDs. Version 2 checks both the account ID and the name for every team member against eligible accounts on the target. If a person was renamed or has a different ID on a new installation, verify their identity and update the mapping in a copy of the JSON file before importing. Version 1 files require the administrator to select the supervisor for the imported theses. The Data Tools importer accepts JSON files up to 4 MiB; split larger append imports into smaller files before uploading them.
+For app-level restore, sign in as an administrator, download the JSON export from R2, and import it from the Data Tools page. Append creates new student records. Replacement rebuilds the entire student dataset and generates new student IDs. The importer accepts JSON files up to 4 MiB. Split larger append imports into smaller files before uploading them.
+
+Version 2 checks each team member’s immutable account ID and the exact name saved for backups. Changing a username preserves this pair, so exports from before and after a rename restore to the same account. Reusing a former username on a new account gives it a different ID. If restoring to a new installation with different IDs, verify the intended people and update the mapping in a copy of the JSON file. Version 1 files require the administrator to select the supervisor for the imported theses.
 
 ## Retention
 

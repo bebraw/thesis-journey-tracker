@@ -120,7 +120,7 @@ export function isReplaceImportEnabled(env: Env): boolean {
 
 interface ImportAccount {
   id: number;
-  name: string;
+  backup_name: string;
   can_supervise: number;
   role: string;
 }
@@ -134,7 +134,9 @@ async function resolveImportAssignments(
   data: ImportedStudentBundle[],
   legacySupervisor: FormDataEntryValue | null,
 ): Promise<ResolvedBundle[] | string> {
-  const rows = await db.prepare("SELECT id, name, role, can_supervise FROM app_users WHERE disabled_at IS NULL").all<ImportAccount>();
+  const rows = await db
+    .prepare("SELECT id, COALESCE(backup_name, name) AS backup_name, role, can_supervise FROM app_users WHERE disabled_at IS NULL")
+    .all<ImportAccount>();
   const accounts = new Map(rows.results.map((account) => [account.id, account]));
   const legacyOwner = typeof legacySupervisor === "string" ? accounts.get(Number(legacySupervisor)) : undefined;
   const bundles: ResolvedBundle[] = [];
@@ -142,16 +144,16 @@ async function resolveImportAssignments(
     let team = bundle.assignments;
     if (team === null) {
       if (!legacyOwner) return "Select an active supervisor for theses in a version 1 backup.";
-      team = [{ userId: legacyOwner.id, name: legacyOwner.name, role: "supervisor" }];
+      team = [{ userId: legacyOwner.id, name: legacyOwner.backup_name, role: "supervisor" }];
     }
     for (const assignment of team) {
       const account = accounts.get(assignment.userId);
       if (
         !account ||
-        account.name !== assignment.name ||
+        account.backup_name !== assignment.name ||
         (assignment.role === "supervisor" && (!account.can_supervise || account.role !== "editor"))
       ) {
-        return `Thesis ${bundles.length + 1} references an unavailable ${assignment.role} account. Check the account ID, exact name, and permissions before importing.`;
+        return `Thesis ${bundles.length + 1} references an unavailable ${assignment.role} account. Check the account ID, exact backup name, and permissions before importing.`;
       }
     }
     bundles.push({ ...bundle, assignments: team });
@@ -202,7 +204,7 @@ async function buildImportStatements(db: D1Database, data: ResolvedBundle[], mod
         db
           .prepare(
             `INSERT INTO thesis_assignments (student_id, user_id, assignment_role)
-           VALUES (?, (SELECT id FROM app_users WHERE id = ? AND name = ? COLLATE BINARY
+           VALUES (?, (SELECT id FROM app_users WHERE id = ? AND COALESCE(backup_name, name) = ? COLLATE BINARY
              AND disabled_at IS NULL AND (? = 'advisor' OR (role = 'editor' AND can_supervise = 1))), ?)`,
           )
           .bind(studentId, assignment.userId, assignment.name, assignment.role, assignment.role),

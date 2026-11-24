@@ -161,7 +161,7 @@ export function renderDashboardToastMessages(notice: string | null, error: strin
   );
 }
 
-export type HeaderPageId = "dashboard" | "data-tools" | "add-student" | "style-guide" | "agent-access" | "access";
+export type HeaderPageId = "dashboard" | "data-tools" | "add-student" | "style-guide" | "agent-access" | "access" | "account";
 
 interface RenderAuthedPageDocumentOptions {
   documentTitle: string;
@@ -199,8 +199,10 @@ function renderHeaderNavLink(link: HeaderLink): string {
 export function renderPageHeaderNavigation(currentPage: HeaderPageId, viewer: ViewerContext, showStyleGuide = false): string {
   const primaryLinks: HeaderLink[] = [{ label: "Dashboard", href: "/", current: currentPage === "dashboard" }];
 
-  const moreLinks: HeaderLink[] = [];
-  moreLinks.push({ label: "Agent access", href: "/agent-access", current: currentPage === "agent-access" });
+  const moreLinks: HeaderLink[] = [
+    { label: "My account", href: "/account", current: currentPage === "account" },
+    { label: "Agent access", href: "/agent-access", current: currentPage === "agent-access" },
+  ];
   if (viewer.isAdmin || viewer.canSupervise) {
     moreLinks.push({ label: "Manage access", href: "/access", current: currentPage === "access" });
   }
@@ -215,13 +217,6 @@ export function renderPageHeaderNavigation(currentPage: HeaderPageId, viewer: Vi
   }
 
   const primaryNavHtml = primaryLinks.map(renderHeaderNavLink).join("");
-  if (moreLinks.length === 0) {
-    return primaryNavHtml;
-  }
-  if (moreLinks.length === 1) {
-    return `${primaryNavHtml}${renderHeaderNavLink(moreLinks[0]!)}`;
-  }
-
   const moreMenuIsCurrent = moreLinks.some((link) => link.current);
   const moreMenuHtml = renderView(
     `<details class="relative shrink-0">

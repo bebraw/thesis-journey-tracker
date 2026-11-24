@@ -1,10 +1,11 @@
 import {
   buildSessionCookie,
   clearSessionCookie,
-  createSessionToken,
+  signSessionUntil,
   SESSION_COOKIE,
   SESSION_TTL_SECONDS,
   type AuthState,
+  type SessionIdentity,
   type SessionUser,
   verifyLoginCredentials,
 } from "../auth";
@@ -45,14 +46,24 @@ export async function handleLoginRequest(
     return redirect("/login?error=1");
   }
 
-  const token = await createSessionToken(env.SESSION_SECRET || "", SESSION_TTL_SECONDS, {
+  return redirectWithSession(request, env, "/", {
     userId: loginResult.user.id,
     sessionVersion: loginResult.user.sessionVersion,
   });
-  return redirect("/", {
+}
+
+export async function redirectWithSession(
+  request: Request,
+  env: Env,
+  path: string,
+  identity: SessionIdentity,
+  expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000,
+): Promise<Response> {
+  const token = await signSessionUntil(env.SESSION_SECRET || "", expiresAt, identity);
+  return redirect(path, {
     "Set-Cookie": buildSessionCookie(token, request.url, {
       cookieName: SESSION_COOKIE,
-      ttlSeconds: SESSION_TTL_SECONDS,
+      ttlSeconds: Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)),
     }),
   });
 }
