@@ -113,3 +113,11 @@ SELECT
   'pbkdf2_sha256$100000$cHJvZmVzc29yLWUyZTAwMQ==$HiWjxNsL9+QoVlHxGZbyf65UDhOc8iSL/pw//bB4S2Y=',
   'readonly'
 WHERE NOT EXISTS (SELECT 1 FROM app_users WHERE name = 'Professor');
+
+UPDATE app_users SET is_admin = 1, can_supervise = 1 WHERE name = 'Advisor';
+
+INSERT INTO thesis_assignments (student_id, user_id, assignment_role)
+SELECT s.id, u.id, CASE WHEN u.name = 'Advisor' THEN 'supervisor' ELSE 'advisor' END
+FROM students s CROSS JOIN app_users u
+WHERE u.name IN ('Advisor', 'Professor')
+ON CONFLICT(student_id, user_id) DO NOTHING;

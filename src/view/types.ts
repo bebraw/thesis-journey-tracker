@@ -4,6 +4,8 @@ import type { DashboardLaneDefinition } from "../dashboard-lanes";
 export interface ViewerContext {
   name: string;
   role: "editor" | "readonly";
+  isAdmin?: boolean;
+  canSupervise?: boolean;
 }
 
 export interface Metrics {
@@ -28,6 +30,7 @@ export interface DashboardPageData {
   viewer: ViewerContext;
   students: Student[];
   selectedStudent: Student | null;
+  canManageSelected: boolean;
   logs: MeetingLog[];
   phaseAudit: PhaseAuditEntry[];
   dashboardLanes: DashboardLaneDefinition[];
@@ -56,6 +59,7 @@ export interface DataToolsPageData {
   studentCount: number;
   logCount: number;
   replaceImportEnabled: boolean;
+  supervisors: Array<{ id: number; name: string }>;
   dashboardLanes: DashboardLaneDefinition[];
   storedDashboardLanesUpdatedAt: string | null;
   usingDefaultDashboardLanes: boolean;

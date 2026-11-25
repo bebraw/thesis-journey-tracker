@@ -11,6 +11,8 @@ export interface SessionUser {
   name: string;
   role: AccessRole;
   sessionVersion: number;
+  isAdmin?: boolean;
+  canSupervise?: boolean;
 }
 
 export interface SessionIdentity {

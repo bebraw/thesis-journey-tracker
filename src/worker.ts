@@ -1,8 +1,10 @@
 import styles from "../.generated/styles.css";
 import favicon from "./favicon.ico";
-import { getSessionIdentity, isReadonlyUser, resolveAuthState, resolveSessionUser, revokeAuthUserSessions, SESSION_COOKIE } from "./auth";
+import { getVerifiedSession, isReadonlyUser, resolveAuthState, resolveSessionUser, revokeAuthUserSessions, SESSION_COOKIE } from "./auth";
 import { runAutomatedBackup } from "./backup";
 import { handleMcp } from "./agent/mcp";
+import { handleAccessManagement } from "./routes/access-management";
+import { handleAccount } from "./routes/account";
 import { handleAgentAccess } from "./routes/agent-access";
 import type { Env, ScheduledControllerLike } from "./app-env";
 import type { D1Database } from "./db-core";
@@ -188,7 +190,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return new Response(authState.error, { status: 500 });
   }
 
-  const sessionIdentity = await getSessionIdentity(request, env.SESSION_SECRET as string, SESSION_COOKIE);
+  const sessionIdentity = await getVerifiedSession(request, env.SESSION_SECRET as string, SESSION_COOKIE);
   const sessionUser = resolveSessionUser(authState, sessionIdentity);
 
   if (pathname === "/login" && (request.method === "GET" || request.method === "POST")) {
@@ -202,14 +204,25 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return handleLogout(request.url);
   }
 
-  if (!sessionUser) {
+  if (!sessionUser || !sessionIdentity) {
     return redirect("/login");
+  }
+
+  if (pathname === "/account" && (request.method === "GET" || request.method === "POST")) {
+    return await handleAccount(request, env, sessionUser, sessionIdentity.expiresAt);
   }
 
   if (pathname === "/agent-access" && (request.method === "GET" || request.method === "POST")) {
     return await handleAgentAccess(request, env, sessionUser);
   }
 
+  if (pathname === "/access" && (request.method === "GET" || request.method === "POST")) {
+    return await handleAccessManagement(request, env, sessionUser);
+  }
+
+  const adminOnly = () => (sessionUser.isAdmin ? null : new Response("Administrator access required", { status: 403 }));
+  const supervisorOnly = () =>
+    sessionUser.canSupervise && sessionUser.role === "editor" ? null : new Response("Supervisor access required", { status: 403 });
   const ensureEditor = (pathname: string): Response | null => {
     return isReadonlyUser(sessionUser) ? readonlyRedirect(pathname) : null;
   };
@@ -219,25 +232,20 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   if (pathname === "/students/new" && request.method === "GET") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
+    const denied = supervisorOnly();
+    if (denied) return denied;
     return await renderAddStudent(env, url, sessionUser, showStyleGuide);
   }
 
   if (pathname === "/style-guide" && request.method === "GET") {
     const readonlyResponse = ensureEditor("/");
     if (readonlyResponse) return readonlyResponse;
-    return htmlResponse(
-      renderStyleGuidePage({
-        name: sessionUser.name,
-        role: sessionUser.role,
-      }),
-    );
+    return htmlResponse(renderStyleGuidePage(sessionUser));
   }
 
   if (pathname === "/data-tools" && request.method === "GET") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
+    const denied = adminOnly();
+    if (denied) return denied;
     return await renderDataTools(url, env, sessionUser);
   }
 
@@ -247,38 +255,38 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   if (pathname === "/actions/export-json" && request.method === "GET") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
+    const denied = adminOnly();
+    if (denied) return denied;
     return await handleExportJson(env);
   }
 
   if (pathname === "/actions/export-professor-report" && request.method === "GET") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
-    return await handleProfessorReportExport(env);
+    const denied = supervisorOnly();
+    if (denied) return denied;
+    return await handleProfessorReportExport(env, sessionUser.id);
   }
 
   if (pathname === "/actions/add-student" && request.method === "POST") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
-    return await handleAddStudent(request, env);
+    const denied = supervisorOnly();
+    if (denied) return denied;
+    return await handleAddStudent(request, env, sessionUser);
   }
 
   if (pathname === "/actions/import-json" && request.method === "POST") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
-    return await handleImportJson(request, env);
+    const denied = adminOnly();
+    if (denied) return denied;
+    return await handleImportJson(request, env, sessionUser);
   }
 
   if (pathname === "/actions/save-dashboard-lane-settings" && request.method === "POST") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
+    const denied = adminOnly();
+    if (denied) return denied;
     return await handleSaveDashboardLaneSettings(request, env);
   }
 
   if (pathname === "/actions/reset-dashboard-lane-settings" && request.method === "POST") {
-    const readonlyResponse = ensureEditor("/");
-    if (readonlyResponse) return readonlyResponse;
+    const denied = adminOnly();
+    if (denied) return denied;
     return await handleResetDashboardLaneSettings(env);
   }
 
@@ -286,28 +294,28 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   if (updateMatch && request.method === "POST") {
     const readonlyResponse = ensureEditor(await getDashboardReturnPath(request, { selectedId: Number(updateMatch[1]) }));
     if (readonlyResponse) return readonlyResponse;
-    return await handleUpdateStudent(request, env, Number(updateMatch[1]));
+    return await handleUpdateStudent(request, env, Number(updateMatch[1]), sessionUser);
   }
 
   const addLogMatch = pathname.match(/^\/actions\/add-log\/(\d+)$/);
   if (addLogMatch && request.method === "POST") {
     const readonlyResponse = ensureEditor(await getDashboardReturnPath(request, { selectedId: Number(addLogMatch[1]) }));
     if (readonlyResponse) return readonlyResponse;
-    return await handleAddLog(request, env, Number(addLogMatch[1]));
+    return await handleAddLog(request, env, Number(addLogMatch[1]), sessionUser);
   }
 
   const archiveMatch = pathname.match(/^\/actions\/archive-student\/(\d+)$/);
   if (archiveMatch && request.method === "POST") {
     const readonlyResponse = ensureEditor(await getDashboardReturnPath(request, { selectedId: Number(archiveMatch[1]) }));
     if (readonlyResponse) return readonlyResponse;
-    return await handleArchiveStudent(request, env, Number(archiveMatch[1]));
+    return await handleArchiveStudent(request, env, Number(archiveMatch[1]), sessionUser);
   }
 
   const restoreMatch = pathname.match(/^\/actions\/restore-student\/(\d+)$/);
   if (restoreMatch && request.method === "POST") {
     const readonlyResponse = ensureEditor(await getDashboardReturnPath(request));
     if (readonlyResponse) return readonlyResponse;
-    return await handleRestoreStudent(request, env, Number(restoreMatch[1]));
+    return await handleRestoreStudent(request, env, Number(restoreMatch[1]), sessionUser);
   }
 
   return new Response("Not found", { status: 404 });

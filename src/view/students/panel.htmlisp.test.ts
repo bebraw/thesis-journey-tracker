@@ -71,10 +71,14 @@ describe("renderSelectedStudentPanel", () => {
   });
 
   it("offers to continue an existing repeating schedule", () => {
-    const html = renderSelectedStudentPanel({
-      ...BASE_STUDENT,
-      meetingSchedule: { startLocal: "2026-04-10T12:00", timeZone: "Europe/Helsinki", intervalWeeks: 2, untilDate: null },
-    }, [], []);
+    const html = renderSelectedStudentPanel(
+      {
+        ...BASE_STUDENT,
+        meetingSchedule: { startLocal: "2026-04-10T12:00", timeZone: "Europe/Helsinki", intervalWeeks: 2, untilDate: null },
+      },
+      [],
+      [],
+    );
     expect(html).toContain('<option value="keep">Continue repeating schedule</option>');
     expect(html).not.toContain("Same time next week");
   });
@@ -90,7 +94,7 @@ describe("renderSelectedStudentPanel", () => {
   });
 
   it("uses escaped data for archive confirmation instead of an inline handler", () => {
-    const html = renderSelectedStudentPanel({ ...BASE_STUDENT, name: "O'Connor <script>" }, [], []);
+    const html = renderSelectedStudentPanel({ ...BASE_STUDENT, name: "O'Connor <script>" }, [], [], { canManage: true });
 
     expect(html).toContain("data-confirm-message=");
     expect(html).not.toContain("onsubmit=");
@@ -100,6 +104,7 @@ describe("renderSelectedStudentPanel", () => {
 
   it("renders archived students read-only with a restore action for editors", () => {
     const html = renderSelectedStudentPanel({ ...BASE_STUDENT, archivedAt: "2026-06-18T09:00:00.000Z" }, [], [], {
+      canManage: true,
       filters: {
         scope: "archived",
         search: "",

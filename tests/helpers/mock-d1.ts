@@ -1,3 +1,7 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+
 type D1Value = string | number | null;
 
 interface StudentRowStore {
@@ -37,6 +41,9 @@ interface AppUserStore {
   password_hash: string;
   role: string;
   session_version: number;
+  is_admin: number;
+  can_supervise: number;
+  disabled_at: string | null;
 }
 
 interface LoginAttemptStore {
@@ -59,34 +66,21 @@ interface QueryCall {
   method: "run" | "first" | "all";
 }
 
-interface MockRunResult {
-  success?: boolean;
-  meta?: {
-    last_row_id?: number;
-    changes?: number;
-  };
-  results?: Array<Record<string, D1Value>>;
-}
+const migrations = readdirSync("migrations")
+  .filter((file) => file.endsWith(".sql"))
+  .sort()
+  .map((file) => readFileSync(join("migrations", file), "utf8"));
 
+/** D1-shaped test database executing the same SQL and constraints as the app. */
 export class MockD1Database {
-  public students: StudentRowStore[] = [];
-  public meetingLogs: MeetingLogStore[] = [];
-  public phaseAuditEntries: PhaseAuditEntryStore[] = [];
-  public appUsers: AppUserStore[] = [];
-  public loginAttempts: LoginAttemptStore[] = [];
-  public appSecrets: AppSecretStore[] = [];
-  public calls: QueryCall[] = [];
-  public failQueries: Array<string | RegExp> = [];
-  public sessionConstraints: string[] = [];
-
-  private nextStudentId = 1;
-  private nextLogId = 1;
-  private nextPhaseAuditId = 1;
-  private nextAppUserId = 1;
+  readonly sqlite = new DatabaseSync(":memory:");
+  calls: QueryCall[] = [];
+  failQueries: Array<string | RegExp> = [];
+  sessionConstraints: string[] = [];
 
   constructor() {
-    this.students.push({
-      id: this.nextStudentId++,
+    for (const migration of migrations) this.sqlite.exec(migration);
+    this.seedRow("students", {
       name: "Base Student",
       email: "base@example.edu",
       degree_type: "msc",
@@ -94,9 +88,35 @@ export class MockD1Database {
       student_notes: "Baseline student note",
       start_date: "2026-01-01",
       current_phase: "researching",
-      next_meeting_at: null,
-      archived_at: null,
     });
+  }
+
+  get students() {
+    return this.sqlite.prepare("SELECT * FROM students ORDER BY id").all() as unknown as StudentRowStore[];
+  }
+  get meetingLogs() {
+    return this.sqlite.prepare("SELECT * FROM meeting_logs ORDER BY id").all() as unknown as MeetingLogStore[];
+  }
+  get phaseAuditEntries() {
+    return this.sqlite.prepare("SELECT * FROM student_phase_audit ORDER BY id").all() as unknown as PhaseAuditEntryStore[];
+  }
+  get appUsers() {
+    return this.sqlite.prepare("SELECT * FROM app_users ORDER BY id").all() as unknown as AppUserStore[];
+  }
+  get appSecrets() {
+    return this.sqlite.prepare("SELECT * FROM app_secrets").all() as unknown as AppSecretStore[];
+  }
+  get loginAttempts() {
+    return this.sqlite.prepare("SELECT * FROM login_attempts").all() as unknown as LoginAttemptStore[];
+  }
+
+  seedRow(table: "students" | "meeting_logs" | "student_phase_audit" | "app_users" | "thesis_assignments", row: Record<string, D1Value>) {
+    const columns = Object.keys(row);
+    return Number(
+      this.sqlite
+        .prepare(`INSERT INTO ${table} (${columns.join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`)
+        .run(...Object.values(row)).lastInsertRowid,
+    );
   }
 
   prepare(query: string) {
@@ -109,508 +129,53 @@ export class MockD1Database {
   }
 
   async batch<T = unknown>(statements: MockPreparedStatement[]) {
-    const snapshot = {
-      students: this.students.map((row) => ({ ...row })),
-      meetingLogs: this.meetingLogs.map((row) => ({ ...row })),
-      phaseAuditEntries: this.phaseAuditEntries.map((row) => ({ ...row })),
-      appUsers: this.appUsers.map((row) => ({ ...row })),
-      loginAttempts: this.loginAttempts.map((row) => ({ ...row })),
-      appSecrets: this.appSecrets.map((row) => ({ ...row })),
-      nextStudentId: this.nextStudentId,
-      nextLogId: this.nextLogId,
-      nextPhaseAuditId: this.nextPhaseAuditId,
-      nextAppUserId: this.nextAppUserId,
-    };
-
+    this.sqlite.exec("BEGIN");
     try {
-      const results = [];
-      for (const statement of statements) {
-        results.push(await statement.run<T>());
-      }
+      const results = statements.map((statement) => statement.runSync<T>());
+      this.sqlite.exec("COMMIT");
       return results;
     } catch (error) {
-      this.students = snapshot.students;
-      this.meetingLogs = snapshot.meetingLogs;
-      this.phaseAuditEntries = snapshot.phaseAuditEntries;
-      this.appUsers = snapshot.appUsers;
-      this.loginAttempts = snapshot.loginAttempts;
-      this.appSecrets = snapshot.appSecrets;
-      this.nextStudentId = snapshot.nextStudentId;
-      this.nextLogId = snapshot.nextLogId;
-      this.nextPhaseAuditId = snapshot.nextPhaseAuditId;
-      this.nextAppUserId = snapshot.nextAppUserId;
+      this.sqlite.exec("ROLLBACK");
       throw error;
     }
-  }
-
-  seedAuthUser(user: Omit<AppUserStore, "id" | "session_version"> & { session_version?: number }) {
-    const row: AppUserStore = {
-      id: this.nextAppUserId++,
-      ...user,
-      session_version: user.session_version ?? 1,
-    };
-    this.appUsers.push(row);
-    return row.id;
-  }
-
-  runQuery(query: string, values: D1Value[]): MockRunResult {
-    const q = normalizeQuery(query);
-
-    if (this.failQueries.some((pattern) => (typeof pattern === "string" ? q === pattern : pattern.test(q)))) {
-      throw new Error(`Mock query failure for ${q}`);
-    }
-
-    if (q.startsWith("INSERT INTO students")) {
-      const hasExplicitId = q.startsWith("INSERT INTO students (id,");
-      const [idValue, name, email, degreeType, thesisTopic, studentNotes, startDate, phase, nextMeetingAt, archivedAt, meetingSchedule] =
-        hasExplicitId ? values : [this.nextStudentId++, ...values.slice(0, 8), null, values[8] ?? null];
-      const id = Number(idValue);
-      const row: StudentRowStore = {
-        id,
-        name: String(name),
-        email: email === null ? null : String(email),
-        degree_type: String(degreeType),
-        thesis_topic: thesisTopic === null ? null : String(thesisTopic),
-        student_notes: studentNotes === null ? null : String(studentNotes),
-        start_date: startDate === null ? null : String(startDate),
-        current_phase: String(phase),
-        next_meeting_at: nextMeetingAt === null ? null : String(nextMeetingAt),
-        meeting_schedule: meetingSchedule == null ? null : String(meetingSchedule),
-        archived_at: archivedAt === null ? null : String(archivedAt),
-      };
-      this.students.push(row);
-      this.nextStudentId = Math.max(this.nextStudentId, id + 1);
-      return { success: true, meta: { last_row_id: row.id, changes: 1 }, results: [{ id: row.id }] };
-    }
-
-    if (q === "UPDATE students SET archived_at = ? WHERE id = ? AND archived_at IS NULL RETURNING id") {
-      const archivedAt = values[0] === null ? null : String(values[0]);
-      const id = Number(values[1]);
-      const row = this.students.find((student) => student.id === id && !student.archived_at);
-      if (!row) {
-        return { success: true, meta: { changes: 0 }, results: [] };
-      }
-      row.archived_at = archivedAt;
-      return { success: true, meta: { changes: 1 }, results: [{ id: row.id }] };
-    }
-
-    if (q === "UPDATE students SET archived_at = NULL WHERE id = ? AND archived_at IS NOT NULL RETURNING id") {
-      const id = Number(values[0]);
-      const row = this.students.find((student) => student.id === id && Boolean(student.archived_at));
-      if (!row) {
-        return { success: true, meta: { changes: 0 }, results: [] };
-      }
-      row.archived_at = null;
-      return { success: true, meta: { changes: 1 }, results: [{ id: row.id }] };
-    }
-
-    if (
-      q === "UPDATE students SET next_meeting_at = ? WHERE id = ? RETURNING id" ||
-      q === "UPDATE students SET next_meeting_at = ?, meeting_schedule = NULL WHERE id = ? RETURNING id"
-    ) {
-      const nextMeetingAt = values[0] === null ? null : String(values[0]);
-      const id = Number(values[1]);
-      const row = this.students.find((student) => student.id === id);
-      if (!row) {
-        return { success: true, meta: { changes: 0 }, results: [] };
-      }
-      row.next_meeting_at = nextMeetingAt;
-      if (q.includes("meeting_schedule = NULL")) row.meeting_schedule = null;
-      return { success: true, meta: { changes: 1 }, results: [{ id: row.id }] };
-    }
-
-    if (q.startsWith("UPDATE students")) {
-      const [name, email, degreeType, thesisTopic, studentNotes, startDate, phase, nextMeetingAt, hasSchedule, meetingSchedule, studentId] =
-        values;
-      const id = Number(studentId);
-      const row = this.students.find((student) => student.id === id);
-      if (!row) {
-        return { success: true, meta: { changes: 0 }, results: [] };
-      }
-      row.name = String(name);
-      row.email = email === null ? null : String(email);
-      row.degree_type = String(degreeType);
-      row.thesis_topic = thesisTopic === null ? null : String(thesisTopic);
-      row.student_notes = studentNotes === null ? null : String(studentNotes);
-      row.start_date = startDate === null ? null : String(startDate);
-      row.current_phase = String(phase);
-      row.next_meeting_at = nextMeetingAt === null ? null : String(nextMeetingAt);
-      if (hasSchedule) row.meeting_schedule = meetingSchedule == null ? null : String(meetingSchedule);
-      return { success: true, meta: { changes: 1 }, results: [{ id: row.id }] };
-    }
-
-    if (q === "DELETE FROM students WHERE id = ?") {
-      const id = Number(values[0]);
-      this.students = this.students.filter((student) => student.id !== id);
-      this.meetingLogs = this.meetingLogs.filter((log) => log.student_id !== id);
-      this.phaseAuditEntries = this.phaseAuditEntries.filter((entry) => entry.student_id !== id);
-      return { success: true, meta: { changes: 1 } };
-    }
-
-    if (q === "DELETE FROM students") {
-      this.students = [];
-      this.meetingLogs = [];
-      this.phaseAuditEntries = [];
-      return { success: true, meta: { changes: 1 } };
-    }
-
-    if (q.startsWith("INSERT INTO meeting_logs")) {
-      const hasExplicitId = values.length === 6;
-      const [idValue, studentId, happenedAt, discussed, agreedPlan, nextStepDeadline] = hasExplicitId
-        ? values
-        : [this.nextLogId++, ...values];
-      const id = Number(idValue);
-      const row: MeetingLogStore = {
-        id,
-        student_id: Number(studentId),
-        happened_at: String(happenedAt),
-        discussed: String(discussed),
-        agreed_plan: String(agreedPlan),
-        next_step_deadline: nextStepDeadline === null ? null : String(nextStepDeadline),
-      };
-      this.meetingLogs.push(row);
-      this.nextLogId = Math.max(this.nextLogId, id + 1);
-      return { success: true, meta: { last_row_id: row.id, changes: 1 }, results: [{ id: row.id }] };
-    }
-
-    if (q.startsWith("INSERT INTO student_phase_audit")) {
-      const hasExplicitId = values.length === 5;
-      const [idValue, studentId, changedAt, fromPhase, toPhase] = hasExplicitId ? values : [this.nextPhaseAuditId++, ...values];
-      const id = Number(idValue);
-      const row: PhaseAuditEntryStore = {
-        id,
-        student_id: Number(studentId),
-        changed_at: String(changedAt),
-        from_phase: String(fromPhase),
-        to_phase: String(toPhase),
-      };
-      this.phaseAuditEntries.push(row);
-      this.nextPhaseAuditId = Math.max(this.nextPhaseAuditId, id + 1);
-      return { success: true, meta: { last_row_id: row.id, changes: 1 }, results: [{ id: row.id }] };
-    }
-
-    if (q.startsWith("INSERT INTO app_users")) {
-      const [name, passwordHash, role] = values;
-      const normalizedName = String(name);
-      const existingUser = this.appUsers.find((user) => user.name.toLocaleLowerCase() === normalizedName.toLocaleLowerCase());
-
-      if (existingUser) {
-        existingUser.name = normalizedName;
-        existingUser.password_hash = String(passwordHash);
-        existingUser.role = String(role);
-        existingUser.session_version += 1;
-        return { success: true, meta: { last_row_id: existingUser.id, changes: 1 }, results: [{ id: existingUser.id }] };
-      }
-
-      const row: AppUserStore = {
-        id: this.nextAppUserId++,
-        name: normalizedName,
-        password_hash: String(passwordHash),
-        role: String(role),
-        session_version: 1,
-      };
-      this.appUsers.push(row);
-      return { success: true, meta: { last_row_id: row.id, changes: 1 }, results: [{ id: row.id }] };
-    }
-
-    if (q.startsWith("INSERT INTO login_attempts")) {
-      const [
-        attemptKey,
-        firstFailedAt,
-        lastFailedAt,
-        failureWindowStart,
-        ,
-        resetFirstFailedAt,
-        updatedLastFailedAt,
-        ,
-        maxFailures,
-        lockedUntil,
-      ] = values;
-      const normalizedKey = String(attemptKey);
-      const existingAttempt = this.loginAttempts.find((attempt) => attempt.attempt_key === normalizedKey);
-
-      if (existingAttempt) {
-        const isWithinFailureWindow = existingAttempt.last_failed_at >= String(failureWindowStart);
-        existingAttempt.failure_count = isWithinFailureWindow ? existingAttempt.failure_count + 1 : 1;
-        existingAttempt.first_failed_at = isWithinFailureWindow ? existingAttempt.first_failed_at : String(resetFirstFailedAt);
-        existingAttempt.last_failed_at = String(updatedLastFailedAt);
-        existingAttempt.locked_until =
-          isWithinFailureWindow && existingAttempt.failure_count >= Number(maxFailures) ? String(lockedUntil) : null;
-        return { success: true, meta: { changes: 1 }, results: [{ attempt_key: normalizedKey }] };
-      }
-
-      this.loginAttempts.push({
-        attempt_key: normalizedKey,
-        failure_count: 1,
-        first_failed_at: String(firstFailedAt),
-        last_failed_at: String(lastFailedAt),
-        locked_until: null,
-      });
-      return { success: true, meta: { changes: 1 }, results: [{ attempt_key: normalizedKey }] };
-    }
-
-    if (q.startsWith("DELETE FROM login_attempts WHERE attempt_key IN")) {
-      const [lastFailureBefore, now, limit] = values;
-      const removableKeys = this.loginAttempts
-        .filter(
-          (attempt) =>
-            attempt.last_failed_at < String(lastFailureBefore) && (attempt.locked_until === null || attempt.locked_until < String(now)),
-        )
-        .sort((left, right) => left.last_failed_at.localeCompare(right.last_failed_at))
-        .slice(0, Number(limit))
-        .map((attempt) => attempt.attempt_key);
-      this.loginAttempts = this.loginAttempts.filter((attempt) => !removableKeys.includes(attempt.attempt_key));
-      return { success: true, meta: { changes: removableKeys.length } };
-    }
-
-    if (q === "DELETE FROM login_attempts WHERE attempt_key = ?") {
-      const attemptKey = String(values[0] || "");
-      this.loginAttempts = this.loginAttempts.filter((attempt) => attempt.attempt_key !== attemptKey);
-      return { success: true, meta: { changes: 1 } };
-    }
-
-    if (q === "UPDATE app_users SET session_version = session_version + 1 WHERE id = ? RETURNING id") {
-      const user = this.appUsers.find((candidate) => candidate.id === Number(values[0]));
-      if (!user) {
-        return { success: true, meta: { changes: 0 }, results: [] };
-      }
-      user.session_version += 1;
-      return { success: true, meta: { changes: 2 }, results: [{ id: user.id }] };
-    }
-
-    if (q.startsWith("INSERT INTO app_secrets")) {
-      const [secretKey, encryptedValue, updatedAt] = values;
-      const normalizedKey = String(secretKey);
-      const existingSecret = this.appSecrets.find((secret) => secret.secret_key === normalizedKey);
-
-      if (existingSecret) {
-        existingSecret.encrypted_value = String(encryptedValue);
-        existingSecret.updated_at = String(updatedAt);
-        return { success: true, meta: { changes: 1 }, results: [{ secret_key: normalizedKey }] };
-      }
-
-      this.appSecrets.push({
-        secret_key: normalizedKey,
-        encrypted_value: String(encryptedValue),
-        updated_at: String(updatedAt),
-      });
-      return { success: true, meta: { changes: 1 }, results: [{ secret_key: normalizedKey }] };
-    }
-
-    if (q === "DELETE FROM app_secrets WHERE secret_key = ?") {
-      const secretKey = String(values[0] || "");
-      this.appSecrets = this.appSecrets.filter((secret) => secret.secret_key !== secretKey);
-      return { success: true, meta: { changes: 1 } };
-    }
-
-    throw new Error(`Unsupported run query: ${query}`);
-  }
-
-  firstQuery(query: string, values: D1Value[]) {
-    const q = normalizeQuery(query);
-
-    if (q.startsWith("SELECT id FROM students WHERE id = ?")) {
-      const id = Number(values[0]);
-      const row = this.students.find(
-        (student) =>
-          student.id === id &&
-          matchesArchivedFilter(q, student.archived_at ?? null, {
-            qualifiedColumn: false,
-          }),
-      );
-      return row ? { id: row.id } : null;
-    }
-
-    if (q.startsWith("SELECT s.*, COUNT(ml.id) AS log_count,")) {
-      const studentId = Number(values[0]);
-      const row = this.students.find(
-        (student) =>
-          student.id === studentId &&
-          matchesArchivedFilter(q, student.archived_at ?? null, {
-            qualifiedColumn: true,
-          }),
-      );
-
-      if (!row) {
-        return null;
-      }
-
-      const logs = this.meetingLogs.filter((log) => log.student_id === row.id);
-      const lastLog = logs.length ? logs[logs.length - 1] : null;
-
-      return {
-        ...row,
-        log_count: logs.length,
-        last_log_at: lastLog ? lastLog.happened_at : null,
-      };
-    }
-
-    if (q === "SELECT id, name, password_hash, role, session_version FROM app_users WHERE name = ? COLLATE NOCASE") {
-      const lookupName = String(values[0] || "");
-      const row = this.appUsers.find((user) => user.name.toLocaleLowerCase() === lookupName.toLocaleLowerCase());
-      return row || null;
-    }
-
-    if (q === "SELECT COALESCE(MAX(id), 0) AS max_id FROM students") {
-      return {
-        max_id: this.students.reduce((max, student) => Math.max(max, student.id), 0),
-      };
-    }
-
-    if (q === "SELECT COALESCE(MAX(id), 0) AS max_id FROM meeting_logs") {
-      return {
-        max_id: this.meetingLogs.reduce((max, log) => Math.max(max, log.id), 0),
-      };
-    }
-
-    if (q === "SELECT COALESCE(MAX(id), 0) AS max_id FROM student_phase_audit") {
-      return {
-        max_id: this.phaseAuditEntries.reduce((max, entry) => Math.max(max, entry.id), 0),
-      };
-    }
-
-    if (
-      q === "SELECT attempt_key, failure_count, first_failed_at, last_failed_at, locked_until FROM login_attempts WHERE attempt_key = ?"
-    ) {
-      const attemptKey = String(values[0] || "");
-      return this.loginAttempts.find((attempt) => attempt.attempt_key === attemptKey) || null;
-    }
-
-    if (q === "SELECT secret_key, encrypted_value, updated_at FROM app_secrets WHERE secret_key = ?") {
-      const secretKey = String(values[0] || "");
-      return this.appSecrets.find((secret) => secret.secret_key === secretKey) || null;
-    }
-
-    throw new Error(`Unsupported first query: ${query}`);
-  }
-
-  allQuery(query: string, values: D1Value[]) {
-    const q = normalizeQuery(query);
-
-    if (q.startsWith("SELECT s.*, COUNT(ml.id) AS log_count,")) {
-      const results = this.students
-        .filter((student) =>
-          matchesArchivedFilter(q, student.archived_at ?? null, {
-            qualifiedColumn: true,
-          }),
-        )
-        .map((student) => {
-          const logs = this.meetingLogs.filter((log) => log.student_id === student.id);
-          const lastLog = logs.length ? logs[logs.length - 1] : null;
-          return {
-            ...student,
-            log_count: logs.length,
-            last_log_at: lastLog ? lastLog.happened_at : null,
-          };
-        });
-
-      return { results };
-    }
-
-    if (q.startsWith("SELECT * FROM meeting_logs")) {
-      const studentId = Number(values[0]);
-      const results = this.meetingLogs
-        .filter((log) => log.student_id === studentId)
-        .sort((a, b) => (a.happened_at < b.happened_at ? 1 : -1));
-      return { results };
-    }
-
-    if (q.startsWith("SELECT * FROM student_phase_audit")) {
-      const studentId = Number(values[0]);
-      const results = this.phaseAuditEntries
-        .filter((entry) => entry.student_id === studentId)
-        .sort((a, b) => (a.changed_at < b.changed_at ? 1 : -1));
-      return { results };
-    }
-
-    if (q === "SELECT id, name, password_hash, role, session_version FROM app_users ORDER BY name ASC") {
-      const results = [...this.appUsers].sort((left, right) => left.name.localeCompare(right.name));
-      return { results };
-    }
-
-    throw new Error(`Unsupported all query: ${query}`);
   }
 }
 
 class MockPreparedStatement {
-  private values: D1Value[] = [];
-
   constructor(
-    private readonly db: MockD1Database,
-    private readonly query: string,
+    private db: MockD1Database,
+    private query: string,
+    private values: D1Value[] = [],
   ) {}
-
   bind(...values: D1Value[]) {
-    this.values = values;
-    return this;
+    return new MockPreparedStatement(this.db, this.query, values);
   }
 
-  async run<T = Record<string, unknown>>() {
-    this.db.calls.push({
-      query: this.query,
-      values: this.values,
-      method: "run",
-    });
-    const result = this.db.runQuery(this.query, this.values);
-    return {
-      ...result,
-      meta: result.meta ?? {},
-      results: (result.results ?? []) as T[],
-      success: true as const,
+  private statement(method: QueryCall["method"]) {
+    const sql = this.query.replace(/\s+/g, " ").trim();
+    this.db.calls.push({ method, query: this.query, values: this.values });
+    if (this.db.failQueries.some((pattern) => (typeof pattern === "string" ? sql === pattern : pattern.test(sql)))) {
+      throw new Error("Simulated database failure");
+    }
+    return this.db.sqlite.prepare(this.query);
+  }
+
+  runSync<T>() {
+    const results = this.statement("run").all(...this.values) as T[];
+    const meta = this.db.sqlite.prepare("SELECT changes() AS changes, last_insert_rowid() AS last_row_id").get() as {
+      changes: number;
+      last_row_id: number;
     };
+    return { success: true, meta, results };
   }
 
+  async run<T>() {
+    return this.runSync<T>();
+  }
   async first<T>() {
-    this.db.calls.push({
-      query: this.query,
-      values: this.values,
-      method: "first",
-    });
-    return this.db.firstQuery(this.query, this.values) as T | null;
+    return (this.statement("first").get(...this.values) as T | undefined) ?? null;
   }
-
   async all<T>() {
-    this.db.calls.push({
-      query: this.query,
-      values: this.values,
-      method: "all",
-    });
-    const result = this.db.allQuery(this.query, this.values) as { results: T[] };
-    return {
-      meta: {
-        changes: 0,
-      },
-      results: result.results,
-      success: true as const,
-    };
+    return { results: this.statement("all").all(...this.values) as T[] };
   }
-
-  async raw<T extends unknown[]>(_options?: { columnNames?: boolean }) {
-    throw new Error(`Unsupported raw query: ${this.query}`) as never;
-  }
-}
-
-function normalizeQuery(query: string): string {
-  return query.replace(/\s+/g, " ").trim();
-}
-
-function matchesArchivedFilter(query: string, archivedAt: string | null, options: { qualifiedColumn: boolean }): boolean {
-  const nullCheck = options.qualifiedColumn ? "s.archived_at IS NULL" : "archived_at IS NULL";
-  const notNullCheck = options.qualifiedColumn ? "s.archived_at IS NOT NULL" : "archived_at IS NOT NULL";
-  const nullFilter = new RegExp(`(?:WHERE|AND) ${escapeRegExp(nullCheck)}`);
-  const notNullFilter = new RegExp(`(?:WHERE|AND) ${escapeRegExp(notNullCheck)}`);
-
-  if (notNullFilter.test(query)) {
-    return Boolean(archivedAt);
-  }
-
-  if (nullFilter.test(query)) {
-    return !archivedAt;
-  }
-
-  return true;
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

@@ -1,7 +1,8 @@
 export const DEFAULT_FORM_BODY_LIMIT_BYTES = 64 * 1024;
 export const LOGIN_FORM_BODY_LIMIT_BYTES = 16 * 1024;
 export const IMPORT_FILE_LIMIT_BYTES = 4 * 1024 * 1024;
-export const IMPORT_FORM_BODY_LIMIT_BYTES = IMPORT_FILE_LIMIT_BYTES + 64 * 1024;
+// Allow multipart headers for the account selectors alongside a full-size backup.
+export const IMPORT_FORM_BODY_LIMIT_BYTES = IMPORT_FILE_LIMIT_BYTES + 128 * 1024;
 
 interface CachedFormDataRead {
   maxBytes: number;

@@ -19,6 +19,7 @@
   },
   "scripts": {
     "account:create": "node ./scripts/create-auth-user.mjs",
+    "account:reset-password": "node ./scripts/create-auth-user.mjs reset-password",
     "auth:create-user": "node ./scripts/create-auth-user.mjs",
     "audit:dependencies": "npm audit --audit-level=low",
     "build:css": "mkdir -p ./.generated && tailwindcss -i ./src/tailwind-input.css -o ./.generated/styles.css --minify",

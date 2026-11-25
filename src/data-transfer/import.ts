@@ -1,12 +1,16 @@
 import { normalizeDate, normalizeDateTime, normalizeDegree, normalizePhase, normalizeString } from "../forms/normalize";
 import { DEGREE_TYPES, PHASES } from "../students";
 import { parseMeetingSchedule } from "../students/recurrence";
-import { DATA_EXPORT_SCHEMA_VERSION, type ExportedMeetingLog, type ExportedPhaseAuditEntry, type ImportedStudentBundle } from "./types";
+import {
+  DATA_EXPORT_SCHEMA_VERSION,
+  type ExportedAssignment,
+  type ExportedMeetingLog,
+  type ExportedPhaseAuditEntry,
+  type ImportedStudentBundle,
+} from "./types";
 
-interface ImportParseResult {
-  data: ImportedStudentBundle[] | null;
-  error: string | null;
-}
+type ImportParseResult =
+  { data: ImportedStudentBundle[]; installationId: string | null; error: null } | { data: null; installationId?: undefined; error: string };
 
 export function parseDataImport(jsonText: string): ImportParseResult {
   let parsedValue: unknown;
@@ -34,11 +38,19 @@ export function parseDataImport(jsonText: string): ImportParseResult {
     };
   }
 
-  if (parsedValue.schemaVersion !== DATA_EXPORT_SCHEMA_VERSION) {
+  if (parsedValue.schemaVersion !== 1 && parsedValue.schemaVersion !== 2 && parsedValue.schemaVersion !== DATA_EXPORT_SCHEMA_VERSION) {
     return {
       data: null,
-      error: `Unsupported export schema version. Expected ${DATA_EXPORT_SCHEMA_VERSION}.`,
+      error: `Unsupported export schema version. Expected 1, 2 or ${DATA_EXPORT_SCHEMA_VERSION}.`,
     };
+  }
+
+  const installationId = parsedValue.schemaVersion === DATA_EXPORT_SCHEMA_VERSION ? parsedValue.installationId : null;
+  if (
+    parsedValue.schemaVersion === DATA_EXPORT_SCHEMA_VERSION &&
+    (typeof installationId !== "string" || !/^[a-f0-9]{32}$/.test(installationId))
+  ) {
+    return { data: null, error: "Version 3 backups must include a valid installation ID." };
   }
 
   if (!Array.isArray(parsedValue.students)) {
@@ -49,20 +61,29 @@ export function parseDataImport(jsonText: string): ImportParseResult {
   }
 
   const importedStudents: ImportedStudentBundle[] = [];
+  const accountNames = new Map<number, string>();
 
   for (let index = 0; index < parsedValue.students.length; index += 1) {
-    const bundle = parseImportedStudent(parsedValue.students[index]);
+    const bundle = parseImportedStudent(parsedValue.students[index], parsedValue.schemaVersion);
     if (!bundle) {
       return {
         data: null,
         error: `Student entry ${index + 1} in the uploaded JSON is invalid.`,
       };
     }
+    for (const assignment of bundle.assignments ?? []) {
+      const known = accountNames.get(assignment.userId);
+      if (known !== undefined && known !== assignment.name) {
+        return { data: null, error: "The backup gives different names for the same account ID." };
+      }
+      accountNames.set(assignment.userId, assignment.name);
+    }
     importedStudents.push(bundle);
   }
 
   return {
     data: importedStudents,
+    installationId: typeof installationId === "string" ? installationId : null,
     error: null,
   };
 }
@@ -75,10 +96,13 @@ export function countImportedPhaseAuditEntries(studentBundles: ImportedStudentBu
   return studentBundles.reduce((total, bundle) => total + bundle.phaseAudit.length, 0);
 }
 
-function parseImportedStudent(value: unknown): ImportedStudentBundle | null {
+function parseImportedStudent(value: unknown, schemaVersion: number): ImportedStudentBundle | null {
   if (!isRecord(value)) {
     return null;
   }
+
+  const assignments = schemaVersion === 1 ? null : parseAssignments(value.assignments);
+  if (schemaVersion !== 1 && !assignments) return null;
 
   const name = normalizeString(value.name as string | null | undefined);
   const email = normalizeString(value.email as string | null | undefined);
@@ -125,6 +149,7 @@ function parseImportedStudent(value: unknown): ImportedStudentBundle | null {
   }
 
   return {
+    assignments,
     student: {
       name,
       email,
@@ -140,6 +165,23 @@ function parseImportedStudent(value: unknown): ImportedStudentBundle | null {
     logs,
     phaseAudit,
   };
+}
+
+function parseAssignments(value: unknown): ExportedAssignment[] | null {
+  if (!Array.isArray(value)) return null;
+  const assignments: ExportedAssignment[] = [];
+  const userIds = new Set<number>();
+  let hasSupervisor = false;
+  for (const entry of value) {
+    if (!isRecord(entry) || typeof entry.name !== "string" || !entry.name.trim()) return null;
+    if (typeof entry.userId !== "number" || !Number.isSafeInteger(entry.userId) || entry.userId < 1) return null;
+    if (entry.role !== "supervisor" && entry.role !== "advisor") return null;
+    if (userIds.has(entry.userId) || (entry.role === "supervisor" && hasSupervisor)) return null;
+    hasSupervisor ||= entry.role === "supervisor";
+    userIds.add(entry.userId);
+    assignments.push({ userId: entry.userId, name: entry.name, role: entry.role });
+  }
+  return assignments.length === 0 || hasSupervisor ? assignments : null;
 }
 
 function parseImportedLog(value: unknown): ExportedMeetingLog | null {

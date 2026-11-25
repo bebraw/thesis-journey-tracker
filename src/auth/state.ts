@@ -11,6 +11,7 @@ import {
 } from "./store";
 import { inspectPasswordHash, verifyPassword } from "./password";
 import { type SessionIdentity, type SessionUser } from "./types";
+import { MAX_USERNAME_CHARACTERS, normalizeLoginName } from "./username";
 
 const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
 const ACCOUNT_LOGIN_MAX_FAILURES = 5;
@@ -18,10 +19,8 @@ const CLIENT_LOGIN_MAX_FAILURES = 20;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
 const LOGIN_ATTEMPT_RETENTION_MS = 24 * 60 * 60 * 1000;
 const LOGIN_ATTEMPT_PRUNE_LIMIT = 25;
-const MAX_LOGIN_NAME_CHARACTERS = 100;
 const MAX_LOGIN_PASSWORD_BYTES = 1_024;
-const DUMMY_PASSWORD_HASH =
-  "pbkdf2_sha256$100000$AAAAAAAAAAAAAAAAAAAAAA==$hdWn2Z2YPji1MoW1r05A3cRvbd46WyUHU6YxFtRxMXU=";
+const DUMMY_PASSWORD_HASH = "pbkdf2_sha256$100000$AAAAAAAAAAAAAAAAAAAAAA==$hdWn2Z2YPji1MoW1r05A3cRvbd46WyUHU6YxFtRxMXU=";
 
 export interface AuthState {
   users: Awaited<ReturnType<typeof listAuthUsers>>;
@@ -44,6 +43,8 @@ export function resolveSessionUser(authState: AuthState, identity: SessionIdenti
     id: storedUser.id,
     name: storedUser.name,
     role: storedUser.role,
+    isAdmin: storedUser.isAdmin,
+    canSupervise: storedUser.canSupervise,
     sessionVersion: storedUser.sessionVersion,
   };
 }
@@ -75,13 +76,15 @@ export async function verifyLoginCredentials(
 ): Promise<LoginVerificationResult> {
   const now = new Date();
   const normalizedEnteredName = normalizeLoginName(enteredName);
-  const nameWithinLimits = [...enteredName].length <= MAX_LOGIN_NAME_CHARACTERS;
+  const nameWithinLimits = [...enteredName].length <= MAX_USERNAME_CHARACTERS;
   const passwordWithinLimits = new TextEncoder().encode(password).byteLength <= MAX_LOGIN_PASSWORD_BYTES;
   const candidateUser = !nameWithinLimits
     ? null
     : authState.users.length === 1 && !enteredName
       ? authState.users[0] || null
-      : authState.users.find((user) => normalizeLoginName(user.name) === normalizedEnteredName) || null;
+      : authState.users.find((user) => user.name === enteredName) ||
+        authState.users.find((user) => normalizeLoginName(user.name) === normalizedEnteredName) ||
+        null;
 
   await pruneExpiredLoginAttempts(env.DB, {
     lastFailureBefore: new Date(now.getTime() - LOGIN_ATTEMPT_RETENTION_MS).toISOString(),
@@ -147,6 +150,8 @@ export async function verifyLoginCredentials(
       id: candidateUser!.id,
       name: candidateUser!.name,
       role: candidateUser!.role,
+      isAdmin: candidateUser!.isAdmin,
+      canSupervise: candidateUser!.canSupervise,
       sessionVersion: candidateUser!.sessionVersion,
     },
   };
@@ -189,10 +194,6 @@ async function buildLoginAttemptBuckets(
       maxFailures: CLIENT_LOGIN_MAX_FAILURES,
     },
   ];
-}
-
-function normalizeLoginName(value: string): string {
-  return value.toLocaleLowerCase();
 }
 
 /*

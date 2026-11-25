@@ -77,23 +77,43 @@ npm run db:migrate
 
 This applies the SQL files in [`migrations/`](../migrations) to Wrangler's local D1 state for the configured `thesis_tracker_db` binding.
 
-## 5. Create At Least One Login Account
+## 5. Create the first administrator
 
-Create an editor account in D1:
+On a new installation, create your own named editor account in local D1. On an upgrade, keep using your existing login. Migration `0008` promotes the sole legacy editor to administrator and supervisor when scoped access has not yet been configured. Verify the result with the lookup below.
 
 ```bash
 npm run account:create -- --name "Advisor" --role editor
 ```
 
-Optional readonly account:
+Look up the account's immutable ID and confirm the name.
 
 ```bash
-npm run account:create -- --name "Professor" --role readonly
+npx wrangler d1 execute thesis_tracker_db --local --command "SELECT id, name, role, is_admin, can_supervise FROM app_users ORDER BY id"
 ```
+
+If both flags are already `1` on your account, sign in with your existing password. If the database still needs its first administrator, replace `VERIFIED_ID` with the selected active editor’s numeric ID in the command below. Verify the returned ID and name.
+
+```bash
+npx wrangler d1 execute thesis_tracker_db --local --command "UPDATE app_users SET is_admin = 1, can_supervise = 1, session_version = session_version + 1 WHERE id = VERIFIED_ID AND role = 'editor' AND disabled_at IS NULL AND NOT EXISTS (SELECT 1 FROM app_users WHERE is_admin = 1 AND disabled_at IS NULL) RETURNING id, name"
+```
+
+Sign in and open **More → Manage access** to create accounts, grant rights, reset passwords, and assign or transfer lead supervision. An editor can update assigned theses. A supervisor can also create a thesis and manage its advisors. Read-only accounts can review the full record for each assigned thesis, including internal notes.
+
+Anyone with a login can open **More → My account**, enter an available username and select **Save username**. Use the new name with your existing password the next time you sign in. The browser where you made the change stays signed in. Other browsers will ask you to sign in again. Your permissions, thesis assignments and agent tokens stay with your account.
+
+To remove an account, transfer any active or archived theses it supervises, then disable it. Disabling revokes its sessions and agent tokens and removes its advisor assignments. From the disabled account, choose **Delete account → Permanently delete account** to remove the login and its tokens. Student records, meeting notes and phase history are preserved. Keep at least one active administrator.
+
+A replacement login with the same name gets a new account ID and starts with no assignments. An older JSON backup that references the deleted ID will require reconciliation before import. A full D1 recovery copy includes the original accounts and assignments.
 
 The command prompts twice without echoing the password. Passwords must contain at least 15 characters. For non-interactive automation, pass `--password-stdin` and supply exactly one line from a secret manager; never place the password in command arguments.
 
-If an existing account uses any work factor other than the current Cloudflare-compatible `100000` iteration format, re-run `npm run account:create` for that account. Updating an account also revokes its existing sessions.
+`account:create` requires an available username. To recover an existing account or upgrade an older password hash, look up and verify its immutable ID using the query above. Replace `VERIFIED_ID` with that number. Use the same database for the lookup and reset.
+
+```bash
+npm run account:reset-password -- --id VERIFIED_ID
+```
+
+The reset signs the account out of every browser and revokes its agent tokens.
 
 ## 6. Optionally Load Sample Data
 
@@ -103,7 +123,7 @@ If you want a ready-made local dataset for trying the dashboard, import/export, 
 npm run db:seed:sample
 ```
 
-This command only targets Wrangler's local D1 state and is safe to re-run because the sample inserts are idempotent.
+This command only targets Wrangler's local D1 state and is safe to re-run because the sample inserts are idempotent. Assign the sample theses to your supervisor account in **Manage access** to see them on your dashboard.
 
 ## 7. Start The App
 
@@ -197,7 +217,7 @@ docker run --rm -it `
   thesis-journey-tracker npm run account:create -- --name "Advisor" --role editor
 ```
 
-Run the setup doctor:
+Use the first-administrator commands in step 5 inside the same container and volume. Run the setup doctor:
 
 ```bash
 docker run --rm \

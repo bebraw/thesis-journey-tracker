@@ -144,7 +144,7 @@ test.describe("dashboard e2e", () => {
     expect(download.suggestedFilename()).toMatch(/^thesis-journey-tracker-export-\d{4}-\d{2}-\d{2}\.json$/);
 
     const reportDownloadPromise = page.waitForEvent("download");
-    await page.getByRole("link", { name: "Download email-ready report" }).click();
+    await page.getByRole("link", { name: "Download report for my theses" }).click();
     const reportDownload = await reportDownloadPromise;
     expect(reportDownload.suggestedFilename()).toMatch(/^thesis-journey-status-report-\d{4}-\d{2}-\d{2}\.md$/);
 
@@ -180,6 +180,7 @@ test.describe("dashboard e2e", () => {
       mimeType: "application/json",
       buffer: Buffer.from(importJson, "utf8"),
     });
+    await page.locator('select[name="legacySupervisor"]').selectOption({ label: "Advisor" });
     await page.getByLabel("Import mode").selectOption("append");
     await page.getByRole("button", { name: "Import JSON file" }).click();
 
@@ -190,6 +191,39 @@ test.describe("dashboard e2e", () => {
     await expect(page).toHaveURL(/\/$/);
     await page.locator("#studentSearch").fill(importedStudentName);
     await expect(page.locator("[data-student-row]", { hasText: importedStudentName })).toHaveCount(1);
+  });
+
+  test("asks the administrator to match accounts before importing another installation's theses", async ({ page }) => {
+    await login(page);
+    await page.goto("/data-tools");
+    const name = `Mapped thesis ${Date.now()}`;
+    const backup = {
+      name: "other-tracker.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({
+          app: "thesis-journey-tracker",
+          schemaVersion: 3,
+          installationId: "f".repeat(32),
+          students: [
+            { name, degreeType: "msc", currentPhase: "researching", assignments: [{ userId: 1, name: "Advisor", role: "supervisor" }] },
+          ],
+        }),
+      ),
+    };
+    await page.getByLabel("JSON file").setInputFiles(backup);
+    await page.getByRole("button", { name: "Import JSON file" }).click();
+    await expect(page.getByRole("heading", { name: "Match backup accounts" })).toBeVisible();
+    const account = page.getByLabel("Advisor (backup ID 1, supervisor)");
+    await expect(account).toHaveValue("");
+    const localAdvisor = account.getByRole("option", { name: /^Advisor \(ID \d+\)$/ });
+    await account.selectOption({ label: await localAdvisor.innerText() });
+    await page.getByLabel("Select other-tracker.json again to confirm the same backup").setInputFiles(backup);
+    await page.getByRole("button", { name: "Confirm and import" }).click();
+    await expect(page).toHaveURL(/\/data-tools\?notice=/);
+    await page.goto("/");
+    await page.locator("#studentSearch").fill(name);
+    await expect(page.locator("[data-student-row]", { hasText: name })).toBeVisible();
   });
 
   test("can add a student and select from table and lanes without reload", async ({ page }) => {

@@ -14,7 +14,7 @@ import {
 } from "../../ui";
 import { renderView } from "../shared.htmlisp";
 
-export function renderImportCard(replaceImportEnabled: boolean): string {
+export function renderImportCard(replaceImportEnabled: boolean, supervisors: Array<{ id: number; name: string }>): string {
   const fileFieldHtml = renderInputField({
     label: "JSON file",
     name: "importFile",
@@ -35,6 +35,16 @@ export function renderImportCard(replaceImportEnabled: boolean): string {
     ],
   });
 
+  const supervisorField = renderSelectField({
+    label: "Supervisor for version 1 backups",
+    name: "legacySupervisor",
+    className: FIELD_CONTROL_SM,
+    options: [
+      { label: "Choose for a version 1 backup", value: "" },
+      ...supervisors.map(({ id, name }) => ({ label: name, value: String(id) })),
+    ],
+  });
+
   return renderCard(
     renderView(
       `<h2 class="text-lg font-semibold">Import backup</h2>
@@ -42,18 +52,19 @@ export function renderImportCard(replaceImportEnabled: boolean): string {
       <form action="/actions/import-json" method="post" enctype="multipart/form-data" class="mt-panel-sm space-y-stack-xs">
         <fragment &children="fileFieldHtml"></fragment>
         <fragment &children="modeFieldHtml"></fragment>
+        <fragment &children="supervisorField"></fragment>
         <fragment &children="replacementControlsHtml"></fragment>
         <fragment &children="replacementStateHtml"></fragment>
         <fragment &children="submitButton"></fragment>
       </form>`,
       {
         subtleText: `mt-1 ${SUBTLE_TEXT}`,
-        description:
-          replaceImportEnabled
-            ? "Import a JSON file previously exported from Thesis Journey Tracker. Append mode is the safe default, while replacement mode is meant for deliberate full restores."
-            : "Import a JSON file previously exported from Thesis Journey Tracker. Append mode is the safe default for bringing records into an existing dataset.",
+        description: replaceImportEnabled
+          ? "Import a JSON file previously exported from Thesis Journey Tracker. Append mode is the safe default, while replacement mode is meant for deliberate full restores."
+          : "Import a JSON file previously exported from Thesis Journey Tracker. Append mode is the safe default for bringing records into an existing dataset.",
         fileFieldHtml: raw(fileFieldHtml),
         modeFieldHtml: raw(modeFieldHtml),
+        supervisorField: raw(supervisorField),
         replacementControlsHtml: raw(
           replaceImportEnabled
             ? `<label class="flex items-start gap-badge-x rounded-control border border-app-line p-control-y text-sm dark:border-app-line-dark">
@@ -76,11 +87,13 @@ export function renderImportCard(replaceImportEnabled: boolean): string {
                 Full replacement restore is disabled in this environment. Re-enable it only when you are intentionally performing a recovery restore.
               </div>`,
         ),
-        submitButton: raw(renderButton({
-          label: "Import JSON file",
-          type: "submit",
-          variant: "primaryBlock",
-        })),
+        submitButton: raw(
+          renderButton({
+            label: "Import JSON file",
+            type: "submit",
+            variant: "primaryBlock",
+          }),
+        ),
       },
     ),
   );

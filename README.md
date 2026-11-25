@@ -1,6 +1,6 @@
 # Thesis Journey Tracker
 
-Thesis Journey Tracker is a private advising dashboard for following students as they move through a thesis process. It is built for small supervision teams: you can keep track of thesis phases, upcoming meetings, thesis topics, and supervision notes in one place, with editor or readonly access per account.
+Thesis Journey Tracker is a private advising dashboard for following students as they move through a thesis process. Supervisors manage their theses and attach advisors. Each advisor sees only assigned students and their supervision history. Administrators manage accounts and rights.
 
 The project is intentionally small and server-rendered, with a focused workflow for thesis advising instead of a generic student information system.
 
@@ -46,7 +46,9 @@ The project is intentionally small and server-rendered, with a focused workflow 
 
 ## What You Can Do With It
 
-- Add students with degree type, thesis topic, and timeline information.
+- As a supervisor, add students with degree type, thesis topic, and timeline information. Assign or remove existing advisors from each thesis in **Manage access**.
+- As an administrator, create accounts, change rights, reset passwords, and disable or permanently remove accounts in **Manage access**. Transfer a departing supervisor’s theses first.
+- Change your own sign-in name under **More → My account**. Your password, thesis assignments, and agent tokens follow your account.
 - Track each student through thesis phases from planning to submission.
 - Configure the dashboard lane labels at the app level while keeping the original four-phase board structure as the default.
 - Switch between `List`, `Phases`, and `Gantt` views depending on whether you need detail, workflow stage, or workload shape.
@@ -59,7 +61,7 @@ The project is intentionally small and server-rendered, with a focused workflow 
 - Search students and filter by degree, phase, meeting status, or unfinished MSc theses past their target. Meetings within the next 72 hours are marked as soon; later meetings are scheduled.
 - Use the Gantt view to estimate advisor workload visually from student start dates and degree-based thesis duration assumptions.
 - Archive completed or inactive students without deleting their supervision history, review them from the dashboard's `Archived` scope, and restore them when supervision resumes.
-- Export or restore the dataset as JSON backups, and download an email-ready Markdown status report.
+- Administrators can export and restore full student JSON backups. Supervisors can download a Markdown report covering their assigned cohort.
 - Store automated Cloudflare backups in R2 when deployed with the scheduled backup setup.
 
 ## Quick Start
@@ -84,10 +86,11 @@ Set `SESSION_SECRET` and `APP_ENCRYPTION_SECRET` to different random values of a
 ```bash
 npm run db:migrate
 npm run account:create -- --name "Advisor" --role editor
-npm run doctor:local
 ```
 
-The account command prompts for a password without echoing it or placing it in shell history. Use a unique password of at least 15 characters.
+On a new installation, grant your account administrator and supervisor rights using the [first-administrator setup](./docs/setup.md#5-create-the-first-administrator). Then run `npm run doctor:local`. When upgrading a legacy team of one editor and one read-only account, both keep access to every existing thesis. The editor becomes the administrator and lead supervisor. [Access migration](./docs/deployment.md#upgrading-an-existing-cohort)
+
+The create command requires an available username and prompts privately for a password of at least 15 characters. To reset a password, verify the account ID and run `npm run account:reset-password -- --id VERIFIED_ID`. [Account setup and recovery](./docs/setup.md#5-create-the-first-administrator)
 
 Optional: load sample data for a ready-made local dashboard:
 

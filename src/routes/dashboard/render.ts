@@ -4,15 +4,24 @@ import { DEFAULT_TIME_ZONE } from "../../date-time";
 import { resolveDashboardLanesForApp } from "../../dashboard-lanes";
 import { htmlFragmentResponse, htmlResponse } from "../../http/response";
 import { isPastTargetSubmissionDate, meetingStatusId } from "../../students";
-import { getStudentById, listLogsForStudent, listPhaseAuditEntriesForStudent, listStudents } from "../../students/store";
+import { canManageStudent, getStudentById, listLogsForStudent, listPhaseAuditEntriesForStudent, listStudents } from "../../students/store";
 import { renderAddStudentPage, renderDashboardPage, renderEmptySelectedPanel, renderSelectedStudentPanel } from "../../views";
 import { getDashboardFilters } from "./filters";
+
+async function getWorkspaceHistory(env: Env, studentId: number, user: SessionUser) {
+  const [logs, phaseAudit, canManage] = await Promise.all([
+    listLogsForStudent(env.DB, studentId, user.id),
+    listPhaseAuditEntriesForStudent(env.DB, studentId, user.id),
+    user.canSupervise && user.role === "editor" ? canManageStudent(env.DB, studentId, user.id) : false,
+  ]);
+  return { logs, phaseAudit, canManage };
+}
 
 export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUser, showStyleGuide: boolean): Promise<Response> {
   const filters = getDashboardFilters(url.searchParams);
   const [activeStudents, archivedStudents, dashboardLanes] = await Promise.all([
-    listStudents(env.DB),
-    listStudents(env.DB, { onlyArchived: true }),
+    listStudents(env.DB, { userId: sessionUser.id }),
+    listStudents(env.DB, { onlyArchived: true, userId: sessionUser.id }),
     resolveDashboardLanesForApp(env),
   ]);
   const students = filters.scope === "archived" ? archivedStudents : activeStudents;
@@ -22,8 +31,9 @@ export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUs
   const parsedSelectedId = selectedIdParam ? Number.parseInt(selectedIdParam, 10) : 0;
   const selectedId = Number.isFinite(parsedSelectedId) ? parsedSelectedId : 0;
   const selectedStudent = students.find((student) => student.id === selectedId) || null;
-  const logs = selectedStudent ? await listLogsForStudent(env.DB, selectedStudent.id) : [];
-  const phaseAudit = selectedStudent ? await listPhaseAuditEntriesForStudent(env.DB, selectedStudent.id) : [];
+  const { logs, phaseAudit, canManage } = selectedStudent
+    ? await getWorkspaceHistory(env, selectedStudent.id, sessionUser)
+    : { logs: [], phaseAudit: [], canManage: false };
 
   const notice = url.searchParams.get("notice");
   const error = url.searchParams.get("error");
@@ -38,11 +48,9 @@ export async function renderDashboard(env: Env, url: URL, sessionUser: SessionUs
 
   return htmlResponse(
     renderDashboardPage({
-      viewer: {
-        name: sessionUser.name,
-        role: sessionUser.role,
-      },
+      viewer: sessionUser,
       students,
+      canManageSelected: canManage,
       selectedStudent,
       logs,
       phaseAudit,
@@ -66,10 +74,7 @@ export async function renderAddStudent(env: Env, url: URL, sessionUser: SessionU
 
   return htmlResponse(
     renderAddStudentPage({
-      viewer: {
-        name: sessionUser.name,
-        role: sessionUser.role,
-      },
+      viewer: sessionUser,
       dashboardLanes,
       notice,
       error,
@@ -81,7 +86,7 @@ export async function renderAddStudent(env: Env, url: URL, sessionUser: SessionU
 export async function renderStudentPanelPartial(env: Env, url: URL, studentId: number, sessionUser: SessionUser): Promise<Response> {
   const filters = getDashboardFilters(url.searchParams);
   const [selectedStudent, dashboardLanes] = await Promise.all([
-    getStudentById(env.DB, studentId, filters.scope === "archived" ? { onlyArchived: true } : {}),
+    getStudentById(env.DB, studentId, { onlyArchived: filters.scope === "archived", userId: sessionUser.id }),
     resolveDashboardLanesForApp(env),
   ]);
 
@@ -89,11 +94,11 @@ export async function renderStudentPanelPartial(env: Env, url: URL, studentId: n
     return htmlFragmentResponse(renderEmptySelectedPanel("Student not found."), 404);
   }
 
-  const logs = await listLogsForStudent(env.DB, studentId);
-  const phaseAudit = await listPhaseAuditEntriesForStudent(env.DB, studentId);
+  const { logs, phaseAudit, canManage } = await getWorkspaceHistory(env, studentId, sessionUser);
   return htmlFragmentResponse(
     renderSelectedStudentPanel(selectedStudent, logs, phaseAudit, {
-      canEdit: sessionUser.role !== "readonly",
+      canEdit: sessionUser.role === "editor",
+      canManage,
       dashboardLanes,
       filters,
       timeZone: DEFAULT_TIME_ZONE,

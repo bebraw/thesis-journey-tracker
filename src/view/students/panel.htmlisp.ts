@@ -12,6 +12,7 @@ import { renderStudentFormFields } from "./form-fields";
 
 interface StudentPanelOptions {
   canEdit?: boolean;
+  canManage?: boolean;
   dashboardLanes?: DashboardLaneDefinition[];
   filters?: DashboardFilters;
   timeZone?: string;
@@ -56,7 +57,7 @@ export function renderSelectedStudentPanel(
   phaseAudit: PhaseAuditEntry[],
   options: StudentPanelOptions = {},
 ): string {
-  const { canEdit = true, dashboardLanes = [], filters, timeZone } = options;
+  const { canEdit = true, canManage = false, dashboardLanes = [], filters, timeZone } = options;
   const editable = canEdit && !student.archivedAt;
   const params = new URLSearchParams({ selected: String(student.id) });
   if (filters) {
@@ -189,7 +190,7 @@ export function renderSelectedStudentPanel(
         ),
       )
       .join("") || '<p class="text-sm">No phase changes recorded yet.</p>';
-  const archiveAction = canEdit
+  const archiveAction = canManage
     ? renderView(
         `<form &action="action" method="post" &data-confirm-message="confirmMessage">
       <fragment &children="hiddenReturn"></fragment><fragment &children="button"></fragment>
@@ -231,7 +232,7 @@ export function renderSelectedStudentPanel(
         <fragment &children="details"></fragment>
         <fragment &children="earlierNotes"></fragment>
         <fragment &children="phaseHistory"></fragment>
-        <fragment &visibleIf="canEdit" &children="recordActions"></fragment>
+        <fragment &visibleIf="canManage" &children="recordActions"></fragment>
       </div>
     </article>`,
     {
@@ -245,7 +246,7 @@ export function renderSelectedStudentPanel(
       archiveDate: student.archivedAt ? `Archived ${formatDateTime(student.archivedAt, timeZone)}` : "",
       readonly: !canEdit,
       editable,
-      canEdit,
+      canManage,
       close: raw(
         renderButton({
           label: "Close",
@@ -267,7 +268,13 @@ export function renderSelectedStudentPanel(
         ),
       ),
       phaseHistory: raw(disclosure(`Phase history (${phaseAudit.length})`, audit)),
-      recordActions: raw(disclosure("Record actions", archiveAction)),
+      recordActions: raw(
+        disclosure(
+          "Record actions",
+          renderButton({ label: "Manage advisors", href: `/access?studentId=${student.id}`, variant: "neutral", className: "mb-3" }) +
+            archiveAction,
+        ),
+      ),
     },
   );
 }

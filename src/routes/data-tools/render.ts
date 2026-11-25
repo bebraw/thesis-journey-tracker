@@ -11,14 +11,19 @@ export async function renderDataTools(url: URL, env: Env, sessionUser: SessionUs
   const error = url.searchParams.get("error");
   const students = await listStudents(env.DB, { includeArchived: true });
   const logCount = students.reduce((total, student) => total + student.logCount, 0);
-  const [storedDashboardLanes, dashboardLanes] = await Promise.all([getStoredDashboardLaneConfig(env), resolveDashboardLanesForApp(env)]);
+  const [storedDashboardLanes, dashboardLanes, supervisors] = await Promise.all([
+    getStoredDashboardLaneConfig(env),
+    resolveDashboardLanesForApp(env),
+    env.DB.prepare("SELECT id, name FROM app_users WHERE can_supervise = 1 AND role = 'editor' AND disabled_at IS NULL ORDER BY name").all<{
+      id: number;
+      name: string;
+    }>(),
+  ]);
 
   return htmlResponse(
     renderDataToolsPage({
-      viewer: {
-        name: sessionUser.name,
-        role: sessionUser.role,
-      },
+      viewer: sessionUser,
+      supervisors: supervisors.results,
       notice,
       error,
       studentCount: students.length,

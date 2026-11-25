@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
+import { isUsernameAvailable, parseUsername, usernameDirectorySql } from "../src/auth/username.ts";
 
 const DEFAULT_DATABASE_NAME = "thesis_tracker_db";
 const PASSWORD_HASH_ITERATIONS = 100_000;
@@ -28,33 +29,24 @@ async function main() {
     printUsage(console.log);
     return 0;
   }
-  if (!args.name || !args.role) {
-    printUsage(console.error);
-    return 1;
-  }
-  if (!["editor", "readonly"].includes(args.role)) {
-    throw new Error('Role must be either "editor" or "readonly".');
-  }
-  if (args.local && args.remote) {
-    throw new Error("Choose either --local or --remote, not both.");
-  }
-
-  const name = args.name.trim();
-  if (!name || [...name].length > 100) {
-    throw new Error("Account names must contain between 1 and 100 characters.");
-  }
-
   const password = args.passwordStdin ? readPasswordFromStdin() : await promptForPassword();
   validatePassword(password);
-
   const passwordHash = createPasswordHash(password);
-  const sql = buildUpsertSql({ name, passwordHash, role: args.role });
-  return executeWranglerSql(sql, args);
+  let sql;
+  if (args.resetPassword) {
+    sql = buildPasswordResetSql(args.id, passwordHash);
+  } else {
+    const directory = runWrangler(args, ["--command", `SELECT ${usernameDirectorySql} AS directory`]).results[0].directory;
+    sql = buildCreateSql(args, passwordHash, directory);
+  }
+  executeWranglerSql(sql, args);
+  console.log(args.resetPassword ? `Password reset for account #${args.id}.` : "Account created.");
+  return 0;
 }
 
 export function parseArgs(argv) {
-  const args = {};
-  for (let index = 0; index < argv.length; index += 1) {
+  const args = { resetPassword: argv[0] === "reset-password" };
+  for (let index = args.resetPassword ? 1 : 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--help") {
       args.help = true;
@@ -64,7 +56,7 @@ export function parseArgs(argv) {
       args.remote = true;
     } else if (arg === "--password-stdin") {
       args.passwordStdin = true;
-    } else if (["--name", "--role", "--database", "--persist-to", "--env-file"].includes(arg)) {
+    } else if (["--name", "--role", "--id", "--database", "--persist-to", "--env-file"].includes(arg)) {
       const value = argv[index + 1];
       if (!value) {
         throw new Error(`${arg} requires a value.`);
@@ -72,6 +64,7 @@ export function parseArgs(argv) {
       const key = {
         "--name": "name",
         "--role": "role",
+        "--id": "id",
         "--database": "database",
         "--persist-to": "persistTo",
         "--env-file": "envFile",
@@ -81,6 +74,18 @@ export function parseArgs(argv) {
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
+  }
+  if (args.help) return args;
+  if (args.local && args.remote) throw new Error("Choose either --local or --remote.");
+  if (args.resetPassword) {
+    if (args.name || args.role || !/^[1-9]\d*$/.test(args.id ?? "") || !Number.isSafeInteger(Number(args.id))) {
+      throw new Error("Reset a password using --id with the verified numeric account ID. Omit --name and --role.");
+    }
+    args.id = Number(args.id);
+  } else {
+    args.name = parseUsername(args.name);
+    if (!args.name || args.id) throw new Error("Create an account using --name with a single-line name of 1 to 100 characters and --role.");
+    if (!["editor", "readonly"].includes(args.role)) throw new Error('Role must be either "editor" or "readonly".');
   }
   return args;
 }
@@ -103,38 +108,52 @@ export function createPasswordHash(password) {
   return `pbkdf2_sha256$${PASSWORD_HASH_ITERATIONS}$${salt.toString("base64")}$${hash.toString("base64")}`;
 }
 
-export function buildUpsertSql(user) {
+export function buildCreateSql({ name, role }, passwordHash, directory) {
+  if (!isUsernameAvailable(directory, name)) throw new Error("This account name is already in use.");
+  // A concurrent directory change makes the required name NULL and aborts the insert.
   return `INSERT INTO app_users (name, password_hash, role)
-VALUES ('${escapeSql(user.name)}', '${escapeSql(user.passwordHash)}', '${escapeSql(user.role)}')
-ON CONFLICT(name) DO UPDATE SET
-  password_hash = excluded.password_hash,
-  role = excluded.role,
-  session_version = app_users.session_version + 1;`;
+VALUES ((SELECT '${escapeSql(name)}' WHERE ${usernameDirectorySql} = '${escapeSql(directory)}'),
+  '${escapeSql(passwordHash)}', '${escapeSql(role)}') RETURNING id;`;
+}
+
+export function buildPasswordResetSql(id, passwordHash) {
+  return `UPDATE app_users SET password_hash = '${escapeSql(passwordHash)}', session_version = session_version + 1
+WHERE id = ${id} RETURNING id;`;
 }
 
 export function executeWranglerSql(sql, args, options = {}) {
-  const spawn = options.spawn || spawnSync;
   const temporaryRoot = mkdtempSync(join(options.tempRoot || tmpdir(), "thesis-auth-"));
-  const sqlPath = join(temporaryRoot, "upsert-auth-user.sql");
+  const sqlPath = join(temporaryRoot, "account.sql");
   writeFileSync(sqlPath, `${sql}\n`, { encoding: "utf8", mode: 0o600, flag: "wx" });
 
   try {
-    const wranglerArgs = ["wrangler", "d1", "execute", args.database || DEFAULT_DATABASE_NAME];
-    wranglerArgs.push(args.remote ? "--remote" : "--local");
-    if (args.persistTo) {
-      wranglerArgs.push("--persist-to", args.persistTo);
-    }
-    if (args.envFile) {
-      wranglerArgs.push("--env-file", args.envFile);
-    }
-    wranglerArgs.push("--file", sqlPath);
-
-    const command = process.platform === "win32" ? "npx.cmd" : "npx";
-    const result = spawn(command, wranglerArgs, { stdio: "inherit" });
-    return result.status ?? 1;
+    const result = runWrangler(args, ["--file", sqlPath], options.spawn);
+    // Remote file execution returns aggregate import metadata. Local execution returns rows.
+    const changed = args.remote ? result.meta?.rows_written > 0 : result.results?.length === 1;
+    if (!changed) throw new Error("No account was updated. Verify the account ID and target database.");
   } finally {
     rmSync(temporaryRoot, { force: true, recursive: true });
   }
+}
+
+function runWrangler(args, inputArgs, spawn = spawnSync) {
+  const wranglerArgs = [
+    "wrangler",
+    "d1",
+    "execute",
+    args.database || DEFAULT_DATABASE_NAME,
+    args.remote ? "--remote" : "--local",
+    "--json",
+  ];
+  if (args.persistTo) wranglerArgs.push("--persist-to", args.persistTo);
+  if (args.envFile) wranglerArgs.push("--env-file", args.envFile);
+  const command = process.platform === "win32" ? "npx.cmd" : "npx";
+  const result = spawn(command, [...wranglerArgs, ...inputArgs], { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error("Wrangler could not execute the account operation. Check the database and retry.");
+  const [statement] = JSON.parse(result.stdout);
+  if (!statement?.success) throw new Error("Wrangler could not confirm the account operation.");
+  return statement;
 }
 
 function readPasswordFromStdin() {
@@ -206,11 +225,13 @@ function printUsage(output) {
   output(`Usage:
   npm run account:create -- --name "Advisor" --role editor
   npm run account:create -- --name "Professor" --role readonly --remote
+  npm run account:reset-password -- --id 12
   secret-manager-command | npm run account:create -- --name "Automation" --role editor --password-stdin
 
 Options:
   --name            Account display name
   --role            editor or readonly
+  --id              Verified account ID for a password reset
   --remote          Write to the remote D1 database instead of local
   --password-stdin  Read one password line from standard input for automation
   --database        Override the D1 database name

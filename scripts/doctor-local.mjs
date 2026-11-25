@@ -8,6 +8,7 @@ const REQUIRED_TABLES = [
   "meeting_logs",
   "student_phase_audit",
   "app_users",
+  "thesis_assignments",
   "login_attempts",
   "app_secrets",
 ];
@@ -145,7 +146,7 @@ function checkLocalDatabase() {
     "--local",
     "--json",
     "--command",
-    "SELECT COUNT(*) AS count FROM app_users;",
+    "SELECT COUNT(*) AS count, SUM(is_admin) AS admins FROM app_users WHERE disabled_at IS NULL;",
   ]);
 
   if (!userRows.ok) {
@@ -162,6 +163,11 @@ function checkLocalDatabase() {
   }
 
   console.log(`ok local D1 has ${count} login account${count === 1 ? "" : "s"}`);
+  if (!Number(userRows.rows[0]?.admins)) {
+    console.log(
+      "No active administrator. Follow the first-administrator steps in docs/setup.md, choosing the intended local account by ID.",
+    );
+  }
   return false;
 }
 
@@ -202,7 +208,10 @@ function parseEnvFile(contents) {
       continue;
     }
     const key = trimmed.slice(0, separator).trim();
-    const value = trimmed.slice(separator + 1).trim().replace(/^['"]|['"]$/g, "");
+    const value = trimmed
+      .slice(separator + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, "");
     values[key] = value;
   }
   return values;

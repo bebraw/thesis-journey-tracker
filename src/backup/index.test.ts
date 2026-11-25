@@ -20,7 +20,7 @@ describe("automated backups", () => {
     const db = new MockD1Database();
     const bucket = new MockR2Bucket();
 
-    db.meetingLogs.push({
+    db.seedRow("meeting_logs", {
       id: 1,
       student_id: 1,
       happened_at: "2026-03-22T09:00:00.000Z",
@@ -28,7 +28,7 @@ describe("automated backups", () => {
       agreed_plan: "Write chapter 1",
       next_step_deadline: "2026-03-29",
     });
-    db.phaseAuditEntries.push({
+    db.seedRow("student_phase_audit", {
       id: 1,
       student_id: 1,
       changed_at: "2026-03-21T12:00:00.000Z",
@@ -167,6 +167,19 @@ describe("automated backups", () => {
     expect(bucket.objects).toHaveLength(6);
   });
 
+  it("backs up a team change even when thesis content remains unchanged", async () => {
+    const db = new MockD1Database();
+    const bucket = new MockR2Bucket();
+    const id = db.seedRow("app_users", { name: "Lead", password_hash: "sample", role: "editor", can_supervise: 1 });
+    const first = await runAutomatedBackup(db, bucket, { cron: "30 1 * * *", timestamp: new Date("2026-03-23T01:30:00Z") });
+    db.seedRow("thesis_assignments", { student_id: 1, user_id: id, assignment_role: "supervisor" });
+    const next = await runAutomatedBackup(db, bucket, { cron: "30 1 * * *", timestamp: new Date("2026-03-24T01:30:00Z") });
+    expect(next.skipped).toBe(false);
+    expect(next.contentHash).not.toBe(first.contentHash);
+    const json = bucket.objects.find(({ key }) => key === next.manifest?.artifacts.jsonExportKey);
+    expect(JSON.parse(json!.value).students[0].assignments).toEqual([{ userId: id, name: "Lead", role: "supervisor" }]);
+  });
+
   it("creates a new backup when the exported data changes", async () => {
     const db = new MockD1Database();
     const bucket = new MockR2Bucket();
@@ -177,7 +190,7 @@ describe("automated backups", () => {
       timestamp: new Date("2026-03-23T01:30:00.000Z"),
     });
 
-    db.meetingLogs.push({
+    db.seedRow("meeting_logs", {
       id: 1,
       student_id: 1,
       happened_at: "2026-03-24T08:00:00.000Z",

@@ -5,7 +5,7 @@ import {
   createDataExport,
   createProfessorStatusReport,
 } from "../data-transfer";
-import { collectStudentBackupBundles, createDataExportContentHash } from "./data";
+import { collectStudentBackup, createDataExportContentHash } from "./data";
 import {
   BACKUP_MANIFEST_FILENAME,
   buildAutomatedBackupPrefix,
@@ -26,9 +26,9 @@ export async function runAutomatedBackup(
   },
 ): Promise<AutomatedBackupResult> {
   const timestamp = options.timestamp || new Date();
-  const studentBundles = await collectStudentBackupBundles(db);
+  const { bundles: studentBundles, installationId } = await collectStudentBackup(db);
   const exportedAt = timestamp.toISOString();
-  const dataExport = createDataExport(studentBundles);
+  const dataExport = createDataExport(studentBundles, installationId);
   dataExport.exportedAt = exportedAt;
   const contentHash = await createDataExportContentHash(dataExport);
   const normalizedPrefix = normalizeBackupPrefix(options.backupPrefix);
