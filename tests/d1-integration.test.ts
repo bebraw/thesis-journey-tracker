@@ -17,6 +17,7 @@ import {
   createMeetingLogWithNextMeeting,
   createPhaseAuditEntry,
   createStudent,
+  deleteArchivedStudent,
   getStudentById,
   listLogsForStudent,
   listPhaseAuditEntriesForStudent,
@@ -462,6 +463,43 @@ describe("D1-backed db helpers", () => {
       currentPhase: "editing",
     });
     expect(await listPhaseAuditEntriesForStudent(db, assigned, 1)).toHaveLength(1);
+  });
+
+  it("lets only the assigned supervisor permanently delete an archived student and its related records", async () => {
+    const db = platform.env.DB;
+    await runStatement(
+      db,
+      `INSERT INTO app_users (id, name, password_hash, role, can_supervise) VALUES
+      (1, 'Lead', '', 'editor', 1), (2, 'Other lead', '', 'editor', 1), (3, 'Advisor', '', 'editor', 1)`,
+    );
+    await runStatement(
+      db,
+      `INSERT INTO students (id, name, current_phase) VALUES
+      (1, 'Same name', 'editing'), (2, 'Same name', 'editing')`,
+    );
+    await runStatement(db, "INSERT INTO thesis_assignments VALUES (1,1,'supervisor'), (2,1,'supervisor'), (2,3,'advisor')");
+    await runStatement(
+      db,
+      `INSERT INTO meeting_logs (student_id, happened_at, discussed, agreed_plan) VALUES
+      (1, '2026-11-20', 'Draft', 'Revise'), (2, '2026-11-21', 'Plan', 'Outline')`,
+    );
+    await runStatement(
+      db,
+      `INSERT INTO student_phase_audit (student_id, changed_at, from_phase, to_phase) VALUES
+      (1, '2026-11-20', 'researching', 'editing'), (2, '2026-11-21', 'researching', 'editing')`,
+    );
+
+    expect(await deleteArchivedStudent(db, 2, 1)).toBe(false);
+    await archiveStudent(db, 2, "2026-11-22", 1);
+    expect(await deleteArchivedStudent(db, 2, 2)).toBe(false);
+    expect(await deleteArchivedStudent(db, 2, 3)).toBe(false);
+    expect(await deleteArchivedStudent(db, 2, 1)).toBe(true);
+    expect(await deleteArchivedStudent(db, 2, 1)).toBe(false);
+
+    expect((await listStudents(db, { includeArchived: true })).map((student) => student.id)).toEqual([1]);
+    for (const table of ["meeting_logs", "student_phase_audit", "thesis_assignments"]) {
+      expect((await db.prepare(`SELECT student_id FROM ${table}`).all()).results).toEqual([{ student_id: 1 }]);
+    }
   });
 
   it("keeps self-service and administrator name changes unique under concurrent Unicode-equivalent writes", async () => {

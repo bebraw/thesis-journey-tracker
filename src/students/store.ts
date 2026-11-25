@@ -285,6 +285,17 @@ export async function restoreStudent(db: D1Database, studentId: number, userId?:
   requireD1ReturnedId(result, "Restoring student");
 }
 
+export async function deleteArchivedStudent(db: D1Database, studentId: number, userId: number): Promise<boolean> {
+  const result = await db
+    .prepare(
+      `DELETE FROM students WHERE id = ? AND archived_at IS NOT NULL${assignmentFilter(userId, "students.id", "manage")} RETURNING id`,
+    )
+    .bind(studentId, userId)
+    .run();
+  requireD1MutationSuccess(result, "Deleting archived student");
+  return Boolean(result.results?.length);
+}
+
 export async function deleteAllStudents(db: D1Database): Promise<void> {
   const result = await db.prepare("DELETE FROM students").run();
   requireD1MutationSuccess(result, "Deleting all students");

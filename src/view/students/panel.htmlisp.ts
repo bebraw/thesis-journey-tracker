@@ -51,6 +51,48 @@ function disclosure(label: string, content: string, attrs = ""): string {
   });
 }
 
+function renderRecordActions(student: Student, hiddenReturn: string): string {
+  function actionForm(action: "archive" | "restore" | "delete", label: string, confirmMessage: string): string {
+    return renderView(
+      `<form &action="action" method="post" class="grid" &data-confirm-message="confirmMessage">
+        <fragment &children="hiddenReturn"></fragment><fragment &children="button"></fragment>
+      </form>`,
+      {
+        action: `/actions/${action}-student/${student.id}`,
+        confirmMessage,
+        hiddenReturn: raw(hiddenReturn),
+        button: raw(renderButton({ label, type: "submit", variant: action === "delete" ? "dangerBlock" : "neutral" })),
+      },
+    );
+  }
+
+  const actions = renderView(
+    `<div class="grid justify-items-start gap-2">
+      <fragment &children="manageAdvisors"></fragment>
+      <fragment &children="archiveOrRestore"></fragment>
+      <fragment &children="deleteStudent"></fragment>
+    </div>`,
+    {
+      manageAdvisors: raw(renderButton({ label: "Manage advisors", href: `/access?studentId=${student.id}`, variant: "neutral" })),
+      archiveOrRestore: raw(
+        student.archivedAt
+          ? actionForm("restore", "Restore to active students", `Restore ${student.name} to active students?`)
+          : actionForm("archive", "Archive student", `Archive ${student.name}? Supervision history will be retained.`),
+      ),
+      deleteStudent: raw(
+        student.archivedAt
+          ? actionForm(
+              "delete",
+              "Permanently delete student",
+              `Permanently delete ${student.name} (record #${student.id}) and all supervision history for this record? This cannot be undone.`,
+            )
+          : "",
+      ),
+    },
+  );
+  return disclosure("Record actions", actions);
+}
+
 export function renderSelectedStudentPanel(
   student: Student,
   logs: MeetingLog[],
@@ -190,28 +232,6 @@ export function renderSelectedStudentPanel(
         ),
       )
       .join("") || '<p class="text-sm">No phase changes recorded yet.</p>';
-  const archiveAction = canManage
-    ? renderView(
-        `<form &action="action" method="post" &data-confirm-message="confirmMessage">
-      <fragment &children="hiddenReturn"></fragment><fragment &children="button"></fragment>
-    </form>`,
-        {
-          action: `/actions/${student.archivedAt ? "restore" : "archive"}-student/${student.id}`,
-          hiddenReturn: raw(hiddenReturn),
-          confirmMessage: student.archivedAt
-            ? `Restore ${student.name} to active students?`
-            : `Archive ${student.name}? Supervision history will be retained.`,
-          button: raw(
-            renderButton({
-              label: student.archivedAt ? "Restore to active students" : "Archive student",
-              type: "submit",
-              variant: "neutral",
-            }),
-          ),
-        },
-      )
-    : "";
-
   return renderView(
     `<article class="space-y-3" &data-panel-student-id="studentId">
       <div class="back-to-students"><button type="button" data-back-to-students class="text-sm text-app-brand underline dark:text-app-brand-ring">← Back to students</button></div>
@@ -232,7 +252,7 @@ export function renderSelectedStudentPanel(
         <fragment &children="details"></fragment>
         <fragment &children="earlierNotes"></fragment>
         <fragment &children="phaseHistory"></fragment>
-        <fragment &visibleIf="canManage" &children="recordActions"></fragment>
+        <fragment &children="recordActions"></fragment>
       </div>
     </article>`,
     {
@@ -246,7 +266,6 @@ export function renderSelectedStudentPanel(
       archiveDate: student.archivedAt ? `Archived ${formatDateTime(student.archivedAt, timeZone)}` : "",
       readonly: !canEdit,
       editable,
-      canManage,
       close: raw(
         renderButton({
           label: "Close",
@@ -268,13 +287,7 @@ export function renderSelectedStudentPanel(
         ),
       ),
       phaseHistory: raw(disclosure(`Phase history (${phaseAudit.length})`, audit)),
-      recordActions: raw(
-        disclosure(
-          "Record actions",
-          renderButton({ label: "Manage advisors", href: `/access?studentId=${student.id}`, variant: "neutral", className: "mb-3" }) +
-            archiveAction,
-        ),
-      ),
+      recordActions: raw(canManage ? renderRecordActions(student, hiddenReturn) : ""),
     },
   );
 }

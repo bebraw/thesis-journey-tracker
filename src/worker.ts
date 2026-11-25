@@ -18,6 +18,7 @@ import {
   handleAddLog,
   handleAddStudent,
   handleArchiveStudent,
+  handleDeleteStudent,
   handleRestoreStudent,
   getDashboardReturnPath,
   handleUpdateStudent,
@@ -316,6 +317,13 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const readonlyResponse = ensureEditor(await getDashboardReturnPath(request));
     if (readonlyResponse) return readonlyResponse;
     return await handleRestoreStudent(request, env, Number(restoreMatch[1]), sessionUser);
+  }
+
+  const deleteMatch = pathname.match(/^\/actions\/delete-student\/(\d+)$/);
+  if (deleteMatch && request.method === "POST") {
+    const denied = supervisorOnly();
+    if (denied) return denied;
+    return await handleDeleteStudent(request, env, Number(deleteMatch[1]), sessionUser);
   }
 
   return new Response("Not found", { status: 404 });

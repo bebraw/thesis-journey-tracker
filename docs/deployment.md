@@ -166,7 +166,7 @@ For more detailed backup notes, see [backups.md](./backups.md).
 
 - App access is protected by signed session cookies and lightweight account roles.
 - Invalid logins update two HMAC-opaque throttling buckets: one for the attempted account name and one for the trusted Cloudflare client address. The fifth account failure or twentieth client failure rate-limits further invalid attempts for 15 minutes, while correct credentials are still verified and accepted so an attacker cannot lock out the account. A successful login clears its account bucket but preserves an active client throttle. Direct/local traffic shares one client bucket, and forwarded headers are ignored outside the Cloudflare request boundary.
-- Editors can update assigned active theses. Supervisors can create theses, assign advisors, and archive or restore theses they lead.
+- Editors can update assigned active theses. Supervisors can create theses, assign advisors, and archive or restore theses they lead. In the dashboard, the lead supervisor can also permanently delete an archived thesis and its supervision history.
 - Read-only accounts can review the history of assigned theses. Administrators manage accounts, lead transfers, app-wide settings and full-data backups. Administrative status alone gives no personal-dashboard assignments.
 - Sessions are stored in an `HttpOnly`, `Secure`, signed cookie.
 - Signed sessions expire after four hours and carry only an immutable account ID plus a database session version. Logout, password resets, rights changes in **Manage access**, and account removal invalidate previous browser sessions.

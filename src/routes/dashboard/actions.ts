@@ -12,6 +12,7 @@ import {
   archiveStudent,
   canManageStudent,
   createStudent,
+  deleteArchivedStudent,
   getStudentById,
   restoreStudent,
   updateStudent,
@@ -187,4 +188,16 @@ export async function handleRestoreStudent(request: Request, env: Env, studentId
   }
 
   return redirect("/?notice=Student+restored");
+}
+
+export async function handleDeleteStudent(request: Request, env: Env, studentId: number, user: SessionUser): Promise<Response> {
+  const returnPath = await getDashboardReturnPath(request);
+  try {
+    const deleted = await deleteArchivedStudent(env.DB, studentId, user.id);
+    if (!deleted) return redirect(appendDashboardMessage(returnPath, { error: "Archived student not found" }));
+  } catch (error) {
+    logError("student.delete_failed", error);
+    return redirect(appendDashboardMessage(returnPath, { selectedId: studentId, error: "Failed to delete archived student" }));
+  }
+  return redirect(appendDashboardMessage(returnPath, { notice: "Student permanently deleted" }));
 }

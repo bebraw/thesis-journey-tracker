@@ -102,7 +102,7 @@ describe("renderSelectedStudentPanel", () => {
     expect(html).not.toContain("<script>");
   });
 
-  it("renders archived students read-only with a restore action for editors", () => {
+  it("offers restore and permanent deletion to the archived student's lead supervisor", () => {
     const html = renderSelectedStudentPanel({ ...BASE_STUDENT, archivedAt: "2026-06-18T09:00:00.000Z" }, [], [], {
       canManage: true,
       filters: {
@@ -120,8 +120,18 @@ describe("renderSelectedStudentPanel", () => {
 
     expect(html).toContain("Archived 18 Jun 2026, 09:00 UTC");
     expect(html).toContain('action="/actions/restore-student/1"');
-    expect(html).toContain("Restore to active students");
+    expect(html).toContain('action="/actions/delete-student/1"');
     expect(html).not.toContain("Save student updates");
     expect(html).not.toContain("Save log entry");
+  });
+
+  it("hides archive management actions from an assigned advisor", () => {
+    const html = renderSelectedStudentPanel({ ...BASE_STUDENT, archivedAt: "2026-06-18T09:00:00.000Z" }, [], [], {
+      canEdit: true,
+      canManage: false,
+    });
+
+    expect(html).not.toContain("Record actions");
+    expect(html).not.toContain("/actions/delete-student/");
   });
 });

@@ -618,35 +618,56 @@ test.describe("dashboard e2e", () => {
     expect(phaseAuditText.indexOf(finalPhaseTransitionText)).toBeLessThan(phaseAuditText.indexOf("Planning research → Editing"));
   });
 
-  test("can archive a student after confirmation", async ({ page }) => {
+  test("archives a student and permanently deletes the record only after confirmation", async ({ page }) => {
     await login(page);
 
-    await selectStudentFromTable(page, secondaryStudentName);
+    const suffix = Date.now().toString();
+    const studentName = `Archived student ${suffix}`;
+    await addStudent(page, studentName, `archive-${suffix}@example.edu`);
+    const studentId = new URL(page.url()).searchParams.get("selected");
     await showStudentPanel(page);
 
-    const dialogPromise = page.waitForEvent("dialog");
-    await page
-      .locator("#selectedStudentPanel")
-      .locator("form[action^='/actions/archive-student/']")
-      .evaluate((form: HTMLFormElement) => {
-        window.setTimeout(() => {
-          form.requestSubmit();
-        }, 0);
-      });
-
-    const dialog = await dialogPromise;
-    expect(dialog.message()).toContain(`Archive ${secondaryStudentName}?`);
-    await dialog.accept();
+    const panel = page.locator("#selectedStudentPanel");
+    const actionsSummary = panel.getByText("Record actions", { exact: true });
+    const deleteButton = panel.getByRole("button", { name: "Permanently delete student" });
+    await actionsSummary.click();
+    await expect(deleteButton).toHaveCount(0);
+    const archivePrompt = page.waitForEvent("dialog").then(async (dialog) => {
+      await dialog.accept();
+      return dialog.message();
+    });
+    await panel.getByRole("button", { name: "Archive student" }).click();
+    expect(await archivePrompt).toContain(`Archive ${studentName}?`);
 
     await expect(page.locator("[data-dashboard-toast='1']")).toContainText("Student archived");
     await expect.poll(() => new URL(page.url()).searchParams.get("notice")).toBeNull();
     await expect.poll(() => new URL(page.url()).searchParams.get("scope")).toBe("archived");
     await expect(page.getByRole("heading", { name: "Archived students" })).toBeVisible();
-    await page.locator("#studentSearch").fill(secondaryStudentName);
-    await expect(page.locator("[data-student-row]", { hasText: secondaryStudentName })).toHaveCount(1);
-    await expect(page.locator("#selectedStudentPanel")).toContainText(
-      "Select a student from the table to edit details and view/add supervision logs.",
-    );
+    await expect(panel).toContainText("Select a student from the table to edit details and view/add supervision logs.");
+    await selectStudentFromTable(page, studentName);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await actionsSummary.click();
+    const manage = await panel.getByRole("link", { name: "Manage advisors" }).boundingBox();
+    const restore = await panel.getByRole("button", { name: "Restore to active students" }).boundingBox();
+    const remove = await deleteButton.boundingBox();
+    expect(restore!.y).toBeGreaterThan(manage!.y + manage!.height);
+    expect(remove!.y).toBeGreaterThan(restore!.y + restore!.height);
+
+    const deletionPrompt = page.waitForEvent("dialog").then(async (dialog) => {
+      await dialog.dismiss();
+      return dialog.message();
+    });
+    await deleteButton.click();
+    expect(await deletionPrompt).toContain(studentName);
+    const archivedPanelUrl = `/partials/student/${studentId}?scope=archived`;
+    expect((await page.request.get(archivedPanelUrl)).status()).toBe(200);
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await deleteButton.click();
+    await expect(page.getByRole("heading", { name: "Archived students" })).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.get("selected")).toBeNull();
+    await expect(page.locator("[data-mobile-student-card]", { hasText: studentName })).toHaveCount(0);
+    expect((await page.request.get(archivedPanelUrl)).status()).toBe(404);
   });
 
   test("keeps add log entry date fields inside the editing panel on narrow screens", async ({ page }) => {
